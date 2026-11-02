@@ -159,6 +159,11 @@ if has appimage; then
   cp "$HERE/$APP_ID.desktop" "$APPDIR/$APP_ID.desktop"
   cp "$ROOT/assets/app-icon/hicolor/256x256/apps/$APP_ID.png" "$APPDIR/$APP_ID.png"
   ln -s "$APP_ID.png" "$APPDIR/.DirIcon"
+  # appimagetool's own prescription (and the suite's fix-appimage lesson): every AppDir file
+  # readable and every directory enterable whatever the umask, and AppRun executable — a dir
+  # left at 0700 reads as "Permission denied" for the end user.
+  chmod -R a+rX "$APPDIR"
+  chmod a+rx "$APPDIR/AppRun"
 
   # Digests from the official GitHub release asset metadata:
   # https://github.com/AppImage/appimagetool/releases/tag/1.9.1
