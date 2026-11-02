@@ -57,6 +57,12 @@ jobs:
       - name: Testes
         env:
           LOCALPAINT_REQUIRE_WINRES: ${{ runner.os == 'Windows' && '1' || '' }}
+          # Hermetismo de impressão no CI (o upstream define o equivalente no CI deles):
+          # sem isso, os testes de print tocam o spooler real do runner — hang de minutos
+          # e access violation (0xc0000005) no caminho GDI do craft-print (Windows).
+          # O código espera isso: print_cmds.rs "LOCALPAINT_NO_PRINT ... for a whole shell (CI)".
+          LOCALPAINT_NO_PRINT: 1
+          LPDEST: localpaint-no-such-printer
         run: cargo test --locked
 
   arch:
