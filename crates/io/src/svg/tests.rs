@@ -316,7 +316,10 @@ fn a_single_path_clip_becomes_the_groups_vector_mask() {
     let icon = import_svg("localpaint.svg", include_bytes!("../../../../assets/app-icon/localpaint.svg")).unwrap();
     assert!(icon.warnings.iter().all(|w| !w.contains("clip-path")), "{:?}", icon.warnings);
     assert!(!icon.document.layers.is_empty(), "the icon opens with content");
-    assert!(icon.document.layers.iter().all(|l| !matches!(l.content, LayerContent::Raster(_))), "the icon opens as editable vectors, not a rasterised fallback");
+    assert!(
+        icon.document.layers.iter().all(|l| !matches!(l.content, LayerContent::Raster(_))),
+        "the icon opens as editable vectors, not a rasterised fallback"
+    );
     // Two shapes in the clip: rasterised, and said so.
     let two = br##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
             <defs><clipPath id="c"><rect width="20" height="20"/><rect x="30" width="20" height="20"/></clipPath></defs>
