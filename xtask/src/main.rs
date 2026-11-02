@@ -255,15 +255,45 @@ fn cmd_parity() -> Result<(), String> {
     run(c, "cargo run -p localpaint-ui-egui --example parity")
 }
 
+/// The workspace's own package names, for the `fmt` gate: the vendored trees under `libs/` and
+/// `assets/craft-fonts/` keep their origin formatting style, so they are never formatted here
+/// (the CI's per-file gate skips them for the same reason).
+fn workspace_packages() -> Result<Vec<String>, String> {
+    let out = cargo().args(["metadata", "--no-deps", "--format-version", "1"]).output().map_err(|e| format!("cargo metadata: failed to spawn: {e}"))?;
+    if !out.status.success() {
+        return Err(format!("cargo metadata: {}", String::from_utf8_lossy(&out.stderr).trim()));
+    }
+    let value: serde_json::Value = serde_json::from_slice(&out.stdout).map_err(|e| format!("cargo metadata: invalid JSON: {e}"))?;
+    let packages = value["packages"].as_array().ok_or("cargo metadata: no packages list")?;
+    let mut names: Vec<String> = Vec::with_capacity(packages.len());
+    for p in packages {
+        let name = p["name"].as_str().ok_or("cargo metadata: a package has no name")?;
+        names.push(name.to_owned());
+    }
+    if names.is_empty() {
+        return Err("cargo metadata: the workspace lists no packages".into());
+    }
+    Ok(names)
+}
+
 fn cmd_ci() -> Result<(), String> {
     type Step = (&'static str, Box<dyn Fn() -> Result<(), String>>);
     let steps: Vec<Step> = vec![
         (
             "fmt",
             Box::new(|| {
+                // `cargo fmt --all` also formats the local path dependencies under `libs/` (in
+                // their origin style) and walks the vendored craft-libs workspace, whose
+                // `crates/menu` manifest it cannot parse. Format the workspace's own packages
+                // only — the same scope as the CI's per-file gate.
+                let members = workspace_packages()?;
                 let mut c = cargo();
-                c.args(["fmt", "--all", "--", "--check"]);
-                run(c, "cargo fmt --all -- --check")
+                c.arg("fmt");
+                for name in &members {
+                    c.args(["-p", name]);
+                }
+                c.args(["--", "--check"]);
+                run(c, "cargo fmt -p <workspace packages> -- --check")
             }),
         ),
         (
