@@ -1,0 +1,9 @@
+LocalPaint portable mode
+
+While this file sits next to localpaint.exe, LocalPaint keeps its preferences, brush presets,
+crash-recovery autosaves and startup state in the LocalPaintData folder beside it, and writes
+nothing to %APPDATA% or %LOCALAPPDATA%. Copy the whole folder to move LocalPaint with its settings.
+
+Delete this file to use the normal per-user folders instead: %APPDATA%\LocalPaint for settings
+and %LOCALAPPDATA%\LocalPaint\Recovery for crash-recovery autosaves. If LocalPaintData can't be
+written (for example on a read-only drive), LocalPaint says so and uses those folders instead.

@@ -1,0 +1,33 @@
+# Maintainer: Anon5T4R <https://github.com/Anon5T4R>
+pkgname=localpaint
+pkgver=0.19.0
+pkgrel=1
+pkgdesc="Editor de imagem local e open-source, escrito em Rust puro"
+arch=('x86_64' 'aarch64')
+url="https://github.com/Anon5T4R/Local-Paint"
+license=('MIT' 'Apache-2.0')
+depends=('glibc' 'gcc-libs' 'vulkan-driver' 'libxkbcommon')
+makedepends=('rust' 'clang' 'lld')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+options=('!lto')
+
+build() {
+  cd "$pkgname-$pkgver"
+  cargo build --locked --release -p localpaint -p localpaint-cli --features heif
+}
+
+check() {
+  cd "$pkgname-$pkgver"
+  cargo test --locked --release -p localpaint -p localpaint-cli
+}
+
+package() {
+  cd "$pkgname-$pkgver"
+  install -Dm755 target/release/localpaint "$pkgdir/usr/bin/localpaint"
+  install -Dm755 target/release/localpaint-cli "$pkgdir/usr/bin/localpaint-cli"
+  install -Dm644 packaging/linux/com.localpaint.app.desktop \
+    "$pkgdir/usr/share/applications/com.localpaint.app.desktop"
+  install -Dm644 assets/app-icon/hicolor/scalable/apps/com.localpaint.app.svg \
+    "$pkgdir/usr/share/icons/hicolor/scalable/apps/com.localpaint.app.svg"
+}

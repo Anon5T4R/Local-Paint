@@ -1,0 +1,207 @@
+[workspace]
+resolver = "3"
+members = ["crates/*", "apps/*", "xtask"]
+exclude = ["libs"]
+default-members = ["crates/*", "apps/localpaint", "apps/localpaint-cli", "xtask"]
+
+[workspace.package]
+version = "0.19.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+rust-version = "1.95"
+repository = "https://github.com/Anon5T4R/Local-Paint"
+
+[workspace.dependencies]
+craft-ui = { path = "libs/craft-libs/crates/ui/", features = ["serde"] }
+# internal
+localpaint-geom = { path = "crates/geom", version = "0.19.0" }
+localpaint-color = { path = "crates/color", version = "0.19.0" }
+localpaint-cms = { path = "crates/cms", version = "0.19.0" }
+localpaint-raster = { path = "crates/raster", version = "0.19.0" }
+localpaint-doc = { path = "crates/doc", version = "0.19.0" }
+localpaint-ops = { path = "crates/ops", version = "0.19.0" }
+localpaint-psd = { path = "crates/psd", version = "0.19.0" }
+localpaint-codecs = { path = "crates/codecs", version = "0.19.0" }
+localpaint-raw = { path = "crates/raw", version = "0.19.0" }
+localpaint-affinity = { path = "crates/affinity", version = "0.19.0" }
+localpaint-compose = { path = "crates/compose", version = "0.19.0" }
+localpaint-gpu = { path = "crates/gpu", version = "0.19.0" }
+localpaint-paint = { path = "crates/paint", version = "0.19.0" }
+localpaint-algo = { path = "crates/algo", version = "0.19.0" }
+localpaint-io = { path = "crates/io", version = "0.19.0" }
+localpaint-text = { path = "crates/text", version = "0.19.0" }
+localpaint-vector = { path = "crates/vector", version = "0.19.0" }
+localpaint-format = { path = "crates/format", version = "0.19.0" }
+localpaint-automation = { path = "crates/automation", version = "0.19.0" }
+localpaint-plugins = { path = "crates/plugins", version = "0.19.0" }
+localpaint-engine = { path = "crates/engine", version = "0.19.0" }
+localpaint-ui-egui = { path = "crates/ui-egui", version = "0.19.0" }
+localpaint-testkit = { path = "crates/testkit", version = "0.19.0" }
+localpaint-tablet = { path = "crates/tablet", version = "0.19.0" }
+localpaint-ipp = { path = "crates/ipp", version = "0.19.0" }
+
+# external
+craft-print = { path = "libs/craft-libs/crates/print/" }
+craft-docpath = { version = "0.1.0", path = "libs/craft-libs/crates/docpath/" }
+craft-jpeg = { path = "libs/craft-libs/crates/jpeg/" }
+# craft-update: app-specific pretend versions apply to startup and manual checks.
+craft-update = { version = "=0.1.0", path = "libs/craft-libs/crates/update/", features = ["egui"] }
+thiserror = "2"
+serde = { version = "1", features = ["derive", "rc"] }
+serde_json = "1"
+clap = { version = "4", features = ["derive", "env"] }
+clap_complete = "4.6.11"
+clap_mangen = { version = "0.3.3", features = ["env"] }
+arc-swap = "1"
+bytemuck = { version = "1", features = ["derive"] }
+flate2 = { version = "1.1.10", default-features = false, features = ["zlib-rs", "runtime_detection"] }
+encoding_rs = { version = "0.8", default-features = false, features = ["alloc"] }
+image = { version = "0.25", default-features = false }
+# Baseline-JPEG decode of lossy DNG tiles (compression 34892), shared with zune-jpeg.
+zune-core = "0.5"
+zune-jpeg = "0.5"
+proptest = "1"
+eframe = { version = "0.37", default-features = false }
+# Without `default_fonts`, which embeds egui's fonts uncompressed: ui-egui ships them deflated
+# (egui_fonts.rs; the web build's size gate).
+egui = { version = "0.37", default-features = false }
+egui_kittest = "0.37"
+rfd = "0.17"
+log = "0.4"
+# All date/time conversion goes through chrono (no hand-rolled calendar code beyond the 400-year range extension; AGENTS.md).
+chrono = { version = "0.4.45", default-features = false, features = ["std"] }
+rayon = "1"
+rustc-hash = "2.1.3"
+criterion = { version = "0.8", default-features = false }
+getrandom = "0.3"
+# Monotonic clock on native and wasm (screenshot deadlines: a wall clock can jump).
+web-time = "1"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+cognitive_complexity = "deny"
+too_many_arguments = "deny"
+wildcard_imports = "deny"
+dbg_macro = "warn"
+todo = "warn"
+
+# Dependencies carry no debug info: their frames in a backtrace lose file:line, and the target dir
+# and link times shrink. The test profile inherits both settings.
+[profile.dev.package."*"]
+opt-level = 2
+debug = false
+
+[profile.dev]
+opt-level = 1
+# Line tables keep file:line in panic backtraces but drop variable info, which roughly halves link
+# time and PDB size for the test binaries (#2204). CI's Windows legs build with no debuginfo at all
+# (CARGO_PROFILE_DEV_DEBUG=0). To inspect locals in a debugger, build with
+# CARGO_PROFILE_DEV_DEBUG=true.
+debug = "line-tables-only"
+
+# Test builds compile ui-egui without optimization: its library and unit tests were the biggest
+# test-build units after engine's (12.6 of ~63 compile minutes on the Windows CI runner), and its
+# tests run no heavier pixel code of their own (that lives in the crates that stay optimized).
+# Measured on CI: Windows build 18.9 -> 15.4 min, test run 10.0 -> 10.5. `cargo run` and
+# `cargo build` use the dev profile and are unaffected.
+[profile.test.package.localpaint-ui-egui]
+opt-level = 0
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
+# The browser build (apps/localpaint-web, `data-cargo-profile` in its index.html). Hosts cap the
+# size of a single file (Cloudflare Pages/Workers: 25 MiB), and the wasm is downloaded on every
+# visit, so this profile optimizes for size: fat LTO, opt-level "z" for LocalPaint's own crates,
+# "s" for dependencies and for the crates that decode files, and 3 for pixel processing (filters
+# and compositing). Dependencies stay at "s": at "z" the whole wasm grows (by 0.4 MB, measured).
+# panic stays the target default (wasm32-unknown-unknown aborts; AGENTS.md's `panic = "unwind"`
+# is for the native app shell). packaging/web/package.sh fails the build above 24 MiB.
+[profile.wasm-release]
+inherits = "release"
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+strip = "debuginfo"
+
+[profile.wasm-release.package."*"]
+opt-level = "s"
+
+# Decoding and rasterizing keep their speed.
+[profile.wasm-release.package.localpaint-codecs]
+opt-level = "s"
+[profile.wasm-release.package.localpaint-raw]
+opt-level = "s"
+[profile.wasm-release.package.localpaint-heif]
+opt-level = "s"
+[profile.wasm-release.package.localpaint-vector]
+opt-level = "s"
+
+# Large crates off the per-frame and per-pixel paths: the document model, file parsers run once
+# per open/save, JSON (settings, presets, control channel), SVG parsing, and shader translation
+# (runs when a pipeline is created). "z" keeps the wasm well under the size gate.
+[profile.wasm-release.package.localpaint-doc]
+opt-level = "z"
+[profile.wasm-release.package.localpaint-psd]
+opt-level = "z"
+[profile.wasm-release.package.localpaint-format]
+opt-level = "z"
+[profile.wasm-release.package.localpaint-affinity]
+opt-level = "z"
+[profile.wasm-release.package.serde_json]
+opt-level = "z"
+[profile.wasm-release.package.usvg]
+opt-level = "z"
+[profile.wasm-release.package.naga]
+opt-level = "z"
+
+# The browser UI toolkit favors size to stay within the WebAssembly upload budget.
+[profile.wasm-release.package.egui]
+opt-level = "z"
+[profile.wasm-release.package.epaint]
+opt-level = "z"
+[profile.wasm-release.package.eframe]
+opt-level = "z"
+
+# Pixel processing keeps its speed-oriented optimization level, with two exceptions.
+# Colour-management transforms are built once and cached (`transform::cached`), so "z" costs
+# little runtime. The browser app composites per frame on the GPU (`crates/gpu`, WebGPU/WebGL2),
+# so the CPU compositor is not the browser's hot path there; "z" for compose keeps the wasm
+# under the 24 MiB gate (measured −122 KB vs opt-level 3). algo's filters run per pixel on
+# every interactive filter application; "z" there is the size lever of last resort (−331 KB),
+# taken because the gate is enforced in CI: if browser filters feel too slow, restore 3 here
+# and reclaim the bytes from a feature-gated decoder instead.
+[profile.wasm-release.package.localpaint-raster]
+opt-level = 3
+[profile.wasm-release.package.localpaint-color]
+opt-level = 3
+[profile.wasm-release.package.localpaint-cms]
+opt-level = "z"
+[profile.wasm-release.package.localpaint-compose]
+opt-level = "z"
+[profile.wasm-release.package.localpaint-algo]
+opt-level = "z"
+[profile.wasm-release.package.localpaint-paint]
+opt-level = 3
+
+# The egui and winit crates resolve from the vendored forks under libs/ (path sources;
+# egui 6d518fc799681571963842f95b55a6b68431b15a, winit a517b3846ee8457d84ee4975110bfda6797c44dc).
+[patch.crates-io]
+ecolor = { path = "libs/egui/crates/ecolor/" }
+emath = { path = "libs/egui/crates/emath/" }
+epaint = { path = "libs/egui/crates/epaint/" }
+epaint_default_fonts = { path = "libs/egui/crates/epaint_default_fonts/" }
+egui = { path = "libs/egui/crates/egui/" }
+egui-winit = { path = "libs/egui/crates/egui-winit/" }
+egui-wgpu = { path = "libs/egui/crates/egui-wgpu/" }
+egui_glow = { path = "libs/egui/crates/egui_glow/" }
+egui_extras = { path = "libs/egui/crates/egui_extras/" }
+egui_kittest = { path = "libs/egui/crates/egui_kittest/" }
+egui_system_font_provider = { path = "libs/egui/crates/egui_system_font_provider/" }
+eframe = { path = "libs/egui/crates/eframe/" }
+egui_demo_lib = { path = "libs/egui/crates/egui_demo_lib/" }
+egui_inspection = { path = "libs/egui/crates/egui_inspection/" }
+winit = { path = "libs/winit/" }

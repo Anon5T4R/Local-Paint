@@ -1,0 +1,47 @@
+[package]
+name = "localpaint-cli"
+description = "Headless LocalPaint: convert, inspect, run commands, batch, MCP server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+build = "build.rs"
+
+[features]
+# Open HEIC/HEIF photos (the optional localpaint-heif crate). Not default so distributors choose
+# it; official builds (CI, packaging/, release) build with `--features heif`.
+heif = ["localpaint-codecs/heif"]
+
+[lints]
+workspace = true
+
+[lib]
+name = "localpaint_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "localpaint-cli"
+path = "src/main.rs"
+
+[dependencies]
+localpaint-automation = { path = "../../crates/automation" }
+localpaint-engine = { workspace = true }
+localpaint-io = { workspace = true }
+localpaint-format = { path = "../../crates/format" }
+localpaint-codecs = { workspace = true }
+clap = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+
+[dev-dependencies]
+# Synthetic camera raws (#7789).
+localpaint-raw = { workspace = true, features = ["testgen"] }
+# Shell completions and man pages (examples/man-and-completions.rs, for the packages); not in
+# the binary.
+clap_complete = { workspace = true }
+clap_mangen = { workspace = true }
+
+[build-dependencies]
+# Icon + VERSIONINFO for localpaint-cli.exe; build.rs only uses it when targeting Windows.
+winresource = "0.1"
+

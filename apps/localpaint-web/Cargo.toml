@@ -1,0 +1,42 @@
+[package]
+name = "localpaint-web"
+description = "LocalPaint in the browser (eframe web runner, WebGPU with WebGL2 fallback)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[features]
+# Open HEIC/HEIF photos (the optional localpaint-heif crate). Not default so distributors choose
+# it; official builds (CI, packaging/, release) build with `--features heif`.
+heif = ["localpaint-codecs/heif"]
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "localpaint-web"
+path = "src/main.rs"
+
+[dependencies]
+localpaint-engine = { workspace = true }
+localpaint-io = { workspace = true }
+localpaint-codecs = { workspace = true }
+localpaint-doc = { workspace = true }
+localpaint-ui-egui = { workspace = true }
+egui = { workspace = true }
+log = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# `wgpu` pulls egui-wgpu's defaults: WebGPU plus the WebGL2 fallback.
+eframe = { workspace = true, features = ["wgpu", "accesskit", "clipboard"] }
+rfd = { workspace = true }
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = ["Window", "Document", "Element", "HtmlElement", "HtmlCanvasElement", "DomRect", "HtmlAnchorElement", "Blob", "BlobPropertyBag", "Url", "Location", "CssStyleDeclaration", "Storage", "Event", "EventTarget", "MouseEvent", "PointerEvent", "BeforeUnloadEvent", "AbortController", "AbortSignal", "DomException", "Response", "IdbFactory", "IdbOpenDbRequest", "IdbDatabase", "IdbRequest", "IdbTransaction", "IdbTransactionMode", "IdbObjectStore", "IdbCursor", "IdbCursorWithValue", "RequestInit", "RequestMode", "Navigator"] }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+localpaint-paint = { workspace = true }
+localpaint-psd = { workspace = true }

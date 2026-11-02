@@ -1,0 +1,11 @@
+[package]
+name = "localpaint-ops"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+localpaint-doc = { workspace = true }
