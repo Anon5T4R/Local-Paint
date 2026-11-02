@@ -41,6 +41,11 @@ endpoint (Preferences › General disables it).
 | Arch Linux | `packaging/arch/PKGBUILD` |
 | macOS, FreeBSD, web (WebAssembly) | built by the scripts in `packaging/` |
 
+## Everything in the box
+
+<h4>🧰 68 tools</h4>
+Move · Artboard · Rectangular Marquee · Elliptical Marquee · Single Row Marquee · Single Column Marquee · Brush · Pencil · Mixer Brush · Color Replacement · Eraser · Background Eraser · Magic Eraser · Eyedropper · Color Sampler · Ruler · Note · Count · Lasso · Polygonal Lasso · Magnetic Lasso · Magic Wand · Crop · Perspective Crop · Slice · Slice Select · Frame · Gradient · Paint Bucket · Horizontal Type · Vertical Type · Horizontal Type Mask · Vertical Type Mask · Hand · Rotate View · Zoom · Remove · Spot Healing Brush · Healing Brush · Patch · Content-Aware Move · Red Eye · Clone Stamp · Pattern Stamp · History Brush · Art History Brush · Blur · Sharpen · Smudge · Dodge · Burn · Sponge · Quick Selection · Object Selection · Pen · Freeform Pen · Curvature Pen · Add Anchor Point · Delete Anchor Point · Convert Point · Path Selection · Direct Selection · Rectangle · Ellipse · Triangle · Polygon · Line · Custom Shape
+
 ## Build
 
 ```sh
