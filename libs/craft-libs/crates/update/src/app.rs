@@ -39,11 +39,7 @@ impl App {
     /// the fork's installers, desktop entry and metainfo all use it, and macOS
     /// self-update detection must match what `Info.plist` carries.
     pub fn bundle_id(&self) -> String {
-        if self.id == "localpaint" {
-            "com.localpaint.app".into()
-        } else {
-            format!("ai.storyteller.{}", self.id)
-        }
+        if self.id == "localpaint" { "com.localpaint.app".into() } else { format!("ai.storyteller.{}", self.id) }
     }
 
     pub fn releases_url(&self) -> String {
