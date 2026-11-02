@@ -14,31 +14,31 @@ repository = "https://github.com/Anon5T4R/Local-Paint"
 [workspace.dependencies]
 craft-ui = { path = "libs/craft-libs/crates/ui/", features = ["serde"] }
 # internal
-localpaint-geom = { path = "crates/geom", version = "0.19.0" }
-localpaint-color = { path = "crates/color", version = "0.19.0" }
-localpaint-cms = { path = "crates/cms", version = "0.19.0" }
-localpaint-raster = { path = "crates/raster", version = "0.19.0" }
-localpaint-doc = { path = "crates/doc", version = "0.19.0" }
-localpaint-ops = { path = "crates/ops", version = "0.19.0" }
-localpaint-psd = { path = "crates/psd", version = "0.19.0" }
-localpaint-codecs = { path = "crates/codecs", version = "0.19.0" }
-localpaint-raw = { path = "crates/raw", version = "0.19.0" }
-localpaint-affinity = { path = "crates/affinity", version = "0.19.0" }
-localpaint-compose = { path = "crates/compose", version = "0.19.0" }
-localpaint-gpu = { path = "crates/gpu", version = "0.19.0" }
-localpaint-paint = { path = "crates/paint", version = "0.19.0" }
-localpaint-algo = { path = "crates/algo", version = "0.19.0" }
-localpaint-io = { path = "crates/io", version = "0.19.0" }
-localpaint-text = { path = "crates/text", version = "0.19.0" }
-localpaint-vector = { path = "crates/vector", version = "0.19.0" }
-localpaint-format = { path = "crates/format", version = "0.19.0" }
-localpaint-automation = { path = "crates/automation", version = "0.19.0" }
-localpaint-plugins = { path = "crates/plugins", version = "0.19.0" }
-localpaint-engine = { path = "crates/engine", version = "0.19.0" }
-localpaint-ui-egui = { path = "crates/ui-egui", version = "0.19.0" }
-localpaint-testkit = { path = "crates/testkit", version = "0.19.0" }
-localpaint-tablet = { path = "crates/tablet", version = "0.19.0" }
-localpaint-ipp = { path = "crates/ipp", version = "0.19.0" }
+localpaint-geom = { path = "crates/geom" }
+localpaint-color = { path = "crates/color" }
+localpaint-cms = { path = "crates/cms" }
+localpaint-raster = { path = "crates/raster" }
+localpaint-doc = { path = "crates/doc" }
+localpaint-ops = { path = "crates/ops" }
+localpaint-psd = { path = "crates/psd" }
+localpaint-codecs = { path = "crates/codecs" }
+localpaint-raw = { path = "crates/raw" }
+localpaint-affinity = { path = "crates/affinity" }
+localpaint-compose = { path = "crates/compose" }
+localpaint-gpu = { path = "crates/gpu" }
+localpaint-paint = { path = "crates/paint" }
+localpaint-algo = { path = "crates/algo" }
+localpaint-io = { path = "crates/io" }
+localpaint-text = { path = "crates/text" }
+localpaint-vector = { path = "crates/vector" }
+localpaint-format = { path = "crates/format" }
+localpaint-automation = { path = "crates/automation" }
+localpaint-plugins = { path = "crates/plugins" }
+localpaint-engine = { path = "crates/engine" }
+localpaint-ui-egui = { path = "crates/ui-egui" }
+localpaint-testkit = { path = "crates/testkit" }
+localpaint-tablet = { path = "crates/tablet" }
+localpaint-ipp = { path = "crates/ipp" }
 
 # external
 craft-print = { path = "libs/craft-libs/crates/print/" }
