@@ -87,7 +87,7 @@ fn invoke_early_commands(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str,
     if let Some(result) = crate::panel_docking::command(app, id, params) {
         return Some(result);
     }
-    // Help › Discord, website, GitHub, Report an Issue.
+    // Help › website, GitHub, Report an Issue.
     if let Some(url) = crate::links::url_for(id) {
         return Some(Ok(crate::links::open(app, ctx, url)));
     }

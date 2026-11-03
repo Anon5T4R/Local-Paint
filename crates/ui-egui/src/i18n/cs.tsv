@@ -1220,7 +1220,6 @@
 	Diffusion	Difuze
 	Discard the embedded profile (don't color manage)	Zahodit vložený profil (bez správy barev)
 	Discontiguous	Nesouvislé
-	Discord	Discord
 	Dismiss	Zavřít
 	Display P3	Display P3
 	Display Text	Zobrazený text
@@ -1354,7 +1353,6 @@
 	Invert All	Invertovat vše
 	Invert has no settings.	Invertovat nemá žádná nastavení.
 	Italic	Kurzíva
-	Join us on Discord	Přidejte se k nám na Discordu
 	Justify all	Do bloku vše
 	Justify last centered	Do bloku, poslední řádek na střed
 	Justify last left	Do bloku, poslední řádek vlevo
@@ -4256,4 +4254,3 @@ smartSvg	AI/PDF/EPS contents will be edited as SVG. Saving replaces the embedded
 	Stop Color	Barva zarážky
 	Shapes can't use patterns yet	Tvary zatím nemohou používat vzorky
 	Edit Brush…	Upravit štětec…
-	Open the discussions	Otevřít diskuse

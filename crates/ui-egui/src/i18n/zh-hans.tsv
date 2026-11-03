@@ -1213,7 +1213,6 @@
 	Diffusion	扩散
 	Discard the embedded profile (don't color manage)	丢弃嵌入的配置文件（不进行色彩管理）
 	Discontiguous	不连续
-	Discord	Discord
 	Dismiss	关闭
 	Display P3	Display P3
 	Display Text	显示文字
@@ -1349,7 +1348,6 @@
 	Invert All	全部反相
 	Invert has no settings.	反相没有可调整的设置。
 	Italic	斜体
-	Join us on Discord	加入我们的 Discord 社区
 	Justify all	全部两端对齐
 	Justify last centered	两端对齐，末行居中
 	Justify last left	两端对齐，末行左对齐
@@ -3196,4 +3194,3 @@ smartSvg	AI/PDF/EPS contents will be edited as SVG. Saving replaces the embedded
 	Solid Color	纯色
 	Tint Color	色调颜色
 	Edit Brush…	编辑画笔…
-	Open the discussions	打开讨论区

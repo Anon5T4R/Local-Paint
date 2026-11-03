@@ -1696,7 +1696,6 @@
 	Preserve Transparency	Säilytä läpinäkyvyys
 	Reverse	Käännä järjestys
 	Align with layer	Tasaa tason kanssa
-	Join us on Discord	Liity Discordiin
 	LocalPaint website	LocalPaint-verkkosivusto
 	GitHub	GitHub
 	No character style	Ei merkkityyliä
@@ -2122,7 +2121,6 @@
 	Delete tool preset	Poista työkalun esiasetus
 	Depth Jitter	Syvyyden vaihtelu
 	Discontiguous	Epäyhtenäinen
-	Discord	Discord
 	Display P3	Display P3
 	Display Text	Näytä teksti
 	Divide…	Jaa…
@@ -4765,4 +4763,3 @@ cameraRaw	White Balance: As Shot	Valkotasapaino: kuvauksen mukainen
 	The path was discarded	Polku hylättiin
 	The path was kept as the Work Path	Polku säilytettiin työpolkuna
 	Edit Brush…	Muokkaa sivellintä…
-	Open the discussions	Avaa keskustelut

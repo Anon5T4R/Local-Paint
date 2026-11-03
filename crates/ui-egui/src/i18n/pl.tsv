@@ -1200,7 +1200,6 @@
 	Diffusion	Dyfuzja
 	Discard the embedded profile (don't color manage)	Odrzuć osadzony profil (bez zarządzania kolorami)
 	Discontiguous	Niesąsiadujące
-	Discord	Discord
 	Dismiss	Zamknij
 	Display P3	Display P3
 	Display Text	Tekst wyświetlany
@@ -1331,7 +1330,6 @@
 	Invert All	Odwróć wszystko
 	Invert has no settings.	Odwracanie nie ma ustawień.
 	Italic	Kursywa
-	Join us on Discord	Dołącz do nas na Discordzie
 	Justify all	Wyjustuj wszystko
 	Justify last centered	Wyjustuj, ostatni wiersz wyśrodkowany
 	Justify last left	Wyjustuj, ostatni wiersz do lewej
@@ -4129,4 +4127,3 @@ smartSvg	AI/PDF/EPS contents will be edited as SVG. Saving replaces the embedded
 	Stop Color	Kolor punktu
 	Shapes can't use patterns yet	Kształty nie mogą jeszcze używać wzorków
 	Edit Brush…	Edytuj pędzel…
-	Open the discussions	Otwórz dyskusje

@@ -1106,7 +1106,6 @@
 	Diffusion	الانتشار
 	Discard the embedded profile (don't color manage)	تجاهل ملف التعريف المضمّن (دون إدارة الألوان)
 	Discontiguous	غير متجاور
-	Discord	Discord
 	Dismiss	تجاهل
 	Display P3	Display P3
 	Display Text	نص العرض
@@ -1241,7 +1240,6 @@
 	Invert All	عكس الكل
 	Invert has no settings.	«عكس» ليس له إعدادات.
 	Italic	مائل
-	Join us on Discord	انضم إلينا على Discord
 	Justify all	ضبط الكل
 	Justify last centered	ضبط مع توسيط السطر الأخير
 	Justify last left	ضبط مع محاذاة السطر الأخير لليسار
@@ -3541,4 +3539,3 @@ curves	Smooth	تنعيم
 	The path was kept as the Work Path	تم الاحتفاظ بالمسار كمسار عمل
 	The path was discarded	تم تجاهل المسار
 	Edit Brush…	تحرير الفرشاة…
-	Open the discussions	النقاشات

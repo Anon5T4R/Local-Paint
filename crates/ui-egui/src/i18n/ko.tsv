@@ -1186,7 +1186,6 @@
 	Diffusion	확산
 	Discard the embedded profile (don't color manage)	포함된 프로파일 버리기(색상 관리 안 함)
 	Discontiguous	비인접
-	Discord	Discord
 	Dismiss	닫기
 	Display P3	Display P3
 	Display Text	표시 텍스트
@@ -1314,7 +1313,6 @@
 	Invert All	모두 반전
 	Invert has no settings.	반전에는 설정이 없습니다.
 	Italic	기울임꼴
-	Join us on Discord	Discord 참여
 	Justify all	모든 줄 양쪽 정렬
 	Justify last centered	마지막 줄 가운데 정렬
 	Justify last left	마지막 줄 왼쪽 정렬
@@ -3730,4 +3728,3 @@ smartSvg	AI/PDF/EPS contents will be edited as SVG. Saving replaces the embedded
 	Stop Color	정지점 색상
 	Shapes can't use patterns yet	모양에는 아직 패턴을 사용할 수 없습니다
 	Edit Brush…	브러시 편집…
-	Open the discussions	토론 열기

@@ -1088,7 +1088,6 @@
 	Diffusion	Difüzyon
 	Discard the embedded profile (don't color manage)	Gömülü profili atın (renk yönetimi yapmayın)
 	Discontiguous	Bitişik Değil
-	Discord	Discord
 	Dismiss	Kapat
 	Display P3	Display P3
 	Display Text	Metni Görüntüle
@@ -1221,7 +1220,6 @@
 	Invert All	Tümünü Ters Çevir
 	Invert has no settings.	Tersine çevirmenin hiçbir ayarı yoktur.
 	Italic	İtalik
-	Join us on Discord	Discord'da bize katılın
 	Justify all	Tümünü iki yana yasla
 	Justify last centered	Son satır ortalı, iki yana yasla
 	Justify last left	Son satır sola yaslı, iki yana yasla
@@ -4244,4 +4242,3 @@ smartSvg	AI/PDF/EPS contents will be edited as SVG. Saving replaces the embedded
 	Stop Color	Durak Rengi
 	Shapes can't use patterns yet	Şekiller henüz desen kullanamaz
 	Edit Brush…	Fırçayı Düzenle…
-	Open the discussions	Tartışmaları aç

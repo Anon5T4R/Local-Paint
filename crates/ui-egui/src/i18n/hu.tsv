@@ -1843,7 +1843,6 @@ layerLabel	Magenta	Bíbor
 	Delete Tool Preset	Eszköz-előbeállítás törlése
 	Delete tool preset	Eszköz-előbeállítás törlése
 	Delete Workspace	Munkaterület törlése
-	Discord	Discord
 	Doc: {w} × {h} px	Dok.: {w} × {h} px
 	Drag a box or click four corners · drag the corners onto the edges of a skewed shape · {commit} commits · Esc cancels	Húzz egy keretet, vagy kattints a négy sarokra · húzd a sarkokat a ferde alakzat éleire · {commit}: véglegesítés · Esc: megszakítás
 	Drag a crop box · drag inside to move · edges resize ({ratio} ratio, {centre} centre) · Space moves while drawing · arrows nudge · X swaps orientation · {commit} commits · Esc cancels	Húzz egy körbevágási keretet · belül húzva mozgatod · az élekkel átméretezed ({ratio}: arány, {centre}: középről) · Space: mozgatás rajzolás közben · nyilak: léptetés · X: tájolás cseréje · {commit}: véglegesítés · Esc: megszakítás
@@ -3387,7 +3386,6 @@ cameraRaw	Yellow	Sárga
 	Interpret Footage	Videoanyag értelmezése
 	Interval	Intervallum
 	Invalid {mode} profile	Érvénytelen profil ({mode})
-	Join us on Discord	Csatlakozz hozzánk a Discordon
 	Keep Using CPU	Marad a CPU
 	Kernel	Szűrőmag
 	Keyboard	Billentyűzet
@@ -4429,4 +4427,3 @@ smartSvg	AI/PDF/EPS contents will be edited as SVG. Saving replaces the embedded
 	Stop Color	Színpont színe
 	Shapes can't use patterns yet	Az alakzatok még nem használhatnak mintákat
 	Edit Brush…	Ecset szerkesztése…
-	Open the discussions	Beszélgetések megnyitása

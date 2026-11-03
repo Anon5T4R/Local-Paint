@@ -1180,7 +1180,6 @@
 	Diffusion	Difuzija
 	Discard the embedded profile (don't color manage)	Odbaci ugrađeni profil (bez upravljanja bojama)
 	Discontiguous	Nesusedno
-	Discord	Discord
 	Dismiss	Odbaci
 	Display P3	Display P3
 	Display Text	Tekst za prikaz
@@ -1306,7 +1305,6 @@
 	Invert All	Invertuj sve
 	Invert has no settings.	Invertovanje nema podešavanja.
 	Italic	Kurziv
-	Join us on Discord	Pridružite nam se na Discordu
 	Justify all	Obostrano poravnaj sve redove
 	Justify last centered	Obostrano, poslednji red centriran
 	Justify last left	Obostrano, poslednji red levo
@@ -4588,4 +4586,3 @@ smartSvg	AI/PDF/EPS contents will be edited as SVG. Saving replaces the embedded
 	Stop Color	Boja tačke
 	Shapes can't use patterns yet	Oblici još ne mogu da koriste šare
 	Edit Brush…	Uredi četkicu…
-	Open the discussions	Otvorite diskusije

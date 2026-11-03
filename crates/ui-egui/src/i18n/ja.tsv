@@ -1209,7 +1209,6 @@
 	Diffusion	拡散
 	Discard the embedded profile (don't color manage)	埋め込みプロファイルを破棄 (カラーマネジメントしない)
 	Discontiguous	不連続
-	Discord	Discord
 	Dismiss	閉じる
 	Display P3	Display P3
 	Display Text	表示テキスト
@@ -1343,7 +1342,6 @@
 	Invert All	すべて反転
 	Invert has no settings.	階調の反転には設定がありません。
 	Italic	イタリック
-	Join us on Discord	Discord に参加
 	Justify all	均等配置 (最終行も)
 	Justify last centered	最終行中央揃えの両端揃え
 	Justify last left	最終行左揃えの両端揃え
@@ -4187,4 +4185,3 @@ smartSvg	AI/PDF/EPS contents will be edited as SVG. Saving replaces the embedded
 	Stop Color	分岐点のカラー
 	Shapes can't use patterns yet	シェイプではまだパターンを使用できません
 	Edit Brush…	ブラシを編集…
-	Open the discussions	議論を開く

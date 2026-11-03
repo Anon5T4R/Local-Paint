@@ -2062,7 +2062,6 @@ colorRange	Invert	Đảo ngược
 	↑↓ navigate   {key} run   esc close	↑↓ điều hướng   {key} chạy   esc đóng
 	Tool	Công cụ
 	New document…	Tài liệu mới…
-	Join us on Discord	Tham gia Discord
 	LocalPaint website	Trang web LocalPaint
 	Anchor:	Neo:
 	Canvas extension color:	Màu mở rộng canvas:
@@ -2420,7 +2419,6 @@ shape	Appearance	Diện mạo
 	current	hiện tại
 	Cycle Orientation	Đổi hướng khung
 	Difference	Hiệu
-	Discord	Discord
 	Display P3	Display P3
 	GitHub	GitHub
 	Gray Gamma 2.2	Gray Gamma 2.2
@@ -4018,4 +4016,3 @@ smartSvg	AI/PDF/EPS contents will be edited as SVG. Saving replaces the embedded
 	Stop Color	Màu điểm dừng
 	Shapes can't use patterns yet	Hình chưa thể dùng mẫu tô
 	Edit Brush…	Chỉnh sửa cọ…
-	Open the discussions	Mở thảo luận
