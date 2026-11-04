@@ -1,7 +1,10 @@
-PhotoCraft
-Copyright (c) 2026 ArtCraft Team and the PhotoCraft contributors.
+Local Paint
+Copyright (c) 2026 ArtCraft Team and the Local Paint contributors.
 Licensed under the MIT License or the Apache License, Version 2.0, at your option
 (LICENSE-MIT, LICENSE-APACHE).
+
+Local Paint is an independent fork of PhotoCraft. "PhotoCraft" and "ArtCraft" are names of the
+upstream project and its team; this repository and its packages use only the Local Paint name.
 
 Third-party material
 
