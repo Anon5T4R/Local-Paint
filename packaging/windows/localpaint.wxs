@@ -168,6 +168,15 @@
         <RegistryValue Root="HKLM" Key="Software\LocalPaint\Shortcuts" Name="StartMenu" Type="integer" Value="1" KeyPath="yes" />
       </Component>
 
+      <!-- Search alias: Start Menu search matches the shortcut's name, and every suite name
+           starts with Local — a plain "photo" finds nothing. Same exe, same icon, own
+           component so uninstall removes it. -->
+      <Component Id="LocalPaintAliasShortcut" Directory="ProgramMenuFolder" Guid="6671DC8F-A0C8-4982-8EF8-62AFE0E453D1">
+        <Shortcut Id="AliasShortcut" Name="Photo" Description="LocalPaint image editor"
+            Target="[#LocalPaintExe]" WorkingDirectory="INSTALLFOLDER" Icon="LocalPaintIcon.exe" IconIndex="0" />
+        <RegistryValue Root="HKLM" Key="Software\LocalPaint\Shortcuts" Name="Alias" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+
       <Component Id="LocalPaintDesktopShortcut" Directory="DesktopFolder" Guid="77CDAC6E-8F92-4C6E-A384-358A8E5A42F5">
         <Shortcut Id="DesktopShortcut" Name="LocalPaint" Description="LocalPaint image editor"
             Target="[#LocalPaintExe]" WorkingDirectory="INSTALLFOLDER" Icon="LocalPaintIcon.exe" IconIndex="0" />
