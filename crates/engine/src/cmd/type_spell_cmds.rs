@@ -350,7 +350,7 @@ mod tests {
         assert!(s.execute("edit.checkSpelling", json!({"action": "change", "layer": id, "start": 0, "end": 3, "word": "Teh", "replace": "X"})).is_err());
         let r = s.execute("edit.checkSpelling", json!({"action": "changeAll", "word": "brwon", "replace": "brown"})).unwrap();
         assert_eq!(r["changed"], 1);
-        assert_eq!(text_of(&s, id), "The quick brown fox, teh end. Local Paint");
+        assert_eq!(text_of(&s, id), "The quick brown fox, teh end. LocalPaint");
         // One undo step per change.
         s.execute("edit.undo", json!({})).unwrap();
         assert!(text_of(&s, id).contains("brwon"));
@@ -358,8 +358,8 @@ mod tests {
         // Ignore All and Add to Dictionary.
         let r = s.execute("edit.checkSpelling", json!({"ignore": ["teh"]})).unwrap();
         assert_eq!(r["count"], 1);
-        s.execute("edit.checkSpelling", json!({"action": "addToDictionary", "word": "Local Paint"})).unwrap();
-        assert_eq!(s.prefs().user_dictionary, vec!["Local Paint".to_string()]);
+        s.execute("edit.checkSpelling", json!({"action": "addToDictionary", "word": "LocalPaint"})).unwrap();
+        assert_eq!(s.prefs().user_dictionary, vec!["LocalPaint".to_string()]);
         let r = s.execute("edit.checkSpelling", json!({})).unwrap();
         assert_eq!(r["count"], 1);
         s.execute("edit.checkSpelling", json!({"action": "removeFromDictionary", "word": "localpaint"})).unwrap();
