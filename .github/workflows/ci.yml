@@ -67,7 +67,7 @@ jobs:
 
   arch:
     name: Arch Linux (makepkg)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container:
       image: archlinux:base-devel
     steps:
@@ -89,7 +89,7 @@ jobs:
 
   git-sources:
     name: Sem dependências git remotas
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
