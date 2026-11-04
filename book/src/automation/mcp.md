@@ -38,13 +38,13 @@ The release packages ship `localpaint-cli` alongside the desktop app, so no buil
 
 | Install | CLI |
 |---|---|
-| Windows (MSI) | `C:\Program Files\LocalPaint\localpaint-cli.exe` (per-machine install; `Program Files (x86)` for the 32-bit build, or wherever you installed it), not on `PATH` |
+| Windows (MSI) | `C:\Program Files\Local Paint\localpaint-cli.exe` (per-machine install; `Program Files (x86)` for the 32-bit build, or wherever you installed it), not on `PATH` |
 | Linux (deb, rpm) | `/usr/bin/localpaint-cli` |
 | macOS | the separate `localpaint-cli-<version>-macos-<arch>.zip` release asset (the `.app` holds only the desktop app) |
 
 ```sh
 # Windows (PowerShell), default install folder
-claude mcp add localpaint -- "C:\Program Files\LocalPaint\localpaint-cli.exe" mcp --automation-read-root <dir> --automation-write-root <dir>
+claude mcp add localpaint -- "C:\Program Files\Local Paint\localpaint-cli.exe" mcp --automation-read-root <dir> --automation-write-root <dir>
 # Linux, or macOS with the CLI unzipped onto PATH
 claude mcp add localpaint -- localpaint-cli mcp --automation-read-root <dir> --automation-write-root <dir>
 ```

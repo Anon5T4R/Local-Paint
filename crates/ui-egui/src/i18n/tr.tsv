@@ -4,7 +4,7 @@
 # Clean-room: every entry was written from the plain meaning of the English label using ordinary
 # Turkish computing vocabulary (katman, seçim, maske, ayar katmanı, fırça, degrade ...). No
 # proprietary localisation resource, string table or product UI was consulted or copied; add
-# entries the same way. Product and technology names (LocalPaint,  OpenType, CMYK, Lab ...)
+# entries the same way. Product and technology names (Local Paint,  OpenType, CMYK, Lab ...)
 # stay as they are; the trailing "…" of dialog commands is kept.
 #
 # Custom paper dimensions in Print Settings.
@@ -810,9 +810,9 @@
 	Timeline	Zaman Çizelgesi
 	Tool Presets	Araç Ön Ayarları
 	Tools	Araçlar
-	About LocalPaint	LocalPaint Hakkında
-	LocalPaint Website	LocalPaint Web Sitesi
-	LocalPaint on GitHub	GitHub'da LocalPaint
+	About Local Paint	Local Paint Hakkında
+	Local Paint Website	Local Paint Web Sitesi
+	Local Paint on GitHub	GitHub'da Local Paint
 	Report an Issue…	Sorun Bildir…
 	WIA Support…	WIA Desteği…
 	Apply	Uygula
@@ -864,7 +864,7 @@
 	All Caps	Tamamı Büyük Harf
 	All Slices	Tüm Dilimler
 	All User Slices	Tüm Kullanıcı Dilimleri
-	All shortcuts reset to LocalPaint defaults.	Tüm kısayollar LocalPaint varsayılanlarına sıfırlanır.
+	All shortcuts reset to Local Paint defaults.	Tüm kısayollar Local Paint varsayılanlarına sıfırlanır.
 	Alt	Alt
 	Always use pressure for opacity	Opaklık için her zaman basıncı kullan
 	Always use pressure for size	Boyut için her zaman basıncı kullan
@@ -1108,8 +1108,8 @@
 	Drop an image or PSD anywhere to open it.	Açmak için bir görüntüyü veya PSD'yi herhangi bir yere bırakın.
 	Native file drag-and-drop is unavailable	Yerel dosya sürükle ve bırak özelliği kullanılamıyor
 	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	Yerel dosya sürükle ve bırak özelliği henüz Wayland'de desteklenmiyor. Dosya › Aç'ı kullanın veya görüntüyü dosya yöneticinizde kopyalayıp {paste} ile yapıştırın.
-	To drop files, start LocalPaint under XWayland: `{command}`	Dosyaları bırakmak için XWayland altında LocalPaint'ı başlatın: `{command}`
-	Or set Preferences › Performance › Linux display server to X11: LocalPaint then always starts under XWayland.	Veya Tercihler › Performans › Linux görüntüleme sunucusunu X11 olarak ayarlayın: LocalPaint bundan sonra her zaman XWayland altında başlar.
+	To drop files, start Local Paint under XWayland: `{command}`	Dosyaları bırakmak için XWayland altında Local Paint'ı başlatın: `{command}`
+	Or set Preferences › Performance › Linux display server to X11: Local Paint then always starts under XWayland.	Veya Tercihler › Performans › Linux görüntüleme sunucusunu X11 olarak ayarlayın: Local Paint bundan sonra her zaman XWayland altında başlar.
 	Edit › Paste	Düzenle › Yapıştır
 	Duplicate Layers…	Katmanları Çoğalt…
 	Duplicate style	Stili çoğalt
@@ -1355,9 +1355,9 @@
 	Perspective Warp is not active	Perspektif Çarpıtma etkin değil
 	Perspective Warp: draw planes along the image's perspective, then switch to Warp	Perspektif Çarpıtma: görüntünün perspektifi boyunca düzlemler çizin, ardından Çarpıtma'ya geçin
 	Photo Filter	Fotoğraf Filtresi
-	LocalPaint	LocalPaint
-	LocalPaint Manages Colors	LocalPaint Renkleri Yönetir
-	LocalPaint — an open-source, native image editor written in Rust.	LocalPaint — Rust'ta yazılmış açık kaynaklı, yerel bir görüntü düzenleyici.
+	Local Paint	Local Paint
+	Local Paint Manages Colors	Local Paint Renkleri Yönetir
+	Local Paint — an open-source, native image editor written in Rust.	Local Paint — Rust'ta yazılmış açık kaynaklı, yerel bir görüntü düzenleyici.
 	Pin Depth:	Pim Derinliği:
 	Pixel Length:	Piksel Uzunluğu:
 	Pixels/Centimeter	Piksel/Santimetre
@@ -1432,11 +1432,11 @@
 	Import Shortcuts…	Kısayolları İçe Aktar…
 	Load a keyboard shortcut set saved as .kys	.kys olarak kaydedilen bir klavye kısayolu kümesi yükleyin
 	Imported {n} shortcuts from {file}. Click OK to keep them.	{n} kısayol {file} dosyasından içe aktarıldı. Saklamak için Tamam'a tıklayın.
-	{n} commands are not in LocalPaint.	{n} komut LocalPaint'ta yok.
+	{n} commands are not in Local Paint.	{n} komut Local Paint'ta yok.
 	Keyboard shortcuts imported	Klavye kısayolları içe aktarıldı
 	Your keyboard shortcut set {set} is in use here: {n} shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.	{set} klavye kısayol setiniz burada kullanılıyor: {n} kısayol varsayılanlardan farklı. Düzenle › Klavye Kısayolları bunları gösterir; Tümünü Varsayılanlara Sıfırla bu işlemi geri alır.
 	Import keyboard shortcuts?	Klavye kısayolları içe aktarılsın mı?
-	LocalPaint found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from LocalPaint's. Import it?	LocalPaint, bu bilgisayardaki başka bir görüntü düzenleyicide {set} klavye kısayol setinizi buldu: {n} kısayol LocalPaint'tan farklı. İçe aktarılsın mı?
+	Local Paint found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from Local Paint's. Import it?	Local Paint, bu bilgisayardaki başka bir görüntü düzenleyicide {set} klavye kısayol setinizi buldu: {n} kısayol Local Paint'tan farklı. İçe aktarılsın mı?
 	Edit › Keyboard Shortcuts › Reset All to Defaults undoes an import.	Düzenle › Klavye Kısayolları › Tümünü Varsayılanlara Sıfırla, içe aktarma işlemini geri alır.
 	Don't Import	İçe Aktarma
 	The keyboard shortcut set was not imported: {error}	Klavye kısayol seti içe aktarılmadı: {error}
@@ -1657,7 +1657,7 @@
 	Current Tool	Geçerli Araç
 	Custom Shape Tool	Özel Şekil Aracı
 	Cyans	Camgöbeği
-	Default LocalPaint Size	Varsayılan LocalPaint Boyutu
+	Default Local Paint Size	Varsayılan Local Paint Boyutu
 	Delete Workspace	Çalışma Alanını Sil
 	Diamond	Elmas
 	Dimensions:	Ölçüler:
@@ -1768,7 +1768,7 @@
 	Pen Tool	Kalem Aracı
 	Convert Point Tool	Nokta Dönüştürme Aracı
 	Photo	Fotoğraf
-	LocalPaint website	LocalPaint web sitesi
+	Local Paint website	Local Paint web sitesi
 	Picas	Pikalar
 	Pillow Emboss	Yastık Kabartma
 	Pixel Replacement	Piksel Değiştirme
@@ -2096,7 +2096,7 @@
 	System Info	Sistem Bilgisi
 	More panels	Daha fazla panel
 	More documents	Daha fazla belge
-	These settings aren't available in LocalPaint yet.	Bu ayarlar henüz LocalPaint'ta mevcut değildir.
+	These settings aren't available in Local Paint yet.	Bu ayarlar henüz Local Paint'ta mevcut değildir.
 	Graphics	Grafik
 	Reset GPU Backend	GPU Arka Ucunu Sıfırla
 	Applies at next launch.	Bir sonraki açılışta geçerlidir.
@@ -2307,7 +2307,7 @@
 	Automatic uses GPU acceleration when available and falls back to CPU rendering on errors.	Otomatik, mümkün olduğunda GPU hızlandırmayı kullanır ve hatalarda CPU oluşturmaya geri döner.
 	Switched to CPU rendering	CPU oluşturmaya geçildi
 	GPU acceleration could not continue. Your documents are unchanged.	GPU hızlandırması devam edemedi. Belgeleriniz değişmedi.
-	LocalPaint is using the CPU image compositor. The window may still use your graphics adapter.	LocalPaint, CPU görüntü birleştiricisini kullanıyor. Pencere yine de grafik bağdaştırıcınızı kullanıyor olabilir.
+	Local Paint is using the CPU image compositor. The window may still use your graphics adapter.	Local Paint, CPU görüntü birleştiricisini kullanıyor. Pencere yine de grafik bağdaştırıcınızı kullanıyor olabilir.
 	Retry GPU requires a restart. Save your work first.	GPU'yu yeniden dene, yeniden başlatma gerektirir. Öncelikle çalışmanızı kaydedin.
 	Keep Using CPU	CPU'yu Kullanmaya Devam Et
 	Retry GPU tries the graphics processor again now.	GPU'yu yeniden dene, grafik işlemciyi hemen yeniden dener.
@@ -2695,7 +2695,7 @@ cameraRaw	Color	Renk
 	Restart Required	Yeniden Başlatma Gerekli
 	Restart	Yeniden başlat
 	Quit	Çıkış
-	Quit LocalPaint	LocalPaint'tan Çık
+	Quit Local Paint	Local Paint'tan Çık
 	Close Window	Pencereyi Kapat
 	New Window	Yeni Pencere
 	Open Image	Görüntüyü Aç
@@ -3474,7 +3474,7 @@ cameraRaw	Color	Renk
 	Modify Date	Değiştirilme Tarihi
 	Mosaic	Mozaik
 	Motion Blur	Hareket Bulanıklığı
-	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or run LocalPaint under XWayland with `WAYLAND_DISPLAY= localpaint`.	Yerel dosya sürükle ve bırak özelliği henüz Wayland'de desteklenmiyor. Dosya › Aç'ı kullanın veya LocalPaint'ı XWayland altında `WAYLAND_DISPLAY= localpaint` ile çalıştırın.
+	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or run Local Paint under XWayland with `WAYLAND_DISPLAY= localpaint`.	Yerel dosya sürükle ve bırak özelliği henüz Wayland'de desteklenmiyor. Dosya › Aç'ı kullanın veya Local Paint'ı XWayland altında `WAYLAND_DISPLAY= localpaint` ile çalıştırın.
 	Neon Glow	Neon Işıma
 	New Guide Layout	Yeni Kılavuz Düzeni
 	New Path	Yeni Yol
@@ -3833,7 +3833,7 @@ cameraData	Lens	Lens
 	There is no crop size or ratio to save	Kaydedilecek kırpma boyutu veya oranı yok
 	Search settings…	Arama ayarları…
 	No matching settings	Eşleşen ayar yok
-	LocalPaint — Screen Color Picker	LocalPaint — Ekran Rengi Seçici
+	Local Paint — Screen Color Picker	Local Paint — Ekran Rengi Seçici
 	Loading fonts…	Yazı tipleri yükleniyor…
 	Onion Skin	Soğan Kabuğu
 	Marching Ants	Yürüyen Karıncalar
@@ -3942,7 +3942,7 @@ cameraData	Lens	Lens
 	{name} (Photoshop)	{name} (Photoshop)
 	{message} ({note})	{message} ({note})
 @plural	Loaded {n} action from {file}|Loaded {n} actions from {file}	{file} dosyasından {n} eylem yüklendi
-@plural	{n} step has no LocalPaint equivalent yet|{n} steps have no LocalPaint equivalent yet	{n} adımın LocalPaint’ta henüz karşılığı yok
+@plural	{n} step has no Local Paint equivalent yet|{n} steps have no Local Paint equivalent yet	{n} adımın Local Paint’ta henüz karşılığı yok
 @plural	Saved {n} action to {file}|Saved {n} actions to {file}	{n} eylem {file} dosyasına kaydedildi
 @plural	{n} step with no Photoshop equivalent left out|{n} steps with no Photoshop equivalent left out	Photoshop karşılığı olmayan {n} adım atlandı
 	Starting serial	Başlangıç sıra numarası
@@ -4048,12 +4048,12 @@ cameraData	Lens	Lens
 	Bicubic Smoother	Bikübik Pürüzsüzleştirici
 	Bicubic Sharper	Bikübik Daha Keskin
 	Pasting from other apps is unavailable	Diğer uygulamalardan yapıştırma kullanılamıyor
-	LocalPaint can't reach the system clipboard in this session. On Wayland, a Flatpak sandbox hides the protocol that images from other apps are read through.	LocalPaint bu oturumda sistem panosuna erişemiyor. Wayland'de Flatpak korumalı alanı, diğer uygulamalardaki görüntülerin okunduğu protokolü gizler.
-	To paste from other apps, start LocalPaint under XWayland: `{command}`	Diğer uygulamalardan yapıştırmak için LocalPaint'ı XWayland altında başlatın: `{command}`
-	Nothing to paste: LocalPaint can't read the system clipboard here	Yapıştırılacak bir şey yok: LocalPaint burada sistem panosunu okuyamıyor
+	Local Paint can't reach the system clipboard in this session. On Wayland, a Flatpak sandbox hides the protocol that images from other apps are read through.	Local Paint bu oturumda sistem panosuna erişemiyor. Wayland'de Flatpak korumalı alanı, diğer uygulamalardaki görüntülerin okunduğu protokolü gizler.
+	To paste from other apps, start Local Paint under XWayland: `{command}`	Diğer uygulamalardan yapıştırmak için Local Paint'ı XWayland altında başlatın: `{command}`
+	Nothing to paste: Local Paint can't read the system clipboard here	Yapıştırılacak bir şey yok: Local Paint burada sistem panosunu okuyamıyor
 	Delete this set	Bu Kümeyi Sil
 	New Set…	Yeni Küme…
-	LocalPaint Defaults	LocalPaint Varsayılanları
+	Local Paint Defaults	Local Paint Varsayılanları
 	Save a list of these shortcuts as a web page	Bu kısayolların listesini web sayfası olarak kaydet
 	Save the changes to this set	Bu kümedeki değişiklikleri kaydet
 	Save these shortcuts as a .kys file	Bu kısayolları .kys dosyası olarak kaydet
@@ -4156,9 +4156,9 @@ smartSvg	Choose executable…	Çalıştırılabilir dosya seç…
 smartSvg	Choose the application used to edit this SVG:	Bu SVG'yi düzenlemek için kullanılacak uygulamayı seçin:
 smartSvg	Edit SVG Smart Object	SVG Akıllı Nesnesini Düzenle
 smartSvg	Other application	Diğer uygulama
-smartSvg	LocalPaint (internal editor)	LocalPaint (dahili düzenleyici)
+smartSvg	Local Paint (internal editor)	Local Paint (dahili düzenleyici)
 smartSvg	SVG editor opened. Save the SVG to update this Smart Object.	SVG düzenleyicisi açıldı. Bu Akıllı Nesneyi güncellemek için SVG'yi kaydedin.
-smartSvg	Save to the opened SVG file. Each saved change becomes one undo step in LocalPaint.	Açılan SVG dosyasına kaydedin. Kaydedilen her değişiklik LocalPaint'ta bir geri alma adımı olur.
+smartSvg	Save to the opened SVG file. Each saved change becomes one undo step in Local Paint.	Açılan SVG dosyasına kaydedin. Kaydedilen her değişiklik Local Paint'ta bir geri alma adımı olur.
 smartSvg	Stop syncing this Smart Object	Bu Akıllı Nesnenin eşitlemesini durdur
 smartSvg	Updates wait while another document or an editing dialog is active.	Başka bir belge veya düzenleme iletişim kutusu etkin olduğunda güncellemeler bekler.
 smartSvg	AI/PDF/EPS contents will be edited as SVG. Saving replaces the embedded source; format-specific features may change.	AI/PDF/EPS içeriği SVG olarak düzenlenecek. Kaydetmek gömülü kaynağı değiştirir; biçime özgü özellikler değişebilir.

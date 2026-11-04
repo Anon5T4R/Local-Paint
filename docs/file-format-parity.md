@@ -4,7 +4,7 @@
 
 **PSD Filter Gallery (#8940, 2026-10-23):** Halftone Pattern maps its size, contrast and dot/circle/line pattern as editable settings on import and export, with the reference application's descriptor keys (`HlSz`, `Cntr`, `ScrT`: `ScrD`/`ScrC`/`ScrL`). PSD/PSB round trips pass at 8/16/32 bits. This does not claim pixel equivalence for the existing renderer. Unknown or malformed settings remain verbatim on import.
 
-Every format Photoshop 2026 (27.11.0) reads or writes, with LocalPaint's support, fidelity and
+Every format Photoshop 2026 (27.11.0) reads or writes, with Local Paint's support, fidelity and
 tests. Photoshop's list comes from its `Info.plist` `CFBundleDocumentTypes`, the PiPL read/write
 flags of `Contents/PlugIns/Required/File Formats`, and format names in the main binary (Open/Save
 As behaviour from Adobe's documentation where the bundle doesn't say). Ours comes from
@@ -21,9 +21,9 @@ XL are missing (gap G10). Remaining: 300–500 h including PSD fidelity.
 
 ## Photoshop's formats
 
-| Format | Photoshop | LocalPaint read | LocalPaint write | Fidelity and tests |
+| Format | Photoshop | Local Paint read | Local Paint write | Fidelity and tests |
 |---|---|---|---|---|
-| PSD | R/W | yes | yes | 1/8/16/32-bit; Bitmap, Gray, Indexed, RGB, CMYK, Multichannel, Lab, Duotone; layers, groups, masks, vector masks, adjustment and fill layers, effects, text, shapes, smart objects (SoLd/lnk2 with their warp: the bend presets, a custom mesh and, since #4112, Cylinder; CS2 PlLd/lnkD read with their warp, kept as is or re-saved as SoLd once edited), smart filters (53 mapped, among them Invert, the Distort filters but Shear, Clouds, Difference Clouds, Fibers and Lens Flare, plus Hue/Saturation, Perspective Warp, Filter Gallery with Chrome and a Camera Raw subset, rest verbatim), slices, comps, Advanced Blending, each layer's XMP packet (`layer.xmpMetadata`); alpha and spot channels as Photoshop stores them (spot ink 0 = solid, channel identifiers in 1053), and PSDs with spot channels from LocalPaint 0.1.0–0.16.0, which stored the ink the other way round, keep their ink. Oracle floors: Photoshop-authored 190/258, io 148/170, psd-tools 249/309; round trip ≥ 169/170, 308/309, 258/258. Known failures: #1281, #2469 (#2374, text layers, closed 2026-10-10; #2465, CS2 `PlLd`-only smart objects, fixed 2026-10-12) |
+| PSD | R/W | yes | yes | 1/8/16/32-bit; Bitmap, Gray, Indexed, RGB, CMYK, Multichannel, Lab, Duotone; layers, groups, masks, vector masks, adjustment and fill layers, effects, text, shapes, smart objects (SoLd/lnk2 with their warp: the bend presets, a custom mesh and, since #4112, Cylinder; CS2 PlLd/lnkD read with their warp, kept as is or re-saved as SoLd once edited), smart filters (53 mapped, among them Invert, the Distort filters but Shear, Clouds, Difference Clouds, Fibers and Lens Flare, plus Hue/Saturation, Perspective Warp, Filter Gallery with Chrome and a Camera Raw subset, rest verbatim), slices, comps, Advanced Blending, each layer's XMP packet (`layer.xmpMetadata`); alpha and spot channels as Photoshop stores them (spot ink 0 = solid, channel identifiers in 1053), and PSDs with spot channels from Local Paint 0.1.0–0.16.0, which stored the ink the other way round, keep their ink. Oracle floors: Photoshop-authored 190/258, io 148/170, psd-tools 249/309; round trip ≥ 169/170, 308/309, 258/258. Known failures: #1281, #2469 (#2374, text layers, closed 2026-10-10; #2465, CS2 `PlLd`-only smart objects, fixed 2026-10-12) |
 | PSB | R/W | yes | yes | Auto-switches above 2 GB (REL-212-2); generated 20 MP, 150-layer, 2 GB PSD and 4.4 GB PSB fixtures opened, saved and re-opened by io tests/it/large_files.rs (FILE-216-2, 2026-10-13; the 4.4 GB PSB opens on Windows); > 4 GB from the app's File › Open on Windows: #375 |
 | Cloud PSD (.psdc) | R/W | no | no | Out of scope (Adobe cloud) |
 | TIFF | R/W | yes | yes | 8/16/32f, Gray/RGB/CMYK, BigTIFF, every IFD, banded parallel decode; flat pages up to 300,000 px a side open a group of rows at a time into the layer, with no full-size copy, and are refused with an error when the machine lacks the memory (Linux: free RAM and swap, cgroup limits; #8169); layered TIFF both byte orders, including Photoshop mixed-order type blocks on read (#4758/#4771) and TySh text descriptors written in PSD order (#9098) and Photoshop's 14-byte `LMsk` block (#9095); LZW/ZIP for scripted saves by `tiffCompression`; undecodable type keeps saved pixels (FILE-215-7); alpha and spot channels as extra samples (at most 16) with Photoshop's names, ink colours and solidity, spot ink stored 0 = solid (#7415); no Save Transparency choice yet (channels are written as Photoshop does with it off) |
@@ -63,7 +63,7 @@ Photoshop opens raws through Camera Raw 18.7 (the bundle registers cr2, crw, dcr
 fff, 3fr, mef, mfw, iiq, nrw, rwl, srw, mrw, nef, orf, pef, raf, srf, x3f; Camera Raw itself
 supports many more, including CR3).
 
-| Camera format | LocalPaint | Evidence |
+| Camera format | Local Paint | Evidence |
 |---|---|---|
 | DNG (incl. LJPEG, lossy JPEG and JPEG XL tiles) | yes | 2026-10-13: lossy DNG (DNG 1.4 compression 34892: 8-bit baseline JPEG tiles or strips, CFA and LinearRaw, partial edge tiles) decodes to the stored samples, which go through LinearizationTable / BlackLevel / WhiteLevel (default 255) like every other depth; `crates/raw/tests/it/dng.rs` `lossy_jpeg_*` (FILE-215-11, lossy DNG part; no lossy file in the raw corpus yet) |
 | Canon CR2 | yes | |
@@ -124,7 +124,7 @@ remaining gaps in #1606 stay tracked with per-sample corpus ceilings.
 
 ## Presets and data files
 
-| Format | Photoshop | LocalPaint | Notes |
+| Format | Photoshop | Local Paint | Notes |
 |---|---|---|---|
 | Brushes `.abr` | R/W | R/W | `psd/src/abr.rs` (v6/v12) |
 | Gradients `.grd` | R/W | R/W | |
@@ -153,7 +153,7 @@ Embedded SVG and PDF-compatible AI/PDF/EPS payloads can use an explicit VectorCr
 | 2026-10-22 | minor | TIFF: flat pages up to 300,000 px a side open (was 2^30 px, about 32,768²): `codecs::TiffBands` decodes a group of rows at a time into the layer's tiles. The 117,504 × 22,464 px banner from #8456 opens in 3.3 s at 11.45 GB peak for a 10.56 GB layer; 30,000² 6.8 s / 6.43 GB → 1.1 s / 3.86 GB; 36 MP 220 → 52 ms. Layered TIFFs still decode whole (#8169) |
 | 2026-10-24 | minor | Layered TIFF: the `LMsk` block in tag 37724 carries Photoshop's default global layer mask (14 bytes) instead of none; with an empty block Photoshop read only the composite (#9095). PSD output unchanged |
 | 2026-10-24 | minor | Layered TIFF writes the TySh text version and descriptor in PSD big-endian order while retaining container order for the block header, transform matrix, warp section and bounds (#9098); the mixed-order read path remains covered by #4758/#4771. |
-| 2026-10-23 | minor | PSD: spot channels are stored and read as Photoshop 27.11's PSDs store them (ink 0 = solid; all 7 of its spot PSDs store the 100/25/75/0 % columns as 0/191/64/255), and resource 1053 numbers the extra channels 3, 4, 5, … after 0 for the merged transparency. A PSD with spot channels whose 1057 is exactly what LocalPaint 0.1.0–0.16.0 wrote, and with no 1053 or one kept from an opened Photoshop file that doesn't list every channel, is read as those versions stored it (straight past the channels that 1053 lists), so it keeps its ink. Multichannel is unchanged (#7415 split, part 4) |
+| 2026-10-23 | minor | PSD: spot channels are stored and read as Photoshop 27.11's PSDs store them (ink 0 = solid; all 7 of its spot PSDs store the 100/25/75/0 % columns as 0/191/64/255), and resource 1053 numbers the extra channels 3, 4, 5, … after 0 for the merged transparency. A PSD with spot channels whose 1057 is exactly what Local Paint 0.1.0–0.16.0 wrote, and with no 1053 or one kept from an opened Photoshop file that doesn't list every channel, is read as those versions stored it (straight past the channels that 1053 lists), so it keeps its ink. Multichannel is unchanged (#7415 split, part 4) |
 | 2026-10-23 | minor | TIFF: alpha and spot channels are written and read as extra samples (at most 16) with Photoshop's channel resources (1006, 1045, 1077, 1053), spot ink stored 0 = solid as Photoshop 27.11's TIFFs store it; PSD output is unchanged. FILE-215-7 done, FILE-215-17 partial (its TIFF part) (#7415, supersedes #3121) |
 | 2026-10-23 | patch | PSD and layered TIFF: the `MTrn` block Photoshop writes in a layered TIFF saved with Save Transparency (a positive layer count, `nrTM` in an `II` file) marks the merged image's first extra channel as its transparency, like `Mtrn`/`Mt16`/`Mt32`: such a file no longer opens with its transparency also as an alpha channel (named "Transparency" in Photoshop 27.11's file), and a PSD save no longer writes it twice. A PSD save with an opaque composite drops any of these markers kept from the opened file, so its first alpha channel no longer reopens as transparency and vanishes (split from #7415; credit #3121) |
 | 2026-10-23 | minor | Amiga IFF write: Save As `.iff` stores a 24-plane ILBM (ByteRun1, alpha as a 1-bit mask plane), and 24-plane ILBMs open |
@@ -178,7 +178,7 @@ Embedded SVG and PDF-compatible AI/PDF/EPS payloads can use an explicit VectorCr
 | 2026-10-15 | minor | PSD smart filters: Diffuse (`Dfs `, `DfsM` mode), Trace Contour (`TrcC`, level and `CntE` edge), Crystallize (`Crst`) and Pointillize (`Pntl`, background from `BckC`) open as editable smart filters and save in the shape measured in Photoshop (#6302, FILE-215-2) |
 | 2026-10-15 | minor | PSD smart filters: Wind (`Wnd `, `WndM` method, `Drct` direction), Extrude (`Extr`, `ExtT` type, size, depth, `ExtR` depth mode, solid front faces, mask incomplete blocks) and Tiles (`Tls `, count, offset, `FlCl` fill with the entry's `FrgC`/`BckC`) open as editable smart filters and save in the shape measured in Photoshop (#6314, FILE-215-2) |
 | 2026-10-15 | minor | PSD smart filters: Offset (`Ofst`: `Hrzn`/`Vrtc` long, `Fl  ` `FlMd` Wrap/Background/Repeat) and Custom (`Cstm`: `Scl `, `Ofst` long, 25-long `Mtrx`) map both ways in `filterFX`, matching descriptors measured in Photoshop (FILE-215-2, #6304) |
-| 2026-10-15 | minor | PSD smart filters: Mezzotint (`Mztn`, `MztT` enum, all 10 types) and Color Halftone (`ClrH`, `Rds `/`Ang1`–`Ang4` longs) open as editable filters and save in Photoshop's shape, measured in Photoshop (FILE-215-2); Mezzotint's LocalPaint-only seed is not saved |
+| 2026-10-15 | minor | PSD smart filters: Mezzotint (`Mztn`, `MztT` enum, all 10 types) and Color Halftone (`ClrH`, `Rds `/`Ang1`–`Ang4` longs) open as editable filters and save in Photoshop's shape, measured in Photoshop (FILE-215-2); Mezzotint's Local Paint-only seed is not saved |
 | 2026-10-15 | minor | PNG: a stereo PNG's `sTER` pairing (PNG Extensions 1.4.0 §3.6) is read on open and written back on save, so the file still says it is a stereo pair (#6063) |
 | 2026-10-15 | minor | Indexed Color documents save as 8-bit palette BMPs with their colour table instead of 24-bit RGB; a palette BMP opens with its declared number of colours, not 256 |
 | 2026-10-15 | minor | PSD guides: image resource 1092 (guides v2) gives guides their own colours on import; 1092 and 1097 (guide GUIDs) are written back only while they still describe the document's guides, so an edit no longer leaves Photoshop a stale second guide list (#5966) |

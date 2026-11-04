@@ -1,9 +1,9 @@
 [book]
-authors = ["LocalPaint contributors"]
+authors = ["Local Paint contributors"]
 language = "en"
 multilingual = false
 src = "src"
-title = "LocalPaint Documentation"
+title = "Local Paint Documentation"
 
 [build]
 build-dir = "output"

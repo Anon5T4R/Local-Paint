@@ -2,9 +2,9 @@
 
 > **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-17 · **Change:** minor (Camera Raw's preview develops its per-pixel stages on the GPU) · **Target:** Adobe Photoshop 2026
 
-Each hardware feature Photoshop 2026 (27.11.0) uses, per platform, against LocalPaint. Photoshop
+Each hardware feature Photoshop 2026 (27.11.0) uses, per platform, against Local Paint. Photoshop
 side: its bundle (Metal and OpenCL paths, "Precise Color Management for HDR Display" and EDR
-strings, Touch Bar resources, pen pressure/tilt strings) and Adobe's GPU FAQ. LocalPaint side:
+strings, Touch Bar resources, pen pressure/tilt strings) and Adobe's GPU FAQ. Local Paint side:
 `crates/tablet`, `crates/ui-egui/src/stylus.rs`, `apps/localpaint/src/gpu_startup.rs`,
 `engine/src/display_color.rs`, `apps/localpaint/src/monitor_profile.rs`.
 
@@ -15,7 +15,7 @@ HDR display to verify.
 
 ## GPU
 
-| Feature | Photoshop | LocalPaint | Status |
+| Feature | Photoshop | Local Paint | Status |
 |---|---|---|---|
 | GPU canvas, zoom/pan, rotate view | Metal (macOS), DirectX/OpenCL (Windows) | wgpu 30: Metal, Vulkan, DX12, GL; backend selectable | done |
 | GPU compositing of layers, blend modes, effects | partial (Photoshop composites mostly on CPU) | wgpu compositor, ≤ 1/255 vs CPU oracle; Multichannel and > texture-limit regions fall back to CPU | done (ahead in places) |
@@ -38,7 +38,7 @@ HDR display to verify.
 
 ## Displays and colour
 
-| Feature | Photoshop | LocalPaint | Status |
+| Feature | Photoshop | Local Paint | Status |
 |---|---|---|---|
 | Colour-managed canvas (document → monitor profile) | yes | yes, folded into the GPU 3D LUT | done |
 | Monitor profile detection | per display, live | macOS per display at launch; others sRGB or a chosen .icc | partial |
@@ -49,7 +49,7 @@ HDR display to verify.
 
 ## Input devices
 
-| Feature | Photoshop | LocalPaint | Status |
+| Feature | Photoshop | Local Paint | Status |
 |---|---|---|---|
 | Trackpad pinch zoom, two-finger pan | yes | yes; pinch scrolls instead in 0.6.0 (#2463) | partial |
 | Trackpad rotate (Rotate View) | yes | yes (`rotate_view.rs`) | done |

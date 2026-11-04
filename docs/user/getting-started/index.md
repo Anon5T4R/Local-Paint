@@ -1,16 +1,16 @@
 ---
 title: Getting started
-description: Install LocalPaint and open your first image.
+description: Install Local Paint and open your first image.
 order: 10
 verified: 0.8.2
 ---
 
-Install LocalPaint, then open an image with **File › Open…**. The panels you use most are **Layers**, **Properties** and **History**.
+Install Local Paint, then open an image with **File › Open…**. The panels you use most are **Layers**, **Properties** and **History**.
 
-1. [Install LocalPaint](install.md).
-2. Start LocalPaint and choose **File › Open…**. To start from nothing, choose **File › New…** and click **Create**.
+1. [Install Local Paint](install.md).
+2. Start Local Paint and choose **File › Open…**. To start from nothing, choose **File › New…** and click **Create**.
 3. Pick the **Horizontal Type Tool**, a selection tool or an adjustment, and work on the image. Every step is listed in the **History** panel and can be undone.
-4. Keep your layers with **File › Save As…** (PSD or LocalPaint), or make a flat copy with **File › Export › Export As…**.
+4. Keep your layers with **File › Save As…** (PSD or Local Paint), or make a flat copy with **File › Export › Export As…**.
 
 The guides walk through each of these:
 

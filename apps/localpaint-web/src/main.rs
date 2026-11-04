@@ -1,4 +1,4 @@
-//! LocalPaint in the browser.
+//! Local Paint in the browser.
 //!
 //! Runs the same [`localpaint_ui_egui::LocalPaintApp`] as the desktop app through eframe's web
 //! runner (wgpu: WebGPU where available, WebGL2 otherwise). Build with `trunk build --release`

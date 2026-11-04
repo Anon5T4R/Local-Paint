@@ -1,9 +1,9 @@
-//! LocalPaint desktop app.
+//! Local Paint desktop app.
 //!
 //! Usage: `localpaint [options] [--] [files…]`; `localpaint --help` lists the options, which are
 //! declared, with what makes a usage error (exit status 2), in `launch_args`.
 //!
-//! On Windows and Linux a launch hands its files to the LocalPaint that is already running (new
+//! On Windows and Linux a launch hands its files to the Local Paint that is already running (new
 //! tabs in its window) and exits; `--new-instance` starts a separate copy instead, as does any
 //! `--control` launch (see `single_instance`).
 //!
@@ -151,7 +151,7 @@ fn native_options(custom_titlebar: bool) -> eframe::NativeOptions {
     eframe::NativeOptions {
         viewport: viewport
             .with_app_id(APP_ID)
-            .with_title("LocalPaint")
+            .with_title("Local Paint")
             .with_inner_size([1440.0, 900.0])
             .with_min_inner_size([760.0, 480.0])
             .with_drag_and_drop(true)
@@ -160,7 +160,7 @@ fn native_options(custom_titlebar: bool) -> eframe::NativeOptions {
             .with_titlebar_shown(false)
             .with_title_shown(false),
         centered: true,
-        // LocalPaint owns its fallback fonts (`cjk_fonts`, craft-fonts): eframe's system-font
+        // Local Paint owns its fallback fonts (`cjk_fonts`, craft-fonts): eframe's system-font
         // provider would compete with it and make glyph choice machine-dependent (#8512).
         system_font_fallback: false,
         // eframe saves native window geometry and egui panel/window sizes on exit.
@@ -172,7 +172,7 @@ fn native_options(custom_titlebar: bool) -> eframe::NativeOptions {
 }
 
 /// The window eframe restores from `ui.ron`, corrected before it is created: at least the
-/// minimum size, and never full screen. LocalPaint always starts in Standard Screen Mode, but
+/// minimum size, and never full screen. Local Paint always starts in Standard Screen Mode, but
 /// eframe also saves and restores full screen, and a window closed in a full-screen mode is
 /// saved full screen and maximized at once: the overlap `view_cmds::screen_mode_commands` keeps
 /// apart at run time. [OBSERVED 2026-10-12, Windows 11] Restored that way, View › Screen Mode ›
@@ -183,7 +183,7 @@ fn restored_window(builder: egui::ViewportBuilder) -> egui::ViewportBuilder {
 
 /// Grow a restored window that is smaller than the minimum size, keeping its centre. On
 /// Windows, eframe saves a minimized window's size (160 pt wide, 64 pt tall once eframe has
-/// clamped it), and the minimum size isn't applied to a restored one: LocalPaint then reopened
+/// clamped it), and the minimum size isn't applied to a restored one: Local Paint then reopened
 /// as a 160 × 64 strip on every launch.
 fn at_least_min_size(mut builder: egui::ViewportBuilder) -> egui::ViewportBuilder {
     let (Some(size), Some(min)) = (builder.inner_size, builder.min_inner_size) else { return builder };
@@ -200,16 +200,16 @@ fn at_least_min_size(mut builder: egui::ViewportBuilder) -> egui::ViewportBuilde
 fn attach_log_file(logger: Option<&'static logging::AppLogger>) {
     if let (Some(logger), Some(dir)) = (logger, services::config_dir()) {
         match logger.attach_dir(&dir.join("logs")) {
-            Ok(path) => log::info!("LocalPaint {}, log file {}", localpaint_engine::build_info::long_version(), path.display()),
+            Ok(path) => log::info!("Local Paint {}, log file {}", localpaint_engine::build_info::long_version(), path.display()),
             // Standard error only by now (`attach_dir` gave up on the file); unlike `eprintln!`, never panics.
             Err(e) => log::warn!("no log file: {e}"),
         }
     }
 }
 
-/// One LocalPaint per user (#3708). Only with the per-user settings folder (a portable copy's may
+/// One Local Paint per user (#3708). Only with the per-user settings folder (a portable copy's may
 /// be shared between users), and not for automation, `--new-instance` or per-process options.
-/// `Break` when the files were handed to the running LocalPaint and this launch is done.
+/// `Break` when the files were handed to the running Local Paint and this launch is done.
 #[cfg(not(target_os = "macos"))]
 fn claim_single_instance(
     files: &[String],
@@ -234,7 +234,7 @@ fn claim_single_instance(
     };
     match (single_instance::skip_reason(&context), services::config_dir()) {
         (Some(reason), _) => {
-            log::info!("running as a separate LocalPaint: {reason}");
+            log::info!("running as a separate Local Paint: {reason}");
             Continue(None)
         }
         (None, None) => Continue(None),
@@ -242,12 +242,12 @@ fn claim_single_instance(
             let paths: Vec<String> = files.iter().map(|f| single_instance::absolute(f)).collect();
             match single_instance::claim(&dir, &paths) {
                 single_instance::Launch::Forwarded => {
-                    log::info!("handed {} file(s) to the running LocalPaint", paths.len());
+                    log::info!("handed {} file(s) to the running Local Paint", paths.len());
                     Break(())
                 }
                 single_instance::Launch::Primary(primary) => Continue(Some(primary)),
                 single_instance::Launch::Standalone(reason) => {
-                    log::warn!("starting a separate LocalPaint: {reason}");
+                    log::warn!("starting a separate Local Paint: {reason}");
                     Continue(None)
                 }
             }
@@ -346,7 +346,7 @@ fn main() -> eframe::Result {
     #[cfg(not(target_arch = "wasm32"))]
     if let Some(done) = craft_update::self_update::finish(&localpaint_ui_egui::UPDATE_APP, &std::env::args_os().skip(1).collect::<Vec<_>>()) {
         if let Err(e) = done {
-            eprintln!("LocalPaint update helper failed: {e}");
+            eprintln!("Local Paint update helper failed: {e}");
             std::process::exit(1);
         }
         return Ok(());
@@ -381,7 +381,7 @@ fn main() -> eframe::Result {
     if gpu_startup::adapter_override_is_process_specific(std::env::var("LOCALPAINT_GPU_ADAPTER").ok().as_deref(), rendering_mode, gpu_startup::ADAPTER_CHOICE) {
         launch_options.push(launch_args::PerProcess::GpuAdapterEnv);
     }
-    // One LocalPaint per user (#3708): files opened from Explorer or a file manager while it runs
+    // One Local Paint per user (#3708): files opened from Explorer or a file manager while it runs
     // become tabs in its window. Lives until the event loop returns, then `shutdown` lets the next
     // launch become the primary.
     #[cfg(not(target_os = "macos"))]
@@ -492,7 +492,7 @@ fn main() -> eframe::Result {
     let created_in_callback = app_created.clone();
     let started_sentinel = sentinel.clone();
     let result = eframe::run_native(
-        "LocalPaint",
+        "Local Paint",
         options,
         Box::new(move |cc| {
             created_in_callback.store(true, std::sync::atomic::Ordering::Relaxed);
@@ -737,7 +737,7 @@ fn main() -> eframe::Result {
     // file to attach (#7643). A terminal or automation launch can read standard error or the
     // exit status instead, so it keeps the silent exit.
     if let Err(error) = &result {
-        log::error!("LocalPaint could not start: {error}");
+        log::error!("Local Paint could not start: {error}");
         if startup_report::needs_dialog(control_port.is_some()) {
             startup_report::show(&error.to_string(), &started_renderer, started_note.as_deref(), logger.and_then(logging::AppLogger::path).as_deref());
         }
@@ -931,7 +931,7 @@ mod tests {
             .with_fullscreen(true)
             .with_maximized(true);
         let opened = hook(saved);
-        assert_eq!(opened.fullscreen, Some(false), "Standard Screen Mode is where LocalPaint starts");
+        assert_eq!(opened.fullscreen, Some(false), "Standard Screen Mode is where Local Paint starts");
         assert_eq!(opened.maximized, Some(true), "the rest of the saved geometry is kept");
         assert_eq!(opened.inner_size, Some(egui::vec2(2560.0, 1392.0)));
     }

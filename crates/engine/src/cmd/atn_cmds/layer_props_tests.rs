@@ -1,6 +1,6 @@
 use super::*;
 
-/// LocalPaint's own roundtrip accepts a combined Set, but Photoshop applies only its rename.
+/// Local Paint's own roundtrip accepts a combined Set, but Photoshop applies only its rename.
 #[test]
 fn compound_properties_export_as_separate_sets_with_rename_last() {
     for target in [None, Some("Original")] {

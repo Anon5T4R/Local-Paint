@@ -1,6 +1,6 @@
 # Automation overview
 
-LocalPaint automation has three entry styles:
+Local Paint automation has three entry styles:
 
 1. `localpaint-cli` runs finite convert, inspect, command, batch, and droplet jobs.
 2. `localpaint-cli serve` keeps a headless session alive over JSON lines on stdio or loopback TCP.

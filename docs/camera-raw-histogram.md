@@ -33,7 +33,7 @@ Light, Texture/Clarity/Dehaze/Vibrance/Saturation, the parametric curve, four po
 all eight HSL bands, all four Color Grading wheels and Blending/Balance, sharpening,
 noise amounts/detail, grain and the numeric post-crop vignette controls. Point curves contain
 2–16 points with integer Input/Output levels; resetting one writes the linear endpoints.
-PSD stores slider levels and curve coordinates as integers while LocalPaint's sliders are
+PSD stores slider levels and curve coordinates as integers while Local Paint's sliders are
 continuous: PSD export rounds them to the nearest level (hues of 360° are written as 0°),
 so a re-opened PSD shows whole numbers. Exposure and sharpening radius stay fractional.
 The mapping comes from two revisions of a user-supplied Photoshop PSD written by Camera Raw
@@ -44,7 +44,7 @@ Imported filters keep their original descriptor in `params.__cameraRawPsd`. Unch
 including the exact stored exposure double, are preserved; editing patches only changed mapped
 fields. The template survives `.pcraft`, undo and reopening the Camera Raw dialog. Descriptors
 with unrecognized processing fields remain `psd.unsupportedFilter`: their data survives a PSD
-save, but their settings cannot be edited or re-rendered by LocalPaint. Non-default LocalPaint
+save, but their settings cannot be edited or re-rendered by Local Paint. Non-default Local Paint
 settings without a verified PSD mapping cause the existing export warning and omission of that
 filter; they are never silently written as default Camera Raw settings.
 
@@ -57,8 +57,8 @@ survive PSD and `.pcraft` saves. Its supported controls are also checked as a de
 projection with those three fields removed; that projection does not replace the source filter.
 
 Matching settings does not
-claim matching pixels: LocalPaint uses its own develop pipeline. PSD round trips and descriptor
-patching are checked locally; reopening LocalPaint-generated exports in Photoshop is a separate
+claim matching pixels: Local Paint uses its own develop pipeline. PSD round trips and descriptor
+patching are checked locally; reopening Local Paint-generated exports in Photoshop is a separate
 acceptance check.
 
 ## Layering and bounds

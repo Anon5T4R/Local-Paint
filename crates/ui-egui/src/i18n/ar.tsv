@@ -12,7 +12,7 @@
 # Combined from the community Arabic catalogs in #2505, #4520, #4569, #5593, #5915, #6092 and
 # #6287: each row takes the best of their translations, with one term per concept across the UI.
 # Modern Standard Arabic; menu commands use verbal nouns (فتح، حفظ باسم…). Product and technology
-# names (LocalPaint,  GPU, CMYK, OpenType …) and key names stay in Latin letters; the
+# names (Local Paint,  GPU, CMYK, OpenType …) and key names stay in Latin letters; the
 # trailing "…" of dialog commands is kept. Clean-room: written from the plain meaning of the English
 # labels; no proprietary localisation resource was consulted. Plural rule (CLDR):
 # zero|one|two|few|many|other. Reviewed for consistency by an AI model; native-speaker review of
@@ -814,9 +814,9 @@
 	Timeline	المخطط الزمني
 	Tool Presets	الإعدادات المسبقة للأدوات
 	Tools	الأدوات
-	About LocalPaint	حول LocalPaint
-	LocalPaint Website	موقع LocalPaint
-	LocalPaint on GitHub	LocalPaint على GitHub
+	About Local Paint	حول Local Paint
+	Local Paint Website	موقع Local Paint
+	Local Paint on GitHub	Local Paint على GitHub
 	Report an Issue…	الإبلاغ عن مشكلة…
 	WIA Support…	دعم WIA…
 	Apply	تطبيق
@@ -868,7 +868,7 @@
 	All Caps	جميع الأحرف كبيرة
 	All Slices	كل الشرائح
 	All User Slices	كل شرائح المستخدم
-	All shortcuts reset to LocalPaint defaults.	تمت إعادة تعيين جميع الاختصارات إلى إعدادات LocalPaint الافتراضية.
+	All shortcuts reset to Local Paint defaults.	تمت إعادة تعيين جميع الاختصارات إلى إعدادات Local Paint الافتراضية.
 	Alt	Alt
 	Always use pressure for opacity	استخدام الضغط دائمًا للعتامة
 	Always use pressure for size	استخدام الضغط دائمًا للحجم
@@ -1125,8 +1125,8 @@
 	Drop an image or PSD anywhere to open it.	أفلت صورة أو ملف PSD في أي مكان لفتحه.
 	Native file drag-and-drop is unavailable	السحب والإفلات الأصلي للملفات غير متاح
 	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	السحب والإفلات الأصلي للملفات غير مدعوم على Wayland بعد. استخدم ملف › فتح، أو انسخ الصورة في مدير الملفات والصقها باستخدام {paste}.
-	To drop files, start LocalPaint under XWayland: `{command}`	لإفلات الملفات، شغّل LocalPaint تحت XWayland: `{command}`
-	Or set Preferences › Performance › Linux display server to X11: LocalPaint then always starts under XWayland.	أو اضبط التفضيلات › الأداء › خادم عرض Linux على X11: عندها يبدأ LocalPaint دائمًا تحت XWayland.
+	To drop files, start Local Paint under XWayland: `{command}`	لإفلات الملفات، شغّل Local Paint تحت XWayland: `{command}`
+	Or set Preferences › Performance › Linux display server to X11: Local Paint then always starts under XWayland.	أو اضبط التفضيلات › الأداء › خادم عرض Linux على X11: عندها يبدأ Local Paint دائمًا تحت XWayland.
 	Edit › Paste	تحرير › لصق
 	Duplicate Layers…	تكرار الطبقات…
 	Duplicate style	تكرار النمط
@@ -1375,9 +1375,9 @@
 	Perspective Warp is not active	التواء المنظور غير نشط
 	Perspective Warp: draw planes along the image's perspective, then switch to Warp	التواء المنظور: ارسم مستويات وفق منظور الصورة، ثم انتقل إلى الالتواء
 	Photo Filter	فلتر الصور
-	LocalPaint	LocalPaint
-	LocalPaint Manages Colors	LocalPaint يدير الألوان
-	LocalPaint — an open-source, native image editor written in Rust.	LocalPaint — محرر صور أصلي ومفتوح المصدر مكتوب بلغة Rust.
+	Local Paint	Local Paint
+	Local Paint Manages Colors	Local Paint يدير الألوان
+	Local Paint — an open-source, native image editor written in Rust.	Local Paint — محرر صور أصلي ومفتوح المصدر مكتوب بلغة Rust.
 	Pin Depth:	عمق الدبوس:
 	Pixel Length:	الطول بالبكسل:
 	Pixels/Centimeter	بكسل/سنتيمتر
@@ -1453,11 +1453,11 @@
 	Import Shortcuts…	استيراد الاختصارات…
 	Load a keyboard shortcut set saved as .kys	تحميل مجموعة اختصارات لوحة مفاتيح محفوظة بتنسيق .kys
 	Imported {n} shortcuts from {file}. Click OK to keep them.	تم استيراد {n} من الاختصارات من {file}. انقر «موافق» للاحتفاظ بها.
-	{n} commands are not in LocalPaint.	{n} من الأوامر غير موجودة في LocalPaint.
+	{n} commands are not in Local Paint.	{n} من الأوامر غير موجودة في Local Paint.
 	Keyboard shortcuts imported	تم استيراد اختصارات لوحة المفاتيح
 	Your keyboard shortcut set {set} is in use here: {n} shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.	مجموعة اختصارات لوحة المفاتيح {set} الخاصة بك قيد الاستخدام هنا: {n} من الاختصارات تختلف عن الافتراضيات. يعرضها «تحرير › اختصارات لوحة المفاتيح»؛ ويتراجع «إعادة تعيين الكل إلى الافتراضيات» عن ذلك.
 	Import keyboard shortcuts?	هل تريد استيراد اختصارات لوحة المفاتيح؟
-	LocalPaint found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from LocalPaint's. Import it?	عثر LocalPaint على مجموعة اختصارات لوحة المفاتيح {set} الخاصة بك من محرر صور آخر على هذا الكمبيوتر: {n} من اختصاراتها تختلف عن اختصارات LocalPaint. هل تريد استيرادها؟
+	Local Paint found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from Local Paint's. Import it?	عثر Local Paint على مجموعة اختصارات لوحة المفاتيح {set} الخاصة بك من محرر صور آخر على هذا الكمبيوتر: {n} من اختصاراتها تختلف عن اختصارات Local Paint. هل تريد استيرادها؟
 	Edit › Keyboard Shortcuts › Reset All to Defaults undoes an import.	تحرير › اختصارات لوحة المفاتيح › إعادة تعيين الكل إلى الافتراضيات يؤدي إلى التراجع عن الاستيراد.
 	Don't Import	عدم الاستيراد
 	The keyboard shortcut set was not imported: {error}	لم يتم استيراد مجموعة اختصارات لوحة المفاتيح: {error}
@@ -1681,7 +1681,7 @@
 	Current Tool	الأداة الحالية
 	Custom Shape Tool	أداة الشكل المخصص
 	Cyans	درجات السماوي
-	Default LocalPaint Size	حجم LocalPaint الافتراضي
+	Default Local Paint Size	حجم Local Paint الافتراضي
 	Delete Workspace	حذف مساحة العمل
 	Diamond	ماسي
 	Dimensions:	الأبعاد:
@@ -1792,7 +1792,7 @@
 	Pen Tool	أداة القلم
 	Convert Point Tool	أداة تحويل النقطة
 	Photo	صورة فوتوغرافية
-	LocalPaint website	موقع LocalPaint
+	Local Paint website	موقع Local Paint
 	Picas	بيكا
 	Pillow Emboss	نقش وسادي
 	Pixel Replacement	استبدال البكسل
@@ -2124,7 +2124,7 @@
 	System Info	معلومات النظام
 	More panels	المزيد من اللوحات
 	More documents	المزيد من المستندات
-	These settings aren't available in LocalPaint yet.	هذه الإعدادات غير متاحة في LocalPaint بعد.
+	These settings aren't available in Local Paint yet.	هذه الإعدادات غير متاحة في Local Paint بعد.
 	Graphics	الرسومات
 	Reset GPU Backend	إعادة تعيين واجهة GPU الخلفية
 	Applies at next launch.	يُطبّق عند التشغيل التالي.
@@ -2338,7 +2338,7 @@
 	Automatic uses GPU acceleration when available and falls back to CPU rendering on errors.	يستخدم الوضع التلقائي تسريع GPU عند توفره ويعود إلى تصيير CPU عند حدوث أخطاء.
 	Switched to CPU rendering	تم التبديل إلى تصيير CPU
 	GPU acceleration could not continue. Your documents are unchanged.	تعذّر استمرار تسريع GPU. مستنداتك لم تتغير.
-	LocalPaint is using the CPU image compositor. The window may still use your graphics adapter.	يستخدم LocalPaint مركب الصور على CPU. قد تظل النافذة تستخدم محول الرسومات لديك.
+	Local Paint is using the CPU image compositor. The window may still use your graphics adapter.	يستخدم Local Paint مركب الصور على CPU. قد تظل النافذة تستخدم محول الرسومات لديك.
 	Retry GPU requires a restart. Save your work first.	تتطلب إعادة محاولة GPU إعادة التشغيل. احفظ عملك أولًا.
 	Retry GPU tries the graphics processor again now.	تؤدي إعادة محاولة GPU إلى تجربة معالج الرسومات مرة أخرى الآن.
 	GPU acceleration resumed.	تم استئناف تسريع GPU.
@@ -2578,7 +2578,7 @@ fontWeight	Italic	مائل
 	Color to Alpha…	اللون إلى ألفا…
 	Transparency Threshold	عتبة الشفافية
 	Opacity Threshold	عتبة العتامة
-	LocalPaint — Screen Color Picker	LocalPaint — منتقي ألوان الشاشة
+	Local Paint — Screen Color Picker	Local Paint — منتقي ألوان الشاشة
 
 	Rasterize svg groups deeper than	تنقيط مجموعات SVG إذا كانت أعمق من
 	0 turns this threshold off; SVG groups nested deeper than 100 levels are always rasterized.	0 يعطّل هذه العتبة؛ تُنقَّط مجموعات SVG المتداخلة بعمق أكبر من 100 مستوى دائمًا.
@@ -3255,7 +3255,7 @@ curves	Smooth	تنعيم
 	{name} (Photoshop)	{name} (Photoshop)
 	{message} ({note})	{message} ({note})
 @plural	Loaded {n} action from {file}|Loaded {n} actions from {file}	تم تحميل {n} إجراء من {file}|تم تحميل {n} إجراء من {file}|تم تحميل {n} إجراءين من {file}|تم تحميل {n} إجراءات من {file}|تم تحميل {n} إجراءً من {file}|تم تحميل {n} إجراء من {file}
-@plural	{n} step has no LocalPaint equivalent yet|{n} steps have no LocalPaint equivalent yet	{n} خطوة ليس لها مكافئ في LocalPaint بعد|{n} خطوة ليس لها مكافئ في LocalPaint بعد|{n} خطوتان ليس لهما مكافئ في LocalPaint بعد|{n} خطوات ليس لها مكافئ في LocalPaint بعد|{n} خطوةً ليس لها مكافئ في LocalPaint بعد|{n} خطوة ليس لها مكافئ في LocalPaint بعد
+@plural	{n} step has no Local Paint equivalent yet|{n} steps have no Local Paint equivalent yet	{n} خطوة ليس لها مكافئ في Local Paint بعد|{n} خطوة ليس لها مكافئ في Local Paint بعد|{n} خطوتان ليس لهما مكافئ في Local Paint بعد|{n} خطوات ليس لها مكافئ في Local Paint بعد|{n} خطوةً ليس لها مكافئ في Local Paint بعد|{n} خطوة ليس لها مكافئ في Local Paint بعد
 @plural	Saved {n} action to {file}|Saved {n} actions to {file}	تم حفظ {n} إجراء في {file}|تم حفظ {n} إجراء في {file}|تم حفظ {n} إجراءين في {file}|تم حفظ {n} إجراءات في {file}|تم حفظ {n} إجراءً في {file}|تم حفظ {n} إجراء في {file}
 @plural	{n} step with no Photoshop equivalent left out|{n} steps with no Photoshop equivalent left out	تم استبعاد {n} خطوة ليس لها مكافئ في Photoshop|تم استبعاد {n} خطوة ليس لها مكافئ في Photoshop|تم استبعاد {n} خطوتين ليس لهما مكافئ في Photoshop|تم استبعاد {n} خطوات ليس لها مكافئ في Photoshop|تم استبعاد {n} خطوةً ليس لها مكافئ في Photoshop|تم استبعاد {n} خطوة ليس لها مكافئ في Photoshop
 
@@ -3322,7 +3322,7 @@ curves	Smooth	تنعيم
 	Could not write {name}: {error}	تعذرت كتابة {name}: {error}
 	Kept {name}: written by another application	تم الاحتفاظ بـ {name}: تمت كتابته بواسطة تطبيق آخر
 	Shadow Tint	صبغة الظلال
-# LocalPaint release checks.
+# Local Paint release checks.
 	Check for Updates…	التحقق من وجود تحديثات…
 	Open the release page to choose an installer for your system.	افتح صفحة الإصدار لاختيار برنامج التثبيت المناسب لنظامك.
 	Automatically Check for Updates	التحقق من وجود تحديثات تلقائيًا
@@ -3364,12 +3364,12 @@ curves	Smooth	تنعيم
 	Bicubic Smoother	ثنائي التكعيب أكثر نعومة
 	Bicubic Sharper	ثنائي التكعيب أكثر حدة
 	Pasting from other apps is unavailable	اللصق من التطبيقات الأخرى غير متاح
-	LocalPaint can't reach the system clipboard in this session. On Wayland, a Flatpak sandbox hides the protocol that images from other apps are read through.	لا يستطيع LocalPaint الوصول إلى حافظة النظام في هذه الجلسة. على Wayland، يُخفي صندوق الحماية Flatpak البروتوكول الذي تُقرأ عبره الصور من التطبيقات الأخرى.
-	To paste from other apps, start LocalPaint under XWayland: `{command}`	للصق من التطبيقات الأخرى، شغّل LocalPaint ضمن XWayland: `{command}`
-	Nothing to paste: LocalPaint can't read the system clipboard here	لا يوجد شيء للصق: لا يستطيع LocalPaint قراءة حافظة النظام هنا
+	Local Paint can't reach the system clipboard in this session. On Wayland, a Flatpak sandbox hides the protocol that images from other apps are read through.	لا يستطيع Local Paint الوصول إلى حافظة النظام في هذه الجلسة. على Wayland، يُخفي صندوق الحماية Flatpak البروتوكول الذي تُقرأ عبره الصور من التطبيقات الأخرى.
+	To paste from other apps, start Local Paint under XWayland: `{command}`	للصق من التطبيقات الأخرى، شغّل Local Paint ضمن XWayland: `{command}`
+	Nothing to paste: Local Paint can't read the system clipboard here	لا يوجد شيء للصق: لا يستطيع Local Paint قراءة حافظة النظام هنا
 	Delete this set	حذف هذه المجموعة
 	New Set…	مجموعة جديدة…
-	LocalPaint Defaults	الإعدادات الافتراضية لـ LocalPaint
+	Local Paint Defaults	الإعدادات الافتراضية لـ Local Paint
 	Save a list of these shortcuts as a web page	حفظ قائمة بهذه الاختصارات كصفحة ويب
 	Save the changes to this set	حفظ التغييرات في هذه المجموعة
 	Save these shortcuts as a .kys file	حفظ هذه الاختصارات كملف .kys

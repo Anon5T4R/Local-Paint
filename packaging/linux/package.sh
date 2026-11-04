@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build and package LocalPaint for Linux (<arch> is x86_64, aarch64 or riscv64):
+# Build and package Local Paint for Linux (<arch> is x86_64, aarch64 or riscv64):
 #
 #   $DIST/localpaint-<version>-linux-<arch>.AppImage  any distro with glibc >= the build host's
 #   $DIST/localpaint-<version>-linux-<arch>.AppImage.zsync  delta updates (needs zsyncmake)
@@ -44,10 +44,10 @@ case "$ARCH" in
   aarch64 | arm64) ARCH=aarch64; DEB_ARCH=arm64 ;;
   *) echo "unsupported architecture $ARCH" >&2; exit 2 ;;
 esac
-export LOCALPAINT_MAINTAINER="${LOCALPAINT_MAINTAINER:-LocalPaint maintainers <localpaint@users.noreply.github.com>}"
+export LOCALPAINT_MAINTAINER="${LOCALPAINT_MAINTAINER:-Local Paint maintainers <localpaint@users.noreply.github.com>}"
 BASENAME="localpaint-$VERSION-linux-$ARCH"
 
-echo "==> LocalPaint $VERSION for Linux $ARCH ($FORMATS)"
+echo "==> Local Paint $VERSION for Linux $ARCH ($FORMATS)"
 
 # The man-and-completions example writes localpaint-cli's man pages and shell completions below. It
 # is built in its own cargo run: built with the binaries, its dev-dependencies' features would be

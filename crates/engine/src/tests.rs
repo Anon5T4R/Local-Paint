@@ -1435,7 +1435,7 @@ fn type_edit_rerenders_cache_to_new_text() {
         st.doc.layer(localpaint_doc::LayerId(id)).unwrap().surface().unwrap().content_bounds().width()
     };
     let w0 = width(&s);
-    s.execute("type.edit", json!({"layer": id, "replace": {"start": 0, "end": 11, "text": "LocalPaint"}, "coalesce": "k"})).unwrap();
+    s.execute("type.edit", json!({"layer": id, "replace": {"start": 0, "end": 11, "text": "Local Paint"}, "coalesce": "k"})).unwrap();
     let w1 = width(&s);
     assert!(w0 > 150 && w1 > 150, "cache widths {w0} → {w1}");
 }
@@ -1667,7 +1667,7 @@ fn document_inspect_and_activate_invalid_index() {
 }
 
 /// #7103: Photoshop's Select Document by offset (previous is -1, next +1) walks opening order
-/// from the active document. LocalPaint refuses offsets past either end instead of wrapping
+/// from the active document. Local Paint refuses offsets past either end instead of wrapping
 /// onto another document, and bad params leave the active document as it was.
 #[test]
 fn document_activate_by_offset_walks_opening_order() {

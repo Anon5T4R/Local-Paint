@@ -1,4 +1,4 @@
-//! LocalPaint's private PSD display-preview block. The linked-layer payload is never replaced.
+//! Local Paint's private PSD display-preview block. The linked-layer payload is never replaced.
 //!
 //! `pcVP` carries a versioned header, BLAKE3 of the native AI/PDF/EPS source, the SVG byte
 //! length and a bounded display-only SVG. Other readers may ignore it and use PSD cached pixels.

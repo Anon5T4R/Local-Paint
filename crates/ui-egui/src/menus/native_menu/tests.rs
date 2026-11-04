@@ -30,14 +30,14 @@ fn ids(nodes: &[Node]) -> Vec<String> {
 fn localpaint_gets_a_mac_app_menu() {
     let l = layout(true);
     let app = &l.bar.menus[0];
-    assert_eq!((app.title.as_str(), app.role), ("LocalPaint", MenuRole::App));
+    assert_eq!((app.title.as_str(), app.role), ("Local Paint", MenuRole::App));
     assert_eq!(
         ids(&app.children),
         ["help.about", "---", "[Settings]", "[Language]", "[Appearance]", "---", "<Services>", "---", HIDE, "<HideOthers>", "<ShowAll>", "---", "file.exit"]
     );
     let quit = l.bar.find("file.exit").unwrap();
-    assert_eq!((quit.label.as_str(), quit.shortcut.as_deref()), ("Quit LocalPaint", Some("Cmd+Q")));
-    assert_eq!(l.bar.find("help.about").unwrap().label, "About LocalPaint");
+    assert_eq!((quit.label.as_str(), quit.shortcut.as_deref()), ("Quit Local Paint", Some("Cmd+Q")));
+    assert_eq!(l.bar.find("help.about").unwrap().label, "About Local Paint");
 }
 
 #[test]
@@ -48,10 +48,10 @@ fn moved_items_leave_their_old_menus() {
     assert!(!ids(&by("Help").children).contains(&"help.about".to_string()));
     assert!(!ids(&by("Edit").children).contains(&"[Preferences]".to_string()));
     let titles: Vec<&str> = l.bar.menus.iter().map(|m| m.title.as_str()).collect();
-    assert_eq!(titles, ["LocalPaint", "File", "Edit", "Image", "Layer", "Type", "Select", "Filter", "View", "Window", "Help"]);
+    assert_eq!(titles, ["Local Paint", "File", "Edit", "Image", "Layer", "Type", "Select", "Filter", "View", "Window", "Help"]);
 }
 
-/// LocalPaint keeps Photoshop's ⌘H, ⌘M, ⌘W and ⌘, (Hide Layers): the system items give way.
+/// Local Paint keeps Photoshop's ⌘H, ⌘M, ⌘W and ⌘, (Hide Layers): the system items give way.
 #[test]
 fn clashes_are_resolved_in_localpaints_favour() {
     let l = layout(true);
@@ -222,7 +222,7 @@ impl Backend for Fake {
     }
 }
 
-/// A key equivalent reaches LocalPaint's own key handling as the key press it was, so the
+/// A key equivalent reaches Local Paint's own key handling as the key press it was, so the
 /// shortcut runs once, through the same rules as without a native menu.
 #[test]
 fn key_equivalents_run_through_the_normal_shortcut_path() {

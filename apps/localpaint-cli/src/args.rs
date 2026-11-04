@@ -19,7 +19,7 @@ use localpaint_codecs::{JpegFormat, TiffCompression};
 use localpaint_io::{DdsCompression, DpxBits, TgaBits};
 use serde_json::Value;
 
-/// localpaint-cli: headless LocalPaint
+/// localpaint-cli: headless Local Paint
 #[derive(Parser)]
 #[command(name = "localpaint-cli", version = localpaint_engine::build_info::long_version_static(), arg_required_else_help = true)]
 pub(crate) struct Cli {
@@ -205,7 +205,7 @@ pub(crate) struct CommandsArgs {
 /// app; root flags are refused. The token flags require --bridge (or LOCALPAINT_CONTROL_PORT).
 #[derive(Args)]
 pub(crate) struct McpArgs {
-    /// Bridge to the LocalPaint app listening here instead of a headless engine; a bare port means
+    /// Bridge to the Local Paint app listening here instead of a headless engine; a bare port means
     /// 127.0.0.1:<PORT>
     #[arg(long, value_name = "127.0.0.1:PORT", env = "LOCALPAINT_CONTROL_PORT", value_parser = bridge)]
     pub(crate) bridge: Option<Bridge>,

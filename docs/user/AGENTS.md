@@ -1,13 +1,13 @@
 # User docs: rules for agents and contributors
 
 Everything in this folder (except this file, CLAUDE.md and README.md) is the user documentation
-for LocalPaint. The file path mirrors the page path:
+for Local Paint. The file path mirrors the page path:
 `troubleshooting/taskbar-turns-black.md` → `/docs/localpaint/troubleshooting/taskbar-turns-black`.
 Renaming a file breaks links, so add the old path to `redirect_from` when you rename.
 
 ## Who reads this
 
-Artists using LocalPaint, the people answering them, and AI assistants looking things up for
+Artists using Local Paint, the people answering them, and AI assistants looking things up for
 either. Write for an artist, not a developer.
 
 ## Page rules
@@ -16,9 +16,9 @@ either. Write for an artist, not a developer.
 - Plain words, short sentences, numbered steps for anything the reader does.
 - Start the body at `##`. The page title comes from frontmatter.
 - Link to other pages instead of repeating them. Use relative links to the `.md` file:
-  `[Install LocalPaint](../getting-started/install.md)`.
+  `[Install Local Paint](../getting-started/install.md)`.
 - No marketing copy, no "simply", no claims you have not checked in the code or a release.
-- Call the product "LocalPaint", as the app and its downloads do.
+- Call the product "Local Paint", as the app and its downloads do.
 - Name UI labels exactly as the app shows them, in **bold**. Menu paths read `File › Open…`.
 - Troubleshooting pages: `## Symptoms`, `## Fix`, `## Why this happens` (optional),
   `## Still stuck?` (link the issue tracker).

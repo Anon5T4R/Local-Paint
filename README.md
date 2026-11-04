@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/app-icon/hicolor/256x256/apps/com.localpaint.app.png" width="128" height="128" alt="LocalPaint icon: a painter's palette with five ink blobs, crossed by a brush, on an amber tile">
+  <img src="assets/app-icon/hicolor/256x256/apps/com.localpaint.app.png" width="128" height="128" alt="Local Paint icon: a painter's palette with five ink blobs, crossed by a brush, on an amber tile">
 </p>
 
-<h1 align="center">LocalPaint</h1>
+<h1 align="center">Local Paint</h1>
 
 <p align="center">
   <b>Image editing; an open-source, clean-room image editor built in pure Rust.</b><br>
@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Anon5T4R/Local-Paint"><b>LocalPaint on GitHub</b></a> ·
+  <a href="https://github.com/Anon5T4R/Local-Paint"><b>Local Paint on GitHub</b></a> ·
   <a href="https://github.com/Anon5T4R/">Local</a> ·
   <a href="https://github.com/Anon5T4R">Anon5T4R</a>
 </p>
@@ -36,7 +36,7 @@ endpoint (Preferences › General disables it).
 
 | Platform | Files |
 |---|---|
-| Windows 10+ x64 / x86 | `localpaint-<ver>-windows-<arch>.msi` (per-machine, installs in `Program Files\LocalPaint`) and `localpaint-<ver>-windows-<arch>-portable.zip` |
+| Windows 10+ x64 / x86 | `localpaint-<ver>-windows-<arch>.msi` (per-machine, installs in `Program Files\Local Paint`) and `localpaint-<ver>-windows-<arch>-portable.zip` |
 | Linux x86_64 / aarch64 | `.AppImage`, `.deb`, `.rpm`, `.tar.gz`, and the standalone CLI tarball (`packaging/linux/package.sh`) |
 | Arch Linux | `packaging/arch/PKGBUILD` |
 | macOS, FreeBSD, web (WebAssembly) | built by the scripts in `packaging/` |
@@ -65,8 +65,8 @@ describes what the workflow builds and publishes. Contributors and agents start 
 
 ## License and credits
 
-LocalPaint is dual-licensed under [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option.
-Copyright (c) 2026 Local Team and the LocalPaint contributors; the upstream copyright line is kept in
+Local Paint is dual-licensed under [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option.
+Copyright (c) 2026 Local Team and the Local Paint contributors; the upstream copyright line is kept in
 [`LICENSE-MIT`](LICENSE-MIT). Required notices are in [NOTICE](NOTICE).
 
 Bundled fonts, icons, images and other assets keep their own open licenses; each one is listed

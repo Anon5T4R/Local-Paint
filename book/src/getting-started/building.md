@@ -1,6 +1,6 @@
 # Building
 
-LocalPaint uses the Rust workspace at the repository root. Install the stable Rust toolchain, clone the repository, and run commands from that root.
+Local Paint uses the Rust workspace at the repository root. Install the stable Rust toolchain, clone the repository, and run commands from that root.
 
 On Linux, install the windowing, GL and GTK development packages first. The development guide's
 [Prerequisites](https://github.com/Anon5T4R/Local-Paint/blob/main/docs/development.md#prerequisites)

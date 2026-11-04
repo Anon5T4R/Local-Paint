@@ -1,4 +1,4 @@
-# Hosting LocalPaint for the web
+# Hosting Local Paint for the web
 
 `localpaint-web-<version>.zip` (from the GitHub release, or `packaging/web/package.sh`) holds a
 static site in `localpaint-web-<version>/`:
@@ -74,7 +74,7 @@ without such a cap.
 
 The app is built with the `wasm-release` Cargo profile (fat LTO, size-optimized code with the
 pixel and file-decoding crates kept at speed) plus `wasm-opt -Oz`, and stores the bundled fonts
-(LocalPaint's and egui's) and the translation catalogs compressed, unpacked on first use.
+(Local Paint's and egui's) and the translation catalogs compressed, unpacked on first use.
 
 ## Any path works
 
@@ -93,7 +93,7 @@ their names and need revalidation.
   are gzip already, and the page inflates them). Their extension is one servers don't
   know, so the usual result, `application/octet-stream` and no compression, is right.
 - **Missing files are 404s:** a host that answers every unknown path with `index.html` (a
-  single-page-app fallback) hides a failed upload. LocalPaint notices and says the download
+  single-page-app fallback) hides a failed upload. Local Paint notices and says the download
   failed, but a 404 is clearer in the server's logs.
 - **Compression:** turn on gzip or Brotli for `.wasm`, `.js` and `.html`. It matters little for
   the download, since the parts are compressed already; it shrinks the two `.js` files and the
@@ -103,7 +103,7 @@ their names and need revalidation.
   `app/localpaint-web.js` and `app/parts.txt`. The sample `_headers` and `.htaccess` do this.
 - **HTTPS:** WebGPU (and the clipboard) only work in a secure context, which means `https://`
   or `http://localhost`. Over plain HTTP elsewhere, the app falls back to WebGL2.
-- **No special isolation headers:** LocalPaint doesn't use `SharedArrayBuffer`, so it doesn't
+- **No special isolation headers:** Local Paint doesn't use `SharedArrayBuffer`, so it doesn't
   need `Cross-Origin-Opener-Policy` or `Cross-Origin-Embedder-Policy`. If your site already sends
   COEP `require-corp`, also send `Cross-Origin-Resource-Policy: same-origin` (or `cross-origin`
   when the files live on a CDN) on the app's files.
@@ -163,7 +163,7 @@ fetches them with `fetch()`, so a Content Security Policy needs them allowed by 
 ```html
 <iframe
   src="https://example.com/localpaint/"
-  title="LocalPaint image editor"
+  title="Local Paint image editor"
   style="width: 100%; height: 720px; border: 0;"
   allow="fullscreen; clipboard-read; clipboard-write"
   allowfullscreen>
@@ -183,7 +183,7 @@ fetches them with `fetch()`, so a Content Security Policy needs them allowed by 
 
 ## Renderer selection and fallback flags
 
-LocalPaint renders with wgpu. It uses **WebGPU** when the browser has it and falls back to
+Local Paint renders with wgpu. It uses **WebGPU** when the browser has it and falls back to
 **WebGL2** on its own. URL query flags override this, and they work on the iframe `src` too:
 
 | Flag | Effect |

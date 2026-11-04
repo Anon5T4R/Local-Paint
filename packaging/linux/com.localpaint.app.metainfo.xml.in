@@ -5,14 +5,14 @@
   <id>com.localpaint.app</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT OR Apache-2.0</project_license>
-  <name>LocalPaint</name>
+  <name>Local Paint</name>
   <summary>Edit photos and layered PSD documents</summary>
   <developer id="com.localpaint">
     <name>Anon5T4R</name>
   </developer>
   <description>
     <p>
-      LocalPaint is an open-source, native image editor with the familiar menus,
+      Local Paint is an open-source, native image editor with the familiar menus,
       shortcuts, panels and tools professionals expect: layers, masks, adjustment
       layers, layer styles, type and brushes.
     </p>

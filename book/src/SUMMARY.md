@@ -1,6 +1,6 @@
 # Summary
 
-[LocalPaint Documentation](README.md)
+[Local Paint Documentation](README.md)
 
 # Getting started
 

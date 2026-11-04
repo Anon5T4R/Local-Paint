@@ -1,12 +1,12 @@
 ---
-title: Is LocalPaint free?
-description: LocalPaint is free and open source under the MIT or Apache 2.0 license, and works offline.
+title: Is Local Paint free?
+description: Local Paint is free and open source under the MIT or Apache 2.0 license, and works offline.
 order: 10
 verified: 0.8.2
 ---
 
-Yes. LocalPaint is free and open-source creative software. The code is licensed under MIT or Apache 2.0, your choice, and is on [GitHub](https://github.com/Anon5T4R/Local-Paint).
+Yes. Local Paint is free and open-source creative software. The code is licensed under MIT or Apache 2.0, your choice, and is on [GitHub](https://github.com/Anon5T4R/Local-Paint).
 
-LocalPaint works offline. Its smart selection tools run on your computer, with no cloud and no account.
+Local Paint works offline. Its smart selection tools run on your computer, with no cloud and no account.
 
-See [Install LocalPaint](../getting-started/install.md) to download it.
+See [Install Local Paint](../getting-started/install.md) to download it.

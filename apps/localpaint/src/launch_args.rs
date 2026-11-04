@@ -21,11 +21,11 @@ use localpaint_automation::args::{AutomationArgs, ControlArgs, blank_env_is_unse
 
 use crate::presentation;
 
-/// Opens LocalPaint with the given files
+/// Opens Local Paint with the given files
 #[derive(Parser)]
 #[command(name = "localpaint", version = localpaint_engine::build_info::long_version_static(), after_help = ENVIRONMENT)]
 pub(crate) struct LaunchArgs {
-    /// Files to open. On Windows and Linux they open as new tabs in the LocalPaint already running.
+    /// Files to open. On Windows and Linux they open as new tabs in the Local Paint already running.
     /// Put `--` before a name that starts with `-`
     pub(crate) files: Vec<PathBuf>,
     /// Start with the CPU renderer for this launch (after a graphics driver crash)
@@ -35,7 +35,7 @@ pub(crate) struct LaunchArgs {
     /// or off is off; empty is unset)
     #[arg(long, env = "LOCALPAINT_IN_WINDOW_MENUS", value_parser = FalseyValueParser::new())]
     pub(crate) in_window_menus: bool,
-    /// Windows and Linux: start a separate LocalPaint instead of opening the files in the one
+    /// Windows and Linux: start a separate Local Paint instead of opening the files in the one
     /// already running
     #[arg(long)]
     pub(crate) new_instance: bool,

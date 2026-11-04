@@ -1,6 +1,6 @@
 [package]
 name = "localpaint-cli"
-description = "Headless LocalPaint: convert, inspect, run commands, batch, MCP server"
+description = "Headless Local Paint: convert, inspect, run commands, batch, MCP server"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

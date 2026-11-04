@@ -1,4 +1,4 @@
-//! Native embedded files stay native while LocalPaint retains a source-bound display preview.
+//! Native embedded files stay native while Local Paint retains a source-bound display preview.
 
 use std::sync::Arc;
 

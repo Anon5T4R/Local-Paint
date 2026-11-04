@@ -3,13 +3,13 @@
 //! `x:xmpmeta/rdf:RDF/rdf:Description`, as attributes or as child elements.
 //!
 //! Loading applies only the settings the file holds, over the current ones, as Camera Raw's
-//! Load Settings does; settings LocalPaint has no control for (lens corrections, geometry,
+//! Load Settings does; settings Local Paint has no control for (lens corrections, geometry,
 //! defringe, …) are ignored and named in the report. The same reader fills the dialog from a
 //! raw file's sidecar (`IMG_0001.xmp` beside `IMG_0001.CR2`), and the writer keeps it. Saving writes every supported
 //! control, so loading the file in Photoshop reproduces the dialog.
 //!
 //! White balance: a Camera Raw Filter on a rendered image uses the relative
-//! `IncrementalTemperature` / `IncrementalTint` (−100..=100), which are LocalPaint's Temperature
+//! `IncrementalTemperature` / `IncrementalTint` (−100..=100), which are Local Paint's Temperature
 //! and Tint. The absolute `Temperature` (kelvin) / `Tint` of raw-file settings have no
 //! counterpart and are ignored.
 
@@ -23,7 +23,7 @@ pub const MAX_XMP_BYTES: usize = 4 * 1024 * 1024;
 
 type Field = fn(&mut CameraRaw) -> &mut f32;
 
-/// `crs:` scalar name, LocalPaint field, and the slider range values are clamped to.
+/// `crs:` scalar name, Local Paint field, and the slider range values are clamped to.
 const SCALARS: &[(&str, Field, f32, f32)] = &[
     ("IncrementalTemperature", |p| &mut p.temperature, -100.0, 100.0),
     ("IncrementalTint", |p| &mut p.tint, -100.0, 100.0),
@@ -154,7 +154,7 @@ const METADATA: &[&str] = &[
 pub struct LoadReport {
     /// How many settings were applied.
     pub applied: usize,
-    /// `crs:` settings without a LocalPaint control (set to something other than their neutral
+    /// `crs:` settings without a Local Paint control (set to something other than their neutral
     /// value), or with an unusable value, in file order.
     pub ignored: Vec<String>,
 }
@@ -175,7 +175,7 @@ fn curve(node: roxmltree::Node<'_, '_>) -> Option<Vec<[f32; 2]>> {
         points.push([number(x)?, number(y)?]);
     }
     validate_curve(&points).ok()?;
-    // Camera Raw's linear curve is the identity's two end points; LocalPaint's is empty.
+    // Camera Raw's linear curve is the identity's two end points; Local Paint's is empty.
     if points == [[0.0, 0.0], [255.0, 255.0]] {
         points.clear();
     }
@@ -275,12 +275,15 @@ fn escape(s: &str) -> String {
 }
 
 /// The XMP toolkit [`save`] names on `x:xmpmeta`.
-const TOOLKIT: &str = "LocalPaint";
+const TOOLKIT: &str = "Local Paint";
+/// The toolkit name builds before the display rename wrote: a sidecar carrying it is still ours.
+const FORMER_TOOLKIT: &str = "LocalPaint";
 const META_NS: &str = "adobe:ns:meta/";
 
-/// Did [`save`] write this file? True when its `x:xmpmeta` names LocalPaint as the toolkit
-/// (`x:xmptk`). Lightroom, Bridge and Camera Raw put their own toolkit there when they write a
-/// file, so a sidecar another application touched since reads false. Never panics.
+/// Did [`save`] write this file? True when its `x:xmpmeta` names Local Paint as the toolkit
+/// (`x:xmptk`), under its current name or the one its earlier builds wrote. Lightroom, Bridge and
+/// Camera Raw put their own toolkit there when they write a file, so a sidecar another application
+/// touched since reads false. Never panics.
 pub fn is_localpaint_xmp(bytes: &[u8]) -> bool {
     if bytes.len() > MAX_XMP_BYTES {
         return false;
@@ -290,7 +293,7 @@ pub fn is_localpaint_xmp(bytes: &[u8]) -> bool {
     doc.descendants()
         .find(|n| n.is_element() && n.tag_name().namespace() == Some(META_NS) && n.tag_name().name() == "xmpmeta")
         .and_then(|n| n.attribute((META_NS, "xmptk")))
-        == Some(TOOLKIT)
+        .is_some_and(|toolkit| toolkit == TOOLKIT || toolkit == FORMER_TOOLKIT)
 }
 
 /// Write `params` as a Camera Raw settings file Photoshop's Load Settings… reads.
@@ -298,7 +301,7 @@ pub fn save(params: &CameraRaw) -> String {
     let mut p = params.clone();
     let wb = if p.temperature != 0.0 || p.tint != 0.0 { "Custom" } else { "As Shot" };
     let mut out = String::from(
-        "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"LocalPaint\">\n <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n  <rdf:Description rdf:about=\"\"\n    xmlns:crs=\"http://ns.adobe.com/camera-raw-settings/1.0/\"\n",
+        "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Local Paint\">\n <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n  <rdf:Description rdf:about=\"\"\n    xmlns:crs=\"http://ns.adobe.com/camera-raw-settings/1.0/\"\n",
     );
     out.push_str("   crs:Version=\"18.4\"\n   crs:ProcessVersion=\"15.4\"\n");
     out.push_str(&format!("   crs:WhiteBalance=\"{wb}\"\n"));
@@ -380,7 +383,7 @@ mod tests {
         assert_eq!((p.hsl_hue[3], p.hsl_sat[3]), (25.0, 20.0));
         assert_eq!((p.sharpen_amount, p.noise_luminance, p.grain_amount), (15.0, 5.0, 10.0));
         assert_eq!(p.grade_blending, 50.0);
-        // The linear tone curve is LocalPaint's empty one; an element-form setting is read too.
+        // The linear tone curve is Local Paint's empty one; an element-form setting is read too.
         assert!(p.point_curve.is_empty());
         assert_eq!(p.point_curve_red, vec![[0.0, 0.0], [128.0, 140.0], [255.0, 255.0]]);
         assert_eq!(p.dehaze, 12.0);
@@ -467,13 +470,15 @@ mod tests {
         let wrapped = format!("\u{feff}<?xpacket begin=\"\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\n{own}<?xpacket end=\"w\"?>");
         assert!(is_localpaint_xmp(wrapped.as_bytes()), "an xpacket wrapper and a byte order mark");
         assert!(!is_localpaint_xmp(FIXTURE), "Camera Raw's own toolkit");
+        let before = own.replace("Local Paint", "LocalPaint");
+        assert!(is_localpaint_xmp(before.as_bytes()), "a sidecar written before the display rename");
         for other in [
             &b""[..],
             b"<x:xmpmeta",
             b"<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"/>",
-            b"<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" xmptk=\"LocalPaint\"/>",
-            b"<x:xmpmeta xmlns:x=\"other:ns/\" x:xmptk=\"LocalPaint\"/>",
-            b"<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"LocalPaint 2\"/>",
+            b"<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" xmptk=\"Local Paint\"/>",
+            b"<x:xmpmeta xmlns:x=\"other:ns/\" x:xmptk=\"Local Paint\"/>",
+            b"<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Local Paint 2\"/>",
             b"\xff\xfe",
         ] {
             assert!(!is_localpaint_xmp(other), "{}", String::from_utf8_lossy(other));

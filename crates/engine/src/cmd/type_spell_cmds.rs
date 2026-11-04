@@ -338,10 +338,10 @@ mod tests {
 
     #[test]
     fn lists_changes_and_learns_words() {
-        let (mut s, id) = session("Teh quick brwon fox, teh end. LocalPaint");
+        let (mut s, id) = session("Teh quick brwon fox, teh end. Local Paint");
         let r = s.execute("edit.checkSpelling", json!({})).unwrap();
         let words: Vec<&str> = r["misspellings"].as_array().unwrap().iter().map(|m| m["word"].as_str().unwrap()).collect();
-        assert_eq!(words, vec!["Teh", "brwon", "teh", "LocalPaint"]);
+        assert_eq!(words, vec!["Teh", "brwon", "teh", "Local Paint"]);
         let first = &r["misspellings"][0];
         assert_eq!((first["start"].as_u64(), first["end"].as_u64()), (Some(0), Some(3)));
         assert_eq!(first["suggestions"][0], "The");
@@ -350,7 +350,7 @@ mod tests {
         assert!(s.execute("edit.checkSpelling", json!({"action": "change", "layer": id, "start": 0, "end": 3, "word": "Teh", "replace": "X"})).is_err());
         let r = s.execute("edit.checkSpelling", json!({"action": "changeAll", "word": "brwon", "replace": "brown"})).unwrap();
         assert_eq!(r["changed"], 1);
-        assert_eq!(text_of(&s, id), "The quick brown fox, teh end. LocalPaint");
+        assert_eq!(text_of(&s, id), "The quick brown fox, teh end. Local Paint");
         // One undo step per change.
         s.execute("edit.undo", json!({})).unwrap();
         assert!(text_of(&s, id).contains("brwon"));
@@ -358,8 +358,8 @@ mod tests {
         // Ignore All and Add to Dictionary.
         let r = s.execute("edit.checkSpelling", json!({"ignore": ["teh"]})).unwrap();
         assert_eq!(r["count"], 1);
-        s.execute("edit.checkSpelling", json!({"action": "addToDictionary", "word": "LocalPaint"})).unwrap();
-        assert_eq!(s.prefs().user_dictionary, vec!["LocalPaint".to_string()]);
+        s.execute("edit.checkSpelling", json!({"action": "addToDictionary", "word": "Local Paint"})).unwrap();
+        assert_eq!(s.prefs().user_dictionary, vec!["Local Paint".to_string()]);
         let r = s.execute("edit.checkSpelling", json!({})).unwrap();
         assert_eq!(r["count"], 1);
         s.execute("edit.checkSpelling", json!({"action": "removeFromDictionary", "word": "localpaint"})).unwrap();

@@ -1,4 +1,4 @@
-//! Starts LocalPaint in the browser from compressed parts of its WebAssembly.
+//! Starts Local Paint in the browser from compressed parts of its WebAssembly.
 //!
 //! Static hosts cap the size of one file (Cloudflare Pages: 25 MiB), and the app's wasm is at
 //! that size. `packaging/web/package.sh` gzips it and cuts it into parts listed in
@@ -246,7 +246,7 @@ mod boot {
             held.push(chunk);
         }
         let Some(payload) = super::payload(&head) else {
-            let e = JsValue::from_str("the download is not LocalPaint's WebAssembly");
+            let e = JsValue::from_str("the download is not Local Paint's WebAssembly");
             // Stops the rest of the download, which nothing will read.
             let _ = reader.cancel_with_reason(&e);
             return Err(e);
@@ -328,12 +328,12 @@ mod boot {
                     Ok(()) => return,
                     Err(e) => e,
                 };
-                web_sys::console::error_2(&JsValue::from_str("localpaint-web-boot: could not start LocalPaint:"), &error);
+                web_sys::console::error_2(&JsValue::from_str("localpaint-web-boot: could not start Local Paint:"), &error);
                 let Some(&wait) = RETRY_AFTER.get(attempt) else {
-                    say("LocalPaint couldn't be downloaded. Check your connection, then try again: ", true);
+                    say("Local Paint couldn't be downloaded. Check your connection, then try again: ", true);
                     return;
                 };
-                say("Loading LocalPaint\u{2026} (the download failed, trying again)", false);
+                say("Loading Local Paint\u{2026} (the download failed, trying again)", false);
                 sleep(wait).await;
                 attempt += 1;
             }

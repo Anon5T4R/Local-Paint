@@ -1,59 +1,59 @@
-LocalPaint's Korean, German, Spanish, Brazilian Portuguese, Italian, Ukrainian, Dutch, Czech,
+Local Paint's Korean, German, Spanish, Brazilian Portuguese, Italian, Ukrainian, Dutch, Czech,
 Turkish, Hungarian, Serbian, Russian, Swedish, Finnish, Danish and Norwegian Bokmål UI translation
 catalogs are licensed under MIT OR Apache-2.0, at your option.
 The full license texts are in ../../../../LICENSE-MIT and ../../../../LICENSE-APACHE.
 
-Korean translations: LocalPaint contributors, original translations of
-LocalPaint's English labels; no proprietary translation resources were used.
+Korean translations: Local Paint contributors, original translations of
+Local Paint's English labels; no proprietary translation resources were used.
 
-German translations: LocalPaint contributors, original translations of
-LocalPaint's English labels; no proprietary translation resources were used.
+German translations: Local Paint contributors, original translations of
+Local Paint's English labels; no proprietary translation resources were used.
 
 Spanish translations: contributed by @gorevyoneticisi with OpenAI Codex as an AI contributor.
 The resulting catalog is licensed under MIT OR Apache-2.0 as stated above; the translations are
-original translations of LocalPaint's English labels, and no proprietary translation resources
+original translations of Local Paint's English labels, and no proprietary translation resources
 were used.
 
-Brazilian Portuguese translations: LocalPaint contributors, original translations of
-LocalPaint's English labels; no proprietary translation resources were used.
+Brazilian Portuguese translations: Local Paint contributors, original translations of
+Local Paint's English labels; no proprietary translation resources were used.
 
-Italian translations: LocalPaint contributors, original translations of
-LocalPaint's English labels; no proprietary translation resources were used.
+Italian translations: Local Paint contributors, original translations of
+Local Paint's English labels; no proprietary translation resources were used.
 
-Ukrainian translations: LocalPaint contributors, original translations of
-LocalPaint's English labels; no proprietary translation resources were used.
+Ukrainian translations: Local Paint contributors, original translations of
+Local Paint's English labels; no proprietary translation resources were used.
 
-Dutch translations: LocalPaint contributors, original translations of
-LocalPaint's English labels; no proprietary translation resources were used.
+Dutch translations: Local Paint contributors, original translations of
+Local Paint's English labels; no proprietary translation resources were used.
 
-Czech translations: LocalPaint contributors, original translations of
-LocalPaint's English labels; no proprietary translation resources were used.
+Czech translations: Local Paint contributors, original translations of
+Local Paint's English labels; no proprietary translation resources were used.
 
-Turkish translations: LocalPaint contributors, original translations of
-LocalPaint's English labels; no proprietary translation resources were used.
+Turkish translations: Local Paint contributors, original translations of
+Local Paint's English labels; no proprietary translation resources were used.
 
-Hungarian translations: LocalPaint contributors, original translations of
-LocalPaint's English labels; no proprietary translation resources were used.
+Hungarian translations: Local Paint contributors, original translations of
+Local Paint's English labels; no proprietary translation resources were used.
 
-Serbian translations: LocalPaint contributors, original translations of
-LocalPaint's English labels; no proprietary translation resources were used.
+Serbian translations: Local Paint contributors, original translations of
+Local Paint's English labels; no proprietary translation resources were used.
 
-Russian translations: LocalPaint contributors, original translations of
-LocalPaint's English labels; no proprietary translation resources were used.
+Russian translations: Local Paint contributors, original translations of
+Local Paint's English labels; no proprietary translation resources were used.
 
-Arabic translations: LocalPaint contributors, combined from the catalogs contributed by @azizr12,
+Arabic translations: Local Paint contributors, combined from the catalogs contributed by @azizr12,
 @hicbest, @hasan-sdaif, @NibrasAz7, @vfggf95565, @syrrevshin4202-prog and @test-bit-sys and
-reviewed with Claude (Anthropic) as an AI contributor; original translations of LocalPaint's
+reviewed with Claude (Anthropic) as an AI contributor; original translations of Local Paint's
 English labels, and no proprietary translation resources were used.
-Swedish translations: LocalPaint contributors, combined from the catalogs contributed by @kler and
+Swedish translations: Local Paint contributors, combined from the catalogs contributed by @kler and
 @davvarn and reviewed with Claude (Anthropic) as an AI contributor; original translations of
-LocalPaint's English labels, and no proprietary translation resources were used.
-Finnish translations: LocalPaint contributors, combined from the catalogs contributed by @Janiz-zzz
+Local Paint's English labels, and no proprietary translation resources were used.
+Finnish translations: Local Paint contributors, combined from the catalogs contributed by @Janiz-zzz
 and @metuuu and reviewed with Claude (Anthropic) as an AI contributor; original translations of
-LocalPaint's English labels, and no proprietary translation resources were used.
-Danish translations: LocalPaint contributors, based on the catalog contributed by
+Local Paint's English labels, and no proprietary translation resources were used.
+Danish translations: Local Paint contributors, based on the catalog contributed by
 @pechnikov2026-star, completed and reviewed with Claude (Anthropic) as an AI contributor; original
-translations of LocalPaint's English labels, and no proprietary translation resources were used.
-Norwegian Bokmål translations: LocalPaint contributors, combined from the catalogs contributed by
+translations of Local Paint's English labels, and no proprietary translation resources were used.
+Norwegian Bokmål translations: Local Paint contributors, combined from the catalogs contributed by
 @nikolainyegaard and @Bolla76 and reviewed with Claude (Anthropic) as an AI contributor; original
-translations of LocalPaint's English labels, and no proprietary translation resources were used.
+translations of Local Paint's English labels, and no proprietary translation resources were used.

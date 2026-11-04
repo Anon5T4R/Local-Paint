@@ -1,4 +1,4 @@
-# Releasing LocalPaint
+# Releasing Local Paint
 
 Every tag `vX.Y.Z` runs `.github/workflows/release.yml`. The workflow builds the Windows
 installers and the Linux packages in a matrix-free pair of jobs, then publishes all of them in the
@@ -8,7 +8,7 @@ it calls no shared workflow of another organisation and needs no secret to run.
 The other packagers — macOS, FreeBSD, the web build and Flatpak — stay in `packaging/` and are run
 by hand when needed; the tag workflow doesn't touch them.
 
-User-facing names say **LocalPaint**. Files, binaries and ids stay lowercase (`localpaint-<version>-<platform>-<arch>.<ext>`, `com.localpaint.app`).
+User-facing names say **Local Paint**. Files, binaries and ids stay lowercase (`localpaint-<version>-<platform>-<arch>.<ext>`, `com.localpaint.app`).
 
 ## In-app update checks
 
@@ -71,7 +71,7 @@ x86|arm64` and `CROSS_ARCH`/`CROSS_TARGET` respectively, and the other packagers
 cover macOS, FreeBSD, Flatpak and the web build; none of those run for a tag.
 
 Every binary reports its version, the commit and the build date: `localpaint --version`,
-`localpaint-cli --version`, and *Help › About LocalPaint*. The packaging scripts fill
+`localpaint-cli --version`, and *Help › About Local Paint*. The packaging scripts fill
 `LOCALPAINT_BUILD_SHA` and `LOCALPAINT_BUILD_DATE` when the CI or the caller leaves them empty
 (`packaging/env.sh` for local builds), and `crates/engine/src/build_info.rs` reads them at compile
 time. A plain `cargo build` doesn't set them and reports the workspace version as a dev build.
@@ -90,7 +90,7 @@ compiles and falls back to the system's fonts; the web build embeds none (see
 
 - `Info.plist` is generated from `Info.plist.in`. The bundle id is `com.localpaint.app`.
   The plist sets `LSMinimumSystemVersion` 11.0, `NSHighResolutionCapable`, and document types:
-  `.pcraft` (Owner), plus PSD/PSB and the image formats LocalPaint reads (Alternate, so it never
+  `.pcraft` (Owner), plus PSD/PSB and the image formats Local Paint reads (Alternate, so it never
   takes over Preview's defaults). The icon is `assets/app-icon/localpaint.icns`.
 - **Signing** goes inside-out with the hardened runtime and a secure timestamp. The executable
   is signed first, then the bundle. There's no `--deep` on the final signature. The
@@ -100,7 +100,7 @@ compiles and falls back to the system's fonts; the web build embeds none (see
   to drag onto). The DMG is signed, notarized and stapled too. The script checks the results
   with `codesign --verify --strict`, `stapler validate` and `spctl -a -vvv`.
   Its Finder window (background, icon size and positions) comes from
-  [`packaging/macos/dmg/`](../packaging/macos/dmg/README.md), and its volume is named `LocalPaint`
+  [`packaging/macos/dmg/`](../packaging/macos/dmg/README.md), and its volume is named `Local Paint`
   without the version, which the window's background needs; the DMG file name keeps the version.
 - **CLI:** `LocalPaint.app/Contents/MacOS/localpaint-cli` is bundled and signed so generated
   droplet scripts can run without installing the separate CLI download. The scripts prefer
@@ -141,10 +141,10 @@ goes in `CARGO_TARGET_<TRIPLE>_RUSTFLAGS`, so host build scripts aren't affected
   (`assets/app-icon/localpaint.ico`) and VERSIONINFO with the `winresource` crate
   (build dependency `0.1`). They only do this when targeting Windows. Elsewhere each
   script is a no-op, even if `LOCALPAINT_REQUIRE_WINRES` is set, and the web build
-  doesn't touch that crate. Both set ProductName to LocalPaint, CompanyName to
+  doesn't touch that crate. Both set ProductName to Local Paint, CompanyName to
   Learning Machines LLC and the same copyright line. The GUI description is
-  "LocalPaint image editor" (`localpaint.exe`). The CLI description is
-  "LocalPaint command-line interface", with OriginalFilename `localpaint-cli.exe`
+  "Local Paint image editor" (`localpaint.exe`). The CLI description is
+  "Local Paint command-line interface", with OriginalFilename `localpaint-cli.exe`
   and InternalName `localpaint-cli`. Version strings are the Cargo package version,
   so a pre-release tag is kept; the numeric file and product versions are
   winresource's `major.minor.patch.0`. A missing resource compiler warns, so an
@@ -154,12 +154,12 @@ goes in `CARGO_TARGET_<TRIPLE>_RUSTFLAGS`, so host build scripts aren't affected
 - Release builds use the GUI subsystem, so Start Menu launches don't open a console window.
   The CLI stays console subsystem 3 so its output reaches the terminal.
 - `localpaint.wxs` (WiX v5) is a **per-machine** package (`Scope="perMachine"`): it installs into
-  `Program Files\LocalPaint` (`Program Files (x86)\LocalPaint` for the 32-bit build), needs an
+  `Program Files\Local Paint` (`Program Files (x86)\Local Paint` for the 32-bit build), needs an
   elevated setup, and refuses a per-user install (`<Launch Condition="ALLUSERS = 1 OR (Installed
   AND REMOVE = "ALL")">`, so an older per-user copy can still be uninstalled). It creates a plain
   Start Menu shortcut and a desktop shortcut — not advertised MSI shortcuts, whose descriptor
   Windows can't use as a file handler — each in its own component with an HKLM key path, so
-  Windows Installer removes them on uninstall. LocalPaint becomes the default app for `.pcraft` and
+  Windows Installer removes them on uninstall. Local Paint becomes the default app for `.pcraft` and
   is listed under "Open with" for PSD/PSB and image files, it registers App Paths (Win+R
   `localpaint`), and it writes `HKLM\Software\Anon5T4R\LocalPaint\InstallDir` so the updater knows
   this is an MSI install and updates with the next MSI rather than the portable zip. The MSI
@@ -167,7 +167,7 @@ goes in `CARGO_TARGET_<TRIPLE>_RUSTFLAGS`, so host build scripts aren't affected
   allowed so that release candidates replace each other; a downgrade is refused.
 - Double-clicking the MSI opens the `WixUI_Minimal` wizard: welcome with the licence (the project's
   `LICENSE-MIT`/`LICENSE-APACHE` text), a progress page, and a Finish page that says where to find
-  the app, with a ticked "Launch LocalPaint" box. The pages name the full version
+  the app, with a ticked "Launch Local Paint" box. The pages name the full version
   (`localpaint.en-us.wxl`). `package.ps1` draws the wizard's banner and side bitmaps from the app
   icon, so no WiX stock art ships. `msiexec /qn` installs silently per-machine, as the launch
   condition requires. Building needs the WiX UI

@@ -1,6 +1,6 @@
 # Format overview
 
-External bytes enter LocalPaint through four main paths:
+External bytes enter Local Paint through four main paths:
 
 - `localpaint-psd` parses and writes PSD and PSB structures.
 - `localpaint-codecs` decodes and encodes flat raster formats.

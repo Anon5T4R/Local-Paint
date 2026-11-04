@@ -37,9 +37,9 @@
     <string>nb</string>
   </array>
   <key>CFBundleDisplayName</key>
-  <string>LocalPaint</string>
+  <string>Local Paint</string>
   <key>CFBundleName</key>
-  <string>LocalPaint</string>
+  <string>Local Paint</string>
   <key>CFBundleExecutable</key>
   <string>LocalPaint</string>
   <key>CFBundleIdentifier</key>
@@ -73,16 +73,16 @@
   <key>NSRequiresAquaSystemAppearance</key>
   <false/>
   <key>NSHumanReadableCopyright</key>
-  <string>Copyright © the LocalPaint authors. MIT OR Apache-2.0.</string>
+  <string>Copyright © the Local Paint authors. MIT OR Apache-2.0.</string>
 
-  <!-- LocalPaint's own format. -->
+  <!-- Local Paint's own format. -->
   <key>UTExportedTypeDeclarations</key>
   <array>
     <dict>
       <key>UTTypeIdentifier</key>
       <string>com.localpaint.app.document</string>
       <key>UTTypeDescription</key>
-      <string>LocalPaint Document</string>
+      <string>Local Paint Document</string>
       <key>UTTypeConformsTo</key>
       <array>
         <string>public.data</string>
@@ -185,7 +185,7 @@
   <array>
     <dict>
       <key>CFBundleTypeName</key>
-      <string>LocalPaint Document</string>
+      <string>Local Paint Document</string>
       <key>CFBundleTypeRole</key>
       <string>Editor</string>
       <key>LSHandlerRank</key>

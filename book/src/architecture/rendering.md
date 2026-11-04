@@ -1,6 +1,6 @@
 # Rendering
 
-LocalPaint has two compositors with distinct roles:
+Local Paint has two compositors with distinct roles:
 
 - `localpaint-compose` is the CPU compositor and correctness oracle used by export and tests.
 - `localpaint-gpu` plans and executes supported canvas composition through wgpu.

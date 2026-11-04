@@ -182,7 +182,7 @@ macro_rules! clipping_event {
     };
 }
 
-/// Every Photoshop event LocalPaint maps. The order matters only for the panel label.
+/// Every Photoshop event Local Paint maps. The order matters only for the panel label.
 pub(super) const EVENTS: &[Event] = &[
     // Filters.
     ev!("GsnB", "gaussianBlur", "Gaussian Blur", "filter.blur.gaussianBlur", &[F("Rds ", "radius", Kind::Px)]),
@@ -453,7 +453,7 @@ pub(super) const EVENTS: &[Event] = &[
         to: delete_to,
     },
     Event { code: "", name: "applyLocking", label: "Apply Locking", ids: &["layer.lockLayers"], from: locking_from, to: locking_to },
-    // Timeline › Make Frames from Layers: no frame animation in LocalPaint, no document change.
+    // Timeline › Make Frames from Layers: no frame animation in Local Paint, no document change.
     Event {
         code: "",
         name: "animationFramesFromLayers",
@@ -610,7 +610,7 @@ pub(super) const EVENTS: &[Event] = &[
     Event { code: "Stop", name: "stop", label: "Stop", ids: &[STOP_MESSAGE], from: stop_from, to: stop_to },
 ];
 
-/// Four-char codes LocalPaint once exported for events Photoshop only runs by name (or by
+/// Four-char codes Local Paint once exported for events Photoshop only runs by name (or by
 /// another code), with the name they stand for. Measured in Photoshop: `executeAction` with
 /// these codes fails ("the command is not currently available"), and `Fltn` is the
 /// `flatness` property, not the flatten event. Import keeps accepting them so actions saved

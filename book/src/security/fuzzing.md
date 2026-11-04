@@ -1,6 +1,6 @@
 # Fuzzing and regression testing
 
-LocalPaint already has `cargo-fuzz` workspaces next to its primary untrusted-format crates:
+Local Paint already has `cargo-fuzz` workspaces next to its primary untrusted-format crates:
 
 | Crate | Targets |
 |---|---|

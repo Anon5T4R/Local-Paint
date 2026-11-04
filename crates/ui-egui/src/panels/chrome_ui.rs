@@ -466,14 +466,14 @@ mod tests {
         let mut gray = doc();
         gray.mode = localpaint_doc::ColorMode::Grayscale;
         gray.icc_profile = Some(localpaint_engine::color_cmds::working_profile(gray.mode).to_bytes());
-        assert_eq!(profile_name(&gray), "Dot Gain 20%-compatible (gamma 1.732, LocalPaint)");
+        assert_eq!(profile_name(&gray), "Dot Gain 20%-compatible (gamma 1.732, Local Paint)");
 
         let mut custom = (*localpaint_engine::color_cmds::working_profile(localpaint_doc::ColorMode::Cmyk)).clone();
-        custom.description = "LocalPaint Studio CMYK".into();
+        custom.description = "Local Paint Studio CMYK".into();
         let mut custom_doc = doc();
         custom_doc.mode = localpaint_doc::ColorMode::Cmyk;
         custom_doc.icc_profile = Some(custom.with_encoded_bytes().to_bytes());
-        assert_eq!(profile_name(&custom_doc), "LocalPaint Studio CMYK");
+        assert_eq!(profile_name(&custom_doc), "Local Paint Studio CMYK");
     }
 
     #[test]

@@ -25,10 +25,10 @@ fn main() -> std::io::Result<()> {
     // to `WindowsResource::new`, which reads the Cargo package version. A pre-release such as
     // `1.2.3-rc.1` stays in the strings; the numeric fields are `1.2.3.0`.
     res.set_icon("../../assets/app-icon/localpaint.ico")
-        .set("ProductName", "LocalPaint")
-        .set("FileDescription", "LocalPaint command-line interface")
+        .set("ProductName", "Local Paint")
+        .set("FileDescription", "Local Paint command-line interface")
         .set("CompanyName", "Learning Machines LLC")
-        .set("LegalCopyright", "Copyright (c) the LocalPaint authors. MIT OR Apache-2.0.")
+        .set("LegalCopyright", "Copyright (c) the Local Paint authors. MIT OR Apache-2.0.")
         .set("OriginalFilename", "localpaint-cli.exe")
         .set("InternalName", "localpaint-cli");
     if let Err(err) = res.compile() {

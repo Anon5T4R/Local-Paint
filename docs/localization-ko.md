@@ -2,7 +2,7 @@
 
 This supplements the Korean catalog merged in #582. The existing language
 registry, live language switching and Korean font loading are retained.
-Translations use the meaning of LocalPaint's English labels and terminology
+Translations use the meaning of Local Paint's English labels and terminology
 observed in the Korean Photoshop UI in October 2026. No proprietary translation
 resources, fonts, screenshots or user documents are included.
 
@@ -21,7 +21,7 @@ resources, fonts, screenshots or user documents are included.
 | Sharpen (command) | 선명하게 |
 
 Command-ID translations disambiguate menu names from actions. Photoshop terms
-are used when the operation matches; LocalPaint-specific features retain their
+are used when the operation matches; Local Paint-specific features retain their
 own meaning. Technology names, units and user-provided names are not translated.
 
 ## Dynamic coverage

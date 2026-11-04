@@ -18,8 +18,8 @@ Workspace applications are:
 
 | Application | Path | Purpose |
 |---|---|---|
-| LocalPaint desktop | `apps/localpaint` | eframe/wgpu application and loopback control server |
-| LocalPaint CLI | `apps/localpaint-cli` | Convert, inspect, run, batch, JSON-lines serve, and MCP |
-| LocalPaint web | `apps/localpaint-web` | The UI and engine compiled for WebAssembly |
+| Local Paint desktop | `apps/localpaint` | eframe/wgpu application and loopback control server |
+| Local Paint CLI | `apps/localpaint-cli` | Convert, inspect, run, batch, JSON-lines serve, and MCP |
+| Local Paint web | `apps/localpaint-web` | The UI and engine compiled for WebAssembly |
 
 New crates must be registered in `xtask/src/layers.rs`. Nothing below `ui-egui` may depend on egui, eframe, winit, or rfd. The `psd`, `codecs`, and `cms` crates have additional independence requirements documented in [`AGENTS.md`](https://github.com/Anon5T4R/Local-Paint/blob/main/AGENTS.md).

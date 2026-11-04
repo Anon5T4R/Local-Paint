@@ -1,6 +1,6 @@
 # Plug-ins: the WebAssembly plug-in API (ABI v1)
 
-LocalPaint does not host native Photoshop plug-ins (`.8BF`, CEP, UXP): that needs unsafe FFI into
+Local Paint does not host native Photoshop plug-ins (`.8BF`, CEP, UXP): that needs unsafe FFI into
 arbitrary machine code and cannot work in the browser build. Instead, plug-ins are **WebAssembly
 modules** run in a sandbox. One `.wasm` file works on macOS, Windows, Linux and the web.
 
@@ -28,7 +28,7 @@ from bytes).
 Plug-ins are installed **per process**, not per document. A smart filter recorded from a plug-in
 (`{"command": "plugin.run", "params": {"id", "params"}}`) re-runs on re-render while that plug-in is
 installed; if it is missing, the filter is skipped (the cached pixels stay as they were), like other
-filters LocalPaint does not implement.
+filters Local Paint does not implement.
 
 ## The sandbox
 

@@ -378,7 +378,7 @@ fn doc_place_reads_through_the_read_root_and_never_outside_it() {
     std::fs::remove_dir_all(base).unwrap();
 }
 
-/// A save or render never turns a file LocalPaint doesn't write (source, settings, notes)
+/// A save or render never turns a file Local Paint doesn't write (source, settings, notes)
 /// into image bytes, whatever `format` says; images and new files are written as before (#9439).
 #[test]
 fn workspace_writes_refuse_to_replace_a_file_that_is_not_an_image() {
@@ -693,7 +693,7 @@ fn doc_export_data_sets_judges_pixel_replacement_paths_like_apply() {
 fn workspace_psd_saves_embed_no_file_a_linked_smart_object_names() {
     use localpaint_engine::doc::{LayerContent, SmartSource};
 
-    // An image LocalPaint can open (other linked files are never embedded): an embedded copy
+    // An image Local Paint can open (other linked files are never embedded): an embedded copy
     // carries these exact bytes, while pixels written for the layer don't.
     let image = localpaint_codecs::Image::from_u8(8, 8, localpaint_codecs::ChannelLayout::Rgb, (0..192u8).collect()).unwrap();
     let marker = localpaint_codecs::encode(&image, localpaint_codecs::Format::Png, &Default::default()).unwrap();

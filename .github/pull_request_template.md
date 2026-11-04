@@ -1,5 +1,5 @@
 <!--
-Obrigado por contribuir com o LocalPaint.
+Obrigado por contribuir com o Local Paint.
 
 Baseie o PR em `main`, a única branch de integração. Apague as seções que não se aplicam.
 -->

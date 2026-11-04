@@ -128,7 +128,7 @@ impl DngSpec {
             jxl_segments: Vec::new(),
             lossy_segments: Vec::new(),
             profile_gain_table_map: None,
-            make: "LocalPaint".into(),
+            make: "Local Paint".into(),
             model: "Synthetic".into(),
             ifd0_extra: Vec::new(),
             raw_extra: Vec::new(),

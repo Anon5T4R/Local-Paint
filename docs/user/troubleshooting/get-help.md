@@ -1,17 +1,17 @@
 ---
 title: Get help with a problem
-description: How to ask for help or file a LocalPaint bug so it can be fixed, and what to include.
+description: How to ask for help or file a Local Paint bug so it can be fixed, and what to include.
 order: 30
 verified: 0.8.2
 ---
 
-Open **Help › Report an Issue…**. It takes you to the [LocalPaint issue tracker](https://github.com/Anon5T4R/Local-Paint/issues) on GitHub.
+Open **Help › Report an Issue…**. It takes you to the [Local Paint issue tracker](https://github.com/Anon5T4R/Local-Paint/issues) on GitHub.
 
 ## What to include
 
 1. What you did, step by step, and what you expected.
 2. What happened instead. A screenshot or a short video helps.
-3. Your system details. Choose **Help › System Info…**, click **Copy**, and paste the text into your message. It lists the LocalPaint version, your operating system and processor, and your graphics adapter.
+3. Your system details. Choose **Help › System Info…**, click **Copy**, and paste the text into your message. It lists the Local Paint version, your operating system and processor, and your graphics adapter.
 4. The file, if one file causes it. Zip a PSD or other file and attach it. Leave it out if it contains anything private.
 
 ## Before you post

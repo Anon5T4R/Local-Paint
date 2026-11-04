@@ -83,15 +83,15 @@ impl Builtin {
         match self {
             Builtin::Srgb => "sRGB IEC61966-2.1",
             Builtin::DisplayP3 => "Display P3",
-            Builtin::AdobeRgbCompat => "Adobe RGB (1998)-compatible (LocalPaint)",
-            Builtin::ProPhotoCompat => "ProPhoto RGB-compatible (ROMM primaries, LocalPaint)",
-            Builtin::LinearSrgb => "Linear sRGB (LocalPaint)",
-            Builtin::AcesCg => "ACEScg (AP1, linear, LocalPaint)",
-            Builtin::Rec2020 => "Rec. ITU-R BT.2020 (LocalPaint)",
-            Builtin::GrayGamma22 => "Gray Gamma 2.2 (LocalPaint)",
-            Builtin::SGray => "sGray (sRGB tone curve, LocalPaint)",
-            Builtin::DotGain20Compat => "Dot Gain 20%-compatible (gamma 1.732, LocalPaint)",
-            Builtin::LabD50 => "Lab D50 identity (LocalPaint)",
+            Builtin::AdobeRgbCompat => "Adobe RGB (1998)-compatible (Local Paint)",
+            Builtin::ProPhotoCompat => "ProPhoto RGB-compatible (ROMM primaries, Local Paint)",
+            Builtin::LinearSrgb => "Linear sRGB (Local Paint)",
+            Builtin::AcesCg => "ACEScg (AP1, linear, Local Paint)",
+            Builtin::Rec2020 => "Rec. ITU-R BT.2020 (Local Paint)",
+            Builtin::GrayGamma22 => "Gray Gamma 2.2 (Local Paint)",
+            Builtin::SGray => "sGray (sRGB tone curve, Local Paint)",
+            Builtin::DotGain20Compat => "Dot Gain 20%-compatible (gamma 1.732, Local Paint)",
+            Builtin::LabD50 => "Lab D50 identity (Local Paint)",
             Builtin::CoatedCmyk => crate::synth::DESCRIPTION,
         }
     }
@@ -146,7 +146,7 @@ pub fn srgb() -> &'static Profile {
 /// only assigned to such files, never offered as a working space.
 pub fn linear_gray() -> &'static Profile {
     static PROFILE: OnceLock<Profile> = OnceLock::new();
-    PROFILE.get_or_init(|| gray("Linear Gray (LocalPaint)", Curve::Gamma(1.0)))
+    PROFILE.get_or_init(|| gray("Linear Gray (Local Paint)", Curve::Gamma(1.0)))
 }
 
 /// The ICC D65 used for the RGB spaces (chromaticity 0.3127, 0.3290).
@@ -305,7 +305,7 @@ pub fn cicp_rgb(primaries: u16, transfer: u16, linear: bool) -> Option<Profile> 
         5 => (Curve::Gamma(2.8), "gamma 2.8"),
         _ => return None,
     };
-    Some(rgb(&format!("{name} {curve} (LocalPaint)"), prim, d65(), trc))
+    Some(rgb(&format!("{name} {curve} (Local Paint)"), prim, d65(), trc))
 }
 
 fn build(b: Builtin) -> Profile {

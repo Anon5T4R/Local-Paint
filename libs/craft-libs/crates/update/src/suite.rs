@@ -6,7 +6,11 @@
 use crate::app::App;
 
 pub const PHOTOCRAFT: App = App::new("photocraft", "PhotoCraft", "Image editing", "storytold/photocraft");
-pub const LOCALPAINT: App = App { publisher: "Anon5T4R", ..App::new("localpaint", "LocalPaint", "Image editing", "Anon5T4R/Local-Paint") };
+pub const LOCALPAINT: App = App {
+    former_names: &["LocalPaint"],
+    publisher: "Local Paint contributors",
+    ..App::new("localpaint", "Local Paint", "Image editing", "Anon5T4R/Local-Paint")
+};
 pub const VECTORCRAFT: App = App::new("vectorcraft", "VectorCraft", "Vector illustration", "storytold/vectorcraft");
 pub const FILMCRAFT: App = App::new("filmcraft", "FilmCraft", "Video editing, color and sound", "storytold/filmcraft");
 pub const LIGHTCRAFT: App = App::new("lightcraft", "LightCraft", "Photo library and raw development", "storytold/lightcraft");
@@ -63,12 +67,14 @@ mod tests {
         ids.dedup();
         assert_eq!(ids.len(), SUITE.len());
         for a in &SUITE {
-            assert_eq!(a.name.to_lowercase(), a.id);
+            // The suite's own apps are rebranded, so their display name is not their id.
+            if a.repo.starts_with("storytold/") {
+                assert_eq!(a.name.to_lowercase(), a.id);
+                assert_eq!(a.repo, format!("storytold/{}", a.id));
+            }
             if a.id == LOCALPAINT.id {
                 assert_eq!(a.repo, "Anon5T4R/Local-Paint");
-                continue;
             }
-            assert_eq!(a.repo, format!("storytold/{}", a.id));
         }
         assert!(by_id(LAUNCHER.id).is_none());
         assert_eq!(by_id("localpaint").map(|a| a.repo), Some("Anon5T4R/Local-Paint"));

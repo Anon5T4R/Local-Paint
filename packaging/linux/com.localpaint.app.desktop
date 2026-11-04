@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=LocalPaint
+Name=Local Paint
 GenericName=Image Editor
 Comment=Edit photos and layered PSD documents
 Exec=localpaint %F

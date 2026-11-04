@@ -30,7 +30,7 @@ pub(super) fn printer_options(list: Option<&Value>, current: &str) -> Vec<(Strin
 pub fn open_print(app: &mut LocalPaintApp) -> u64 {
     let mut f = Map::new();
     f.insert("__print".into(), json!(true));
-    f.insert("__label".into(), json!("LocalPaint Print Settings"));
+    f.insert("__label".into(), json!("Local Paint Print Settings"));
     // The settings of the last print, also from an earlier session (#7410).
     if let Some(Value::Object(m)) = localpaint_engine::print_cmds::last_print(&app.session) {
         f.extend(m);
@@ -507,7 +507,7 @@ pub(super) fn print_body(app: &mut LocalPaintApp, ui: &mut egui::Ui, f: &mut Map
                 "colorHandling",
                 &[
                     ("printerManages", tl!("Printer Manages Colors")),
-                    ("localpaintManages", tl!("LocalPaint Manages Colors")),
+                    ("localpaintManages", tl!("Local Paint Manages Colors")),
                     ("noColorManagement", tl!("No Color Management")),
                 ],
                 240.0,

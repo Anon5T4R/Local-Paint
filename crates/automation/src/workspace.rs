@@ -91,7 +91,7 @@ impl AuthorizedWorkspace {
         let root = self.write.as_ref().ok_or_else(|| AutomationError::BadRequest(format!("{DENIED}: write authority is absent")))?;
         let leaf = relative.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         // The bytes are an image or document whatever the name says (`format` picks them), so
-        // only a file of a kind LocalPaint writes is replaced: never source, settings or notes
+        // only a file of a kind Local Paint writes is replaced: never source, settings or notes
         // that share the root (`src/main.rs`, `.env`; #9439). A new file may have any name, and
         // an image saved under one (`out` with `format: png`) can be saved over again.
         let exists = root.dir.symlink_metadata(&relative).is_ok();
@@ -103,7 +103,7 @@ impl AuthorizedWorkspace {
         }
         if exists && !written_kind(&leaf) && !holds_image(&root.dir, &relative) {
             return Err(AutomationError::BadRequest(format!(
-                "automation write refused: `{path}` already exists and is not an image or document file LocalPaint writes; save to a new name"
+                "automation write refused: `{path}` already exists and is not an image or document file Local Paint writes; save to a new name"
             )));
         }
         let parent = relative.parent().map(Path::to_path_buf).unwrap_or_default();
@@ -145,14 +145,14 @@ impl AuthorizedWorkspace {
     }
 }
 
-/// Whether `name`'s extension is one of the formats LocalPaint saves or exports.
+/// Whether `name`'s extension is one of the formats Local Paint saves or exports.
 fn written_kind(name: &str) -> bool {
     let Some((_, ext)) = name.rsplit_once('.') else { return false };
     let ext = ext.to_ascii_lowercase();
     ["psd", "psb", "ora", "pdf", localpaint_format::EXTENSION].contains(&ext.as_str()) || localpaint_codecs::from_extension(&ext).is_some()
 }
 
-/// Whether the file at `relative` starts like an image LocalPaint reads (PSD/PSB or a codec's
+/// Whether the file at `relative` starts like an image Local Paint reads (PSD/PSB or a codec's
 /// magic). Containers that also hold other things (zip, PDF) are judged by name only.
 fn holds_image(dir: &Dir, relative: &Path) -> bool {
     let mut head = [0u8; 64];

@@ -1,6 +1,6 @@
 # Release security
 
-LocalPaint's release workflow builds platform packages and a draft GitHub Release from the `release` branch. The authoritative process is [`docs/releasing.md`](https://github.com/Anon5T4R/Local-Paint/blob/main/docs/releasing.md).
+Local Paint's release workflow builds platform packages and a draft GitHub Release from the `release` branch. The authoritative process is [`docs/releasing.md`](https://github.com/Anon5T4R/Local-Paint/blob/main/docs/releasing.md).
 
 ## Implemented workflow elements
 

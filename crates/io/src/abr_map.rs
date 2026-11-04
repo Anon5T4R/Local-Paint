@@ -122,7 +122,7 @@ pub fn map_file_with(f: &AbrFile, group: &str, ctl: &localpaint_raster::Interrup
     }
     out.warnings.extend(m.warnings);
     if !m.unknown.is_empty() {
-        out.warnings.push(format!("settings without a LocalPaint equivalent were ignored: {}", m.unknown.into_iter().collect::<Vec<_>>().join(", ")));
+        out.warnings.push(format!("settings without a Local Paint equivalent were ignored: {}", m.unknown.into_iter().collect::<Vec<_>>().join(", ")));
     }
     ctl.progress(1.0);
     Ok(out)

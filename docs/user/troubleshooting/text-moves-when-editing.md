@@ -1,11 +1,11 @@
 ---
 title: Text moves when I start editing a PSD text layer
-description: In LocalPaint 0.7.0, a text layer from a Photoshop file can jump when you click it with the Type tool. LocalPaint 0.8.2 fixes the known causes; update.
+description: In Local Paint 0.7.0, a text layer from a Photoshop file can jump when you click it with the Type tool. Local Paint 0.8.2 fixes the known causes; update.
 order: 20
 verified: 0.8.2
 ---
 
-Update LocalPaint. In version 0.7.0, a text layer from a Photoshop file could jump or disappear when you started editing it. LocalPaint 0.8.2 reads the text's styles and position the way Photoshop saved them, so the text stays where it was.
+Update Local Paint. In version 0.7.0, a text layer from a Photoshop file could jump or disappear when you started editing it. Local Paint 0.8.2 reads the text's styles and position the way Photoshop saved them, so the text stays where it was.
 
 ## Symptoms
 
@@ -22,7 +22,7 @@ If you already saved the file in 0.7.0 after the text moved, the moved text is n
 
 ## Why this happens
 
-Clicking a PSD text layer with the Type tool starts editing it, and LocalPaint then lays the text out itself instead of showing the pixels Photoshop saved. LocalPaint 0.7.0 read the alignment and size of each run of text only from Photoshop's default styles, and ignored part of the text position that recent Photoshop versions store. Both are fixed in 0.8.2 ([issue 3795](https://github.com/Anon5T4R/Local-Paint/issues/3795), [pull request 3819](https://github.com/Anon5T4R/Local-Paint/pull/3819)).
+Clicking a PSD text layer with the Type tool starts editing it, and Local Paint then lays the text out itself instead of showing the pixels Photoshop saved. Local Paint 0.7.0 read the alignment and size of each run of text only from Photoshop's default styles, and ignored part of the text position that recent Photoshop versions store. Both are fixed in 0.8.2 ([issue 3795](https://github.com/Anon5T4R/Local-Paint/issues/3795), [pull request 3819](https://github.com/Anon5T4R/Local-Paint/pull/3819)).
 
 ## Still stuck?
 

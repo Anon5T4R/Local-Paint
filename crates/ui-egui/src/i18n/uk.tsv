@@ -4,7 +4,7 @@
 # Integer plural forms: one|few|many (1, 21; 2–4, 22–24; 0, 5–19).
 # Rule: https://www.unicode.org/cldr/charts/48/supplemental/language_plural_rules.html#uk
 # Preserve {name} placeholders, shortcut names and trailing dialog ellipses.
-# Original translations from the meaning of LocalPaint's English source keys.
+# Original translations from the meaning of Local Paint's English source keys.
 # No proprietary translation resources were used.
 # Licensed MIT OR Apache-2.0. See LICENSE-translations.txt and ATTRIBUTION.md.
 
@@ -172,7 +172,7 @@
 # Batch / Image Processor
 
 # Native Windows printing qualification
-# LocalPaint release checks.
+# Local Paint release checks.
 # History panel › History Brush source (#2966)
 # Bevel & Emboss shading controls.
 # Embedded Profile Mismatch: profile names beside the choices, Remember this choice
@@ -680,9 +680,9 @@
 	3D	3D
 	Toolbars	Панелі інструментів
 	Hide All	Приховати все
-	About LocalPaint	Про LocalPaint
-	LocalPaint Website	Вебсайт LocalPaint
-	LocalPaint on GitHub	LocalPaint на GitHub
+	About Local Paint	Про Local Paint
+	Local Paint Website	Вебсайт Local Paint
+	Local Paint on GitHub	Local Paint на GitHub
 	Report an Issue…	Повідомити про проблему…
 	System Info…	Інформація про систему…
 	Move	Переміщення
@@ -757,11 +757,11 @@
 	Import Shortcuts…	Імпортувати сполучення клавіш…
 	Load a keyboard shortcut set saved as .kys	Завантажити набір сполучень клавіш, збережений як .kys
 	Imported {n} shortcuts from {file}. Click OK to keep them.	Імпортовано сполучень клавіш: {n} із {file}. Натисніть OK, щоб зберегти їх.
-	{n} commands are not in LocalPaint.	Команд, яких немає в LocalPaint: {n}.
+	{n} commands are not in Local Paint.	Команд, яких немає в Local Paint: {n}.
 	Keyboard shortcuts imported	Сполучення клавіш імпортовано
 	Your keyboard shortcut set {set} is in use here: {n} shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.	Тут використовується ваш набір сполучень клавіш {set}: сполучень, що відрізняються від стандартних: {n}. Їх показує Редагування › Сполучення клавіш; «Скинути все до стандартних» скасовує імпорт.
 	Import keyboard shortcuts?	Імпортувати сполучення клавіш?
-	LocalPaint found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from LocalPaint's. Import it?	LocalPaint знайшов на цьому комп'ютері ваш набір сполучень клавіш {set} з іншого графічного редактора: сполучень, що відрізняються від LocalPaint: {n}. Імпортувати його?
+	Local Paint found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from Local Paint's. Import it?	Local Paint знайшов на цьому комп'ютері ваш набір сполучень клавіш {set} з іншого графічного редактора: сполучень, що відрізняються від Local Paint: {n}. Імпортувати його?
 	Edit › Keyboard Shortcuts › Reset All to Defaults undoes an import.	Редагування › Сполучення клавіш › «Скинути все до стандартних» скасовує імпорт.
 	Don't Import	Не імпортувати
 	The keyboard shortcut set was not imported: {error}	Набір сполучень клавіш не імпортовано: {error}
@@ -1051,7 +1051,7 @@
 	Embed Color Profile	Вбудувати колірний профіль
 	Assign Profile…	Призначити профіль…
 	Convert to Profile…	Перетворити на профіль…
-	LocalPaint Manages Colors	LocalPaint керує кольорами
+	Local Paint Manages Colors	Local Paint керує кольорами
 	Printer Manages Colors	Принтер керує кольорами
 	(print to the printer)	(друк на принтері)
 	Absolute Colorimetric	Абсолютний колориметричний
@@ -1618,15 +1618,15 @@
 	Use File › Open, or paste a copied image with {paste}.	Скористайтеся меню Файл › Відкрити або вставте скопійоване зображення за допомогою {paste}.
 	Native file drag-and-drop is unavailable	Нативне перетягування файлів недоступне
 	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	Нативне перетягування файлів у Wayland ще не підтримується. Скористайтеся меню Файл › Відкрити або скопіюйте зображення у файловому менеджері та вставте його за допомогою {paste}.
-	To drop files, start LocalPaint under XWayland: `{command}`	Щоб перетягувати файли, запустіть LocalPaint під XWayland: `{command}`
-	Or set Preferences › Performance › Linux display server to X11: LocalPaint then always starts under XWayland.	Або виберіть X11 у Налаштування › Продуктивність › Сервер відображення Linux: LocalPaint завжди запускатиметься під XWayland.
+	To drop files, start Local Paint under XWayland: `{command}`	Щоб перетягувати файли, запустіть Local Paint під XWayland: `{command}`
+	Or set Preferences › Performance › Linux display server to X11: Local Paint then always starts under XWayland.	Або виберіть X11 у Налаштування › Продуктивність › Сервер відображення Linux: Local Paint завжди запускатиметься під XWayland.
 	Edit › Paste	Редагування › Вставити
 	Photo	Фото
 	Print	Друк
 	Art & Illustration	Мистецтво та ілюстрація
 	Mobile	Мобільні пристрої
 	Film & Video	Фільм і відео
-	Default LocalPaint Size	Типовий розмір LocalPaint
+	Default Local Paint Size	Типовий розмір Local Paint
 	Clipboard	Буфер обміну
 	Photo (2 × 3 in)	Фото (2 × 3 дюйми)
 	Photo (4 × 6 in)	Фото (4 × 6 дюймів)
@@ -1775,7 +1775,7 @@
 	Preserve Transparency	Зберігати прозорість
 	Reverse	Зворотний
 	Align with layer	Вирівняти за шаром
-	LocalPaint website	Вебсайт LocalPaint
+	Local Paint website	Вебсайт Local Paint
 	GitHub	GitHub
 	No character style	Без стилю символів
 	No author	Автор відсутній
@@ -1800,9 +1800,9 @@
 	Don't Save	Не зберігати
 	No	Ні
 	Yes	Так
-	These settings aren't available in LocalPaint yet.	Ці параметри ще недоступні у LocalPaint.
+	These settings aren't available in Local Paint yet.	Ці параметри ще недоступні у Local Paint.
 	Shortcut removed.	Клавіатурне скорочення вилучено.
-	All shortcuts reset to LocalPaint defaults.	Усі клавіатурні скорочення скинуто до типових значень LocalPaint.
+	All shortcuts reset to Local Paint defaults.	Усі клавіатурні скорочення скинуто до типових значень Local Paint.
 	Add Shortcut	Додати клавіатурне скорочення
 	Delete Shortcut	Видалити клавіатурне скорочення
 	Press keys…	Натисніть клавіші…
@@ -2273,8 +2273,8 @@
 	Output:	Вихід:
 	Paint Overlay	Малювати накладання
 	Pattern Size	Розмір візерунка
-	LocalPaint	LocalPaint
-	LocalPaint — an open-source, native image editor written in Rust.	LocalPaint — нативний редактор зображень із відкритим кодом, написаний на Rust.
+	Local Paint	Local Paint
+	Local Paint — an open-source, native image editor written in Rust.	Local Paint — нативний редактор зображень із відкритим кодом, написаний на Rust.
 	Position and Size	Положення та розмір
 	Preserve Details	Зберігати деталі
 	Preserve Luminosity	Зберігати світність
@@ -2590,7 +2590,7 @@
 	Automatic uses GPU acceleration when available and falls back to CPU rendering on errors.	Автоматичний режим використовує прискорення GPU, коли воно доступне, та переходить на рендеринг CPU в разі помилок.
 	Switched to CPU rendering	Перехід на рендеринг CPU
 	GPU acceleration could not continue. Your documents are unchanged.	Прискорення GPU не може продовжувати роботу. Ваші документи не змінено.
-	LocalPaint is using the CPU image compositor. The window may still use your graphics adapter.	LocalPaint використовує компонувальник зображень CPU. Вікно може й далі використовувати ваш графічний адаптер.
+	Local Paint is using the CPU image compositor. The window may still use your graphics adapter.	Local Paint використовує компонувальник зображень CPU. Вікно може й далі використовувати ваш графічний адаптер.
 	Retry GPU requires a restart. Save your work first.	Повторна спроба використати GPU потребує перезапуску. Спочатку збережіть роботу.
 	Retry GPU tries the graphics processor again now.	Повторити спробу з GPU — одразу знову спробувати графічний процесор.
 	GPU acceleration resumed.	Прискорення GPU відновлено.
@@ -3811,7 +3811,7 @@ cameraData	Lens	Об'єктив
 	Click: smooth point · Double-click: corner · Drag a point: move · Click first point: close · {key} finish	Клацання: плавна точка · Подвійне клацання: кут · Перетягування точки: перемістити · Клацання першої точки: замкнути · {key}: завершити
 	Search settings…	Пошук налаштувань…
 	No matching settings	Немає відповідних налаштувань
-	LocalPaint — Screen Color Picker	LocalPaint — Піпетка кольору екрана
+	Local Paint — Screen Color Picker	Local Paint — Піпетка кольору екрана
 	Sampling Brush Tool	Пензель області вибірки
 	Sampling Area Overlay	Накладання області вибірки
 	Show Sampling Area	Показати область вибірки
@@ -3960,7 +3960,7 @@ curves	Smooth	Згладити
 	{name} (Photoshop)	{name} (Photoshop)
 	{message} ({note})	{message} ({note})
 @plural	Loaded {n} action from {file}|Loaded {n} actions from {file}	Завантажено {n} операцію з {file}|Завантажено {n} операції з {file}|Завантажено {n} операцій з {file}
-@plural	{n} step has no LocalPaint equivalent yet|{n} steps have no LocalPaint equivalent yet	{n} крок ще не має відповідника в LocalPaint|{n} кроки ще не мають відповідника в LocalPaint|{n} кроків ще не мають відповідника в LocalPaint
+@plural	{n} step has no Local Paint equivalent yet|{n} steps have no Local Paint equivalent yet	{n} крок ще не має відповідника в Local Paint|{n} кроки ще не мають відповідника в Local Paint|{n} кроків ще не мають відповідника в Local Paint
 @plural	Saved {n} action to {file}|Saved {n} actions to {file}	Збережено {n} операцію до {file}|Збережено {n} операції до {file}|Збережено {n} операцій до {file}
 @plural	{n} step with no Photoshop equivalent left out|{n} steps with no Photoshop equivalent left out	Пропущено {n} крок без відповідника в Photoshop|Пропущено {n} кроки без відповідника в Photoshop|Пропущено {n} кроків без відповідника в Photoshop
 	File Naming	Іменування файлів
@@ -4051,12 +4051,12 @@ curves	Smooth	Згладити
 	Bicubic Smoother	Бікубічна, гладкіша
 	Bicubic Sharper	Бікубічна, чіткіша
 	Pasting from other apps is unavailable	Вставлення з інших застосунків недоступне
-	LocalPaint can't reach the system clipboard in this session. On Wayland, a Flatpak sandbox hides the protocol that images from other apps are read through.	У цьому сеансі LocalPaint не має доступу до системного буфера обміну. У Wayland пісочниця Flatpak приховує протокол, через який читаються зображення з інших застосунків.
-	To paste from other apps, start LocalPaint under XWayland: `{command}`	Щоб вставляти з інших застосунків, запустіть LocalPaint під XWayland: `{command}`
-	Nothing to paste: LocalPaint can't read the system clipboard here	Нічого вставити: тут LocalPaint не може прочитати системний буфер обміну
+	Local Paint can't reach the system clipboard in this session. On Wayland, a Flatpak sandbox hides the protocol that images from other apps are read through.	У цьому сеансі Local Paint не має доступу до системного буфера обміну. У Wayland пісочниця Flatpak приховує протокол, через який читаються зображення з інших застосунків.
+	To paste from other apps, start Local Paint under XWayland: `{command}`	Щоб вставляти з інших застосунків, запустіть Local Paint під XWayland: `{command}`
+	Nothing to paste: Local Paint can't read the system clipboard here	Нічого вставити: тут Local Paint не може прочитати системний буфер обміну
 	Delete this set	Видалити цей набір
 	New Set…	Новий набір…
-	LocalPaint Defaults	Стандартні LocalPaint
+	Local Paint Defaults	Стандартні Local Paint
 	Save a list of these shortcuts as a web page	Зберегти список цих клавіатурних скорочень як вебсторінку
 	Save the changes to this set	Зберегти зміни в цьому наборі
 	Save these shortcuts as a .kys file	Зберегти ці клавіатурні скорочення як файл .kys

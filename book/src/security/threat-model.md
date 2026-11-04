@@ -6,7 +6,7 @@ This threat model covers the source repository's desktop, CLI, WebAssembly, form
 
 - confidentiality of user documents, metadata, credentials, and unrelated local files;
 - integrity of documents, preferences, filesystem contents, and application state;
-- availability of LocalPaint and the host system;
+- availability of Local Paint and the host system;
 - integrity and provenance of release artifacts and dependencies;
 - predictable command execution and document fidelity.
 
@@ -65,4 +65,4 @@ A vulnerable or malicious crate, action, installer tool, or signing environment 
 
 ## Non-goals and limits
 
-LocalPaint is not currently a sandbox for hostile automation or hostile native code. Loopback transport, Rust memory safety, typed schemas, and file-format checks do not replace authentication, authorization, OS isolation, or operational least privilege. This document does not claim those missing controls are present.
+Local Paint is not currently a sandbox for hostile automation or hostile native code. Loopback transport, Rust memory safety, typed schemas, and file-format checks do not replace authentication, authorization, OS isolation, or operational least privilege. This document does not claim those missing controls are present.

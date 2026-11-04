@@ -1,4 +1,4 @@
-//! Render the full LocalPaint UI offscreen (no window, no focus stealing) and save a PNG.
+//! Render the full Local Paint UI offscreen (no window, no focus stealing) and save a PNG.
 //!
 //! ```sh
 //! cargo run --release -p localpaint-ui-egui --example snapshot -- \

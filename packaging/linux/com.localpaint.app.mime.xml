@@ -3,7 +3,7 @@
      Installed to /usr/share/mime/packages/ (update-mime-database runs on install). -->
 <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
   <mime-type type="application/x-localpaint">
-    <comment>LocalPaint document</comment>
+    <comment>Local Paint document</comment>
     <icon name="com.localpaint.app"/>
     <glob pattern="*.pcraft"/>
   </mime-type>

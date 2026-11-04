@@ -1,6 +1,6 @@
 # Automation architecture
 
-LocalPaint exposes the same engine through several transports:
+Local Paint exposes the same engine through several transports:
 
 ```text
 localpaint-cli commands/run/batch

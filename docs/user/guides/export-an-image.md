@@ -1,6 +1,6 @@
 ---
 title: Export an image
-description: Export a PNG, JPG, WebP, TIFF or TGA from LocalPaint with a preview, a size estimate and a scale.
+description: Export a PNG, JPG, WebP, TIFF or TGA from Local Paint with a preview, a size estimate and a scale.
 order: 50
 verified: 0.8.2
 ---
@@ -21,7 +21,7 @@ Choose **File › Export › Export As…**, set the format, and click **Export*
 5. Check the preview on the right. The line under it shows the format and the estimated file size.
 6. Click **Export**, then choose a name and a place for the file.
 
-LocalPaint shows "Exported" with the file path and size in the status bar when it is done.
+Local Paint shows "Exported" with the file path and size in the status bar when it is done.
 
 ## Export in one step
 
@@ -35,4 +35,4 @@ With several layers or artboards selected in the **Layers** panel, both commands
 
 ## Keep your layers
 
-Exporting makes a flat copy. To keep the layers, use **File › Save As…** with **PSD Document** or **LocalPaint**; see [Open and save files](open-and-save-files.md).
+Exporting makes a flat copy. To keep the layers, use **File › Save As…** with **PSD Document** or **Local Paint**; see [Open and save files](open-and-save-files.md).

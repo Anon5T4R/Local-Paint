@@ -1,6 +1,6 @@
 ---
-title: Install LocalPaint
-description: Download LocalPaint for Windows 10 or 11, macOS or Linux from GitHub.
+title: Install Local Paint
+description: Download Local Paint for Windows 10 or 11, macOS or Linux from GitHub.
 order: 10
 verified: 0.8.2
 ---
@@ -9,7 +9,7 @@ Take a build from the [latest release](https://github.com/Anon5T4R/Local-Paint/r
 
 ## Windows
 
-LocalPaint needs Windows 10 or later. On Windows 7 and 8 the installer stops with "LocalPaint needs Windows 10 or later."
+Local Paint needs Windows 10 or later. On Windows 7 and 8 the installer stops with "Local Paint needs Windows 10 or later."
 
 1. Open the [latest release](https://github.com/Anon5T4R/Local-Paint/releases/latest).
 2. Download `localpaint-<version>-windows-x64.msi`. It fits most PCs (64-bit Intel and AMD).
@@ -28,7 +28,7 @@ The installers and executables are code-signed.
 ## macOS
 
 1. Download `localpaint-<version>-macos-universal.dmg`. It works on Apple silicon and Intel Macs, and is signed and notarized by Apple.
-2. Open it and drag LocalPaint to Applications.
+2. Open it and drag Local Paint to Applications.
 
 ## Linux
 
@@ -44,7 +44,7 @@ Pick one file from the release. Use `x86_64` for Intel and AMD, or `aarch64` for
 
 The first time you run the AppImage, it adds its icon and menu entry under `~/.local/share`. Set `LOCALPAINT_NO_DESKTOP_INTEGRATION=1` to skip that. For RISC-V, take the `riscv64` file: `localpaint-<version>-linux-riscv64.tar.gz`, `.deb` or `.rpm`. The RISC-V tarball needs glibc 2.39 or newer.
 
-On a Wayland session, files dropped on the LocalPaint window do not open yet. Use **File › Open…** instead, or copy the image in your file manager and paste it with Ctrl+V. To drag and drop, start LocalPaint under XWayland with `WAYLAND_DISPLAY= localpaint`. LocalPaint shows the right command for your install in a notice until you dismiss it.
+On a Wayland session, files dropped on the Local Paint window do not open yet. Use **File › Open…** instead, or copy the image in your file manager and paste it with Ctrl+V. To drag and drop, start Local Paint under XWayland with `WAYLAND_DISPLAY= localpaint`. Local Paint shows the right command for your install in a notice until you dismiss it.
 
 ## FreeBSD and the web
 

@@ -12,7 +12,7 @@
 # Clean-room: every entry was written from the plain meaning of the English label using ordinary
 # German image-editing vocabulary (Ebene, Maske, Auswahl, Weichzeichnen ...). No proprietary
 # localisation resource, string table or product UI was consulted or copied; add entries the same
-# way. Product and technology names (LocalPaint,  OpenType, CMYK, Lab ...) stay in Latin
+# way. Product and technology names (Local Paint,  OpenType, CMYK, Lab ...) stay in Latin
 # letters; the trailing "…" of dialog commands is kept. Plural rule: one|other (n != 1 -> other).
 
 # Layer Mask Display Options (the layer mask rubylith's colour and opacity)
@@ -87,7 +87,7 @@
 # Batch / Image Processor
 
 # Native Windows printing qualification
-# LocalPaint release checks.
+# Local Paint release checks.
 # History panel › History Brush source (#2966)
 # Bevel & Emboss shading controls.
 # Embedded Profile Mismatch: profile names beside the choices, Remember this choice
@@ -889,9 +889,9 @@
 	Timeline	Zeitleiste
 	Tool Presets	Werkzeugvorgaben
 	Tools	Werkzeuge
-	About LocalPaint	Über LocalPaint
-	LocalPaint Website	LocalPaint-Website
-	LocalPaint on GitHub	LocalPaint auf GitHub
+	About Local Paint	Über Local Paint
+	Local Paint Website	Local Paint-Website
+	Local Paint on GitHub	Local Paint auf GitHub
 	Report an Issue…	Problem melden…
 	WIA Support…	WIA-Unterstützung…
 	Apply	Anwenden
@@ -946,7 +946,7 @@
 	All Caps	Großbuchstaben
 	All Slices	Alle Slices
 	All User Slices	Alle Benutzer-Slices
-	All shortcuts reset to LocalPaint defaults.	Alle Kurzbefehle wurden auf die LocalPaint-Standards zurückgesetzt.
+	All shortcuts reset to Local Paint defaults.	Alle Kurzbefehle wurden auf die Local Paint-Standards zurückgesetzt.
 	Alt	Alt
 	Always use pressure for opacity	Druck immer für Deckkraft verwenden
 	Always use pressure for size	Druck immer für Größe verwenden
@@ -1200,8 +1200,8 @@
 	Drop an image or PSD anywhere to open it.	Ziehe ein Bild oder PSD an eine beliebige Stelle, um es zu öffnen.
 	Native file drag-and-drop is unavailable	Natives Ziehen und Ablegen von Dateien ist nicht verfügbar
 	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	Natives Ziehen und Ablegen von Dateien wird unter Wayland noch nicht unterstützt. Nutze Datei › Öffnen oder kopiere das Bild im Dateimanager und füge es mit {paste} ein.
-	To drop files, start LocalPaint under XWayland: `{command}`	Um Dateien abzulegen, starte LocalPaint unter XWayland: `{command}`
-	Or set Preferences › Performance › Linux display server to X11: LocalPaint then always starts under XWayland.	Oder stelle Voreinstellungen › Leistung › Linux-Anzeigeserver auf X11: LocalPaint startet dann immer unter XWayland.
+	To drop files, start Local Paint under XWayland: `{command}`	Um Dateien abzulegen, starte Local Paint unter XWayland: `{command}`
+	Or set Preferences › Performance › Linux display server to X11: Local Paint then always starts under XWayland.	Oder stelle Voreinstellungen › Leistung › Linux-Anzeigeserver auf X11: Local Paint startet dann immer unter XWayland.
 	Edit › Paste	Bearbeiten › Einfügen
 	Duplicate Layers…	Ebenen duplizieren…
 	Duplicate style	Stil duplizieren
@@ -1450,9 +1450,9 @@
 	Perspective Warp is not active	Perspektivische Verkrümmung ist nicht aktiv
 	Perspective Warp: draw planes along the image's perspective, then switch to Warp	Perspektivische Verkrümmung: zeichne Flächen entlang der Bildperspektive, wechsle dann zu Verkrümmen
 	Photo Filter	Foto-Filter
-	LocalPaint	LocalPaint
-	LocalPaint Manages Colors	LocalPaint verwaltet die Farben
-	LocalPaint — an open-source, native image editor written in Rust.	LocalPaint — ein nativer Open-Source-Bildeditor, geschrieben in Rust.
+	Local Paint	Local Paint
+	Local Paint Manages Colors	Local Paint verwaltet die Farben
+	Local Paint — an open-source, native image editor written in Rust.	Local Paint — ein nativer Open-Source-Bildeditor, geschrieben in Rust.
 	Pin Depth:	Pin-Tiefe:
 	Pixel Length:	Pixel-Länge:
 	Pixels/Centimeter	Pixel/Zentimeter
@@ -1528,11 +1528,11 @@
 	Import Shortcuts…	Tastaturbefehle importieren…
 	Load a keyboard shortcut set saved as .kys	Einen als .kys gespeicherten Tastaturbefehlssatz laden
 	Imported {n} shortcuts from {file}. Click OK to keep them.	{n} Tastaturbefehle aus {file} importiert. Mit OK übernehmen.
-	{n} commands are not in LocalPaint.	{n} Befehle gibt es in LocalPaint nicht.
+	{n} commands are not in Local Paint.	{n} Befehle gibt es in Local Paint nicht.
 	Keyboard shortcuts imported	Tastaturbefehle importiert
 	Your keyboard shortcut set {set} is in use here: {n} shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.	Dein Tastaturbefehlssatz {set} wird hier verwendet: {n} Tastaturbefehle weichen von den Standardwerten ab. Bearbeiten › Tastaturbefehle zeigt sie; Alles auf Standardwerte zurücksetzen macht es rückgängig.
 	Import keyboard shortcuts?	Tastaturbefehle importieren?
-	LocalPaint found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from LocalPaint's. Import it?	LocalPaint hat auf diesem Computer deinen Tastaturbefehlssatz {set} aus einem anderen Bildbearbeitungsprogramm gefunden: {n} seiner Tastaturbefehle weichen von denen in LocalPaint ab. Importieren?
+	Local Paint found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from Local Paint's. Import it?	Local Paint hat auf diesem Computer deinen Tastaturbefehlssatz {set} aus einem anderen Bildbearbeitungsprogramm gefunden: {n} seiner Tastaturbefehle weichen von denen in Local Paint ab. Importieren?
 	Edit › Keyboard Shortcuts › Reset All to Defaults undoes an import.	Bearbeiten › Tastaturbefehle › Alles auf Standardwerte zurücksetzen macht einen Import rückgängig.
 	Don't Import	Nicht importieren
 	The keyboard shortcut set was not imported: {error}	Der Tastaturbefehlssatz wurde nicht importiert: {error}
@@ -1756,7 +1756,7 @@
 	Current Tool	Aktuelles Werkzeug
 	Custom Shape Tool	Werkzeug für benutzerdefinierte Formen
 	Cyans	Cyantöne
-	Default LocalPaint Size	Standard-LocalPaint-Größe
+	Default Local Paint Size	Standard-Local Paint-Größe
 	Delete Workspace	Arbeitsbereich löschen
 	Diamond	Raute
 	Dimensions:	Abmessungen:
@@ -1867,7 +1867,7 @@
 	Pen Tool	Stift-Werkzeug
 	Convert Point Tool	Punkt-umwandeln-Werkzeug
 	Photo	Foto
-	LocalPaint website	LocalPaint-Website
+	Local Paint website	Local Paint-Website
 	Picas	Pica
 	Pillow Emboss	Polsterrelief
 	Pixel Replacement	Pixelersatz
@@ -2199,7 +2199,7 @@
 	System Info	Systeminformationen
 	More panels	Weitere Bedienfelder
 	More documents	Weitere Dokumente
-	These settings aren't available in LocalPaint yet.	Diese Einstellungen gibt es in LocalPaint noch nicht.
+	These settings aren't available in Local Paint yet.	Diese Einstellungen gibt es in Local Paint noch nicht.
 	Graphics	Grafik
 	Reset GPU Backend	GPU-Backend zurücksetzen
 	Applies at next launch.	Wird beim nächsten Start angewendet.
@@ -2412,7 +2412,7 @@
 	Automatic uses GPU acceleration when available and falls back to CPU rendering on errors.	Automatisch nutzt GPU-Beschleunigung, wenn verfügbar, und fällt bei Fehlern auf CPU-Rendering zurück.
 	Switched to CPU rendering	Auf CPU-Rendering umgeschaltet
 	GPU acceleration could not continue. Your documents are unchanged.	GPU-Beschleunigung konnte nicht fortgesetzt werden. Deine Dokumente sind unverändert.
-	LocalPaint is using the CPU image compositor. The window may still use your graphics adapter.	LocalPaint nutzt den CPU-Bildkompositor. Das Fenster kann weiterhin deinen Grafikadapter verwenden.
+	Local Paint is using the CPU image compositor. The window may still use your graphics adapter.	Local Paint nutzt den CPU-Bildkompositor. Das Fenster kann weiterhin deinen Grafikadapter verwenden.
 	Retry GPU requires a restart. Save your work first.	GPU erneut versuchen erfordert einen Neustart. Speichere zuerst deine Arbeit.
 	Retry GPU tries the graphics processor again now.	GPU erneut versuchen versucht es sofort wieder mit dem Grafikprozessor.
 	GPU acceleration resumed.	GPU-Beschleunigung wieder aktiv.
@@ -2630,7 +2630,7 @@ fontWeight	Italic	Kursiv
 	Color to Alpha…	Farbe zu Alpha…
 	Transparency Threshold	Transparenz-Schwellenwert
 	Opacity Threshold	Deckkraft-Schwellenwert
-	LocalPaint — Screen Color Picker	LocalPaint — Bildschirmfarbenauswahl
+	Local Paint — Screen Color Picker	Local Paint — Bildschirmfarbenauswahl
 	Rasterize svg groups deeper than	SVG-Gruppen ab dieser Tiefe rastern
 	0 turns this threshold off; SVG groups nested deeper than 100 levels are always rasterized.	0 schaltet diese Schwelle aus; SVG-Gruppen, die tiefer als 100 Ebenen verschachtelt sind, werden immer gerastert.
 	Rule of Thirds	Drittel-Regel
@@ -3273,7 +3273,7 @@ curves	Smooth	Glätten
 	{name} (Photoshop)	{name} (Photoshop)
 	{message} ({note})	{message} ({note})
 @plural	Loaded {n} action from {file}|Loaded {n} actions from {file}	{n} Aktion aus {file} geladen|{n} Aktionen aus {file} geladen
-@plural	{n} step has no LocalPaint equivalent yet|{n} steps have no LocalPaint equivalent yet	{n} Schritt hat noch keine Entsprechung in LocalPaint|{n} Schritte haben noch keine Entsprechung in LocalPaint
+@plural	{n} step has no Local Paint equivalent yet|{n} steps have no Local Paint equivalent yet	{n} Schritt hat noch keine Entsprechung in Local Paint|{n} Schritte haben noch keine Entsprechung in Local Paint
 @plural	Saved {n} action to {file}|Saved {n} actions to {file}	{n} Aktion in {file} gespeichert|{n} Aktionen in {file} gespeichert
 @plural	{n} step with no Photoshop equivalent left out|{n} steps with no Photoshop equivalent left out	{n} Schritt ohne Photoshop-Entsprechung ausgelassen|{n} Schritte ohne Photoshop-Entsprechung ausgelassen
 	File Naming	Dateibenennung
@@ -3367,12 +3367,12 @@ curves	Smooth	Glätten
 	Bicubic Smoother	Bikubisch glatter
 	Bicubic Sharper	Bikubisch schärfer
 	Pasting from other apps is unavailable	Einfügen aus anderen Apps ist nicht verfügbar
-	LocalPaint can't reach the system clipboard in this session. On Wayland, a Flatpak sandbox hides the protocol that images from other apps are read through.	LocalPaint kann in dieser Sitzung nicht auf die Systemzwischenablage zugreifen. Unter Wayland verbirgt eine Flatpak-Sandbox das Protokoll, über das Bilder aus anderen Apps gelesen werden.
-	To paste from other apps, start LocalPaint under XWayland: `{command}`	Um aus anderen Apps einzufügen, starte LocalPaint unter XWayland: `{command}`
-	Nothing to paste: LocalPaint can't read the system clipboard here	Nichts einzufügen: LocalPaint kann die Systemzwischenablage hier nicht lesen
+	Local Paint can't reach the system clipboard in this session. On Wayland, a Flatpak sandbox hides the protocol that images from other apps are read through.	Local Paint kann in dieser Sitzung nicht auf die Systemzwischenablage zugreifen. Unter Wayland verbirgt eine Flatpak-Sandbox das Protokoll, über das Bilder aus anderen Apps gelesen werden.
+	To paste from other apps, start Local Paint under XWayland: `{command}`	Um aus anderen Apps einzufügen, starte Local Paint unter XWayland: `{command}`
+	Nothing to paste: Local Paint can't read the system clipboard here	Nichts einzufügen: Local Paint kann die Systemzwischenablage hier nicht lesen
 	Delete this set	Diesen Satz löschen
 	New Set…	Neuer Satz…
-	LocalPaint Defaults	LocalPaint-Standard
+	Local Paint Defaults	Local Paint-Standard
 	Save a list of these shortcuts as a web page	Liste dieser Kurzbefehle als Webseite speichern
 	Save the changes to this set	Änderungen in diesem Satz speichern
 	Save these shortcuts as a .kys file	Diese Kurzbefehle als .kys-Datei speichern
@@ -3445,9 +3445,9 @@ curves	Smooth	Glätten
 smartSvg	Edit SVG Smart Object	SVG-Smart-Objekt bearbeiten
 smartSvg	Choose the application used to edit this SVG:	Wählen Sie die Anwendung zum Bearbeiten dieses SVG:
 smartSvg	Other application	Andere Anwendung
-smartSvg	LocalPaint (internal editor)	LocalPaint (interner Editor)
+smartSvg	Local Paint (internal editor)	Local Paint (interner Editor)
 smartSvg	Choose executable…	Programm auswählen…
-smartSvg	Save to the opened SVG file. Each saved change becomes one undo step in LocalPaint.	Speichern Sie die geöffnete SVG-Datei. Jede gespeicherte Änderung wird in LocalPaint zu einem Rückgängig-Schritt.
+smartSvg	Save to the opened SVG file. Each saved change becomes one undo step in Local Paint.	Speichern Sie die geöffnete SVG-Datei. Jede gespeicherte Änderung wird in Local Paint zu einem Rückgängig-Schritt.
 smartSvg	Updates wait while another document or an editing dialog is active.	Aktualisierungen warten, während ein anderes Dokument oder ein Bearbeitungsdialog aktiv ist.
 smartSvg	Stop syncing this Smart Object	Synchronisierung dieses Smart-Objekts beenden
 smartSvg	SVG editor opened. Save the SVG to update this Smart Object.	SVG-Editor geöffnet. Speichern Sie das SVG, um dieses Smart-Objekt zu aktualisieren.

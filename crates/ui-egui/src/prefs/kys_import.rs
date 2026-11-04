@@ -33,7 +33,7 @@ pub fn plan(app: &LocalPaintApp, set: &KysSet) -> Plan {
 }
 
 /// The set's tool keys matched to our tools by name (Photoshop's names are ours): tool
-/// shortcut id (`tools.select.move`) → letter, and the tools LocalPaint doesn't have.
+/// shortcut id (`tools.select.move`) → letter, and the tools Local Paint doesn't have.
 pub fn plan_tools(set: &KysSet) -> (BTreeMap<String, String>, Vec<String>) {
     localpaint_engine::kys::plan_tools(localpaint_engine::shell_commands::TOOLS.iter().map(|t| (t.0, t.1)), set)
 }
@@ -86,7 +86,7 @@ pub fn import_text(app: &mut LocalPaintApp, file_name: &str, text: &str) -> Resu
     if !plan.unknown.is_empty() || !unknown_tools.is_empty() {
         let u = (plan.unknown.len() + unknown_tools.len()).to_string();
         message.push(' ');
-        message.push_str(&crate::i18n::fmt(tl!("{n} commands are not in LocalPaint."), &[("n", &u)]));
+        message.push_str(&crate::i18n::fmt(tl!("{n} commands are not in Local Paint."), &[("n", &u)]));
     }
     f.insert("tab".into(), json!(0));
     f.insert("overrides".into(), json!(overrides));
@@ -216,7 +216,7 @@ pub fn show_offer(app: &mut LocalPaintApp, ctx: &egui::Context) {
     let n = offer.changes.to_string();
     let line = crate::i18n::fmt(
         tl!(
-            "LocalPaint found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from LocalPaint's. Import it?"
+            "Local Paint found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from Local Paint's. Import it?"
         ),
         &[("set", &offer.set), ("n", &n)],
     );

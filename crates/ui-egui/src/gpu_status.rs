@@ -175,7 +175,7 @@ pub fn system_info(app: &LocalPaintApp) -> Vec<String> {
 
 /// Help › System Info's on-screen text: version, platform and the graphics state.
 pub fn system_info_ui(app: &LocalPaintApp) -> Vec<String> {
-    let mut v = vec![format!("LocalPaint {}", localpaint_engine::build_info::long_version()), {
+    let mut v = vec![format!("Local Paint {}", localpaint_engine::build_info::long_version()), {
         let template = "Platform: {os} {arch}";
         crate::i18n::fmt(tl!(template), &[("os", std::env::consts::OS), ("arch", std::env::consts::ARCH)])
     }];
@@ -249,7 +249,7 @@ fn choose_recovery(app: &mut LocalPaintApp, retry: bool) -> Result<(), String> {
         crate::notices::post(
             app,
             "GPU retry scheduled",
-            vec!["Save your work and restart LocalPaint to retry GPU acceleration. CPU rendering remains active for this session.".into()],
+            vec!["Save your work and restart Local Paint to retry GPU acceleration. CPU rendering remains active for this session.".into()],
             false,
             None,
         );
@@ -271,7 +271,7 @@ pub fn show_fallback(app: &mut LocalPaintApp, ctx: &egui::Context) {
         .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
         .show(ctx, |ui| {
             ui.label(egui::RichText::new(tl!("GPU acceleration could not continue. Your documents are unchanged.")).color(t.warning));
-            ui.label(tl!("LocalPaint is using the CPU image compositor. The window may still use your graphics adapter."));
+            ui.label(tl!("Local Paint is using the CPU image compositor. The window may still use your graphics adapter."));
             ui.collapsing(tl!("Details"), |ui| {
                 ui.label(&reason);
             });

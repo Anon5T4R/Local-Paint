@@ -1,6 +1,6 @@
 [package]
 name = "localpaint-plugins"
-description = "Sandboxed WebAssembly filter plug-ins: a resource-limited wasmi host for the LocalPaint plug-in ABI"
+description = "Sandboxed WebAssembly filter plug-ins: a resource-limited wasmi host for the Local Paint plug-in ABI"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

@@ -1,6 +1,6 @@
 # Licenses
 
-LocalPaint source is dual-licensed under MIT or Apache-2.0 at the user's option. The authoritative terms are the repository files:
+Local Paint source is dual-licensed under MIT or Apache-2.0 at the user's option. The authoritative terms are the repository files:
 
 - [`LICENSE-MIT`](https://github.com/Anon5T4R/Local-Paint/blob/main/LICENSE-MIT)
 - [`LICENSE-APACHE`](https://github.com/Anon5T4R/Local-Paint/blob/main/LICENSE-APACHE)

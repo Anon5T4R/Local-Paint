@@ -8,7 +8,7 @@
 //! instance is still running leaves that instance's log alone and writes `localpaint-<pid>.log`
 //! (see [`rotate`]).
 //!
-//! Levels: `info` for LocalPaint's own crates, `warn` for everything else (wgpu and naga are
+//! Levels: `info` for Local Paint's own crates, `warn` for everything else (wgpu and naga are
 //! chatty). `RUST_LOG` replaces that with env_logger-style directives: `debug`,
 //! `warn,localpaint_gpu=trace`, `wgpu_core=info`. A directive ending in `*` matches every target
 //! that starts with it (`localpaint*=debug`).

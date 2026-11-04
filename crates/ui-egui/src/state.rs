@@ -53,10 +53,10 @@ pub struct Panels {
     /// (#6760). Only a view of the moment: not saved, and the panels' own flags stay untouched.
     #[serde(skip)]
     pub full_screen_chrome: bool,
-    /// The right dock's icon rail. An app that embeds LocalPaint's UI can hide it for a simpler view.
+    /// The right dock's icon rail. An app that embeds Local Paint's UI can hide it for a simpler view.
     #[serde(default = "yes")]
     pub rail: bool,
-    /// The title bar with the in-window menus. An app that embeds LocalPaint's UI and draws its own
+    /// The title bar with the in-window menus. An app that embeds Local Paint's UI and draws its own
     /// bar can hide it; the caption buttons of a custom title bar go with it.
     #[serde(default = "yes")]
     pub menu_bar: bool,

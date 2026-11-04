@@ -30,7 +30,7 @@ This error indicates an application-control restriction; moving `CARGO_TARGET_DI
 reinstalling Rust does not establish that the blocked executable is trusted. See Microsoft's
 [Smart App Control FAQ](https://support.microsoft.com/en-us/windows/security/threat-malware-protection/smart-app-control-frequently-asked-questions)
 for the available controls; there is no per-app exception. On a managed device, ask your
-administrator about an approved development environment. If you only want to run LocalPaint,
+administrator about an approved development environment. If you only want to run Local Paint,
 use the [packaged Windows release](https://github.com/Anon5T4R/Local-Paint/releases) to avoid
 building locally; the downloaded app is still subject to Windows application-control checks.
 
@@ -49,7 +49,7 @@ cargo xtask parity                                         # Photoshop menu cove
 
 Image code is slow at `opt-level 0`, so the workspace profile builds dependencies at `opt-level 2`. Use `--release` for anything interactive. Test builds compile ui-egui itself at `opt-level 0` (`[profile.test.package.localpaint-ui-egui]` in `Cargo.toml`): it was one of the biggest test-build units, and its tests run no heavy pixel code of their own.
 
-The dev profile builds LocalPaint's crates with `debug = "line-tables-only"` and dependencies with no debug info: panic backtraces keep file and line in LocalPaint code, and test binaries link about twice as fast. To inspect local variables in a debugger, build with `CARGO_PROFILE_DEV_DEBUG=true`.
+The dev profile builds Local Paint's crates with `debug = "line-tables-only"` and dependencies with no debug info: panic backtraces keep file and line in Local Paint code, and test binaries link about twice as fast. To inspect local variables in a debugger, build with `CARGO_PROFILE_DEV_DEBUG=true`.
 
 ### Faster test loops
 
@@ -131,7 +131,7 @@ CRAFT_FONTS_DIR="$PWD/assets/craft-fonts" cargo test --workspace   # runs the Ja
 
 ## One instance per user
 
-On Windows and Linux the first LocalPaint holds an exclusive lock on `instance.lock` in the config directory and listens on a loopback port named in `instance.json` (with a fresh 256-bit token; the file is 0600 on Unix). Inside a Flatpak it listens on a Unix socket instead, `$XDG_RUNTIME_DIR/app/<app id>/instance.sock` (0600), because Flatpak isolates each sandbox's network namespace, loopback included, unless the app is granted `--share=network`, while that runtime directory is shared by all sandboxes of the app (#1540); the lock, token and protocol are the same. A later launch hands its file arguments there and exits, so files opened from Explorer or a file manager become tabs in the running window (#3708). The primary answers `ok` only once its UI has taken the files; a launch that gets anything else (the primary is starting, hung or closing) keeps retrying the lock for up to 10 s, becoming the primary itself once the old one lets go, and then starts a separate instance, so a file is never acknowledged and lost. When the event loop ends (and before the CPU-compatibility relaunch) the primary refuses new files and frees the lock. It applies only with the per-user settings folder: a portable copy (`LocalPaintData` beside the executable) or `LOCALPAINT_CONFIG_DIR` may be shared between users, so those launches run separately. So do `--new-instance` (or `LOCALPAINT_NEW_INSTANCE=1`), every `--control` launch, and launches given a per-process option (`--safe-gpu`, `--present-mode`, `--frame-latency`, `--stroke-trace`, `--in-window-menus`, `--automation-*-root`). A `cargo run` while an installed LocalPaint is running forwards to it: pass `--new-instance` or set `LOCALPAINT_CONFIG_DIR`. macOS gets the same behaviour from LaunchServices (`apple_events.rs`). On native Wayland the running window can't bring itself forward (that takes the launcher's `XDG_ACTIVATION_TOKEN`, and winit 0.30 can't activate an existing window with one), so it asks for attention instead and the taskbar highlights it; X11, XWayland and Windows bring it to the front. Code: `apps/localpaint/src/single_instance.rs`.
+On Windows and Linux the first Local Paint holds an exclusive lock on `instance.lock` in the config directory and listens on a loopback port named in `instance.json` (with a fresh 256-bit token; the file is 0600 on Unix). Inside a Flatpak it listens on a Unix socket instead, `$XDG_RUNTIME_DIR/app/<app id>/instance.sock` (0600), because Flatpak isolates each sandbox's network namespace, loopback included, unless the app is granted `--share=network`, while that runtime directory is shared by all sandboxes of the app (#1540); the lock, token and protocol are the same. A later launch hands its file arguments there and exits, so files opened from Explorer or a file manager become tabs in the running window (#3708). The primary answers `ok` only once its UI has taken the files; a launch that gets anything else (the primary is starting, hung or closing) keeps retrying the lock for up to 10 s, becoming the primary itself once the old one lets go, and then starts a separate instance, so a file is never acknowledged and lost. When the event loop ends (and before the CPU-compatibility relaunch) the primary refuses new files and frees the lock. It applies only with the per-user settings folder: a portable copy (`LocalPaintData` beside the executable) or `LOCALPAINT_CONFIG_DIR` may be shared between users, so those launches run separately. So do `--new-instance` (or `LOCALPAINT_NEW_INSTANCE=1`), every `--control` launch, and launches given a per-process option (`--safe-gpu`, `--present-mode`, `--frame-latency`, `--stroke-trace`, `--in-window-menus`, `--automation-*-root`). A `cargo run` while an installed Local Paint is running forwards to it: pass `--new-instance` or set `LOCALPAINT_CONFIG_DIR`. macOS gets the same behaviour from LaunchServices (`apple_events.rs`). On native Wayland the running window can't bring itself forward (that takes the launcher's `XDG_ACTIVATION_TOKEN`, and winit 0.30 can't activate an existing window with one), so it asks for attention instead and the taskbar highlights it; X11, XWayland and Windows bring it to the front. Code: `apps/localpaint/src/single_instance.rs`.
 
 ## Graphics startup and device loss
 
@@ -152,9 +152,9 @@ The window itself draws with the same device (or, with the CPU canvas, one it wa
 
 ## Logs
 
-The desktop app writes its `log` records to standard error and to `logs/localpaint.log` in the settings directory (Linux `~/.config/localpaint/logs/`, macOS `~/Library/Application Support/LocalPaint/logs/`, Windows `%APPDATA%\LocalPaint\logs\`, or under `LOCALPAINT_CONFIG_DIR` / the portable data folder). A start launched from a desktop menu or the Dock has no terminal, so this file is what to attach to a bug report: GPU startup fallbacks, a lost device and the crash guard's panic report all land there. Each launch moves the previous log to `localpaint.1.log` (and that one to `localpaint.2.log`), so the log of a run that crashed survives the next start. A launch while another LocalPaint is still running leaves that instance's log where it is and writes its own `localpaint-<pid>.log` next to it (the newest two of those are kept once their instances have exited; the `LocalPaint <version>, log file <path>` line at startup names the file in use). The file stops growing at 16 MiB. `--version` and command-line errors write no file. A desktop start that fails before any window exists logs the error and, when no terminal, automation client or headless session can report it, shows it in a dialog naming this file (#7643).
+The desktop app writes its `log` records to standard error and to `logs/localpaint.log` in the settings directory (Linux `~/.config/localpaint/logs/`, macOS `~/Library/Application Support/LocalPaint/logs/`, Windows `%APPDATA%\LocalPaint\logs\`, or under `LOCALPAINT_CONFIG_DIR` / the portable data folder). A start launched from a desktop menu or the Dock has no terminal, so this file is what to attach to a bug report: GPU startup fallbacks, a lost device and the crash guard's panic report all land there. Each launch moves the previous log to `localpaint.1.log` (and that one to `localpaint.2.log`), so the log of a run that crashed survives the next start. A launch while another Local Paint is still running leaves that instance's log where it is and writes its own `localpaint-<pid>.log` next to it (the newest two of those are kept once their instances have exited; the `Local Paint <version>, log file <path>` line at startup names the file in use). The file stops growing at 16 MiB. `--version` and command-line errors write no file. A desktop start that fails before any window exists logs the error and, when no terminal, automation client or headless session can report it, shows it in a dialog naming this file (#7643).
 
-By default LocalPaint's own crates log at `info` and everything else at `warn`. `RUST_LOG` replaces that with env_logger-style directives, for example `RUST_LOG=debug`, `RUST_LOG=warn,localpaint_gpu=trace` or `RUST_LOG=info,wgpu_core=warn`; a directive ending in `*` covers every target starting with it (`localpaint*=debug`). The logger is `apps/localpaint/src/logging.rs`; the web build logs to the browser console instead.
+By default Local Paint's own crates log at `info` and everything else at `warn`. `RUST_LOG` replaces that with env_logger-style directives, for example `RUST_LOG=debug`, `RUST_LOG=warn,localpaint_gpu=trace` or `RUST_LOG=info,wgpu_core=warn`; a directive ending in `*` covers every target starting with it (`localpaint*=debug`). The logger is `apps/localpaint/src/logging.rs`; the web build logs to the browser console instead.
 
 ## Environment variables
 
@@ -356,7 +356,7 @@ A typical agent loop (place inputs under the configured read root and outputs un
 
 `crates/cms` is our own pure-Rust ICC engine (v2/v4 parsing, matrix/TRC and LUT profiles, all four
 intents, black point compensation). It ships CC0 built-in profiles, including a synthetic
-"LocalPaint Coated CMYK", because Adobe's CMYK profiles are proprietary (see `crates/cms/README.md`).
+"Local Paint Coated CMYK", because Adobe's CMYK profiles are proprietary (see `crates/cms/README.md`).
 
 - Documents carry an optional embedded ICC profile (`Document::icc_profile`); `edit.assignProfile`
   and `edit.convertToProfile` change it. Mode changes (`image.mode.*`) convert through cms.
@@ -426,7 +426,7 @@ can't run.
 
 ## Scorecard and performance budgets
 
-[`docs/scorecard.md`](scorecard.md) says, with numbers, where LocalPaint stands per area. It is
+[`docs/scorecard.md`](scorecard.md) says, with numbers, where Local Paint stands per area. It is
 generated; never edit it by hand.
 
 ```sh
@@ -558,7 +558,7 @@ How the web shell (`apps/localpaint-web/src/web.rs`) differs from desktop:
 - **File dialogs** use `rfd::AsyncFileDialog`. Chosen file contents arrive asynchronously through `Services::file_dialog`; this includes File › Open and single-file commands such as Place Embedded.
 - **Save / Save As / Export** trigger a browser download of the encoded bytes. The shell does this with a Blob, an object URL and a temporary `<a download>`, all created from Rust. There is no save dialog, so the suggested name becomes the download name.
 - **Drag-and-drop:** `WebShell` takes the frame's `dropped_files` before the app sees them. It reads each file with `DroppedFile::bytes_async` and pushes the bytes into `Services::inbox`.
-- **Startup failures:** `index.html` shows "Loading LocalPaint…" until the app removes it, or replaces it with the error when the web runner fails to start. If the `.wasm` never downloads or doesn't match the page's `.js` (a stale cached `index.html` after a deploy), no Rust runs at all, so the page itself (CSS only, no script) adds a hint with a Reload link after 20 seconds.
+- **Startup failures:** `index.html` shows "Loading Local Paint…" until the app removes it, or replaces it with the error when the web runner fails to start. If the `.wasm` never downloads or doesn't match the page's `.js` (a stale cached `index.html` after a deploy), no Rust runs at all, so the page itself (CSS only, no script) adds a hint with a Reload link after 20 seconds.
 - **No control server:** browsers can't listen on TCP. To automate the web build, drive headless Chrome with `--remote-debugging-port`. `Page.setInterceptFileChooserDialog` plus `DOM.setFileInputFiles` covers Open, `Input.dispatchDragEvent` with `files` covers drops, and `Browser.setDownloadBehavior` captures downloads.
 - Headless Chrome on macOS (`--headless=new --enable-unsafe-webgpu`) gets a real WebGPU adapter.
 
@@ -618,7 +618,7 @@ cargo run -p localpaint-psd --example atn_roundtrip -- "Default Actions.atn"   #
 The real-file oracles are `corpus/atn/` (16 sets from seven public repositories, see *Test
 corpora*): `localpaint-psd`'s corpus test parses every file and rewrites it byte for byte;
 `localpaint-engine`'s loads, saves and reloads every set and caps the steps that still have no
-LocalPaint equivalent.
+Local Paint equivalent.
 
 Events outside the table load as `actions.photoshopStep` steps that keep the descriptor
 verbatim (so Save Actions writes them back) and fail at playback with the step's Photoshop name.
@@ -779,9 +779,9 @@ their own modes, an upper stroke covering lower ones.
 ## System printing
 
 `file.print` and `file.printOneCopy` keep PDF layout, scaling, marks and ICC conversion in
-LocalPaint and submit the rendered bytes through `craft-print` at the Git revision pinned in
+Local Paint and submit the rendered bytes through `craft-print` at the Git revision pinned in
 `Cargo.toml`. CUPS streams the PDF on macOS/Linux; Windows uses the shared Windows PDF backend.
-The driver receives exact physical sheet size so it does not scale LocalPaint's layout twice.
+The driver receives exact physical sheet size so it does not scale Local Paint's layout twice.
 Windows raster printing does not establish physical-printer colour fidelity; test critical
 photo output with the actual printer and its profile.
 

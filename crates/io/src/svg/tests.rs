@@ -273,7 +273,7 @@ fn transformed_text_lands_where_resvg_draws_it() {
     }
 }
 
-/// #4266: a group clipped by one path (the LocalPaint icon's rounded square) stays editable
+/// #4266: a group clipped by one path (the Local Paint icon's rounded square) stays editable
 /// shapes with the clip as its vector mask, and looks as resvg draws the drawing; a clip of
 /// two shapes is still rasterised, with the warning.
 #[test]
@@ -749,7 +749,7 @@ fn resolve_data_rejects_nested_gzip_and_handles_text_plain_svgz() {
     assert!(resolve("text/plain", Arc::new(twice), &opt).is_none());
 }
 
-/// The outer gzip is size-limited by LocalPaint. Its result must be XML, never another
+/// The outer gzip is size-limited by Local Paint. Its result must be XML, never another
 /// compressed stream which usvg could inflate independently without that byte limit.
 #[test]
 fn bounded_svg_rejects_nested_gzip_at_top_level_and_inside_data_urls() {

@@ -1,6 +1,6 @@
 # UI localisation and live language switching
 
-LocalPaint uses the same Rust catalog implementation in the native egui shell and the
+Local Paint uses the same Rust catalog implementation in the native egui shell and the
 WebAssembly build. English source strings are lookup keys. UTF-8 TSV catalogs supply plain,
 contextual, command-ID and plural translations; missing entries fall back to English.
 
@@ -113,7 +113,7 @@ Not mirrored yet: panel interiors, dialogs, menu rows (shortcuts stay on the rig
 (they open to the right), document tabs and the canvas. egui 0.37 lays text out with the Unicode
 Bidirectional Algorithm (each paragraph takes the direction of its first strong letter), so
 catalogs, layer names and document names are handed to it in logical order, as typed; never
-pre-reorder a label. The title line forces a left-to-right paragraph so "— LocalPaint" stays at
+pre-reorder a label. The title line forces a left-to-right paragraph so "— Local Paint" stays at
 the right of a right-to-left document name, and `bidi_text::elide` cuts a right-to-left name at
 its logical end. Document text is laid out by the text engine.
 
@@ -144,7 +144,7 @@ detection remain separate outstanding work. Switching catalogs does not supply m
 2. Register its code, native name and plural rule in `i18n::LANGUAGES`.
 3. Translate the meaning of the English source keys. Preserve `{name}` placeholders, escaped
    characters and the trailing `…` on dialog commands. Use `@id` to disambiguate a command
-   label and `@plural` for count-sensitive text. Keep product names such as LocalPaint.
+   label and `@plural` for count-sensitive text. Keep product names such as Local Paint.
 4. Set `complete_menus` once `cargo xtask i18n-coverage` lists nothing missing for the language. Add source and license
    attribution for translation assets, then run the catalog and shell tests.
 
@@ -158,5 +158,5 @@ cargo xtask wasm
 
 Render representative dialogs with the offscreen `snapshot` example, including a sequence
 of language changes in one process. Inspect the PNGs for missing glyphs and truncated labels.
-Translations are original work or reuse the open LocalPaint contributions credited in
+Translations are original work or reuse the open Local Paint contributions credited in
 [ATTRIBUTION.md](../ATTRIBUTION.md); no proprietary localisation resources are used.

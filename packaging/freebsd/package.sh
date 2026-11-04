@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build and package LocalPaint for FreeBSD:
+# Build and package Local Paint for FreeBSD:
 #
 #   $DIST/localpaint-<version>-freebsd-<arch>.tar.gz   a /usr/local-style tree (arch x86_64 or aarch64):
 #       localpaint-<version>-freebsd-<arch>/{bin, man/man1, share/applications, share/icons,
@@ -62,7 +62,7 @@ if [[ "$DRY_RUN" = 0 ]] && [[ "$(uname -s)" != FreeBSD ]]; then
 fi
 BASENAME="localpaint-$VERSION-freebsd-$ARCH"
 
-echo "==> LocalPaint $VERSION for FreeBSD $ARCH"
+echo "==> Local Paint $VERSION for FreeBSD $ARCH"
 
 # The release VM has 12 GB; full parallelism on the biggest crates runs it out of memory.
 export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-4}"

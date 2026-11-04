@@ -21,10 +21,10 @@ fn main() {
     }
     let mut res = winresource::WindowsResource::new();
     res.set_icon("../../assets/app-icon/localpaint.ico")
-        .set("ProductName", "LocalPaint")
-        .set("FileDescription", "LocalPaint image editor")
+        .set("ProductName", "Local Paint")
+        .set("FileDescription", "Local Paint image editor")
         .set("CompanyName", "Learning Machines LLC")
-        .set("LegalCopyright", "Copyright (c) the LocalPaint authors. MIT OR Apache-2.0.")
+        .set("LegalCopyright", "Copyright (c) the Local Paint authors. MIT OR Apache-2.0.")
         .set("OriginalFilename", "localpaint.exe")
         .set("InternalName", "localpaint");
     if let Err(e) = res.compile() {

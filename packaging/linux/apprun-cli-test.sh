@@ -9,7 +9,7 @@ trap 'rm -rf "$test_dir"' EXIT
 app_dir="$test_dir/LocalPaint test.AppDir"
 mkdir -p "$app_dir/usr/bin" "$app_dir/usr/share/applications"
 cp "$HERE/AppRun" "$app_dir/AppRun"
-printf '[Desktop Entry]\nType=Application\nName=LocalPaint\nExec=localpaint %%F\n' \
+printf '[Desktop Entry]\nType=Application\nName=Local Paint\nExec=localpaint %%F\n' \
   >"$app_dir/usr/share/applications/com.localpaint.app.desktop"
 cat >"$app_dir/usr/bin/localpaint" <<'EOF'
 #!/bin/sh

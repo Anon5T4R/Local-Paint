@@ -406,7 +406,7 @@ fn damaged_layer_data_opens_flattened_part(part: u64) {
     }
 }
 
-/// Every sample of a TIFF, read by the `tiff` crate rather than LocalPaint's decoder.
+/// Every sample of a TIFF, read by the `tiff` crate rather than Local Paint's decoder.
 ///
 /// That decoder drops unspecified extra samples when the photometric interpretation is RGB, so
 /// the file is retagged MinIsBlack first. The result is then a multiband image of every sample,

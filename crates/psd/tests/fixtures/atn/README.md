@@ -1,7 +1,7 @@
 # Synthetic ATN parser fixtures
 
 These four tiny files were independently encoded field by field from the version-16 layout
-documented in `src/atn.rs`, without calling LocalPaint's writer. They are original test data,
+documented in `src/atn.rs`, without calling Local Paint's writer. They are original test data,
 licensed MIT OR Apache-2.0 under the repository's licenses. They contain no user artwork,
 Photoshop program code or proprietary assets. They are not Photoshop-authored interoperability
 oracles.

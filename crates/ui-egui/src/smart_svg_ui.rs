@@ -93,7 +93,7 @@ pub(crate) fn intercept(app: &mut LocalPaintApp, id: &str, params: &Value) -> Op
         return None;
     }
     let doc = st.doc.id;
-    // Contents already open in LocalPaint's own editor: the engine switches to that document.
+    // Contents already open in Local Paint's own editor: the engine switches to that document.
     if app.session.smart_links.iter().any(|link| link.parent == doc && link.contents_id == smart.contents_id) {
         return None;
     }
@@ -284,7 +284,7 @@ pub(crate) fn show(app: &mut LocalPaintApp, ctx: &egui::Context) {
             (Editor::VectorCraft, "VectorCraft"),
             (Editor::Illustrator, "Adobe Illustrator"),
             (Editor::Program, "Other application"),
-            (Editor::Internal, "LocalPaint (internal editor)"),
+            (Editor::Internal, "Local Paint (internal editor)"),
         ] {
             // The desktop shell discovers Illustrator installations only on Windows and macOS.
             if choice == Editor::Illustrator && !cfg!(any(windows, target_os = "macos")) {
@@ -303,9 +303,9 @@ pub(crate) fn show(app: &mut LocalPaintApp, ctx: &egui::Context) {
         ui.add_space(8.0);
         ui.label(
             egui::RichText::new(tr(if pending.target.extension == "svg" {
-                "Save to the opened SVG file. Each saved change becomes one undo step in LocalPaint."
+                "Save to the opened SVG file. Each saved change becomes one undo step in Local Paint."
             } else {
-                "Save to the opened original-format file. Each saved change becomes one undo step in LocalPaint."
+                "Save to the opened original-format file. Each saved change becomes one undo step in Local Paint."
             }))
             .small()
             .color(tokens.text_dim),

@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 default-run = "localpaint"
-description = "LocalPaint: an open-source, native image editor"
+description = "Local Paint: an open-source, native image editor"
 build = "build.rs"
 
 [features]

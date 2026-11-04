@@ -1,9 +1,9 @@
-# LocalPaint app icon
+# Local Paint app icon
 
-<img src="localpaint-small.svg" alt="LocalPaint app icon: a painter's palette with five ink blobs, crossed by a brush, on an amber gradient tile" width="128">
+<img src="localpaint-small.svg" alt="Local Paint app icon: a painter's palette with five ink blobs, crossed by a brush, on an amber gradient tile" width="128">
 
 **Figure:** a painter's palette (a rim shape with a thumb hole) holding five ink blobs, with a
-brush crossing it — the mark that tells LocalPaint apart from the other apps of the suite.
+brush crossing it — the mark that tells Local Paint apart from the other apps of the suite.
 
 **Style:** flat shapes on a full-bleed amber gradient tile — the same language as the rest of the
 Local suite's icons.

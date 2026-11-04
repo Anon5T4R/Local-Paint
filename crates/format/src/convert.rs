@@ -159,7 +159,7 @@ fn layer_m(l: &Layer, sink: &mut dyn Sink) -> LayerM {
             psd_raw: opt_blob(&s.psd_raw, sink),
             path: s.path.clone(),
             stroke: s.stroke.clone(),
-            // Older LocalPaint versions cannot deserialize ArrowLine.
+            // Older Local Paint versions cannot deserialize ArrowLine.
             // The saved path preserves the arrow's visual appearance.
             live: match &s.live {
                 Some(localpaint_doc::LiveShape::ArrowLine { .. }) => None,

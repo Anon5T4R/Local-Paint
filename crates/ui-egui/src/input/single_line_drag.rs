@@ -24,7 +24,7 @@ pub struct SingleLineDrag {
 
 impl egui::plugin::Plugin for SingleLineDrag {
     fn debug_name(&self) -> &'static str {
-        "LocalPaint single-line text drag"
+        "Local Paint single-line text drag"
     }
 
     fn on_end_pass(&mut self, ui: &mut egui::Ui) {

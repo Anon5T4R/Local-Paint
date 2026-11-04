@@ -1,8 +1,8 @@
-LocalPaint app icon (localpaint.svg, localpaint-small.svg and every file derived from them in
+Local Paint app icon (localpaint.svg, localpaint-small.svg and every file derived from them in
 this directory: localpaint-1024.png, localpaint.icns, localpaint.ico, hicolor/).
 
 Original artwork made for the Local suite by its owner: the owner's source SVG, used as the
-master vector for every render. No third-party material. Licensed like the rest of LocalPaint,
+master vector for every render. No third-party material. Licensed like the rest of Local Paint,
 under either of
 
   * Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0)

@@ -9,7 +9,7 @@
 # Clean-room: every entry was written from the plain meaning of the English label using ordinary
 # Indonesian computing vocabulary (layer, kuas, seleksi, kanvas ...). No proprietary localisation
 # resource, string table or product UI was consulted or copied; add entries the same way.
-# Product and technology names (LocalPaint,  OpenType, CMYK, Lab ...) stay in Latin
+# Product and technology names (Local Paint,  OpenType, CMYK, Lab ...) stay in Latin
 # letters; the trailing "…" of dialog commands is kept.
 
 # Layer Mask Display Options (the layer mask rubylith's colour and opacity)
@@ -83,7 +83,7 @@
 # Batch / Image Processor
 
 # Native Windows printing qualification
-# LocalPaint release checks.
+# Local Paint release checks.
 # History panel › History Brush source (#2966)
 # Bevel & Emboss shading controls.
 # Embedded Profile Mismatch: profile names beside the choices, Remember this choice
@@ -875,9 +875,9 @@
 	Timeline	Timeline
 	Tool Presets	Preset Alat
 	Tools	Alat
-	About LocalPaint	Tentang LocalPaint
-	LocalPaint Website	Situs Web LocalPaint
-	LocalPaint on GitHub	LocalPaint di GitHub
+	About Local Paint	Tentang Local Paint
+	Local Paint Website	Situs Web Local Paint
+	Local Paint on GitHub	Local Paint di GitHub
 	Report an Issue…	Laporkan Masalah…
 	WIA Support…	Dukungan WIA…
 	Apply	Terapkan
@@ -946,7 +946,7 @@
 	All Caps	Huruf Kapital Semua
 	All Slices	Semua Slice
 	All User Slices	Semua Slice Pengguna
-	All shortcuts reset to LocalPaint defaults.	Semua pintasan direset ke default LocalPaint.
+	All shortcuts reset to Local Paint defaults.	Semua pintasan direset ke default Local Paint.
 	Alt	Alt
 	Alt-click to define a source point to clone from	Alt-klik untuk menentukan titik sumber yang mau di-clone
 	Always use pressure for opacity	Selalu pakai tekanan untuk opasitas
@@ -1441,9 +1441,9 @@
 	Perspective Warp is not active	Perspective Warp tidak aktif
 	Perspective Warp: draw planes along the image's perspective, then switch to Warp	Perspective Warp: gambar bidang mengikuti perspektif gambar, lalu pindah ke Warp
 	Photo Filter	Filter Foto
-	LocalPaint	LocalPaint
-	LocalPaint Manages Colors	LocalPaint Mengelola Warna
-	LocalPaint — an open-source, native image editor written in Rust.	LocalPaint — editor gambar native open-source yang ditulis dengan Rust.
+	Local Paint	Local Paint
+	Local Paint Manages Colors	Local Paint Mengelola Warna
+	Local Paint — an open-source, native image editor written in Rust.	Local Paint — editor gambar native open-source yang ditulis dengan Rust.
 	Pin Depth:	Kedalaman Pin:
 	Pixel Length:	Panjang Piksel:
 	Pixels/Centimeter	Piksel/Sentimeter
@@ -1519,11 +1519,11 @@
 	Import Shortcuts…	Impor Pintasan…
 	Load a keyboard shortcut set saved as .kys	Muat set pintasan keyboard yang disimpan sebagai .kys
 	Imported {n} shortcuts from {file}. Click OK to keep them.	{n} pintasan diimpor dari {file}. Klik OK untuk menyimpannya.
-	{n} commands are not in LocalPaint.	{n} perintah tidak ada di LocalPaint.
+	{n} commands are not in Local Paint.	{n} perintah tidak ada di Local Paint.
 	Keyboard shortcuts imported	Pintasan keyboard diimpor
 	Your keyboard shortcut set {set} is in use here: {n} shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.	Set pintasan keyboard Anda {set} dipakai di sini: {n} pintasan berbeda dari bawaan. Edit › Pintasan Keyboard menampilkannya; Setel Ulang Semua ke Bawaan membatalkannya.
 	Import keyboard shortcuts?	Impor pintasan keyboard?
-	LocalPaint found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from LocalPaint's. Import it?	LocalPaint menemukan set pintasan keyboard Anda {set} dari editor gambar lain di komputer ini: {n} pintasannya berbeda dari LocalPaint. Impor?
+	Local Paint found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from Local Paint's. Import it?	Local Paint menemukan set pintasan keyboard Anda {set} dari editor gambar lain di komputer ini: {n} pintasannya berbeda dari Local Paint. Impor?
 	Edit › Keyboard Shortcuts › Reset All to Defaults undoes an import.	Edit › Pintasan Keyboard › Setel Ulang Semua ke Bawaan membatalkan impor.
 	Don't Import	Jangan Impor
 	The keyboard shortcut set was not imported: {error}	Set pintasan keyboard tidak diimpor: {error}
@@ -1745,7 +1745,7 @@
 	Current Tool	Alat Saat Ini
 	Custom Shape Tool	Alat Bentuk Kustom
 	Cyans	Cyan
-	Default LocalPaint Size	Ukuran Default LocalPaint
+	Default Local Paint Size	Ukuran Default Local Paint
 	Delete Workspace	Hapus Ruang Kerja
 	Diamond	Diamond
 	Dimensions:	Dimensi:
@@ -1856,7 +1856,7 @@
 	Pen Tool	Alat Pen
 	Convert Point Tool	Alat Convert Point
 	Photo	Foto
-	LocalPaint website	Situs web LocalPaint
+	Local Paint website	Situs web Local Paint
 	Picas	Pica
 	Pillow Emboss	Pillow Emboss
 	Pixel Replacement	Penggantian Piksel
@@ -2184,7 +2184,7 @@
 	System Info	Info Sistem
 	More panels	Panel lainnya
 	More documents	Dokumen lainnya
-	These settings aren't available in LocalPaint yet.	Pengaturan ini belum tersedia di LocalPaint.
+	These settings aren't available in Local Paint yet.	Pengaturan ini belum tersedia di Local Paint.
 	Graphics	Grafis
 	Reset GPU Backend	Reset Backend GPU
 	Applies at next launch.	Berlaku saat dibuka berikutnya.
@@ -2771,8 +2771,8 @@
 	Overprint	Cetak Tindih
 	Native file drag-and-drop is unavailable	Seret dan lepas berkas native tidak tersedia
 	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	Seret dan lepas berkas native belum didukung di Wayland. Gunakan Berkas › Buka, atau salin gambar di pengelola berkas lalu tempel dengan {paste}.
-	To drop files, start LocalPaint under XWayland: `{command}`	Untuk menjatuhkan berkas, jalankan LocalPaint di XWayland: `{command}`
-	Or set Preferences › Performance › Linux display server to X11: LocalPaint then always starts under XWayland.	Atau atur Preferensi › Performa › Server tampilan Linux ke X11: LocalPaint lalu selalu berjalan di XWayland.
+	To drop files, start Local Paint under XWayland: `{command}`	Untuk menjatuhkan berkas, jalankan Local Paint di XWayland: `{command}`
+	Or set Preferences › Performance › Linux display server to X11: Local Paint then always starts under XWayland.	Atau atur Preferensi › Performa › Server tampilan Linux ke X11: Local Paint lalu selalu berjalan di XWayland.
 	Edit › Paste	Edit › Tempel
 	Use File › Open, or paste a copied image with {paste}.	Gunakan Berkas › Buka, atau tempel gambar yang disalin dengan {paste}.
 	Mixer Brush Tool	Alat Kuas Pencampur
@@ -2812,7 +2812,7 @@ cameraRaw	Blending	Pembauran
 	Automatic uses GPU acceleration when available and falls back to CPU rendering on errors.	Mode otomatis memakai akselerasi GPU bila tersedia dan beralih ke rendering CPU jika terjadi galat.
 	Switched to CPU rendering	Beralih ke rendering CPU
 	GPU acceleration could not continue. Your documents are unchanged.	Akselerasi GPU tidak dapat dilanjutkan. Dokumen Anda tidak berubah.
-	LocalPaint is using the CPU image compositor. The window may still use your graphics adapter.	LocalPaint menggunakan kompositor gambar CPU. Jendela mungkin masih menggunakan adaptor grafis Anda.
+	Local Paint is using the CPU image compositor. The window may still use your graphics adapter.	Local Paint menggunakan kompositor gambar CPU. Jendela mungkin masih menggunakan adaptor grafis Anda.
 	Retry GPU requires a restart. Save your work first.	Mencoba GPU lagi memerlukan mulai ulang. Simpan pekerjaan Anda terlebih dahulu.
 	Retry GPU tries the graphics processor again now.	Coba GPU Lagi mencoba prosesor grafis lagi sekarang.
 	GPU acceleration resumed.	Akselerasi GPU dilanjutkan.
@@ -3002,7 +3002,7 @@ fontWeight	Italic	Miring
 	Color to Alpha…	Warna ke Alpha…
 	Transparency Threshold	Ambang transparansi
 	Opacity Threshold	Ambang opasitas
-	LocalPaint — Screen Color Picker	LocalPaint — Pemilih Warna Layar
+	Local Paint — Screen Color Picker	Local Paint — Pemilih Warna Layar
 	Rasterize svg groups deeper than	Rasterisasi grup SVG yang lebih dalam dari ini
 	0 turns this threshold off; SVG groups nested deeper than 100 levels are always rasterized.	0 menonaktifkan ambang ini; grup SVG yang bersarang lebih dari 100 tingkat selalu dirasterisasi.
 	Rule of Thirds	Aturan Sepertiga
@@ -3270,7 +3270,7 @@ curves	Smooth	Haluskan
 	{name} (Photoshop)	{name} (Photoshop)
 	{message} ({note})	{message} ({note})
 @plural	Loaded {n} action from {file}|Loaded {n} actions from {file}	{n} tindakan dimuat dari {file}
-@plural	{n} step has no LocalPaint equivalent yet|{n} steps have no LocalPaint equivalent yet	{n} langkah belum memiliki padanan di LocalPaint
+@plural	{n} step has no Local Paint equivalent yet|{n} steps have no Local Paint equivalent yet	{n} langkah belum memiliki padanan di Local Paint
 @plural	Saved {n} action to {file}|Saved {n} actions to {file}	{n} tindakan disimpan ke {file}
 @plural	{n} step with no Photoshop equivalent left out|{n} steps with no Photoshop equivalent left out	{n} langkah tanpa padanan Photoshop dilewati
 	File Naming	Penamaan Berkas
@@ -3362,12 +3362,12 @@ curves	Smooth	Haluskan
 	Bicubic Smoother	Bicubic lebih halus
 	Bicubic Sharper	Bicubic lebih tajam
 	Pasting from other apps is unavailable	Menempel dari aplikasi lain tidak tersedia
-	LocalPaint can't reach the system clipboard in this session. On Wayland, a Flatpak sandbox hides the protocol that images from other apps are read through.	LocalPaint tidak dapat mengakses papan klip sistem dalam sesi ini. Di Wayland, sandbox Flatpak menyembunyikan protokol yang digunakan untuk membaca gambar dari aplikasi lain.
-	To paste from other apps, start LocalPaint under XWayland: `{command}`	Untuk menempel dari aplikasi lain, jalankan LocalPaint di bawah XWayland: `{command}`
-	Nothing to paste: LocalPaint can't read the system clipboard here	Tidak ada yang ditempel: LocalPaint tidak dapat membaca papan klip sistem di sini
+	Local Paint can't reach the system clipboard in this session. On Wayland, a Flatpak sandbox hides the protocol that images from other apps are read through.	Local Paint tidak dapat mengakses papan klip sistem dalam sesi ini. Di Wayland, sandbox Flatpak menyembunyikan protokol yang digunakan untuk membaca gambar dari aplikasi lain.
+	To paste from other apps, start Local Paint under XWayland: `{command}`	Untuk menempel dari aplikasi lain, jalankan Local Paint di bawah XWayland: `{command}`
+	Nothing to paste: Local Paint can't read the system clipboard here	Tidak ada yang ditempel: Local Paint tidak dapat membaca papan klip sistem di sini
 	Delete this set	Hapus set ini
 	New Set…	Set Baru…
-	LocalPaint Defaults	Bawaan LocalPaint
+	Local Paint Defaults	Bawaan Local Paint
 	Save a list of these shortcuts as a web page	Simpan daftar pintasan ini sebagai halaman web
 	Save the changes to this set	Simpan perubahan ke set ini
 	Save these shortcuts as a .kys file	Simpan pintasan ini sebagai file .kys

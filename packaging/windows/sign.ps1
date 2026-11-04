@@ -65,7 +65,7 @@ if (-not $haveCert -and -not $haveAzure) {
 }
 
 $script:SignTool = Find-SignTool
-$common = @('sign', '/v', '/fd', 'SHA256', '/td', 'SHA256', '/d', 'LocalPaint', '/du', 'https://github.com/Anon5T4R/Local-Paint')
+$common = @('sign', '/v', '/fd', 'SHA256', '/td', 'SHA256', '/d', 'Local Paint', '/du', 'https://github.com/Anon5T4R/Local-Paint')
 $tmp = Join-Path ([IO.Path]::GetTempPath()) "localpaint-sign-$PID"
 New-Item -ItemType Directory -Force -Path $tmp | Out-Null
 

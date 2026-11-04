@@ -1,4 +1,4 @@
-# AGENTS.md — LocalPaint
+# AGENTS.md — Local Paint
 
 Fork independente do photocraft (ArtCraft), rebrandado para a suíte Local do João.
 Rust puro + egui. Sem conta, sem telemetria, sem dependência de servidores de terceiros.
