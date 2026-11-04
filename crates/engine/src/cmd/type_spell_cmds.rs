@@ -338,10 +338,10 @@ mod tests {
 
     #[test]
     fn lists_changes_and_learns_words() {
-        let (mut s, id) = session("Teh quick brwon fox, teh end. Local Paint");
+        let (mut s, id) = session("Teh quick brwon fox, teh end. LocalPaint");
         let r = s.execute("edit.checkSpelling", json!({})).unwrap();
         let words: Vec<&str> = r["misspellings"].as_array().unwrap().iter().map(|m| m["word"].as_str().unwrap()).collect();
-        assert_eq!(words, vec!["Teh", "brwon", "teh", "Local Paint"]);
+        assert_eq!(words, vec!["Teh", "brwon", "teh", "LocalPaint"]);
         let first = &r["misspellings"][0];
         assert_eq!((first["start"].as_u64(), first["end"].as_u64()), (Some(0), Some(3)));
         assert_eq!(first["suggestions"][0], "The");
