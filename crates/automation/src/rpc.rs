@@ -290,6 +290,12 @@ pub fn serve_lines(h: &Mutex<Headless>, mut r: impl BufRead, mut w: impl Write) 
 /// Serve one connection. It must complete `auth` within `auth_deadline` of connecting, however
 /// much it sends meanwhile (#4965); after that only the idle timeout applies.
 fn serve_tcp_connection(h: &Mutex<Headless>, stream: std::net::TcpStream, token: &str, auth_deadline: std::time::Duration) -> std::io::Result<()> {
+    /// Par que sumiu sem shutdown gracioso: para um servidor de linhas isso é fim de
+    /// conexão, não erro. Chega como ConnectionReset/ConnectionAborted no Windows e como
+    /// BrokenPipe (EPIPE) no Linux, tanto em read quanto em write (flake de CI, run 42495046023).
+    fn peer_gone(e: &std::io::Error) -> bool {
+        matches!(e.kind(), std::io::ErrorKind::ConnectionReset | std::io::ErrorKind::ConnectionAborted | std::io::ErrorKind::BrokenPipe)
+    }
     configure_stream(&stream)?;
     let read = stream.try_clone()?;
     let mut reader = std::io::BufReader::new(AuthDeadlineStream::new(read, auth_deadline));
@@ -297,7 +303,11 @@ fn serve_tcp_connection(h: &Mutex<Headless>, stream: std::net::TcpStream, token:
     let mut line = String::new();
     let mut authenticated = false;
     loop {
-        match read_bounded_line(&mut reader, &mut line)? {
+        let read = match read_bounded_line(&mut reader, &mut line) {
+            Err(e) if peer_gone(&e) => return Ok(()),
+            other => other?,
+        };
+        match read {
             LineRead::Eof => return Ok(()),
             LineRead::TooLong => {
                 let reply = json!({
@@ -322,8 +332,18 @@ fn serve_tcp_connection(h: &Mutex<Headless>, stream: std::net::TcpStream, token:
             }
             reply
         };
-        write_reply(&mut out, &reply)?;
-        out.flush()?;
+        if let Err(e) = write_reply(&mut out, &reply) {
+            if peer_gone(&e) {
+                return Ok(());
+            }
+            return Err(e);
+        }
+        if let Err(e) = out.flush() {
+            if peer_gone(&e) {
+                return Ok(());
+            }
+            return Err(e);
+        }
         if !authenticated {
             return Ok(());
         }
