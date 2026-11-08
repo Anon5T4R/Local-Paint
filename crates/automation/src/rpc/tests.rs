@@ -323,7 +323,10 @@ fn stdio_skips_a_rejected_line_and_keeps_the_session() {
 
 #[test]
 fn preview_rejection_precedes_output_file_creation() {
-    let root = std::env::temp_dir().join(format!("pc-preview-budget-{}", std::process::id()));
+    // Nome unico por TESTE (pid e o mesmo para todas as threads de teste do processo; flake
+    // de paralelismo na suíte cheia) e limpeza tolerante a restos de tarefas em background.
+    static N: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let root = std::env::temp_dir().join(format!("pc-preview-budget-{}-{}", std::process::id(), N.fetch_add(1, std::sync::atomic::Ordering::Relaxed)));
     std::fs::create_dir_all(&root).unwrap();
     let workspace = crate::AuthorizedWorkspace::new(None, Some(&root)).unwrap();
     let mut h = Headless::with_workspace(workspace);
@@ -335,8 +338,7 @@ fn preview_rejection_precedes_output_file_creation() {
     assert!(root.join("accepted.png").exists());
     // Release directory capabilities before cleanup on Windows.
     drop(h);
-    std::fs::remove_file(root.join("accepted.png")).unwrap();
-    std::fs::remove_dir(root).unwrap();
+    std::fs::remove_dir_all(&root).unwrap();
 }
 
 #[test]
@@ -1027,4 +1029,34 @@ fn invalid_document_index_is_rejected_not_the_active_document() {
     let reply = respond(&h, r#"{"method":"doc.close","params":{"index":0}}"#);
     assert_eq!(reply["ok"], true, "{reply}");
     assert_eq!(count(&h), 1);
+}
+
+/// Um cliente que aborta sem shutdown gracioso (RST com dados em voo) chega ao servidor como
+/// `ConnectionReset`/`ConnectionAborted`, não EOF — no Windows isso derrubava `serve_tcp_connection`
+/// com erro (flake de CI: `tcp_connections_must_authenticate_before_the_deadline...`). Para um
+/// servidor de linhas, par que sumiu é fim de conexão limpo.
+#[test]
+fn an_aborted_client_ends_the_connection_as_eof_not_an_error() {
+    use std::io::Write as _;
+    use std::net::TcpStream;
+    use std::time::Duration;
+
+    const TOKEN: &str = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let addr = listener.local_addr().unwrap();
+    let server = std::thread::spawn(move || {
+        let h = Mutex::new(Headless::new());
+        let (stream, _) = listener.accept().unwrap();
+        serve_tcp_connection(&h, stream, TOKEN, Duration::from_millis(300))
+    });
+
+    let mut client = TcpStream::connect(addr).unwrap();
+    // Autentica e NAO le a resposta: o close com dados nao lidos no buffer de recepcao
+    // manda RST (aborto real, como um processo morto) - sem depender de set_linger instavel.
+    let _ = writeln!(client, r#"{{"id":"auth","method":"auth","params":{{"token":"{TOKEN}"}}}}"#);
+    client.flush().unwrap();
+    drop(client);
+
+    let r = server.join().unwrap();
+    assert!(r.is_ok(), "conexao abortada deve terminar como EOF, deu: {r:?}");
 }
