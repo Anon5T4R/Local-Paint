@@ -290,11 +290,11 @@ pub fn serve_lines(h: &Mutex<Headless>, mut r: impl BufRead, mut w: impl Write) 
 /// Serve one connection. It must complete `auth` within `auth_deadline` of connecting, however
 /// much it sends meanwhile (#4965); after that only the idle timeout applies.
 fn serve_tcp_connection(h: &Mutex<Headless>, stream: std::net::TcpStream, token: &str, auth_deadline: std::time::Duration) -> std::io::Result<()> {
-    /// Par que sumiu sem shutdown gracioso (RST): para um servidor de linhas isso é fim de
-    /// conexão, não erro. Chega como ConnectionReset/ConnectionAborted tanto em read quanto
-    /// em write no Windows (flake de CI, run 42495046023).
+    /// Par que sumiu sem shutdown gracioso: para um servidor de linhas isso é fim de
+    /// conexão, não erro. Chega como ConnectionReset/ConnectionAborted no Windows e como
+    /// BrokenPipe (EPIPE) no Linux, tanto em read quanto em write (flake de CI, run 42495046023).
     fn peer_gone(e: &std::io::Error) -> bool {
-        matches!(e.kind(), std::io::ErrorKind::ConnectionReset | std::io::ErrorKind::ConnectionAborted)
+        matches!(e.kind(), std::io::ErrorKind::ConnectionReset | std::io::ErrorKind::ConnectionAborted | std::io::ErrorKind::BrokenPipe)
     }
     configure_stream(&stream)?;
     let read = stream.try_clone()?;
