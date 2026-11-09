@@ -34,7 +34,7 @@ localpaint-format = { path = "../format" }
 craft-docpath = { workspace = true }
 thiserror = { workspace = true }
 serde_json = { workspace = true }
-blake3 = { version = "1.8", default-features = false, features = ["pure"] }
+blake3 = { workspace = true }
 # svg.rs inflates `.svgz` itself (with a size cap) so the XML can be checked before it is parsed;
 # pdn.rs inflates Paint.NET's gzip pixel chunks.
 flate2 = { workspace = true }

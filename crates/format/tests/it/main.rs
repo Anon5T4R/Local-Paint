@@ -2,6 +2,7 @@
 
 mod analysis;
 mod autosave;
+mod blake3_vectors;
 mod common;
 mod corruption;
 mod directory_symlinks;
