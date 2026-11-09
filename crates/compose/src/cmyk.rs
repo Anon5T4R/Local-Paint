@@ -189,10 +189,18 @@ pub fn separable(mode: BlendMode) -> bool {
 /// channel's brightness (1 − ink), as CMYK channels are blended, so Multiply adds ink and Screen
 /// takes it away.
 pub fn blend_ink(mode: BlendMode, cb: [f32; 4], cs: [f32; 4]) -> [f32; 4] {
+    blend_ink_fill(mode, cb, cs, 1.0)
+}
+
+/// [`blend_ink`] for a layer at `fill`: below 100% Fill Photoshop's special eight
+/// ([`super::psblend::fill_is_special`]) pull the source toward the mode's neutral colour before
+/// blending, as the RGB compositor does on each channel (`psblend::blend_rgb_fill`); every other
+/// mode, or `fill >= 1`, is plain [`blend_ink`].
+pub fn blend_ink_fill(mode: BlendMode, cb: [f32; 4], cs: [f32; 4], fill: f32) -> [f32; 4] {
     let b = |i: usize| 1.0 - cb[i];
     let s = |i: usize| 1.0 - cs[i];
-    let cmy = super::psblend::blend_rgb(mode, [b(0), b(1), b(2)], [s(0), s(1), s(2)]);
-    let k = super::psblend::blend_rgb(mode, [b(3); 3], [s(3); 3]);
+    let cmy = super::psblend::blend_rgb_fill(mode, [b(0), b(1), b(2)], [s(0), s(1), s(2)], fill);
+    let k = super::psblend::blend_rgb_fill(mode, [b(3); 3], [s(3); 3], fill);
     // A result that is one of the inputs (Normal, Darken, Lighten, ...) is that ink exactly.
     let ink = |r: f32, i: usize| {
         if r == s(i) {
@@ -399,9 +407,17 @@ fn adjust_inks(adj: &Adjustment, buf: &mut CmykBuffer, depth: SampleType) {
 }
 
 /// Mixes an adjustment's result back into `base` in the layer's blend mode, by its opacity and
-/// mask; coverage is unchanged (the compositor's adjustment mix).
-fn mix_adjusted(l: &Layer, base: &mut CmykBuffer, adjusted: &CmykBuffer, cx: &Ctx) {
-    let opacity = l.opacity * l.fill_opacity;
+/// mask; coverage is unchanged (the compositor's adjustment mix). For a stack adjustment
+/// (`special_fill`) below 100% Fill in one of the special eight the blend itself changes and
+/// Opacity alone is the coverage, as for a pixel layer and as the RGB compositor does
+/// ([`composite_ink_fill`], `psblend::composite_fill`, #9501); a *clipped* adjustment keeps Fill as
+/// coverage in every mode (as `composite_atop` does).
+fn mix_adjusted(l: &Layer, base: &mut CmykBuffer, adjusted: &CmykBuffer, cx: &Ctx, special_fill: bool) {
+    let (opacity, fill) = if special_fill && l.fill_opacity < 1.0 && super::psblend::fill_is_special(l.blend) {
+        (l.opacity, l.fill_opacity)
+    } else {
+        (l.opacity * l.fill_opacity, 1.0)
+    };
     let rect = base.rect;
     let w = (rect.width() as usize).max(1);
     let mv = mask_vals(l, rect, cx);
@@ -420,7 +436,7 @@ fn mix_adjusted(l: &Layer, base: &mut CmykBuffer, adjusted: &CmykBuffer, cx: &Ct
             }
             continue;
         }
-        let bl = blend_ink(l.blend, [p[0], p[1], p[2], p[3]], [a[0], a[1], a[2], a[3]]);
+        let bl = blend_ink_fill(l.blend, [p[0], p[1], p[2], p[3]], [a[0], a[1], a[2], a[3]], fill);
         for (v, b) in p.iter_mut().zip(bl) {
             *v = if k >= 1.0 { b } else { *v + (b - *v) * k };
         }
@@ -447,7 +463,7 @@ fn composite_clipped(clipped: &[Layer], base: &mut CmykBuffer, cx: &Ctx) {
         if let LayerContent::Adjustment(adj) = &c.content {
             let mut adjusted = base.clone();
             adjust_inks(adj, &mut adjusted, cx.depth);
-            mix_adjusted(c, base, &adjusted, cx);
+            mix_adjusted(c, base, &adjusted, cx, false);
             continue;
         }
         let content = layer_content(c, base.rect, cx);
@@ -550,7 +566,7 @@ fn composite_layer(l: &Layer, clipped: &[Layer], backdrop: &mut CmykBuffer, cx: 
         let mut adjusted = backdrop.clone();
         adjust_inks(adj, &mut adjusted, cx.depth);
         composite_clipped(clipped, &mut adjusted, cx);
-        mix_adjusted(l, backdrop, &adjusted, cx);
+        mix_adjusted(l, backdrop, &adjusted, cx, true);
         return;
     }
     let mut content = layer_content(l, rect, cx);

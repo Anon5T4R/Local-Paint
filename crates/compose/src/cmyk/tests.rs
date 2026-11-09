@@ -119,6 +119,12 @@ fn ref_blend(mode: BlendMode, b: f32, s: f32) -> f32 {
     1.0 - crate::psblend::blend_rgb(mode, [1.0 - b; 3], [1.0 - s; 3])[0]
 }
 
+/// [`ref_blend`] for a layer at `fill`: below 100% Fill the special eight pull the source toward
+/// the mode's neutral colour before blending, as the compositor does (`blend_rgb_fill`).
+fn ref_blend_fill(mode: BlendMode, b: f32, s: f32, fill: f32) -> f32 {
+    1.0 - crate::psblend::blend_rgb_fill(mode, [1.0 - b; 3], [1.0 - s; 3], fill)[0]
+}
+
 /// The general compositing formula (W3C / PDF), written out on each ink.
 fn over_mode(mode: BlendMode, b: Cmyka, s: Cmyka, opacity: f32, text: bool) -> Cmyka {
     if mode == BlendMode::Normal {
@@ -214,8 +220,10 @@ fn ref_adjust(adj: &Adjustment, p: Cmyka) -> Cmyka {
 }
 
 /// An adjustment layer `l` (adjusting `p`, then `clipped` onto that) mixed into `p` in its blend
-/// mode by its opacity and mask; coverage stays.
-fn ref_adjusted(l: &Layer, adj: &Adjustment, clipped: &[Layer], p: Cmyka, x: i32, y: i32) -> Cmyka {
+/// mode by its opacity and mask; coverage stays. For a stack adjustment (`special_fill`) below 100%
+/// Fill in one of the special eight the blend itself changes and Opacity alone is the coverage
+/// (`psblend::blend_rgb_fill`); a clipped adjustment keeps Fill as coverage in every mode.
+fn ref_adjusted(l: &Layer, adj: &Adjustment, clipped: &[Layer], p: Cmyka, x: i32, y: i32, special_fill: bool) -> Cmyka {
     let mut a = ref_adjust(adj, p);
     if p[4] > 0.0 {
         a = ref_clip(clipped, a, x, y);
@@ -225,9 +233,14 @@ fn ref_adjusted(l: &Layer, adj: &Adjustment, clipped: &[Layer], p: Cmyka, x: i32
         // Opacity and mask are the chance the pixel takes the adjustment fully.
         return if k > 0.0 && crate::dissolve_noise(x, y) < k { [a[0], a[1], a[2], a[3], p[4]] } else { p };
     }
+    let (k, fill) = if special_fill && l.fill_opacity < 1.0 && crate::psblend::fill_is_special(l.blend) {
+        (l.opacity * ref_mask(l, x, y), l.fill_opacity)
+    } else {
+        (k, 1.0)
+    };
     let mut o = p;
     for c in 0..4 {
-        o[c] = p[c] + (ref_blend(l.blend, p[c], a[c]) - p[c]) * k;
+        o[c] = p[c] + (ref_blend_fill(l.blend, p[c], a[c], fill) - p[c]) * k;
     }
     o
 }
@@ -236,7 +249,7 @@ fn ref_adjusted(l: &Layer, adj: &Adjustment, clipped: &[Layer], p: Cmyka, x: i32
 fn ref_clip(clipped: &[Layer], mut content: Cmyka, x: i32, y: i32) -> Cmyka {
     for c in clipped.iter().filter(|c| c.visible) {
         if let LayerContent::Adjustment(adj) = &c.content {
-            content = ref_adjusted(c, adj, &[], content, x, y);
+            content = ref_adjusted(c, adj, &[], content, x, y, false);
         } else if content[4] > 0.0 {
             let a = content[4];
             let r = over_layer(c, [content[0], content[1], content[2], content[3], 1.0], ref_own(c, x, y), c.opacity * c.fill_opacity, Some((x, y)));
@@ -292,7 +305,7 @@ fn ref_layer(l: &Layer, clipped: &[Layer], x: i32, y: i32, b: Cmyka) -> Cmyka {
             o[4] = a;
             return o;
         }
-        LayerContent::Adjustment(adj) => return ref_adjusted(l, adj, clipped, b, x, y),
+        LayerContent::Adjustment(adj) => return ref_adjusted(l, adj, clipped, b, x, y, true),
         LayerContent::Group(g) => {
             let mut c = ref_stack(&g.children, x, y, [0.0; 5]);
             c[4] *= ref_mask(l, x, y);
@@ -1383,8 +1396,78 @@ fn with_effects(s: &Spec, fx: &[(usize, FxSpec)], knockout: Option<usize>) -> Do
     d
 }
 
+/// The input CI's proptest shrank (`cmyk-failing-input.txt`, whose dump stops inside the
+/// adjustment layer, so the rest is the minimal stack that reproduces its numbers): a
+/// pass-through group over a 1×1 patch of 201/255 magenta, holding a Posterize-2 adjustment in
+/// Linear Light at Fill 30/255. Below 100% Fill the special eight pull the source toward the
+/// mode's neutral colour and mix by Opacity alone (`psblend::blend_rgb_fill`, measured on
+/// Photoshop, #9501), which the RGB compositor — and so the split route — does: 30 levels come
+/// off the magenta's brightness, leaving ink 231/255. The exact path mixed by opacity × Fill at
+/// full strength and got there in one step, leaving 207/255 (the alpha and the other inks agree).
+#[test]
+fn special_fill_on_a_pass_through_adjustment_agrees_on_both_routes() {
+    let s = Spec {
+        w: 3,
+        h: 4,
+        layers: vec![LayerSpec::Group {
+            children: vec![
+                LayerSpec::Pixels {
+                    kind: Kind::Raster,
+                    blend: BlendMode::Normal,
+                    fills: vec![(Rect::new(0, 0, 1, 1), [0.0, 0.789_970_93, 0.0, 0.0, 1.0])],
+                    opacity: 1.0,
+                    fill: 1.0,
+                    clipped: false,
+                    visible: true,
+                    mask: None,
+                },
+                LayerSpec::Group {
+                    children: vec![LayerSpec::Pixels {
+                        kind: Kind::Adjust(AdjSpec::Posterize(2)),
+                        blend: BlendMode::LinearLight,
+                        fills: vec![(Rect::new(0, 0, 1, 1), [0.0; 5])],
+                        opacity: 1.0,
+                        fill: 30.0 / 255.0,
+                        clipped: false,
+                        visible: true,
+                        mask: None,
+                    }],
+                    pass_through: true,
+                    blend: BlendMode::Normal,
+                    opacity: 1.0,
+                    fill: 1.0,
+                    mask: None,
+                },
+            ],
+            pass_through: true,
+            blend: BlendMode::Normal,
+            opacity: 1.0,
+            fill: 1.0,
+            mask: None,
+        }],
+    };
+    let mut d = doc(s.w as u32, s.h as u32);
+    d.layers = s.layers.iter().map(build).collect();
+    assert!(supports(&d) && split::supports(&d));
+    let via = split_render(&d);
+    let exact = render_cmyk(&d, via.rect).unwrap_or_else(|| panic!("supported"));
+    // Pixel (0, 0) is index 6 of the canvas grown by one (rect -1..4 × -1..5).
+    let want = [0.0, 231.0 / 255.0, 0.0, 0.0, 1.0];
+    assert!(near(via.px[6], want, 1e-6), "split route: {:?} vs {want:?}", via.px[6]);
+    assert!(near(exact.px[6], want, 1e-6), "exact route: {:?} vs {want:?}", exact.px[6]);
+    assert_routes_agree(&d);
+}
+
+/// Cases for the protocols below: `PROPTEST_CASES` (the usual proptest variable) overrides the
+/// number CI runs. The global-rejection budget scales with it: the protocols filter out whole
+/// stacks (`jumps`), so a larger run needs more room for those rejects before it gives up.
+fn protocol_config(default_cases: u32) -> ProptestConfig {
+    let cases = std::env::var("PROPTEST_CASES").ok().and_then(|v| v.parse().ok()).unwrap_or(default_cases);
+    ProptestConfig { cases, max_global_rejects: cases.saturating_mul(4).max(1024), ..ProptestConfig::default() }
+}
+
 proptest! {
-    #![proptest_config(ProptestConfig { cases: 120, ..ProptestConfig::default() })]
+    #![proptest_config(protocol_config(120))]
 
     /// On every stack the exact path handles, the split route gives the same inks.
     #[test]
