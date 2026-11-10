@@ -1,6 +1,6 @@
 # Maintainer: Anon5T4R <https://github.com/Anon5T4R>
 pkgname=localpaint
-pkgver=0.20.0
+pkgver=0.20.8
 pkgrel=1
 pkgdesc="Editor de imagem local e open-source, escrito em Rust puro"
 arch=('x86_64' 'aarch64')
