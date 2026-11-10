@@ -4,7 +4,6 @@ Name=Local Paint
 GenericName=Image Editor
 Comment=Edit photos and layered PSD documents
 Exec=localpaint %F
-TryExec=localpaint
 Icon=com.localpaint.app
 Terminal=false
 # The native runner does not complete desktop startup-notification handshakes.
