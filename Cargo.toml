@@ -5,7 +5,7 @@ exclude = ["libs"]
 default-members = ["crates/*", "apps/localpaint", "apps/localpaint-cli", "xtask"]
 
 [workspace.package]
-version = "0.20.8"
+version = "0.20.9"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 rust-version = "1.95"
