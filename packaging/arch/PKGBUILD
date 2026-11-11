@@ -1,33 +1,26 @@
-# Maintainer: Anon5T4R <https://github.com/Anon5T4R>
+# PKGBUILD do localpaint para Arch (uso pessoal do João; não publicado no AUR).
+# Instala a árvore FHS (bin/ + share/) do tarball da release — o mesmo artefato
+# que o package.sh gera. O sha256 fica SKIP no repo (o hash só existe após a
+# release); o job arch do CI substitui pelo real ao construir o pacote.
+#
+#   makepkg -si   (local, com o tarball da release ao lado)
+
 pkgname=localpaint
 pkgver=0.20.9
 pkgrel=1
-pkgdesc="Editor de imagem local e open-source, escrito em Rust puro"
-arch=('x86_64' 'aarch64')
-url="https://github.com/Anon5T4R/Local-Paint"
-license=('MIT' 'Apache-2.0')
-depends=('glibc' 'gcc-libs' 'vulkan-driver' 'libxkbcommon')
-makedepends=('rust' 'clang' 'lld')
-source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
+pkgdesc='Editor de imagem local e open-source, escrito em Rust puro'
+arch=(x86_64)
+url='https://github.com/Anon5T4R/Local-Paint'
+license=('MIT OR Apache-2.0')
+depends=(glibc gcc-libs libxcb libxrandr libxi libxcursor libxkbcommon)
+optdepends=('xdg-desktop-portal: seletor nativo de arquivos (GNOME/KDE já trazem)')
+options=(!debug)
+source=("localpaint-$pkgver-linux-x86_64.tar.gz")
 sha256sums=('SKIP')
-options=('!lto')
-
-build() {
-  cd "$pkgname-$pkgver"
-  cargo build --locked --release -p localpaint -p localpaint-cli --features heif
-}
-
-check() {
-  cd "$pkgname-$pkgver"
-  cargo test --locked --release -p localpaint -p localpaint-cli
-}
 
 package() {
-  cd "$pkgname-$pkgver"
-  install -Dm755 target/release/localpaint "$pkgdir/usr/bin/localpaint"
-  install -Dm755 target/release/localpaint-cli "$pkgdir/usr/bin/localpaint-cli"
-  install -Dm644 packaging/linux/com.localpaint.app.desktop \
-    "$pkgdir/usr/share/applications/com.localpaint.app.desktop"
-  install -Dm644 assets/app-icon/hicolor/scalable/apps/com.localpaint.app.svg \
-    "$pkgdir/usr/share/icons/hicolor/scalable/apps/com.localpaint.app.svg"
+  cd "$srcdir"
+  install -dm755 "$pkgdir/usr"
+  cp -a "localpaint-$pkgver-linux-x86_64/bin" "$pkgdir/usr/"
+  cp -a "localpaint-$pkgver-linux-x86_64/share" "$pkgdir/usr/"
 }
