@@ -5,13 +5,15 @@
 #
 #   makepkg -si   (local, com o tarball da release ao lado)
 
-pkgname=localpaint
+pkgname=com.localpaint.app
 pkgver=0.20.12
 pkgrel=1
 pkgdesc='Editor de imagem local e open-source, escrito em Rust puro'
 arch=(x86_64)
 url='https://github.com/Anon5T4R/Local-Paint'
 license=('MIT OR Apache-2.0')
+provides=('localpaint')
+conflicts=('localpaint')
 depends=(glibc gcc-libs libxcb libxrandr libxi libxcursor libxkbcommon)
 optdepends=('xdg-desktop-portal: seletor nativo de arquivos (GNOME/KDE já trazem)')
 options=(!debug)
