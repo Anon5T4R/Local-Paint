@@ -155,7 +155,7 @@ impl<'a> PreparedPatterns<'a> {
 pub fn pattern_rgba(p: &Pattern, mode: ColorMode) -> Vec<[f32; 4]> {
     let mut px = Vec::new();
     if p.is_paintable() && pattern_rgba_rows(p, mode, 0, p.height, &mut px).is_none() {
-        px = Vec::new();
+        px.clear();
     }
     px
 }

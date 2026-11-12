@@ -77,11 +77,11 @@ impl Tiff<'_> {
             4 => self.u32(at).map(f64::from),
             5 => {
                 let (n, d) = (self.u32(at)?, self.u32(at.checked_add(4)?)?);
-                (d != 0).then(|| n as f64 / d as f64)
+                (d != 0).then_some(n as f64 / d as f64)
             }
             10 => {
                 let (n, d) = (self.u32(at)? as i32, self.u32(at.checked_add(4)?)? as i32);
-                (d != 0).then(|| n as f64 / d as f64)
+                (d != 0).then_some(n as f64 / d as f64)
             }
             _ => None,
         }

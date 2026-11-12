@@ -133,7 +133,7 @@ pub fn fillet(prev: [f64; 2], v: [f64; 2], next: [f64; 2], r: f64) -> Option<Fil
     let unit = |a: [f64; 2], b: [f64; 2]| {
         let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
         let l = dx.hypot(dy);
-        (l > 1e-9).then(|| ([dx / l, dy / l], l))
+        (l > 1e-9).then_some(([dx / l, dy / l], l))
     };
     if r.is_nan() || r <= 0.0 {
         return None;

@@ -447,7 +447,7 @@ fn xmp_number(s: &str) -> Option<f64> {
     match s.split_once('/') {
         Some((n, d)) => {
             let (n, d) = (n.trim().parse::<f64>().ok()?, d.trim().parse::<f64>().ok()?);
-            (d != 0.0).then(|| n / d)
+            (d != 0.0).then_some(n / d)
         }
         None => s.parse().ok(),
     }

@@ -164,7 +164,7 @@ fn shifts(pts: &[(f64, f64)], r: f64, sign: f64) -> Vec<(f64, f64)> {
         let (p, q) = (pts[i], pts[j]);
         let (dx, dy) = if into { (p.0 - q.0, p.1 - q.1) } else { (q.0 - p.0, q.1 - p.1) };
         let len = dx.hypot(dy);
-        (len > 1e-9 && len.is_finite()).then(|| (dx / len, dy / len, len))
+        (len > 1e-9 && len.is_finite()).then_some((dx / len, dy / len, len))
     };
     let cap = MAX_SHIFT * r;
     for (i, shift) in out.iter_mut().enumerate() {

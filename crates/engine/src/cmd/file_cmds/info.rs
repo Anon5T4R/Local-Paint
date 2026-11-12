@@ -217,7 +217,7 @@ fn xmp_number(x: &str, prop: &str) -> Option<f64> {
     let n = match v.split_once('/') {
         Some((a, b)) => {
             let (a, b) = (a.trim().parse::<f64>().ok()?, b.trim().parse::<f64>().ok()?);
-            (b != 0.0).then(|| a / b)?
+            (b != 0.0).then_some(a / b)?
         }
         None => v.parse::<f64>().ok()?,
     };

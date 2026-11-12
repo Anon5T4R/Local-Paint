@@ -292,7 +292,7 @@ pub fn regressed(cur: f64, base: f64, pct: f64, min_ms: f64) -> bool {
 }
 
 pub fn change_pct(cur: f64, base: f64) -> Option<f64> {
-    (base > 0.0 && cur.is_finite()).then(|| (cur / base - 1.0) * 100.0)
+    (base > 0.0 && cur.is_finite()).then_some((cur / base - 1.0) * 100.0)
 }
 
 #[derive(Clone, Debug, PartialEq)]

@@ -332,7 +332,7 @@ fn hard_round_presets_have_smooth_large_stroke_outlines() {
                     let edge = (0..120)
                         .find_map(|y| {
                             let (a, next) = (s.rgba(x, y)[3], s.rgba(x, y + 1)[3]);
-                            (a <= 0.5 && next > 0.5).then(|| y as f32 + (0.5 - a) / (next - a))
+                            (a <= 0.5 && next > 0.5).then_some(y as f32 + (0.5 - a) / (next - a))
                         })
                         .expect("a full-pressure stroke has a half-coverage edge");
                     min = min.min(edge);

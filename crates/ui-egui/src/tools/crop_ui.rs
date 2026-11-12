@@ -970,7 +970,7 @@ fn dragged_frame(app: &mut LocalPaintApp, p: [f64; 2], mods: Modifiers) -> Optio
         CropDrag::Resize { hx, hy, start, rect, .. } => {
             let keep = || {
                 let (w, h) = (rect[2] - rect[0], rect[3] - rect[1]);
-                (w > 0.0 && h > 0.0).then(|| w / h)
+                (w > 0.0 && h > 0.0).then_some(w / h)
             };
             let ratio = ratio.or_else(|| if mods.shift { keep() } else { None });
             Some(resized_turned(*rect, deg, *hx, *hy, [p[0] - start[0], p[1] - start[1]], ratio, mods.alt))

@@ -192,7 +192,7 @@ fn stand_in_adjustment(a: &mut Adjustment, planes: Planes) {
         Adjustment::Curves { per_channel, space, black, .. } if *space == ToneSpace::Cmyk => {
             let ink = |i: usize| if i == 3 { black.clone() } else { per_channel.get(i).cloned().unwrap_or_default() };
             *per_channel = [ink(planes[0]), ink(planes[1]), ink(planes[2])];
-            *black = Vec::new();
+            black.clear();
             *space = ToneSpace::Rgb;
         }
         _ => {}
