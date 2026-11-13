@@ -751,9 +751,13 @@ mod tests {
     #[test]
     fn printcraft_entries_match_nothing_else() {
         let pdf = App::by_id("pdfcraft").unwrap();
+        let local = App::by_id("localpdf").unwrap();
         assert!(!is_installer_entry(pdf, "PrintCraft", "Some Other Publisher"));
         assert!(!is_installer_entry(pdf, "PhotoCraft", LEARNING_MACHINES));
-        for a in SUITE.iter().filter(|a| a.id != "pdfcraft") {
+        // Local PDF is the fork of the same PrintCraft, so it claims those entries too (its own
+        // catalog did before the unification); nothing else may.
+        assert!(is_installer_entry(local, "PrintCraft", LEARNING_MACHINES), "the fork keeps detecting its upstream install");
+        for a in SUITE.iter().filter(|a| !matches!(a.id, "pdfcraft" | "localpdf")) {
             assert!(!is_installer_entry(a, "PrintCraft", LEARNING_MACHINES), "PrintCraft matched {}", a.name);
         }
     }
