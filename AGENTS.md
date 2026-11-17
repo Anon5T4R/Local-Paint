@@ -23,6 +23,15 @@ Rust puro + egui. Sem conta, sem telemetria, sem dependência de servidores de t
 - `book/` — o livro de documentação (mdBook); `docs/` — arquitetura, formatos, paridade, release
 - `xtask/` — tarefas de build/CI (`cargo xtask ci`, `layers`, `wasm`, `parity`, `scorecard`)
 
+## Agent-native (MCP)
+O eixo mais completo da suíte: `crates/automation` (MCP headless + bridge com o token do control
+channel, workspace de capabilities), `localpaint-cli mcp` (as roots `--automation-read-root` /
+`--automation-write-root` **negam por padrão**: sem root, aquela direção de acesso não existe),
+`serve` (JSON lines em stdio/TCP) e `run --script` (array JSON ou JSON Lines; passo é id,
+`[id, params]` ou `{"command", "params"}`). A crate compartilhada **`craft-mcp`**
+(`libs/craft-libs/crates/mcp`, fonte `local-libs`) entra no `mcp --connect` (alias de `--bridge`;
+porta nua = loopback; host público recusado). Docs: `book/src/automation/{cli,mcp,control-protocol}.md`.
+
 ## Build
 ```
 cargo build --locked          # debug

@@ -6,7 +6,7 @@ use serde_json::Value;
 use localpaint_automation::{Headless, LocalPaintMcp, security};
 
 use crate::{
-    Result,
+    CliError, Result,
     args::{CommandsArgs, McpArgs, ServeArgs},
     output::{JsonStyle, print_json},
 };
@@ -65,6 +65,9 @@ pub(crate) fn serve(a: &ServeArgs, err: &mut dyn Write) -> Result {
 pub(crate) fn mcp(a: &McpArgs, err: &mut dyn Write) -> Result {
     let server = match &a.bridge {
         Some(addr) => {
+            // `--connect` (the same flag as `--bridge`): a bare port means loopback, and a host
+            // that isn't loopback is refused before the bridge connects.
+            let addr = craft_mcp::remote::normalize_addr(&addr.to_string()).map_err(CliError::Connect)?;
             if a.bridge_from_env {
                 // Name the mode switch, as `serve` does: the way back to headless is to unset it.
                 let _ = writeln!(
@@ -73,7 +76,7 @@ pub(crate) fn mcp(a: &McpArgs, err: &mut dyn Write) -> Result {
                 );
             }
             let token = security::client_token(a.control.control_token.as_deref(), a.control.control_token_file.as_deref())?;
-            LocalPaintMcp::bridge(&addr.to_string(), &token)?
+            LocalPaintMcp::bridge(&addr, &token)?
         }
         None => LocalPaintMcp::headless_with_workspace(a.automation.workspace()?),
     };

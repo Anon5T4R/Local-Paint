@@ -28,6 +28,8 @@ localpaint-engine = { workspace = true }
 localpaint-io = { workspace = true }
 localpaint-format = { path = "../../crates/format" }
 localpaint-codecs = { workspace = true }
+# The suite's MCP plumbing: `--connect` normalization (bare port = loopback; public host refused).
+craft-mcp = { workspace = true }
 clap = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

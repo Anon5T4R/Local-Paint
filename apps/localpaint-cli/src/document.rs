@@ -62,7 +62,10 @@ pub(crate) fn info(a: &InfoArgs, out: &mut dyn Write) -> Result {
 
 /// `(id, params)` pairs from repeated `--cmd`/`--params` flags.
 fn command_list(a: &RunArgs) -> Result<Vec<(String, Value)>> {
-    let mut cmds: Vec<(String, Value)> = Vec::new();
+    let mut cmds: Vec<(String, Value)> = match &a.script {
+        Some(path) => script_steps(path)?,
+        None => Vec::new(),
+    };
     for step in &a.steps {
         match step {
             Step::Cmd(id) => cmds.push((id.clone(), json!({}))),
@@ -70,6 +73,48 @@ fn command_list(a: &RunArgs) -> Result<Vec<(String, Value)>> {
         }
     }
     Ok(cmds)
+}
+
+/// The steps of a `--script` file: a JSON array, or one step per line (JSON Lines). A step is a
+/// command id, `[id, params]`, or `{"command"|"id", "params": …}` — the forms a recorded action
+/// stores, so a job and an action step read the same.
+fn script_steps(path: &Path) -> Result<Vec<(String, Value)>> {
+    let text = if path == Path::new("-") {
+        let mut s = String::new();
+        std::io::Read::read_to_string(&mut std::io::stdin(), &mut s)?;
+        s
+    } else {
+        std::fs::read_to_string(path)?
+    };
+    let text = text.strip_prefix('\u{feff}').unwrap_or(&text);
+    let name = path.display();
+    let mut steps = Vec::new();
+    if text.trim_start().starts_with('[') {
+        let list: Value = serde_json::from_str(text)?;
+        let entries = list.as_array().ok_or_else(|| CliError::Script(format!("{name}: not a JSON array")))?;
+        for (n, v) in entries.iter().enumerate() {
+            steps.push(script_step(v).map_err(|e| CliError::Script(format!("{name}[{n}]: {e}")))?);
+        }
+    } else {
+        for (n, line) in text.lines().enumerate().filter(|(_, l)| !l.trim().is_empty() && !l.trim_start().starts_with('#')) {
+            let v: Value = serde_json::from_str(line).map_err(|e| CliError::Script(format!("{name}:{}: {e}", n + 1)))?;
+            steps.push(script_step(&v).map_err(|e| CliError::Script(format!("{name}:{}: {e}", n + 1)))?);
+        }
+    }
+    Ok(steps)
+}
+
+/// One script step: a command id, `[id, params]`, or `{"command"|"id", "params": …}`.
+fn script_step(v: &Value) -> std::result::Result<(String, Value), String> {
+    match v {
+        Value::String(id) => Ok((id.clone(), json!({}))),
+        Value::Array(pair) if pair.len() == 2 && pair[0].is_string() => Ok((pair[0].as_str().unwrap_or_default().to_string(), pair[1].clone())),
+        Value::Object(o) => {
+            let id = o.get("command").or(o.get("id")).and_then(Value::as_str).ok_or("a step needs `command` or `id`")?;
+            Ok((id.to_string(), o.get("params").cloned().filter(|p| !p.is_null()).unwrap_or_else(|| json!({}))))
+        }
+        _ => Err("a step is a command id, [id, params] or {\"command\": id, \"params\": {…}}".into()),
+    }
 }
 
 pub(crate) fn run_cmds(a: &RunArgs, out: &mut dyn Write, err: &mut dyn Write) -> Result {

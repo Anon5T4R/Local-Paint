@@ -111,7 +111,7 @@ pub(crate) struct InfoArgs {
 /// --in-place allows it.
 #[derive(Args)]
 #[command(group(ArgGroup::new("source").args(["file", "new"]).required(true)))]
-#[command(group(ArgGroup::new("work").args(["cmd", "out"]).required(true).multiple(true)))]
+#[command(group(ArgGroup::new("work").args(["cmd", "out", "script"]).required(true).multiple(true)))]
 pub(crate) struct RunArgs {
     /// The document to open
     pub(crate) file: Option<PathBuf>,
@@ -124,6 +124,9 @@ pub(crate) struct RunArgs {
     /// JSON parameters for the --cmd before it (default {})
     #[arg(long, value_name = "JSON", action = ArgAction::Append, value_parser = json)]
     pub(crate) params: Vec<Value>,
+    /// A JSON array of steps, or one step per line (JSON Lines), run before the --cmd flags
+    #[arg(long, value_name = "FILE|-", allow_negative_numbers = true)]
+    pub(crate) script: Option<PathBuf>,
     /// Save the result to this file
     #[arg(long, value_name = "FILE")]
     pub(crate) out: Option<PathBuf>,
@@ -194,7 +197,7 @@ pub(crate) struct CommandsArgs {
     #[arg(long)]
     pub(crate) json: bool,
     /// Only the commands matching this text
-    #[arg(long, value_name = "TEXT", allow_negative_numbers = true)]
+    #[arg(long, visible_alias = "search", value_name = "TEXT", allow_negative_numbers = true)]
     pub(crate) filter: Option<String>,
 }
 
@@ -206,8 +209,8 @@ pub(crate) struct CommandsArgs {
 #[derive(Args)]
 pub(crate) struct McpArgs {
     /// Bridge to the Local Paint app listening here instead of a headless engine; a bare port means
-    /// 127.0.0.1:<PORT>
-    #[arg(long, value_name = "127.0.0.1:PORT", env = "LOCALPAINT_CONTROL_PORT", value_parser = bridge)]
+    /// 127.0.0.1:<PORT> (`--connect` is the same flag)
+    #[arg(long, visible_alias = "connect", value_name = "127.0.0.1:PORT", env = "LOCALPAINT_CONTROL_PORT", value_parser = bridge)]
     pub(crate) bridge: Option<Bridge>,
     /// `--bridge` came from LOCALPAINT_CONTROL_PORT, set by [`parse`].
     #[arg(skip)]

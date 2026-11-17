@@ -21,6 +21,10 @@ pub(crate) enum CliError {
     ReadDir { path: PathBuf, source: std::io::Error },
     #[error("--params must follow a --cmd")]
     ParamsBeforeCmd,
+    #[error("--script: {0}")]
+    Script(String),
+    #[error("--connect: {0}")]
+    Connect(String),
     #[error("--new: {0}")]
     New(#[source] AutomationError),
     #[error("`{id}`: {source}")]

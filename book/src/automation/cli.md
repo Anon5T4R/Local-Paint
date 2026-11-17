@@ -21,6 +21,11 @@ localpaint-cli run input.psd \
   --out output.png
 ```
 
+For a longer job, `--script FILE` (`-` reads standard input) takes the steps from a file: a JSON
+array, or one step per line (JSON Lines). A step is a command id, `[id, params]`, or
+`{"command": id, "params": {…}}`, the same forms a recorded action stores; the file's steps run
+before the `--cmd` flags. `commands --search TEXT` is the same filter as `commands --filter TEXT`.
+
 ### Missing font warnings
 
 If a type layer uses a font family that is not installed, `convert` and `run`

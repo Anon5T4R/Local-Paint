@@ -20,6 +20,9 @@ Bridge to a running desktop application with the same private token file used by
 localpaint-cli mcp --bridge 127.0.0.1:7878 --control-token-file /private/path/control.token
 ```
 
+`--connect` is the same flag as `--bridge` (the suite's name): a bare port means `127.0.0.1`, and a
+host that isn't loopback is refused before the bridge connects.
+
 Use absolute root paths in MCP client configurations, since a relative root is resolved from the
 client's launch directory. In bridge mode the roots are configured on the desktop app, and root
 flags on `localpaint-cli mcp --bridge` are rejected. Explicit `--control-token` and
