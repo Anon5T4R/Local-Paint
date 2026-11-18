@@ -32,4 +32,9 @@
     </magic>
     <glob pattern="*.pdn"/>
   </mime-type>
+  <!-- .krz (Krita's compressed archive): the system database only knows .kra under this type. -->
+  <mime-type type="application/x-krita">
+    <comment>Krita document</comment>
+    <glob pattern="*.krz"/>
+  </mime-type>
 </mime-info>

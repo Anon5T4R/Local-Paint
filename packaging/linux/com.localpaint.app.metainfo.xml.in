@@ -66,7 +66,25 @@
     <mediatype>image/openraster</mediatype>
     <mediatype>application/x-krita</mediatype>
     <mediatype>image/vnd.adobe.photoshop</mediatype>
+    <mediatype>image/x-psd</mediatype>
     <mediatype>image/x-psb</mediatype>
+    <mediatype>image/png</mediatype>
+    <mediatype>image/jpeg</mediatype>
+    <mediatype>image/tiff</mediatype>
+    <mediatype>image/webp</mediatype>
+    <mediatype>image/gif</mediatype>
+    <mediatype>image/bmp</mediatype>
+    <mediatype>image/x-tga</mediatype>
+    <mediatype>image/x-icon</mediatype>
+    <mediatype>image/vnd.microsoft.icon</mediatype>
+    <mediatype>image/x-portable-anymap</mediatype>
+    <mediatype>image/x-portable-bitmap</mediatype>
+    <mediatype>image/x-portable-graymap</mediatype>
+    <mediatype>image/x-portable-pixmap</mediatype>
+    <mediatype>image/x-exr</mediatype>
+    <mediatype>image/vnd.radiance</mediatype>
+    <mediatype>image/avif</mediatype>
+    <mediatype>image/qoi</mediatype>
   </provides>
   <content_rating type="oars-1.1"/>
   <releases>

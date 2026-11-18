@@ -125,6 +125,11 @@
         <RegistryValue Root="HKMU" Key="Software\Classes\.qoi\OpenWithProgids" Name="LocalPaint.Image" Value="" Type="string" />
         <RegistryValue Root="HKMU" Key="Software\Classes\.ico\OpenWithProgids" Name="LocalPaint.Image" Value="" Type="string" />
 
+        <RegistryValue Root="HKMU" Key="Software\Classes\.pnm\OpenWithProgids" Name="LocalPaint.Image" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.pbm\OpenWithProgids" Name="LocalPaint.Image" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.pgm\OpenWithProgids" Name="LocalPaint.Image" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.ppm\OpenWithProgids" Name="LocalPaint.Image" Value="" Type="string" />
+
         <!-- "Open with" app list and the Run dialog (Win+R "localpaint"). -->
         <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localpaint.exe" Name="FriendlyAppName" Value="Local Paint" Type="string" />
         <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localpaint.exe\shell\open\command" Value="&quot;[#LocalPaintExe]&quot; &quot;%1&quot;" Type="string" />
@@ -149,7 +154,42 @@
         <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localpaint.exe\SupportedTypes" Name=".avif" Value="" Type="string" />
         <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localpaint.exe\SupportedTypes" Name=".qoi" Value="" Type="string" />
         <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localpaint.exe\SupportedTypes" Name=".ico" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localpaint.exe\SupportedTypes" Name=".pnm" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localpaint.exe\SupportedTypes" Name=".pbm" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localpaint.exe\SupportedTypes" Name=".pgm" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localpaint.exe\SupportedTypes" Name=".ppm" Value="" Type="string" />
         <RegistryValue Root="HKMU" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\localpaint.exe" Value="[#LocalPaintExe]" Type="string" />
+        <!-- Default Programs registration (Settings > Default apps): Capabilities + RegisteredApplications,
+             the same extensions as OpenWithProgids above. Only lists the app; never sets a default. -->
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities" Name="ApplicationName" Value="Local Paint" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities" Name="ApplicationDescription" Value="Open-source image editor" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities" Name="ApplicationIcon" Value="[#LocalPaintExe],0" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".pcraft" Value="LocalPaint.Document" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".psd" Value="LocalPaint.PhotoshopDocument" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".psb" Value="LocalPaint.PhotoshopDocument" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".pdn" Value="LocalPaint.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".ora" Value="LocalPaint.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".kra" Value="LocalPaint.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".krz" Value="LocalPaint.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".png" Value="LocalPaint.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".jpg" Value="LocalPaint.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".jpeg" Value="LocalPaint.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".tif" Value="LocalPaint.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".tiff" Value="LocalPaint.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".webp" Value="LocalPaint.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".gif" Value="LocalPaint.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".bmp" Value="LocalPaint.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".tga" Value="LocalPaint.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".exr" Value="LocalPaint.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".hdr" Value="LocalPaint.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".avif" Value="LocalPaint.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".qoi" Value="LocalPaint.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".ico" Value="LocalPaint.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".pnm" Value="LocalPaint.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".pbm" Value="LocalPaint.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".pgm" Value="LocalPaint.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalPaint\Capabilities\FileAssociations" Name=".ppm" Value="LocalPaint.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\RegisteredApplications" Name="LocalPaint" Value="Software\LocalPaint\Capabilities" Type="string" />
         <!-- Where this MSI installed the app. The app's own updater reads it (HKLM here) under the
              suite's key to know this is an MSI install, so it updates with the new MSI rather than
              the portable zip. -->
