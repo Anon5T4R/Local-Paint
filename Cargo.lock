@@ -1424,6 +1424,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "craft-desktop-theme"
+version = "0.1.0"
+dependencies = [
+ "craft-platform",
+ "egui",
+]
+
+[[package]]
 name = "craft-docpath"
 version = "0.1.0"
 
@@ -1465,6 +1473,18 @@ name = "craft-mcp"
 version = "0.1.0"
 dependencies = [
  "serde_json",
+]
+
+[[package]]
+name = "craft-platform"
+version = "0.1.0"
+dependencies = [
+ "async-channel",
+ "async-io",
+ "async-process",
+ "egui",
+ "futures-lite",
+ "zbus",
 ]
 
 [[package]]
@@ -4106,6 +4126,7 @@ dependencies = [
  "chrono",
  "clap",
  "core-graphics2",
+ "craft-desktop-theme",
  "craft-update",
  "dispatch2",
  "eframe",

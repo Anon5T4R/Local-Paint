@@ -210,6 +210,13 @@ const INTERFACE_NAMESPACE: &str = "org.gnome.desktop.interface";
 #[cfg(target_os = "linux")]
 const ICONS_KEY: &str = "icon-theme";
 
+/// The desktop portal's Settings interface, with a short reply timeout.
+#[cfg(target_os = "linux")]
+fn portal_proxy() -> Option<zbus::blocking::Proxy<'static>> {
+    let conn = zbus::blocking::connection::Builder::session().ok()?.method_timeout(std::time::Duration::from_secs(2)).build().ok()?;
+    zbus::blocking::Proxy::new(&conn, "org.freedesktop.portal.Desktop", "/org/freedesktop/portal/desktop", "org.freedesktop.portal.Settings").ok()
+}
+
 /// A string setting from the portal, unwrapping the variants some portals nest it in.
 #[cfg(target_os = "linux")]
 fn portal_string(value: zbus::zvariant::OwnedValue) -> Option<String> {
@@ -252,7 +259,7 @@ pub fn service() -> Option<localpaint_ui_egui::CaptionStyleFn> {
         };
         let (ready, wait) = std::sync::mpsc::channel();
         let spawned = std::thread::Builder::new().name("caption-style".into()).spawn(move || {
-            let proxy = if desktop == Desktop::Gnome { crate::appearance::portal_proxy() } else { None };
+            let proxy = if desktop == Desktop::Gnome { portal_proxy() } else { None };
             let Some(proxy) = proxy else {
                 publish(&found);
                 let _ = ready.send(());

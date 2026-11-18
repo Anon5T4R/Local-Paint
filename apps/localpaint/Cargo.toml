@@ -43,6 +43,8 @@ thiserror = { workspace = true }
 tempfile = "=3.27.0"
 roxmltree = "0.21"
 craft-update = { workspace = true }
+# Linux: the desktop's light/dark choice for the System theme (inert elsewhere).
+craft-desktop-theme = { workspace = true }
 rfd = { workspace = true }
 arboard = { version = "3.7", features = ["wayland-data-control"] }
 open = "5"

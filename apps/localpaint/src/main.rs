@@ -31,7 +31,6 @@
 
 mod app_dirs;
 mod app_icon;
-mod appearance;
 #[cfg(target_os = "macos")]
 mod apple_events;
 mod caps_lock;
@@ -520,6 +519,8 @@ fn main() -> eframe::Result {
             #[cfg(not(target_os = "linux"))]
             let session = Session::new();
             LocalPaintApp::install_type_reset_hooks(&cc.egui_ctx);
+            // Linux: the desktop's light/dark choice reaches `ctx.system_theme()`, which winit leaves empty.
+            craft_desktop_theme::follow(&cc.egui_ctx);
             let mut app = LocalPaintApp::new(session, services);
             app.min_frame_ms = uncapped.then_some(1000.0 / 240.0);
             app.integrated_titlebar = cfg!(target_os = "macos");
