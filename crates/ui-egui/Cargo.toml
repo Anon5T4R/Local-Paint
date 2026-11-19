@@ -11,6 +11,8 @@ workspace = true
 [dependencies]
 craft-print = { workspace = true }
 craft-ui = { workspace = true }
+craft-icons = { workspace = true }
+craft-palette = { workspace = true }
 localpaint-geom = { workspace = true }
 localpaint-color = { workspace = true }
 localpaint-cms = { workspace = true }

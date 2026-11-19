@@ -1462,6 +1462,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "craft-icons"
+version = "0.1.0"
+dependencies = [
+ "egui",
+]
+
+[[package]]
 name = "craft-jpeg"
 version = "0.1.0"
 dependencies = [
@@ -1473,6 +1480,13 @@ name = "craft-mcp"
 version = "0.1.0"
 dependencies = [
  "serde_json",
+]
+
+[[package]]
+name = "craft-palette"
+version = "0.1.0"
+dependencies = [
+ "egui",
 ]
 
 [[package]]
@@ -4562,6 +4576,8 @@ name = "localpaint-ui-egui"
 version = "0.20.20"
 dependencies = [
  "base64 0.23.1",
+ "craft-icons",
+ "craft-palette",
  "craft-print",
  "craft-ui",
  "craft-update",
