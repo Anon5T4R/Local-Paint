@@ -58,9 +58,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - name: Fontes japonesas vendored
-        shell: bash
-        run: echo "CRAFT_FONTS_DIR=$GITHUB_WORKSPACE/assets/craft-fonts" >> "$GITHUB_ENV"
       - name: Formatação (nightly; só o nosso código — libs/ e assets/craft-fonts mantêm o estilo de origem)
         shell: bash
         # Escopo = membros do workspace (o mesmo que o `cargo xtask ci` do upstream gateia).

@@ -21,6 +21,7 @@ Rust puro + egui. Sem conta, sem telemetria, sem dependência de servidores de t
 - `libs/` — forks vendored: `craft-libs`, `egui`, `winit`, `winprint.rs`
 - `packaging/` — Windows (WiX/MSI), Linux (AppImage/deb/rpm/tar FHS com `install.sh`), Arch (PKGBUILD), macOS, FreeBSD, web
 - `book/` — o livro de documentação (mdBook); `docs/` — arquitetura, formatos, paridade, release
+- `scripts/check-mirror.sh` — confere as crates e os assets (`craft-fonts`) espelhados do `local-libs` contra a fonte (CI e `xtask ci`)
 - `xtask/` — tarefas de build/CI (`cargo xtask ci`, `layers`, `wasm`, `parity`, `scorecard`)
 
 ## Agent-native (MCP)
@@ -35,7 +36,8 @@ porta nua = loopback; host público recusado). Docs: `book/src/automation/{cli,m
 ## Build
 ```
 cargo build --locked          # debug
-cargo test --locked           # testes
+cargo test --locked           # testes (as fontes vendored entram sempre: .cargo/config.toml, igual ao CI)
+cargo xtask ci                # o gate local: fmt, clippy, camadas, scorecard, testes, wasm, cargo-deny e espelhos do local-libs
 packaging/windows/package.ps1 # MSI + portable (Windows)
 packaging/linux/package.sh    # AppImage/deb/rpm/tar (Linux)
 ```

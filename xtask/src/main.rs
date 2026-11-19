@@ -26,7 +26,7 @@ commands:
   wasm            cargo check --target wasm32-unknown-unknown for the wasm-safe crates (one call, plus
                   one per optional web feature)
   test            workspace tests (cargo nextest when installed, else cargo test), then doctests
-  ci              the CI gate: fmt --check, clippy -D warnings, layers, scorecard --check, tests
+  ci              the CI gate: fmt --check, clippy -D warnings, layers, scorecard --check, tests, cargo-deny, local-libs mirrors
                   (nextest --profile ci), panic_hunt, doctests and wasm, with --locked --features heif
                   (stops at first failure), then the i18n-coverage report
   corpus [--all | --pngsuite | --psd | --psd-tools | --pixls | --atn | --photoshop | --gimp] [--local] [--update-manifest]
@@ -305,6 +305,8 @@ fn cmd_ci() -> Result<(), String> {
             }),
         ),
         ("layers", Box::new(cmd_layers)),
+        ("deny", Box::new(cmd_deny)),
+        ("mirror", Box::new(cmd_mirror)),
         ("scorecard", Box::new(|| scorecard::run(&root(), &["--check"]))),
         ("test", Box::new(|| cmd_gate_tests(false))),
         ("panic_hunt", Box::new(|| cmd_gate_tests(true))),
@@ -346,4 +348,34 @@ fn cmd_ci() -> Result<(), String> {
     }
     println!("\nCI summary: all {} steps passed ({})", done.len(), done.join(", "));
     Ok(())
+}
+
+/// cargo-deny (licenses, bans, sources, advisories) as the CI runs it; skipped with a note when the
+/// tool is not installed (`cargo install cargo-deny --locked`).
+fn cmd_deny() -> Result<(), String> {
+    let mut c = cargo();
+    c.args(["deny", "--version"]);
+    if c.output().is_ok_and(|o| o.status.success()) {
+        let mut c = cargo();
+        c.args(["deny", "--log-level", "error", "check", "bans", "licenses", "sources", "advisories"]);
+        run(c, "cargo deny check")
+    } else {
+        eprintln!("note: cargo-deny not installed (cargo install cargo-deny --locked): skipped, the CI runs it");
+        Ok(())
+    }
+}
+
+/// The crates and assets mirrored from the local-libs against their source (`scripts/check-mirror.sh`);
+/// skipped with a note when bash is unavailable.
+fn cmd_mirror() -> Result<(), String> {
+    let mut c = Command::new("bash");
+    c.current_dir(root()).arg("scripts/check-mirror.sh");
+    match c.status() {
+        Ok(status) if status.success() => Ok(()),
+        Ok(status) => Err(format!("scripts/check-mirror.sh: exited with {status}")),
+        Err(e) => {
+            eprintln!("note: bash unavailable ({e}): mirror check skipped, the CI runs it");
+            Ok(())
+        }
+    }
 }
