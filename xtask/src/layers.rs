@@ -94,7 +94,16 @@ fn intra_layer_allowed(from: &str, to: &str) -> bool {
 /// distributors can leave HEVC decoding out of a build; `heif` itself depends on no workspace crate.
 pub const STANDALONE_EXCEPTIONS: &[(&str, &str)] = &[("codecs", "heif")];
 
+/// Vendored libs (`libs/craft-libs`) a standalone crate may depend on: (from, to). They are path
+/// dependencies, so the metadata counts them as workspace crates, but they are leaf libraries outside
+/// the layering (no `localpaint-*` dependency): `codecs` decodes 12-bit/arithmetic JPEG with `craft-jpeg`
+/// (its only dependency is `thiserror`), and standalone only forbids reaching into the layered crates.
+pub const STANDALONE_VENDORED: &[(&str, &str)] = &[("codecs", "craft-jpeg")];
+
 fn standalone_exception(from: &str, to: &str) -> bool {
+    if STANDALONE_VENDORED.iter().any(|(f, t)| *f == short_name(from) && *t == to) {
+        return true;
+    }
     let (from, to) = (short_name(from), short_name(to));
     classify(to) == Some(Class::Standalone) && STANDALONE_EXCEPTIONS.iter().any(|(f, t)| *f == from && *t == to)
 }
@@ -320,6 +329,12 @@ mod tests {
             assert!(matches!(v[..], [Violation::StandaloneHasWorkspaceDep { .. }]), "{s}");
             assert!(check(&[c(s, &[("image", Normal, false)])]).is_empty());
         }
+    }
+
+    #[test]
+    fn standalone_may_use_the_vendored_craft_jpeg_only_from_codecs() {
+        assert!(check(&[c("localpaint-codecs", &[("craft-jpeg", Normal, true)])]).is_empty());
+        assert!(!check(&[c("localpaint-psd", &[("craft-jpeg", Normal, true)])]).is_empty());
     }
 
     #[test]
