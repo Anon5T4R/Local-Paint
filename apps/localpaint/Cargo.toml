@@ -3,6 +3,7 @@ name = "localpaint"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+publish.workspace = true
 default-run = "localpaint"
 description = "Local Paint: an open-source, native image editor"
 build = "build.rs"

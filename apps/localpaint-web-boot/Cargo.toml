@@ -4,7 +4,7 @@ description = "Starts Local Paint in the browser from compressed parts of its We
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-publish = false
+publish.workspace = true
 
 [lints]
 workspace = true

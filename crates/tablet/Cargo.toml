@@ -3,6 +3,7 @@ name = "localpaint-tablet"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+publish.workspace = true
 description = "Pen tablet pressure, tilt, rotation and eraser end on macOS (AppKit) and Linux X11 (XInput2), and barrel button on Windows"
 
 # The one isolated `unsafe` helper crate (see AGENTS.md, Never crash): the AppKit event
