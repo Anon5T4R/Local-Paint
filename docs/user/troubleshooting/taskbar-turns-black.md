@@ -26,4 +26,4 @@ Local Paint draws its own title bar. When such a window was maximized, Windows s
 
 ## Still stuck?
 
-If you still see it on 0.8.2, add your Windows version and Local Paint version to [issue 3864](https://github.com/Anon5T4R/Local-Paint/issues/3864). As a test, you can switch on **System title bar** under **Edit › Preferences › Interface…**, click **Apply** and restart Local Paint; Windows then draws the title bar. See [Get help with a problem](get-help.md) for what to include.
+If you still see it on 0.8.2, add your Windows version and Local Paint version to [issue 3864](https://github.com/Anon5T4R/Local-Paint/issues/3864). As a test, you can switch on **System title bar** under **Edit › Settings › Interface…**, click **Apply** and restart Local Paint; Windows then draws the title bar. See [Get help with a problem](get-help.md) for what to include.

@@ -20,7 +20,7 @@ On Windows, Local Paint starts Intel graphics on DirectX 12. If Local Paint clos
 2. Start Local Paint again. Double-clicking its icon or a `.pcraft` file works. Local Paint notes that the last start did not finish and uses the next safer graphics mode this time:
    - A start on Vulkan is followed by one on DirectX 12.
    - A start on DirectX 12 is followed by one on the CPU. The CPU mode does not depend on the graphics driver.
-3. If it started, nothing more to do. Local Paint remembers the mode that worked. You can see or reset it under **Edit › Preferences › Performance…** (on macOS, **Local Paint › Settings › Performance…**).
+3. If it started, nothing more to do. Local Paint remembers the mode that worked. You can see or reset it under **Edit › Settings › Performance…** (on macOS, **Local Paint › Settings › Performance…**).
 
 If Local Paint still closes on every start, force DirectX 12 from PowerShell:
 

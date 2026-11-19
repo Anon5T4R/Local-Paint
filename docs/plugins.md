@@ -20,7 +20,7 @@ This page is the contract for plug-in authors and the reference for the host
 In the app, installed filters appear under **Filter › Plug-ins** (with a generated dialog and live
 preview when they have parameters), next to **Install Plug-in…**.
 
-**Preference folder.** Edit › Preferences › Plug-ins › *Use Additional Plug-ins Folder* plus
+**Preference folder.** Edit › Settings › Plug-ins › *Use Additional Plug-ins Folder* plus
 *Additional Plug-ins Folder*: when both are set, every `*.wasm` in that folder (not recursive) is
 installed at startup and whenever the preference changes (native builds only; the web build installs
 from bytes).

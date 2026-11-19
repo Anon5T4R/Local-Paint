@@ -125,7 +125,7 @@ macro_rules! section {
         section!($id, $label, None)
     };
     ($id:literal, $label:literal, $shortcut:expr) => {
-        CommandSpec { id: $id, label: $label, menu: &["Edit", "Preferences"], shortcut: $shortcut, params: r##"{}"##, enabled: always, run: |s, _| preferences_section(s, &json!({"__section": section_of($id)})), journal: false }
+        CommandSpec { id: $id, label: $label, menu: &["Edit", "Settings"], shortcut: $shortcut, params: r##"{}"##, enabled: always, run: |s, _| preferences_section(s, &json!({"__section": section_of($id)})), journal: false }
     };
 }
 

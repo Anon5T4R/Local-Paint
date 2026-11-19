@@ -269,8 +269,8 @@ fn close_box_rect(right: f32, centre_y: f32) -> egui::Rect {
 /// Draws a title bar's close box in `rect`, the same × icon button the floating panels close with,
 /// and says whether it was clicked. Its own child `Ui`, so the title row's layout is unchanged.
 pub(crate) fn close_box(ui: &mut egui::Ui, rect: egui::Rect) -> bool {
-    let mut child = ui.new_child(egui::UiBuilder::new().max_rect(rect).layout(egui::Layout::right_to_left(egui::Align::Center)));
-    crate::icons::button(&mut child, "x", CLOSE_BOX_SIZE, false, tl!("Close")).clicked()
+    let mut child = ui.new_child(egui::UiBuilder::new().max_rect(rect).layout(egui::Layout::centered_and_justified(egui::Direction::LeftToRight)));
+    crate::shell::close_button(&mut child, tl!("Close")).clicked()
 }
 
 /// The dialog's contents under the title rule, picked by its kind and the marker field that routes
@@ -1282,7 +1282,7 @@ mod preference_resize_tests {
         let title = shapes
             .iter()
             .find_map(|s| match s {
-                egui::Shape::Text(t) if t.galley.job.text == "Preferences" => Some(t.pos),
+                egui::Shape::Text(t) if t.galley.job.text == "Settings" => Some(t.pos),
                 _ => None,
             })
             .expect("the title is painted");

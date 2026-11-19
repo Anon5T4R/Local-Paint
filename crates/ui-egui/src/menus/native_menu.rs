@@ -603,7 +603,7 @@ pub fn localpaint_layout(items: &[MenuItem], lang: Lang, language: &str) -> Layo
     let mut bar = from_items(&crate::menus::TOP_MENUS, items);
     bar.tag_item("help.about", ItemRole::About);
     bar.tag_item("file.exit", ItemRole::Quit);
-    bar.tag_submenu("Edit", "Preferences", ItemRole::Settings);
+    bar.tag_submenu("Edit", "Settings", ItemRole::Settings);
     bar.tag_submenu("Window", "Theme", ItemRole::Appearance);
     bar.tag_item("window.theme.toggle", ItemRole::Appearance);
     bar.tag_menu("Window", MenuRole::Window);

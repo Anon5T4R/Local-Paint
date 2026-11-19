@@ -45,7 +45,7 @@ automation command IDs and user-provided document, layer and preset names.
 
 ## Switch without restarting
 
-Open **Edit > Preferences > Interface > Language** and choose a language. The Preferences
+Open **Edit > Settings > Interface > Language** and choose a language. The Preferences
 dialog previews its title, controls and buttons in the chosen language. **Cancel** discards
 the preview, **Apply** commits it without closing the dialog, and **OK** commits and closes.
 The rest of the interface follows the committed preference on its next draw. Existing

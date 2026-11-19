@@ -254,7 +254,7 @@ Long commands (every `filter.*`, `edit.contentAwareFill`, `edit.contentAwareScal
 
 ## Preferences
 
-Preferences (Edit › Preferences, grouped like Photoshop's dialog sections) live in the engine, so
+Preferences (Edit › Settings, grouped like Photoshop's dialog sections) live in the engine, so
 the same commands work in the app, the CLI and headless MCP. Paths are dotted camelCase keys:
 `<section>.<key>`, with sections `general`, `interface`, `workspace`, `tools`, `historyLog`,
 `fileHandling`, `export`, `performance`, `scratchDisks`, `cursors`, `transparencyAndGamut`,

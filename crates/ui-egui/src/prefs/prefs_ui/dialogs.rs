@@ -136,7 +136,7 @@ pub fn open_preferences(app: &mut LocalPaintApp, section: &str) -> u64 {
     let section = if SECTIONS.iter().any(|(id, _)| *id == section) { section } else { "general" };
     let working = preference_values(app.session.prefs());
     let order = field_order(app.session.prefs(), &working);
-    open_kind(app, "prefs", "Preferences", json!({"section": section, "values": working, "__order": order}))
+    open_kind(app, "prefs", "Settings", json!({"section": section, "values": working, "__order": order}))
 }
 
 /// Each section's keys in declaration order (JSON objects sort their keys; the serialised text

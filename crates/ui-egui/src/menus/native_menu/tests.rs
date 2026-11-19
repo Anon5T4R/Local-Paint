@@ -46,7 +46,7 @@ fn moved_items_leave_their_old_menus() {
     let by = |t: &str| l.bar.menus.iter().find(|m| m.title == t).unwrap();
     assert!(!ids(&by("File").children).contains(&"file.exit".to_string()));
     assert!(!ids(&by("Help").children).contains(&"help.about".to_string()));
-    assert!(!ids(&by("Edit").children).contains(&"[Preferences]".to_string()));
+    assert!(!ids(&by("Edit").children).contains(&"[Settings]".to_string()));
     let titles: Vec<&str> = l.bar.menus.iter().map(|m| m.title.as_str()).collect();
     assert_eq!(titles, ["Local Paint", "File", "Edit", "Image", "Layer", "Type", "Select", "Filter", "View", "Window", "Help"]);
 }
@@ -85,7 +85,7 @@ fn themes_move_to_the_app_menus_appearance() {
     assert_eq!(l.bar.find("window.theme.classic").unwrap().checked, Some(true));
     assert_eq!(l.bar.find("window.theme.pro").unwrap().checked, Some(false));
     assert_eq!(l.bar.find("window.theme.toggle").unwrap().label, "Next Appearance Mode");
-    assert_eq!(l.bar.find("window.theme.system").unwrap().label, "Sync with system");
+    assert_eq!(l.bar.find("window.theme.system").unwrap().label, "Automatic");
     assert_eq!(l.bar.find("window.theme.system").unwrap().checked, Some(false));
     let window = ids(&l.bar.menu(MenuRole::Window).unwrap().children);
     assert!(!window.iter().any(|id| id.starts_with("window.theme.") || id == "[Theme]"), "{window:?}");
