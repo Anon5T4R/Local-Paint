@@ -4117,7 +4117,7 @@ checksum = "11d3d7f243d5c5a8b9bb5d6dd2b1602c0cb0b9db1621bafc7ed66e35ff9fe092"
 
 [[package]]
 name = "localpaint"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "arboard",
  "async-io",
@@ -4173,7 +4173,7 @@ dependencies = [
 
 [[package]]
 name = "localpaint-affinity"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "crc32fast",
  "flate2",
@@ -4183,7 +4183,7 @@ dependencies = [
 
 [[package]]
 name = "localpaint-algo"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "criterion",
  "localpaint-color",
@@ -4198,7 +4198,7 @@ dependencies = [
 
 [[package]]
 name = "localpaint-automation"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "base64 0.23.1",
  "cap-std",
@@ -4223,7 +4223,7 @@ dependencies = [
 
 [[package]]
 name = "localpaint-cli"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "clap",
  "clap_complete",
@@ -4243,7 +4243,7 @@ dependencies = [
 
 [[package]]
 name = "localpaint-cms"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "moxcms",
  "rayon",
@@ -4251,7 +4251,7 @@ dependencies = [
 
 [[package]]
 name = "localpaint-codecs"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "craft-jpeg",
  "exr",
@@ -4275,7 +4275,7 @@ dependencies = [
 
 [[package]]
 name = "localpaint-color"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "localpaint-cms",
  "serde",
@@ -4283,7 +4283,7 @@ dependencies = [
 
 [[package]]
 name = "localpaint-compose"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "criterion",
  "localpaint-cms",
@@ -4299,7 +4299,7 @@ dependencies = [
 
 [[package]]
 name = "localpaint-doc"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "localpaint-color",
  "localpaint-geom",
@@ -4310,7 +4310,7 @@ dependencies = [
 
 [[package]]
 name = "localpaint-engine"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "base64 0.22.1",
  "blake3",
@@ -4352,7 +4352,7 @@ dependencies = [
 
 [[package]]
 name = "localpaint-format"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "blake3",
  "crc32fast",
@@ -4375,14 +4375,14 @@ dependencies = [
 
 [[package]]
 name = "localpaint-geom"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "localpaint-gpu"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "bytemuck",
  "half",
@@ -4402,14 +4402,14 @@ dependencies = [
 
 [[package]]
 name = "localpaint-heif"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "heic-rs",
 ]
 
 [[package]]
 name = "localpaint-io"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "blake3",
  "craft-docpath",
@@ -4445,18 +4445,18 @@ dependencies = [
 
 [[package]]
 name = "localpaint-ipp"
-version = "0.20.18"
+version = "0.20.19"
 
 [[package]]
 name = "localpaint-ops"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "localpaint-doc",
 ]
 
 [[package]]
 name = "localpaint-paint"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "localpaint-cms",
  "localpaint-color",
@@ -4470,7 +4470,7 @@ dependencies = [
 
 [[package]]
 name = "localpaint-plugins"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "localpaint-color",
  "localpaint-geom",
@@ -4486,7 +4486,7 @@ dependencies = [
 
 [[package]]
 name = "localpaint-psd"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "encoding_rs",
  "flate2",
@@ -4498,7 +4498,7 @@ dependencies = [
 
 [[package]]
 name = "localpaint-raster"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "localpaint-color",
  "localpaint-geom",
@@ -4509,7 +4509,7 @@ dependencies = [
 
 [[package]]
 name = "localpaint-raw"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "flate2",
  "image",
@@ -4524,7 +4524,7 @@ dependencies = [
 
 [[package]]
 name = "localpaint-tablet"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "block2 0.6.2",
  "objc2 0.6.5",
@@ -4536,7 +4536,7 @@ dependencies = [
 
 [[package]]
 name = "localpaint-testkit"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "memory-stats",
  "serde_json",
@@ -4544,7 +4544,7 @@ dependencies = [
 
 [[package]]
 name = "localpaint-text"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "flate2",
  "localpaint-color",
@@ -4559,7 +4559,7 @@ dependencies = [
 
 [[package]]
 name = "localpaint-ui-egui"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "base64 0.23.1",
  "craft-print",
@@ -4604,7 +4604,7 @@ dependencies = [
 
 [[package]]
 name = "localpaint-vector"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "localpaint-color",
  "localpaint-doc",
@@ -4615,7 +4615,7 @@ dependencies = [
 
 [[package]]
 name = "localpaint-web"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "eframe",
  "egui",
@@ -4637,7 +4637,7 @@ dependencies = [
 
 [[package]]
 name = "localpaint-web-boot"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "flate2",
  "js-sys",
@@ -9694,7 +9694,7 @@ checksum = "ec7a2a501ed189703dba8b08142f057e887dfc4b2cc4db2d343ac6376ba3e0b9"
 
 [[package]]
 name = "xtask"
-version = "0.20.18"
+version = "0.20.19"
 dependencies = [
  "chrono",
  "serde",
