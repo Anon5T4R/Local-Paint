@@ -60,12 +60,19 @@ pub(super) fn selected_theme(interface: &prefs::Interface, system: Option<egui::
     }
 }
 
+/// The top-bar theme button: the next of Automatic, Light, Dark (the suite's order).
 pub(crate) fn cycle_appearance(app: &mut LocalPaintApp, ctx: &egui::Context) {
     let next = match app.session.prefs().interface.appearance_mode {
         AppearanceMode::Auto => AppearanceMode::Light,
         AppearanceMode::Light => AppearanceMode::Dark,
         AppearanceMode::Dark => AppearanceMode::Auto,
     };
+    set_appearance(app, ctx, next);
+}
+
+/// Saves `mode` as the appearance mode and shows the theme it picks (the dark or light theme chosen
+/// in Settings).
+pub(crate) fn set_appearance(app: &mut LocalPaintApp, ctx: &egui::Context, next: AppearanceMode) {
     if let Err(e) = app.run("prefs.set", json!({"path": "interface.appearanceMode", "value": next.name()})) {
         app.ui.status = e;
         return;
@@ -308,8 +315,12 @@ pub(super) fn appearance_rows(ui: &mut egui::Ui, obj: &mut Map<String, Value>, s
     let mut mode = obj.get("appearanceMode").and_then(Value::as_str).unwrap_or("auto").to_string();
     if rows.mode {
         ui.label(RichText::new(tl!("Appearance Mode")).color(t.text_dim));
-        let choices: [(String, &str); 3] = [("auto".into(), tl!("Sync with system")), ("dark".into(), tl!("Dark")), ("light".into(), tl!("Light"))];
-        let pairs: Vec<(String, &str)> = choices.iter().map(|(id, label)| (id.clone(), *label)).collect();
+        // The suite's three, in the order (and with the names) of the top bar's theme button.
+        let pairs: Vec<(String, &str)> =
+            [("auto", craft_icons::ThemeMode::System), ("light", craft_icons::ThemeMode::Light), ("dark", craft_icons::ThemeMode::Dark)]
+                .into_iter()
+                .map(|(id, mode)| (id.to_string(), tl!(mode.label())))
+                .collect();
         crate::widgets::dropdown(ui, "appearance-mode", tl!("Appearance Mode"), &mut mode, &pairs, 220.0);
         ui.end_row();
     }

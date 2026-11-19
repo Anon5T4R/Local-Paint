@@ -125,7 +125,13 @@ pub(super) fn checked(app: &LocalPaintApp, id: &str) -> Option<bool> {
     use localpaint_doc::{ColorMode, SampleType};
     if let Some(name) = id.strip_prefix("window.theme.").filter(|n| *n != "toggle") {
         let auto = app.session.prefs().interface.appearance_mode == localpaint_engine::prefs::AppearanceMode::Auto;
-        return Some(if name == "system" { auto } else { !auto && crate::theme::ThemeKind::from_name(name) == Some(app.ui.theme) });
+        let mode = app.session.prefs().interface.appearance_mode;
+        return Some(match name {
+            "system" => auto,
+            "light" => mode == localpaint_engine::prefs::AppearanceMode::Light,
+            "dark" => mode == localpaint_engine::prefs::AppearanceMode::Dark,
+            _ => !auto && crate::theme::ThemeKind::from_name(name) == Some(app.ui.theme),
+        });
     }
     if let Some(c) = crate::view_cmds::checked(app, id) {
         return Some(c);

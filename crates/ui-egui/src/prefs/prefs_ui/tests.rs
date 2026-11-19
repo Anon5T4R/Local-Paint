@@ -454,7 +454,7 @@ fn preferences_interface_offers_and_applies_sync_with_system() {
     }
     h.get_by_value("Dark").click();
     h.run_steps(2);
-    h.get_by_label("Sync with system").click();
+    h.get_by_label("Automatic").click();
     h.run_steps(2);
     h.get_by_label("Apply").click();
     h.run_steps(4);

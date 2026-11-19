@@ -1,4 +1,4 @@
-use super::{LocalPaintApp, Sense, Tokens, icons, theme, vec2, widgets};
+use super::{LocalPaintApp, Sense, Tokens, theme, vec2, widgets};
 
 // ----------------------------------------------------------------------------- title bar
 
@@ -90,11 +90,14 @@ pub fn title_bar(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
                     let mut ws = app.ui.workspace.clone();
                     let options = crate::workspace_ui::switcher_options(app);
                     let opts: Vec<(String, &str)> = options.iter().map(|(k, l)| (k.clone(), l.as_str())).collect();
-                    // A narrow bar drops what is also in a menu, the theme toggle first
-                    // (Preferences), then search (Edit › Search), and narrows the switcher
-                    // (Window › Workspace) before anything runs over.
+                    // The suite's three at the far end, from the edge: Settings, the theme, search; the workspace
+                    // switcher sits beside them. A narrow bar drops what is also in a menu, the theme first
+                    // (Settings), then search (Edit › Search), and narrows the switcher (Window › Workspace)
+                    // before anything runs over.
                     let room = ui.available_width();
-                    let icons_shown: u8 = if room >= WORKSPACE_MIN + 2.0 * ICON_SLOT {
+                    let icons_shown: u8 = if room >= WORKSPACE_MIN + 3.0 * ICON_SLOT {
+                        3
+                    } else if room >= WORKSPACE_MIN + 2.0 * ICON_SLOT {
                         2
                     } else if room >= WORKSPACE_MIN + ICON_SLOT {
                         1
@@ -102,27 +105,21 @@ pub fn title_bar(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
                         0
                     };
                     let ws_width = (room - f32::from(icons_shown) * ICON_SLOT - 6.0).clamp(WORKSPACE_MIN, 130.0);
+                    if caption_right > 0.0 {
+                        ui.add_space(4.0);
+                    }
+                    if icons_shown >= 1 {
+                        crate::shell::settings_button(app, ui);
+                    }
+                    if icons_shown >= 3 {
+                        crate::shell::theme_button(app, ui);
+                    }
+                    if icons_shown >= 2 {
+                        crate::shell::search_button(app, ui);
+                    }
                     if room >= WORKSPACE_MIN && widgets::dropdown(ui, "workspace", tl!("Workspace"), &mut ws, &opts, ws_width) {
                         app.ui.workspace = ws;
                         crate::menus::apply_workspace(app);
-                    }
-                    if icons_shown >= 1
-                        && icons::button(ui, "search", 28.0, app.ui.palette_open, &crate::shortcuts::tip_label(app, "Search commands", "edit.search")).clicked()
-                    {
-                        app.ui.palette_open = !app.ui.palette_open;
-                    }
-                    let (theme_icon, appearance_label) = match app.session.prefs().interface.appearance_mode {
-                        localpaint_engine::prefs::AppearanceMode::Auto => ("monitor", tl!("Auto")),
-                        localpaint_engine::prefs::AppearanceMode::Dark => ("moon", tl!("Dark")),
-                        localpaint_engine::prefs::AppearanceMode::Light => ("sun", tl!("Light")),
-                    };
-                    let appearance_tip = format!("{}: {}", tl!("Appearance Mode"), appearance_label);
-                    if icons_shown >= 2 {
-                        let button = icons::button(ui, theme_icon, 28.0, false, &appearance_tip);
-                        if button.clicked() {
-                            crate::prefs_ui::cycle_appearance(app, ui.ctx());
-                        }
-                        button.context_menu(|ui| crate::prefs_ui::appearance_context_menu(app, ui));
                     }
                     if rtl { ui.min_rect().right() } else { ui.min_rect().left() }
                 };

@@ -672,10 +672,17 @@ fn invoke_window_command(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str)
         "view.darkenInterface" | "view.lightenInterface" => {
             Some(crate::prefs_ui::step_brightness(app, ctx, id == "view.lightenInterface").map(|()| json!({"theme": app.ui.theme.id()})))
         }
-        "window.theme.system" => Some(app.run("prefs.set", json!({"path": "interface.appearanceMode", "value": "auto"})).map(|_| {
-            crate::prefs_ui::sync_appearance(app, ctx);
-            Value::Null
-        })),
+        "window.theme.system" | "window.theme.light" | "window.theme.dark" => {
+            let mode = match id {
+                "window.theme.light" => "light",
+                "window.theme.dark" => "dark",
+                _ => "auto",
+            };
+            Some(app.run("prefs.set", json!({"path": "interface.appearanceMode", "value": mode})).map(|_| {
+                crate::prefs_ui::sync_appearance(app, ctx);
+                Value::Null
+            }))
+        }
         "window.theme.pro"
         | "window.theme.proMedium"
         | "window.theme.proLightGray"

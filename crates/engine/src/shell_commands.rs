@@ -88,7 +88,10 @@ pub const SHELL_COMMANDS: &[(&str, &str, &[&str], Option<&str>)] = &[
     ("window.theme.adwaita", "Adwaita", &["Window", "Theme", "Light Theme"], None),
     ("window.theme.breezeLight", "Breeze", &["Window", "Theme", "Light Theme"], None),
     ("window.theme.softLight", "Soft", &["Window", "Theme", "Light Theme"], None),
-    ("window.theme.system", "Sync with system", &["Window", "Theme"], None),
+    // The suite's three modes, in the order of the top bar's theme button; the themes above are the colours each mode shows.
+    ("window.theme.system", "Automatic", &["Window", "Theme"], None),
+    ("window.theme.light", "Light", &["Window", "Theme"], None),
+    ("window.theme.dark", "Dark", &["Window", "Theme"], None),
     ("edit.search", "Search…", &["Edit"], Some("Cmd+F")),
     ("help.website", "Local Paint Website", &["Help"], None),
     ("help.github", "Local Paint on GitHub", &["Help"], None),

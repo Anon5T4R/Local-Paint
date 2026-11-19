@@ -45,7 +45,7 @@ fn sync_with_system_menu_keeps_saved_slots_and_its_checkmark_across_palettes() {
         crate::prefs_ui::tick(&mut app, &ctx);
         let items = menu_items(&app);
         let item = items.iter().find(|i| i.id == "window.theme.system").unwrap();
-        assert_eq!(item.label, "Sync with system");
+        assert_eq!(item.label, "Automatic");
         assert_eq!(item.path, ["Window", "Theme"]);
         assert!(item.enabled);
         assert_eq!(item.checked, Some(true));

@@ -49,6 +49,7 @@ pub mod preset_files_ui;
 pub mod proxy;
 pub mod render_path;
 pub mod screenshot;
+pub mod shell;
 pub mod state;
 pub mod texel_guard;
 pub mod theme;
@@ -384,6 +385,8 @@ pub struct LocalPaintApp {
     pub(crate) remove_trail: Option<stroke_trail::Trail>,
     /// The open menus' items, reused between frames (`menus::ItemCache`).
     pub(crate) menu_cache: Option<menus::ItemCache>,
+    /// The suite's command palette (`craft-palette`); `ui.palette_open` is its open flag for the rest of the app.
+    pub(crate) palette_box: craft_palette::Palette,
     /// Move tool drag shown live (`move_ui`).
     pub(crate) move_preview: Option<move_ui::MovePreview>,
     /// Move tool › Show Highlight on Rollover: the last hover answer (`move_hover`).
@@ -873,6 +876,8 @@ mod stamp_tests;
 
 #[cfg(test)]
 mod alt_click_tests;
+#[cfg(test)]
+mod shell_tests;
 #[cfg(test)]
 mod status_bar_tests;
 #[cfg(test)]

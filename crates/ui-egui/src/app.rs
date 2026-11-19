@@ -58,6 +58,7 @@ impl LocalPaintApp {
             remove_pending_target: None,
             remove_trail: None,
             menu_cache: None,
+            palette_box: craft_palette::Palette::default(),
             move_preview: None,
             move_hover: None,
             move_distance: None,
