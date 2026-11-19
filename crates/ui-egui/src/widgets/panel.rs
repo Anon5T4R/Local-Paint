@@ -94,7 +94,7 @@ pub fn panel_menu_button(ui: &mut Ui) -> Response {
             ui.painter().line_segment([pos2(rect.center().x - 5.0, y), pos2(rect.center().x + 5.0, y)], Stroke::new(1.0, tint));
         }
     } else {
-        crate::icons::paint(ui, rect, "ellipsis", 14.0, tint);
+        crate::icons::paint(ui, rect, crate::icons::MORE, 14.0, tint);
     }
     let tip = tl!("Panel menu");
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, tip));

@@ -136,7 +136,7 @@ fn size_row(ui: &mut egui::Ui, label: &str, size: &mut f32, max: f32, restore: O
                 *size = s.round().clamp(1.0, max);
             }
             if let Some(orig) = restore
-                && crate::icons::button(ui, "undo-2", 22.0, false, tl!("Restore original size")).clicked()
+                && crate::icons::button(ui, crate::icons::UNDO, 22.0, false, tl!("Restore original size")).clicked()
             {
                 *size = orig.clamp(1.0, max);
             }

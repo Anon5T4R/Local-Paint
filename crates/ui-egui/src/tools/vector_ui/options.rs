@@ -118,7 +118,7 @@ pub fn options_bar(app: &mut LocalPaintApp, ui: &mut egui::Ui, tool: Tool) -> bo
     // Photoshop-style arrowhead settings at the right of Line options.
     if tool == Tool::Line {
         crate::widgets::vline(ui, 22.0);
-        ui.menu_image_button(crate::icons::image("settings", 18.0, t.icon), |ui| {
+        ui.menu_image_button(crate::icons::image(crate::icons::SETTINGS, 18.0, t.icon), |ui| {
             let o = &mut app.ui.tool_options;
             ui.set_min_width(170.0);
             ui.label(tl!("Arrowheads"));

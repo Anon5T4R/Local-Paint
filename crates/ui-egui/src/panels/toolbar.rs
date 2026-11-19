@@ -298,7 +298,7 @@ pub fn toolbar(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
                             });
                         }
                     }
-                    if icons::button(ui, "ellipsis", bx, false, tl!("Edit Toolbar…")).clicked() {
+                    if icons::button(ui, crate::icons::MORE, bx, false, tl!("Edit Toolbar…")).clicked() {
                         let _ = crate::menus::invoke(app, &ctx, "edit.toolbar", json!({}));
                     }
                     reveal_focused_control(ui);

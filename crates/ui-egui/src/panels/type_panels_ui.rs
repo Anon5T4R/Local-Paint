@@ -164,7 +164,7 @@ pub fn windows(app: &mut LocalPaintApp, ctx: &egui::Context) {
                         app.ui.type_panels.options = None;
                     }
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if crate::icons::button(ui, "x", 20.0, false, tl!("Close")).clicked() {
+                        if crate::shell::close_button(ui, tl!("Close")).clicked() {
                             close = true;
                         }
                     });
@@ -190,7 +190,7 @@ pub fn windows(app: &mut LocalPaintApp, ctx: &egui::Context) {
                 ui.horizontal(|ui| {
                     ui.label(RichText::new(tl!("Glyphs")).color(t.text).size(12.0).strong());
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if crate::icons::button(ui, "x", 20.0, false, tl!("Close")).clicked() {
+                        if crate::shell::close_button(ui, tl!("Close")).clicked() {
                             close = true;
                         }
                     });
@@ -293,7 +293,7 @@ pub fn styles_panel(app: &mut LocalPaintApp, ui: &mut egui::Ui, paragraph: bool)
             action = Some((format!("{prefix}.redefine"), tgt.clone()));
         }
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            if crate::icons::button(ui, "trash", 22.0, false, tl!("Delete style")).clicked()
+            if crate::icons::button(ui, crate::icons::DELETE, 22.0, false, tl!("Delete style")).clicked()
                 && let Some(id) = sel.filter(|i| *i != 0)
             {
                 action = Some((format!("{prefix}.delete"), json!({ "id": id })));
@@ -304,12 +304,12 @@ pub fn styles_panel(app: &mut LocalPaintApp, ui: &mut egui::Ui, paragraph: bool)
                 p["fromSelection"] = json!(has_target);
                 action = Some((format!("{prefix}.new"), p));
             }
-            if crate::icons::button(ui, "copy", 22.0, false, tl!("Duplicate style")).clicked()
+            if crate::icons::button(ui, crate::icons::COPY, 22.0, false, tl!("Duplicate style")).clicked()
                 && let Some(id) = sel
             {
                 action = Some((format!("{prefix}.duplicate"), json!({ "id": id })));
             }
-            if crate::icons::button(ui, "settings", 22.0, false, tl!("Style Options…")).clicked()
+            if crate::icons::button(ui, crate::icons::SETTINGS, 22.0, false, tl!("Style Options…")).clicked()
                 && let Some(id) = sel
             {
                 app.ui.type_panels.options = Some((paragraph, id as u32));
@@ -352,7 +352,7 @@ fn options_editor(app: &mut LocalPaintApp, ui: &mut egui::Ui, paragraph: bool, s
     ui.horizontal(|ui| {
         ui.label(RichText::new(tl!("Style Options")).color(t.text).size(11.5).strong());
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            if crate::icons::button(ui, "x", 18.0, false, tl!("Close Style Options")).clicked() {
+            if crate::shell::close_button(ui, tl!("Close Style Options")).clicked() {
                 app.ui.type_panels.options = None;
             }
         });
@@ -796,7 +796,7 @@ fn spelling_window(app: &mut LocalPaintApp, ctx: &egui::Context) {
                 // The close box (#5496) is Done, as in Photoshop: every change is already made.
                 if crate::dialogs::CLOSE_BOX {
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if crate::icons::button(ui, "x", 20.0, false, tl!("Close")).clicked() {
+                        if crate::shell::close_button(ui, tl!("Close")).clicked() {
                             act = Some("done");
                         }
                     });

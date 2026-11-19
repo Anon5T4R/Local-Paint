@@ -127,7 +127,7 @@ pub(super) fn history(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
         let can_delete = can_click || can_drop;
         let can_new = app.session.is_enabled("history.newDocument");
         widgets::panel_footer(ui, |ui| {
-            let trash = ui.add_enabled_ui(can_delete, |ui| icons::button(ui, "trash", 26.0, false, tl!("Delete current state"))).inner;
+            let trash = ui.add_enabled_ui(can_delete, |ui| icons::button(ui, crate::icons::DELETE, 26.0, false, tl!("Delete current state"))).inner;
             if trash.clicked() {
                 footer_cmd = Some(match selected_snap {
                     Some(id) => ("history.deleteSnapshot", json!({"snapshot": id})),

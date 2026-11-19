@@ -135,11 +135,11 @@ fn float_window(
             ui.horizontal(|ui| {
                 ui.label(egui::RichText::new(tl!(&title)).color(t.text).size(12.0).strong());
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if crate::icons::button(ui, "x", 20.0, false, tl!("Close")).clicked() {
+                    if crate::shell::close_button(ui, tl!("Close")).clicked() {
                         close = true;
                     }
                     if key == "styles" {
-                        let resp = crate::icons::button(ui, "ellipsis", 20.0, false, tl!("Panel menu"));
+                        let resp = crate::icons::button(ui, crate::icons::MORE, 20.0, false, tl!("Panel menu"));
                         egui::Popup::menu(&resp).show(|ui| {
                             crate::widgets::style_spectrum_popup_menu(ui);
                             ui.set_min_width(180.0);
@@ -521,7 +521,7 @@ pub fn tool_presets_panel(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
         ui.spacing_mut().item_spacing.x = 2.0;
         crate::widgets::checkbox(ui, &mut app.ui.presets_ui.current_tool_only, tl!("Current Tool Only"));
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            if crate::icons::button(ui, "trash", 24.0, false, tl!("Delete tool preset")).clicked()
+            if crate::icons::button(ui, crate::icons::DELETE, 24.0, false, tl!("Delete tool preset")).clicked()
                 && let Some(n) = selected.clone()
             {
                 action = Some(("tool.presets.edit".into(), json!({"action": "delete", "preset": n})));

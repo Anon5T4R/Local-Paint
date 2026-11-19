@@ -1373,7 +1373,7 @@ pub fn panel(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
         }
         let can_delete = app.ui.actions.selected.is_some() && (!recording_now || app.ui.actions.selected_step.is_some());
         ui.add_enabled_ui(can_delete, |ui| {
-            let response = crate::icons::button(ui, "trash", 24.0, false, tl!("Delete"));
+            let response = crate::icons::button(ui, crate::icons::DELETE, 24.0, false, tl!("Delete"));
             response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, can_delete, tl!("Delete")));
             if response.clicked() {
                 delete_selection(app);

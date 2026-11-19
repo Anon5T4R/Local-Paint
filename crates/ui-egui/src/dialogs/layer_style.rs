@@ -1462,7 +1462,7 @@ fn list_bar(ui: &mut egui::Ui, f: &mut Map<String, Value>, selected: &str) {
             move_instance(f, selected, 1);
         }
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            if ui.add_enabled_ui(at.is_some(), |ui| crate::icons::button(ui, "trash", 24.0, false, tl!("Delete effect"))).inner.clicked() {
+            if ui.add_enabled_ui(at.is_some(), |ui| crate::icons::button(ui, crate::icons::DELETE, 24.0, false, tl!("Delete effect"))).inner.clicked() {
                 remove_instance(f, selected);
             }
         });

@@ -549,7 +549,7 @@ pub fn options_bar(app: &mut LocalPaintApp, ui: &mut egui::Ui, tool: Tool) -> bo
                         json!({"group": gi}),
                     );
                 }
-                if crate::icons::button(ui, "trash", 22.0, false, tl!("Delete count group")).clicked() {
+                if crate::icons::button(ui, crate::icons::DELETE, 22.0, false, tl!("Delete count group")).clicked() {
                     let _ = app.run("count.deleteGroup", json!({"group": gi}));
                 }
             }
@@ -638,7 +638,7 @@ pub(crate) fn title_row(ui: &mut egui::Ui, title: &str) -> bool {
     ui.horizontal(|ui| {
         ui.label(RichText::new(tl!(&title)).color(t.text).size(12.0).strong());
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            if crate::icons::button(ui, "x", 20.0, false, tl!("Close")).clicked() {
+            if crate::shell::close_button(ui, tl!("Close")).clicked() {
                 close = true;
             }
         });
@@ -689,7 +689,7 @@ pub fn windows(app: &mut LocalPaintApp, ctx: &egui::Context) {
                     sel.clear();
                 }
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if crate::icons::button(ui, "trash", 22.0, false, tl!("Delete selected measurements")).clicked() && !sel.is_empty() {
+                    if crate::icons::button(ui, crate::icons::DELETE, 22.0, false, tl!("Delete selected measurements")).clicked() && !sel.is_empty() {
                         act = Some(("measurementLog.delete", json!({"rows": sel.clone()})));
                     }
                     if crate::icons::button(ui, "file", 22.0, false, tl!("Export selected measurements (CSV)")).clicked() {
@@ -808,7 +808,7 @@ fn notes_panel(app: &mut LocalPaintApp, ctx: &egui::Context) {
             let position = crate::i18n::fmt(tl!(template), &[("index", &sel.map_or(0, |i| i + 1).to_string()), ("total", &n.to_string())]);
             ui.label(RichText::new(position).color(t.text_dim).size(11.0));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.add_enabled_ui(sel.is_some(), |ui| crate::icons::button(ui, "trash", 22.0, false, tl!("Delete note"))).inner.clicked() {
+                if ui.add_enabled_ui(sel.is_some(), |ui| crate::icons::button(ui, crate::icons::DELETE, 22.0, false, tl!("Delete note"))).inner.clicked() {
                     delete = true;
                 }
             });

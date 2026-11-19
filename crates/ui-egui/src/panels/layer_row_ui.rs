@@ -187,7 +187,7 @@ pub fn indicators(
     for &(kind, r) in &rects {
         match kind {
             Indicator::Unsupported => {
-                icons::paint(ui, Rect::from_center_size(r.center(), vec2(ICON_W, ICON_W)), "triangle-alert", 12.0, t.warning);
+                icons::paint(ui, Rect::from_center_size(r.center(), vec2(ICON_W, ICON_W)), crate::icons::WARNING, 12.0, t.warning);
                 let key = unsupported.unwrap_or_default();
                 let tip = crate::i18n::fmt(tl!("Not rendered: this adjustment ({key}) is kept as imported."), &[("key", key)]);
                 ui.interact(r, ui.scope_id().with(("row-unsupported", l.id.0)), Sense::hover()).on_hover_text(tip);

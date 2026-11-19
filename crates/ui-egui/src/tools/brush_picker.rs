@@ -258,7 +258,7 @@ pub fn body(
     widgets::hairline(ui);
     ui.add_space(6.0);
     ui.horizontal(|ui| {
-        icons::paint(ui, egui::Rect::from_min_size(ui.cursor().min + vec2(0.0, 3.0), vec2(16.0, 16.0)), "search", 14.0, t.text_faint);
+        icons::paint(ui, egui::Rect::from_min_size(ui.cursor().min + vec2(0.0, 3.0), vec2(16.0, 16.0)), crate::icons::SEARCH, 14.0, t.text_faint);
         ui.add_space(20.0);
         widgets::text_field(ui, ui.scope_id().with("brush-picker-search"), &mut st.filter, tl!("Search Brushes"), (size.x - 118.0).max(60.0), false);
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -356,7 +356,7 @@ pub fn resize_grip(ui: &mut egui::Ui, frame: egui::Rect, content: egui::Vec2) ->
 /// The gear: Photoshop's picker menu. A new preset, rename or delete the current one, the list's
 /// view, and Import Brushes.
 fn gear_menu(ui: &mut egui::Ui, current: Option<&str>, presets: &[BrushPreset], st: &mut BrushesPanelState, picks: &mut Vec<Pick>) {
-    let gear = named(icons::button(ui, "settings", 24.0, false, tl!("Brush Preset Options")), "Brush Preset Options");
+    let gear = named(icons::button(ui, crate::icons::SETTINGS, 24.0, false, tl!("Brush Preset Options")), "Brush Preset Options");
     // The menu hangs 30 pt right of the gear, off the button's own edge; the align fallbacks still
     // keep it on screen near the window's edge.
     let anchor = match egui::PopupAnchor::from(&gear) {

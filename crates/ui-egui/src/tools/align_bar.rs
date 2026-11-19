@@ -42,7 +42,7 @@ pub fn options(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
         }
     }
     ui.add_space(6.0);
-    let more = icons::button_with_icon_size(ui, "ellipsis", 28.0, 20.0, false, tl!("Align and distribute"));
+    let more = icons::button_with_icon_size(ui, crate::icons::MORE, 28.0, 20.0, false, tl!("Align and distribute"));
     egui::Popup::menu(&more).show(|ui| {
         ui.set_min_width(200.0);
         let mut section = |ui: &mut egui::Ui, title: &str, items: &[(&str, &str, &str)]| {

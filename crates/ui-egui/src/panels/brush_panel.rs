@@ -394,7 +394,7 @@ fn settings_tab(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
             if crate::brush_picker::named(new, "Create new brush from these settings").clicked() {
                 crate::brush_preset_dialog::open(app, Some(&b));
             }
-            if icons::button(ui, "undo-2", 24.0, false, tl!("Reset the brush to the defaults")).clicked() {
+            if icons::button(ui, crate::icons::UNDO, 24.0, false, tl!("Reset the brush to the defaults")).clicked() {
                 b = BrushSettings { color: b.color, background: b.background, smoothing: b.smoothing.clone(), locks: b.locks.clone(), ..Default::default() };
             }
             // Overwrite the preset the current brush was picked from (Photoshop's "update the
@@ -527,7 +527,7 @@ pub fn window(app: &mut LocalPaintApp, ctx: &egui::Context) {
                 }
                 app.ui.brush_tab = tab;
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if icons::button(ui, "x", 20.0, false, tl!("Close")).clicked() {
+                    if crate::shell::close_button(ui, tl!("Close")).clicked() {
                         open = false;
                     }
                     let menu_btn = widgets::panel_menu_button(ui);

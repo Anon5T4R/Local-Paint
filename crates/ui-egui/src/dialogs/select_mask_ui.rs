@@ -1899,7 +1899,7 @@ pub fn show(app: &mut LocalPaintApp, ctx: &egui::Context) {
             action = Some("ok");
         }
         fb.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-            if crate::icons::button(ui, "undo-2", 24.0, false, tl!("Reset")).clicked() {
+            if crate::icons::button(ui, crate::icons::UNDO, 24.0, false, tl!("Reset")).clicked() {
                 do_reset = true;
             }
         });

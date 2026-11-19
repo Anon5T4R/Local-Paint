@@ -14,10 +14,34 @@ use crate::icon_data::ICONS;
 use crate::state::Tool;
 use crate::theme::Tokens;
 
+/// The app's own catalog plus the suite's ([`craft_icons::ALL`]): where both have a name the suite's wins, so a
+/// concept every app shares looks the same here as in the others. Tool icons exist only in the app's own.
+fn catalog() -> &'static [(&'static str, &'static [u8])] {
+    static ALL: OnceLock<Vec<(&'static str, &'static [u8])>> = OnceLock::new();
+    ALL.get_or_init(|| {
+        let mut all: Vec<(&'static str, &'static [u8])> =
+            ICONS.iter().filter(|(name, _)| !craft_icons::ALL.iter().any(|(suite, _)| suite == name)).copied().collect();
+        all.extend_from_slice(craft_icons::ALL);
+        all
+    })
+}
+
 fn white_icons() -> &'static SvgIconSet {
     static MAP: OnceLock<SvgIconSet> = OnceLock::new();
-    MAP.get_or_init(|| SvgIconSet::new(ICONS, SvgStyle { current_color: "#ffffff", stroke_width: Some("1.75") }, "bytes://icons/", "square"))
+    MAP.get_or_init(|| SvgIconSet::new(catalog(), SvgStyle { current_color: "#ffffff", stroke_width: Some("1.75") }, "bytes://icons/", "square"))
 }
+
+/// The names of the concepts the suite shares (`craft_icons::Icon`): panels and dialogs ask for these, never for a
+/// literal, so the suite's icon is the one drawn.
+pub const DELETE: &str = craft_icons::Icon::Delete.name();
+pub const CLOSE: &str = craft_icons::Icon::Close.name();
+pub const SEARCH: &str = craft_icons::Icon::Search.name();
+pub const SETTINGS: &str = craft_icons::Icon::Settings.name();
+pub const WARNING: &str = craft_icons::Icon::Warning.name();
+pub const MORE: &str = craft_icons::Icon::More.name();
+pub const COPY: &str = craft_icons::Icon::Copy.name();
+pub const UNDO: &str = craft_icons::Icon::Undo.name();
+pub const OPEN: &str = craft_icons::Icon::Open.name();
 
 pub fn exists(name: &str) -> bool {
     white_icons().contains(name)
@@ -28,7 +52,7 @@ pub fn exists(name: &str) -> bool {
 pub const FOOTER_SIZE: f32 = 26.0;
 pub const FOOTER_NEW: &str = "square-plus";
 pub const FOOTER_NEW_GROUP: &str = "folder";
-pub const FOOTER_DELETE: &str = "trash";
+pub const FOOTER_DELETE: &str = DELETE;
 
 /// An egui image for an icon, tinted.
 pub fn image(name: &str, size: f32, tint: Color32) -> egui::Image<'static> {
@@ -343,7 +367,11 @@ mod tests {
         // Characterize the pre-extraction loader across every real asset. The UI's tint,
         // stroke weight and cache keys must survive shared-crate upgrades unchanged.
         assert!(ICONS.len() >= 60);
-        for (name, original) in ICONS {
+        // The app's own icons stay, but where the suite has the same name the suite's SVG is the one drawn.
+        for (name, _) in ICONS {
+            assert!(exists(name), "{name}");
+        }
+        for (name, original) in catalog() {
             let expected = String::from_utf8_lossy(original).replace("currentColor", "#ffffff").replace("stroke-width=\"2\"", "stroke-width=\"1.75\"");
             let egui::ImageSource::Bytes { uri, bytes } = white_icons().source(name) else { panic!("expected SVG bytes") };
             assert_eq!(uri.as_ref(), format!("bytes://icons/{name}.svg"));
@@ -358,6 +386,18 @@ mod tests {
         for name in [FOOTER_NEW, FOOTER_NEW_GROUP, FOOTER_DELETE] {
             assert!(exists(name), "{name}");
         }
+    }
+
+    /// The suite's concepts are in the catalog and the app asks for them by `craft_icons::Icon`'s names.
+    #[test]
+    fn the_suite_icons_are_in_the_catalog() {
+        for icon in craft_icons::Icon::EVERY {
+            assert!(exists(icon.name()), "{}", icon.name());
+        }
+        for name in [DELETE, CLOSE, SEARCH, SETTINGS, WARNING, MORE, COPY, UNDO, OPEN] {
+            assert!(craft_icons::ALL.iter().any(|(suite, _)| *suite == name), "{name}");
+        }
+        assert_eq!(DELETE, "trash-2");
     }
 
     #[test]

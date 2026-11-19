@@ -194,7 +194,7 @@ pub fn panel(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
             let mut name_x = rect.left() + 30.0;
             if missing > 0 {
                 let r = Rect::from_center_size(pos2(name_x + 7.0, rect.center().y), vec2(14.0, 14.0));
-                crate::icons::paint(ui, r, "triangle-alert", 12.0, t.warning);
+                crate::icons::paint(ui, r, crate::icons::WARNING, 12.0, t.warning);
                 if ui.rect_contains_pointer(r) {
                     resp.clone().on_hover_text(crate::i18n::trn(
                         crate::i18n::current(),
@@ -257,7 +257,7 @@ pub fn panel(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
             action = Some(("layerComp.next", json!({})));
         }
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            if crate::icons::button(ui, "trash", 24.0, false, tl!("Delete layer comp")).clicked()
+            if crate::icons::button(ui, crate::icons::DELETE, 24.0, false, tl!("Delete layer comp")).clicked()
                 && let Some(id) = selected
             {
                 action = Some(("layerComp.delete", json!({"comp": id})));

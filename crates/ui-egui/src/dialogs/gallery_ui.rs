@@ -887,7 +887,7 @@ pub fn show(app: &mut LocalPaintApp, ctx: &egui::Context) {
                 d.move_to(s, s.saturating_sub(1));
             }
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if crate::icons::button(ui, "trash", 24.0, false, tl!("Delete effect layer")).clicked() {
+                if crate::icons::button(ui, crate::icons::DELETE, 24.0, false, tl!("Delete effect layer")).clicked() {
                     d.delete();
                 }
                 if crate::icons::button(ui, "file-plus", 24.0, false, tl!("New effect layer")).clicked() {

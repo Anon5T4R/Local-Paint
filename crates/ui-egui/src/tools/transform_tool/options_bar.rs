@@ -552,7 +552,7 @@ fn transform_actions(app: &mut LocalPaintApp, ui: &mut egui::Ui, warping: bool, 
         cancel(app);
     }
     if warping {
-        let reset = crate::icons::button(ui, "undo-2", 26.0, false, tl!("Reset"));
+        let reset = crate::icons::button(ui, crate::icons::UNDO, 26.0, false, tl!("Reset"));
         reset.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, "Reset warp"));
         if reset.clicked() {
             reset_warp(app);

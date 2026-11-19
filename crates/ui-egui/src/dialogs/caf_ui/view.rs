@@ -67,7 +67,7 @@ fn caf_options_bar(bui: &mut egui::Ui, w: &mut CafWorkspace, fill_btn: &mut Opti
                 *fill_btn = Some(json!({"op": "contract", "by": w.expand_by}));
             }
             widgets::value_field(bui, &mut w.expand_by, 1.0..=100.0, " px", 56.0).accessible_name(tl!("Expand"));
-            if crate::icons::button(bui, "undo-2", 26.0, false, tl!("Reset")).clicked() {
+            if crate::icons::button(bui, crate::icons::UNDO, 26.0, false, tl!("Reset")).clicked() {
                 *reset_what = Some("lasso");
             }
         }
@@ -146,7 +146,7 @@ fn caf_props_panel(
     ui.horizontal(|ui| {
         widgets::section_label(ui, tl!("Sampling Area Options"));
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            if crate::icons::button(ui, "undo-2", 22.0, false, tl!("Reset")).clicked() {
+            if crate::icons::button(ui, crate::icons::UNDO, 22.0, false, tl!("Reset")).clicked() {
                 *reset_what = Some("sampling");
             }
         });
@@ -165,7 +165,7 @@ fn caf_props_panel(
     ui.horizontal(|ui| {
         widgets::section_label(ui, tl!("Fill Settings"));
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            if crate::icons::button(ui, "undo-2", 22.0, false, tl!("Reset")).clicked() {
+            if crate::icons::button(ui, crate::icons::UNDO, 22.0, false, tl!("Reset")).clicked() {
                 *reset_what = Some("fill");
             }
         });
@@ -340,7 +340,7 @@ pub fn show(app: &mut LocalPaintApp, ctx: &egui::Context) {
         if widgets::primary_button(&mut fb, tl!("OK"), 64.0).clicked() {
             action = Some("ok");
         }
-        if crate::icons::button(&mut fb, "undo-2", 24.0, false, tl!("Reset")).clicked() {
+        if crate::icons::button(&mut fb, crate::icons::UNDO, 24.0, false, tl!("Reset")).clicked() {
             reset_what = Some("all");
         }
         // The Preview panel.

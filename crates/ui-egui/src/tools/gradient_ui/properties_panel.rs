@@ -204,7 +204,7 @@ pub(super) fn stop_fields(app: &mut LocalPaintApp, ui: &mut egui::Ui, sink: Sink
     ui.horizontal(|ui| {
         ui.add_space(72.0 + ui.spacing().item_spacing.x);
         ui.add_enabled_ui(count > 2, |ui| {
-            let response = icons::button(ui, "trash", 24.0, false, "Delete");
+            let response = icons::button(ui, crate::icons::DELETE, 24.0, false, "Delete");
             response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), tl!("Delete")));
             if response.clicked() {
                 let _ = app.run(sink.cmd(), sink.params(json!({"action": "delete", "kind": kind, "index": index})));

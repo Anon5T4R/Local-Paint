@@ -463,7 +463,7 @@ pub fn show(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
             ChannelTarget::LayerMask => json!("mask"),
             ChannelTarget::VectorMask => json!("vectorMask"),
         };
-        let trash = icons::button(ui, "trash", 26.0, false, tl!("Delete current channel"));
+        let trash = icons::button(ui, crate::icons::DELETE, 26.0, false, tl!("Delete current channel"));
         if trash.clicked() {
             actions.push(("channel.delete".into(), json!({})));
         }

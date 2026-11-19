@@ -1011,7 +1011,7 @@ pub fn show(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
     commit_gesture(app, ui.ctx(), &before, &b);
     ui.add_space(4.0);
     ui.horizontal(|ui| {
-        icons::paint(ui, egui::Rect::from_min_size(ui.cursor().min + vec2(0.0, 3.0), vec2(16.0, 16.0)), "search", 14.0, t.text_faint);
+        icons::paint(ui, egui::Rect::from_min_size(ui.cursor().min + vec2(0.0, 3.0), vec2(16.0, 16.0)), crate::icons::SEARCH, 14.0, t.text_faint);
         ui.add_space(20.0);
         let search_w = (inner_w - 112.0).clamp(90.0, inner_w - 40.0);
         widgets::text_field(ui, ui.scope_id().with("brush-search"), &mut app.ui.brushes_panel.filter, tl!("Search Brushes"), search_w, false);
@@ -1054,7 +1054,7 @@ pub fn show(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             // The current preset by identity: editing the brush after picking must not deselect it.
             let current = app.session.tools.current_preset.clone().filter(|n| app.session.tools.presets.iter().any(|p| p.name.eq_ignore_ascii_case(n)));
-            if ui.add_enabled_ui(current.is_some(), |ui| icons::button(ui, "trash", 24.0, false, "Delete brush")).inner.clicked()
+            if ui.add_enabled_ui(current.is_some(), |ui| icons::button(ui, crate::icons::DELETE, 24.0, false, "Delete brush")).inner.clicked()
                 && let Some(name) = current
             {
                 run_or_status(app, "brush.presets.delete", json!({ "name": name }));

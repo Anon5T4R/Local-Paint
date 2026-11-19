@@ -1248,7 +1248,7 @@ impl craft_ui::docking::DockContent<String> for PanelContent<'_> {
     fn group_header(&mut self, ui: &mut egui::Ui, panels: &[String], active: &String, floating: bool) {
         let collapsed = panels.iter().all(|id| self.collapsed.contains(id));
         let locked = self.app.session.prefs().workspace_locked;
-        let resp = crate::icons::button(ui, "ellipsis", ui.available_height().min(28.0), false, tl!("Panel menu"));
+        let resp = crate::icons::button(ui, crate::icons::MORE, ui.available_height().min(28.0), false, tl!("Panel menu"));
         egui::Popup::menu(&resp).show(|ui| {
             ui.set_min_width(180.0);
             panel_menu(self.app, ui, active);

@@ -57,7 +57,7 @@ pub fn windows(app: &mut LocalPaintApp, ctx: &egui::Context) {
         ui.horizontal(|ui| {
             ui.label(RichText::new(tl!("Timeline")).strong().color(t.text));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if crate::icons::button(ui, "x", 20.0, false, tl!("Close")).clicked() {
+                if crate::shell::close_button(ui, tl!("Close")).clicked() {
                     close = true;
                 }
             });
@@ -110,7 +110,7 @@ pub fn windows(app: &mut LocalPaintApp, ctx: &egui::Context) {
                     ui.separator();
                     ui.label(RichText::new(format!("{:.2}s", tl.time())).color(t.text_dim).monospace());
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if crate::icons::button(ui, "trash", 20.0, false, tl!("Delete Timeline")).clicked() {
+                        if crate::icons::button(ui, crate::icons::DELETE, 20.0, false, tl!("Delete Timeline")).clicked() {
                             stop_play = true;
                             act = Some(("timeline.delete", json!({})));
                         }
