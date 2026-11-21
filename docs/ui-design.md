@@ -207,7 +207,7 @@ Languages shipped (`complete_menus` marks a catalog that covers every menu strin
 
 - English (`en`), the source language.
 - Japanese (`ja`), complete.
-- Simplified Chinese (`zh-hans`; see [`localization-zh-hans.md`](localization-zh-hans.md)), complete.
+- Simplified Chinese (`zh-hans`), complete.
 - Traditional Chinese (`zh-hant`), complete, in the vocabulary used in Taiwan; `zh-TW`, `zh-HK`,
   `zh-MO` and `zh-Hant-*` locales all resolve to it. The resolver distinguishes the two Chinese
   scripts, so neither catalog is shown to the other script's locales.

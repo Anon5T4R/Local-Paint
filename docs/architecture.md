@@ -21,8 +21,7 @@ What exists on `main` today. The numbered sections below are the original design
   CPU); colour through our own ICC engine (`cms`), GPU display conversion through matrix/shaper stages or a 3D LUT fallback.
 - **Files:** own PSD/PSB crate (`psd`), flat codecs (`codecs`), camera raw (`raw`), HEIF (`heif`),
   Affinity (`affinity`), document mapping (`io`), native `.pcraft` (`format`, atomic saves).
-  Coverage: [`file-format-parity.md`](file-format-parity.md).
-- **Not built (yet) from the plan:** the `ml` crate (no ML runtime; see gap G15), plug-in ABI v2.
+- **Not built (yet) from the plan:** the `ml` crate (no ML runtime), plug-in ABI v2.
 - **Deviations from the plan below:** `localpaint-tablet` is the one crate allowed `unsafe`
   (AppKit pen events); `affinity`, `heif` and `raw` crates were added; the phased roadmap in §15
   is superseded by [`roadmap.md`](roadmap.md).
@@ -561,7 +560,7 @@ Dependency requirements are centralized in the workspace `Cargo.toml` (`[workspa
 
 ## 15. Phased roadmap
 
-Each phase ends with a demoable build and green CI on all targets. Phases 8–10 (colour/print pro, photographer/designer pro, frontier) and the per-feature phase assignments are in [`target-app-parity.md`](target-app-parity.md).
+Each phase ends with a demoable build and green CI on all targets. Phases 8–10 (colour/print pro, photographer/designer pro, frontier) were never assigned per-feature dates; the open work lives in the [`ROADMAP.md`](../ROADMAP.md) upcoming list.
 
 | Phase | Scope | Done when |
 |---|---|---|
@@ -591,5 +590,4 @@ Each phase ends with a demoable build and green CI on all targets. Phases 8–10
 | 2026-10-20 | minor | GPU display matrix/shaper path preserves near-black ICC values; complex transforms retain the 3D LUT fallback (#7958) |
 | 2026-10-14 | minor | Principle 5: every large payload in the document model is `Arc`-shared, so snapshots never copy one (#4535) |
 | 2026-10-13 | minor | Workspace size and `#[test]` counts recounted (393k → 539k lines, 5,460 → 8,040 tests); other current-state figures unchanged |
-| 2026-10-10 | minor | Current-state summary and deviations from the plan; status line; broken link to `photoshop-parity.md` repointed to `target-app-parity.md` |
 | 2026-09-30 | major | Design plan v1 |
