@@ -1022,7 +1022,6 @@ pub fn mono(size: f32) -> FontId {
     FontId::monospace(size)
 }
 
-/// Apply a theme to egui's global style and publish its tokens.
 /// WCAG 2 relative luminance of an opaque colour.
 fn wcag_luminance(c: Color32) -> f32 {
     let lin = |v: u8| {
@@ -1061,6 +1060,7 @@ fn reads_on(mut c: Color32, grounds: impl IntoIterator<Item = Color32>) -> Color
     c
 }
 
+/// Apply a theme to egui's global style and publish its tokens.
 pub fn apply(ctx: &egui::Context, kind: ThemeKind) {
     // Keep native windows at SystemDefault so macOS continues reporting OS appearance changes,
     // including when an integration or restored egui state pinned its own theme preference.
