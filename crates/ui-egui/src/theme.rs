@@ -1039,6 +1039,7 @@ fn wcag_contrast(a: Color32, b: Color32) -> f32 {
 }
 
 /// `c` with its alpha painted over `bottom`, the colour a reader sees.
+#[cfg(test)]
 fn painted_over(c: Color32, bottom: Color32) -> Color32 {
     let keep = 255 - u16::from(c.a());
     let mix = |t: u8, b: u8| u8::try_from(u16::from(t) + (u16::from(b) * keep + 127) / 255).unwrap_or(u8::MAX);
