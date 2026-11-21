@@ -314,7 +314,9 @@ impl Tokens {
                 accent_text: Color32::WHITE,
                 separator: Color32::from_rgb(30, 30, 30),
                 shadow: Color32::from_black_alpha(150),
-                primary_bg: Color32::from_rgb(55, 142, 240),
+                // A deeper Photoshop blue than the accent: white text holds WCAG AA (4.5:1) on it,
+                // through the hover (×0.93) and press (×0.8) darkening too.
+                primary_bg: Color32::from_rgb(38, 112, 203),
                 primary_text: Color32::WHITE,
                 danger: Color32::from_rgb(236, 91, 98),
                 warning: Color32::from_rgb(232, 176, 70),
@@ -479,7 +481,8 @@ impl Tokens {
                 accent_text: Color32::from_rgb(28, 113, 216),
                 separator: Color32::from_rgb(222, 222, 225),
                 shadow: Color32::from_black_alpha(45),
-                primary_bg: Color32::from_rgb(53, 132, 228),
+                // GNOME's suggested-action blue one step deeper, so white text holds 4.5:1.
+                primary_bg: Color32::from_rgb(28, 113, 216),
                 primary_text: Color32::WHITE,
                 danger: Color32::from_rgb(192, 28, 40),
                 warning: Color32::from_rgb(156, 110, 3),
@@ -519,7 +522,8 @@ impl Tokens {
                 accent_text: Color32::from_rgb(120, 174, 237),
                 separator: Color32::from_rgb(24, 24, 27),
                 shadow: Color32::from_black_alpha(140),
-                primary_bg: Color32::from_rgb(53, 132, 228),
+                // The light theme's deeper action blue, so white text holds 4.5:1 here too.
+                primary_bg: Color32::from_rgb(28, 113, 216),
                 primary_text: Color32::WHITE,
                 danger: Color32::from_rgb(255, 123, 99),
                 warning: Color32::from_rgb(248, 228, 92),
@@ -743,7 +747,8 @@ impl Tokens {
                 accent_text: Color32::from_rgb(253, 246, 227),
                 separator: Color32::from_rgb(0, 37, 47),
                 shadow: Color32::from_black_alpha(150),
-                primary_bg: Color32::from_rgb(38, 139, 210),
+                // Solarized blue taken a level down, so the base3 label holds 4.5:1 on it.
+                primary_bg: Color32::from_rgb(29, 112, 180),
                 primary_text: Color32::from_rgb(253, 246, 227),
                 danger: Color32::from_rgb(220, 50, 47),
                 warning: Color32::from_rgb(181, 137, 0),
@@ -824,7 +829,9 @@ impl Tokens {
     /// [`crate::widgets::text_field`], because `Visuals::selection` also fills selected list rows
     /// and slider trails, which must keep the theme's.
     pub fn field_selection(&self) -> Color32 {
-        if self.pro { Color32::from_gray(if self.dark() { 96 } else { 201 }) } else { self.accent_soft }
+        // Classic (bevel) reads the same way: its field text stays black, so it takes the light
+        // shade too — over the full navy accent it would drop below 1.5:1.
+        if self.pro || self.bevel { Color32::from_gray(if self.dark() { 96 } else { 201 }) } else { self.accent_soft }
     }
 
     /// The 1 px ring round a slider knob, if the theme draws one: the Pro layouts' dark ring, and
@@ -1016,6 +1023,43 @@ pub fn mono(size: f32) -> FontId {
 }
 
 /// Apply a theme to egui's global style and publish its tokens.
+/// WCAG 2 relative luminance of an opaque colour.
+fn wcag_luminance(c: Color32) -> f32 {
+    let lin = |v: u8| {
+        let x = f32::from(v) / 255.0;
+        if x <= 0.04045 { x / 12.92 } else { ((x + 0.055) / 1.055).powf(2.4) }
+    };
+    0.2126 * lin(c.r()) + 0.7152 * lin(c.g()) + 0.0722 * lin(c.b())
+}
+
+/// WCAG 2 contrast ratio between two opaque colours.
+fn wcag_contrast(a: Color32, b: Color32) -> f32 {
+    let (hi, lo) = if wcag_luminance(a) > wcag_luminance(b) { (a, b) } else { (b, a) };
+    (wcag_luminance(hi) + 0.05) / (wcag_luminance(lo) + 0.05)
+}
+
+/// `c` with its alpha painted over `bottom`, the colour a reader sees.
+fn painted_over(c: Color32, bottom: Color32) -> Color32 {
+    let keep = 255 - u16::from(c.a());
+    let mix = |t: u8, b: u8| u8::try_from(u16::from(t) + (u16::from(b) * keep + 127) / 255).unwrap_or(u8::MAX);
+    Color32::from_rgb(mix(c.r(), bottom.r()), mix(c.g(), bottom.g()), mix(c.b(), bottom.b()))
+}
+
+/// `c` moved in lightness, away from every ground, until it holds WCAG's AA 4.5:1 on each: the
+/// theme's accent as text (links) on the surfaces it can't read on as-is. A colour with nowhere
+/// to go (white on a mid ground) comes back unchanged and fails the theme's own tests.
+fn reads_on(mut c: Color32, grounds: impl IntoIterator<Item = Color32>) -> Color32 {
+    let grounds: Vec<Color32> = grounds.into_iter().collect();
+    let up = grounds.iter().all(|g| wcag_luminance(c) > wcag_luminance(*g));
+    for _ in 0..64 {
+        if grounds.iter().all(|g| wcag_contrast(c, *g) >= 4.5) {
+            break;
+        }
+        c = c.lerp_to_gamma(if up { Color32::WHITE } else { Color32::BLACK }, 0.05);
+    }
+    c
+}
+
 pub fn apply(ctx: &egui::Context, kind: ThemeKind) {
     // Keep native windows at SystemDefault so macOS continues reporting OS appearance changes,
     // including when an integration or restored egui state pinned its own theme preference.
@@ -1030,7 +1074,7 @@ pub fn apply(ctx: &egui::Context, kind: ThemeKind) {
     v.faint_bg_color = t.card;
     v.code_bg_color = t.field;
     v.override_text_color = Some(t.text);
-    v.hyperlink_color = t.accent;
+    v.hyperlink_color = reads_on(t.accent, [t.chrome, t.card]);
     v.warn_fg_color = t.warning;
     v.error_fg_color = t.danger;
     v.window_corner_radius = CornerRadius::same(t.radius_lg as u8);
