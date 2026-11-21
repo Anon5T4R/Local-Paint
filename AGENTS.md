@@ -20,7 +20,7 @@ Rust puro + egui. Sem conta, sem telemetria, sem dependência de servidores de t
   `apps/localpaint-web` e `apps/localpaint-web-boot` — wasm
 - `libs/` — forks vendored: `craft-libs`, `egui`, `winit`, `winprint.rs`
 - `packaging/` — Windows (WiX/MSI), Linux (AppImage/deb/rpm/tar FHS com `install.sh`), Arch (PKGBUILD), macOS, FreeBSD, web
-- `book/` — o livro de documentação (mdBook); `docs/` — arquitetura, formatos, paridade, release
+- `book/` — o livro de documentação (mdBook); `docs/` — arquitetura, formatos, release e notas de design (scorecard e checklist de menu são gerados pelo xtask)
 - `scripts/check-mirror.sh` — confere as crates e os assets (`craft-fonts`) espelhados do `local-libs` contra a fonte (CI e `xtask ci`)
 - `xtask/` — tarefas de build/CI (`cargo xtask ci`, `layers`, `wasm`, `parity`, `scorecard`)
 

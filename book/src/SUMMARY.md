@@ -53,6 +53,5 @@
 
 # Project
 
-- [Roadmap](project/roadmap.md)
 - [Credits](project/credits.md)
 - [Licenses](project/licenses.md)

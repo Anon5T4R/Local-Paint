@@ -110,7 +110,8 @@ pub const PASTEBOARD_MENU: &[Row] = &[
 /// selection, the OS clipboard), the type rows on the layer, as the Type menu's do. Faux Bold and
 /// Faux Italic are the Character panel's toggles (this menu's own ids, run as `type.setStyle`).
 /// Convert to Paragraph Text and Convert to Point Text are both listed; the one that doesn't apply
-/// greys out. The exact Photoshop placement is inferred (docs/context-menu-parity.md).
+/// greys out. The exact Photoshop placement is inferred (the canvas menu snapshots of 2026-10,
+/// now in git history).
 pub const TYPE_EDIT_MENU: &[Row] = &[
     Some(("Undo", "edit.undo")),
     None,

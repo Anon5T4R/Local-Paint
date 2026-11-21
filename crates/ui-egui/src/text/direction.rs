@@ -4,7 +4,8 @@
 //! language the window's chrome mirrors, as in right-to-left macOS and Windows apps: the menu
 //! bar starts at the right, the toolbox docks on the right, the panel dock and its rail on the
 //! left, and the title and status bars read from the right. Panel interiors, dialogs, document
-//! tabs and the canvas keep their left-to-right layout for now (`docs/localization-parity.md`).
+//! tabs and the canvas keep their left-to-right layout for now (a known localization limit;
+//! the ROADMAP's upcoming list tracks it).
 //!
 //! egui has no global direction, so call sites choose sides and rows through these helpers.
 //! Rows nested in a [`row`] follow it on their own: egui starts a `ui.horizontal*` row from the

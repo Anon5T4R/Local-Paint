@@ -210,7 +210,7 @@ Same hub entry as standalone pickers; `color_picker_ui::confirm` branches on ext
 
 - **Tab registration** for plain `TextEdit` is manual; generic `__form` string fields may not join `field_tab` unless wired.
 - **“Dialog module”** is any UI routed from `dialogs::show`, not only files named `*dialog*`.
-- **Numeric field parity** (units in expressions, scrubby labels) is tracked in [`ui-parity.md`](ui-parity.md) (Navigation / numeric fields), not duplicated here.
+- **Numeric field parity** (units in expressions, scrubby labels) follows the Navigation/numeric-field rows of the generated `docs/parity-checklist.md`, not duplicated here.
 
 ## Revision history
 
