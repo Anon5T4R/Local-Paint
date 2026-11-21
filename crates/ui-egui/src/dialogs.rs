@@ -533,10 +533,16 @@ fn ok_label(d: &Dialog) -> &'static str {
     }
 }
 
+/// The New Document body is 800 pt wide when the window has the room; a narrower window (the
+/// 760 pt minimum) narrows the preset grid (see `new_doc_ui`) instead of pushing past the screen.
+fn new_document_width(available: f32) -> f32 {
+    800.0_f32.min(available.max(520.0))
+}
+
 /// The widest a dialog grows when its body names no width of its own.
 fn default_max_width(d: &Dialog, compact: bool, curves: bool, about_tabs: bool, available: f32) -> f32 {
     if d.kind == DialogKind::NewDocument {
-        800.0
+        new_document_width(available)
     } else if about_tabs {
         700.0
     } else if d.kind == DialogKind::LayerStyle || d.fields.contains_key("__export") || crate::color_picker_ui::owns(&d.fields) {
@@ -631,7 +637,7 @@ pub fn show(app: &mut LocalPaintApp, ctx: &egui::Context) {
                 ui.set_min_width(w.min(460.0));
             }
             if d.kind == DialogKind::NewDocument {
-                ui.set_min_width(800.0);
+                ui.set_min_width(new_document_width(available.x));
             }
             // The About window: room for the contributor table, the same width on every tab.
             let about_tabs = d.kind == DialogKind::About && d.fields.get("systemInfo").and_then(Value::as_bool) != Some(true);

@@ -450,7 +450,9 @@ fn saved_presets(app: &mut crate::LocalPaintApp, ui: &mut egui::Ui, f: &mut Map<
                 ui.horizontal(|ui| {
                     let selected = get_s(f, "__savedPreset", "") == preset.name;
                     let label = egui::Button::new(&preset.name).selected(selected).truncate();
-                    let response = ui.add_sized(vec2(422.0, 32.0), label).on_hover_text(&preset.name);
+                    // The row fills the (possibly narrowed) grid: 422 pt beside Delete, or less.
+                    let row = (ui.available_width() - 84.0).min(422.0).max(120.0);
+                    let response = ui.add_sized(vec2(row, 32.0), label).on_hover_text(&preset.name);
                     if response.clicked() {
                         apply_saved_preset(f, preset);
                         // Touch-tolerant double-tap (finger jitter > egui's 6 px); see `widgets::second_click`.
@@ -533,7 +535,7 @@ pub fn body(app: &mut crate::LocalPaintApp, ui: &mut egui::Ui, f: &mut Map<Strin
     let cat = get_s(f, "__category", "Recent");
     let mut create = false;
     // Category tabs.
-    ui.horizontal(|ui| {
+    ui.horizontal_wrapped(|ui| {
         ui.spacing_mut().item_spacing.x = 18.0;
         for name in CATEGORIES.iter().map(|c| c.0).chain(["Saved"]) {
             let on = cat == name;
@@ -566,19 +568,22 @@ pub fn body(app: &mut crate::LocalPaintApp, ui: &mut egui::Ui, f: &mut Map<Strin
         .collect();
     let chosen = get_s(f, "__preset", "");
     ui.horizontal_top(|ui| {
-        // Left: preset grid.
+        // Left: preset grid. Beside the 260 pt details it takes what is left, up to the full
+        // 520 pt (three cards a row); a narrow window narrows it and the rows wrap to two.
+        let card = vec2(164.0, 112.0);
+        let grid_width = (ui.available_width() - 270.0).clamp(340.0, 520.0);
+        let per_row = (((grid_width + 8.0) / (card.x + 8.0)).floor() as usize).clamp(1, 3);
         ui.vertical(|ui| {
-            ui.set_width(520.0);
+            ui.set_width(grid_width);
             if cat == "Saved" {
                 create |= saved_presets(app, ui, f);
                 return;
             }
             ui.label(RichText::new(crate::i18n::fmt(tl!("BLANK DOCUMENT PRESETS ({n})"), &[("n", &presets.len().to_string())])).size(11.0).color(t.text_faint));
             ui.add_space(6.0);
-            let card = vec2(164.0, 112.0);
             // Up to 20 recent documents: scroll past three rows rather than grow the dialog.
             egui::ScrollArea::vertical().id_salt("new-document-presets").max_height(3.0 * (card.y + 8.0)).show(ui, |ui| {
-                for row in presets.chunks(3) {
+                for row in presets.chunks(per_row) {
                     ui.horizontal(|ui| {
                         ui.spacing_mut().item_spacing.x = 8.0;
                         for c in row {

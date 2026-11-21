@@ -83,7 +83,7 @@ pub fn body(ui: &mut egui::Ui, f: &mut Map<String, Value>) {
     ui.horizontal(|ui| {
         label(ui, tl!("Name:"));
         let mut name = f.get("name").and_then(Value::as_str).unwrap_or_default().to_string();
-        let r = ui.add(egui::TextEdit::singleline(&mut name).desired_width(252.0));
+        let r = ui.add(egui::TextEdit::singleline(&mut name).desired_width(252.0)).accessible_name(tl!("Name"));
         if r.changed() {
             f.insert("name".into(), json!(name));
         }
@@ -116,7 +116,7 @@ pub fn body(ui: &mut egui::Ui, f: &mut Map<String, Value>) {
         ui.add_space(6.0);
         ui.label(egui::RichText::new(tl!("Opacity:")).size(12.0).color(Tokens::get(ui.ctx()).text_dim));
         let mut opacity = f.get("opacity").and_then(Value::as_f64).unwrap_or(100.0) as f32;
-        if crate::widgets::value_field(ui, &mut opacity, 0.0..=100.0, "%", 64.0).changed() {
+        if crate::widgets::value_field(ui, &mut opacity, 0.0..=100.0, "%", 64.0).accessible_name(tl!("Opacity")).changed() {
             f.insert("opacity".into(), json!(opacity.round()));
         }
     });
