@@ -737,6 +737,9 @@ impl SyntheticTarget {
 mod lifecycle_tests;
 
 #[cfg(test)]
+mod narrow_tests;
+
+#[cfg(test)]
 mod screenshot_tests;
 
 #[cfg(test)]

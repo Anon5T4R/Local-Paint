@@ -1514,16 +1514,16 @@ fn options_bar(ui: &mut egui::Ui, w: &mut SelectMaskWorkspace) -> Option<Value> 
         ui.add_space(8.0);
     }
     if w.tool.brushes() {
-        ui.label(tl!("Size:"));
+        let size_label = ui.label(tl!("Size:"));
         let mut size = w.size() as f32;
-        if widgets::value_field(ui, &mut size, 1.0..=5000.0, " px", 64.0).changed() {
+        if widgets::value_field(ui, &mut size, 1.0..=5000.0, " px", 64.0).labelled_by(size_label.id).changed() {
             w.set_size(f64::from(size));
         }
         ui.add_space(6.0);
     }
     if w.tool == SmTool::Brush {
-        ui.label(tl!("Hardness:"));
-        widgets::value_field(ui, &mut w.hardness, 0.0..=100.0, "%", 56.0);
+        let hardness_label = ui.label(tl!("Hardness:"));
+        widgets::value_field(ui, &mut w.hardness, 0.0..=100.0, "%", 56.0).labelled_by(hardness_label.id);
         ui.add_space(6.0);
     }
     if matches!(w.tool, SmTool::Quick | SmTool::RefineEdge | SmTool::Object) && widgets::checkbox(ui, &mut w.sample_all, tl!("Sample All Layers")).changed() {
