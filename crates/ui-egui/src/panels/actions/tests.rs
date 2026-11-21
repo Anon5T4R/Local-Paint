@@ -1202,9 +1202,9 @@ fn empty_set_save_harness(
     let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), services);
     app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
     app.run("actions.newSet", json!({"name": set})).unwrap();
-    // With no action, the panel shows its "Record ● … play ▶" hint, which the test fonts lack.
-    let mut h = egui_kittest::Harness::builder().with_size(vec2(360.0, 600.0)).allow_missing_glyphs().build_ui_state(
+    let mut h = egui_kittest::Harness::builder().with_size(vec2(360.0, 600.0)).build_ui_state(
         |ui, app| {
+            crate::theme::install_fonts(ui.ctx());
             panel_menu(app, ui);
             panel(app, ui);
         },
