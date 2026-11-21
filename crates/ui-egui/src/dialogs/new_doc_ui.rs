@@ -451,7 +451,7 @@ fn saved_presets(app: &mut crate::LocalPaintApp, ui: &mut egui::Ui, f: &mut Map<
                     let selected = get_s(f, "__savedPreset", "") == preset.name;
                     let label = egui::Button::new(&preset.name).selected(selected).truncate();
                     // The row fills the (possibly narrowed) grid: 422 pt beside Delete, or less.
-                    let row = (ui.available_width() - 84.0).min(422.0).max(120.0);
+                    let row = (ui.available_width() - 84.0).clamp(120.0, 422.0);
                     let response = ui.add_sized(vec2(row, 32.0), label).on_hover_text(&preset.name);
                     if response.clicked() {
                         apply_saved_preset(f, preset);
