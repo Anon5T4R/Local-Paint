@@ -145,7 +145,9 @@ fn field_selection_is_grey_only_for_the_monochrome_pro_themes() {
     assert_eq!(Tokens::for_kind(ThemeKind::Pro).field_selection(), Color32::from_gray(96));
     assert_eq!(Tokens::for_kind(ThemeKind::ProLight).field_selection(), Color32::from_gray(201));
     assert_eq!(Tokens::for_kind(ThemeKind::Studio).field_selection(), Tokens::for_kind(ThemeKind::Studio).accent_soft);
-    assert_eq!(Tokens::for_kind(ThemeKind::Classic).field_selection(), Tokens::for_kind(ThemeKind::Classic).accent_soft);
+    // Classic keeps the navy accent for list rows and slider trails, but its field text stays
+    // black: the field's selection is the light shade, where the accent would drop below 1.5:1.
+    assert_eq!(Tokens::for_kind(ThemeKind::Classic).field_selection(), Color32::from_gray(201));
 }
 
 #[test]
@@ -360,5 +362,34 @@ fn breeze_themes_parse_and_meet_text_contrast() {
             assert!(contrast(t.primary_text, t.primary_bg.gamma_multiply(k)) >= 4.5, "{kind:?}: primary button label at {k}");
         }
         assert!(contrast(t.caption_close_text, t.caption_close) >= 4.5, "{kind:?}: close button glyph");
+    }
+}
+
+/// The accent as text (the link colour) and as a button's ground (the primary button), plus the
+/// text a field's selection shows, hold WCAG AA (4.5:1) in every theme.
+#[test]
+fn accent_text_and_primary_button_read_in_every_theme() {
+    for kind in ThemeKind::ALL {
+        let t = Tokens::for_kind(kind);
+        // The primary button rests, hovers (×0.93) and presses (×0.8), as `button_impl` paints it.
+        for k in [1.0, 0.93, 0.8] {
+            assert!(contrast(t.primary_text, t.primary_bg.gamma_multiply(k)) >= 4.5, "{kind:?}: primary button at {k}");
+        }
+        let ctx = egui::Context::default();
+        apply(&ctx, kind);
+        let visuals = ctx.global_style().visuals.clone();
+        // Links sit on panels and on dialog cards.
+        for ground in [t.chrome, t.card] {
+            assert!(contrast(visuals.hyperlink_color, ground) >= 4.5, "{kind:?}: link {} on {ground:?}", contrast(visuals.hyperlink_color, ground));
+        }
+        // Selected text in a field: the field's selection fill (a shade in Pro and Classic, the
+        // accent wash elsewhere) under the theme's own text colour. Solarized Dark is excepted:
+        // its canonical base0 body text holds 4.5:1 on base03 but not on the base02 the wash
+        // leaves, and no Solarized ground darker than that is visible as a selection — fixing it
+        // means redesigning the palette, not the accent's use (reported in the convivência reply).
+        if kind != ThemeKind::SolarizedDark {
+            let fill = painted_over(t.field_selection(), t.field);
+            assert!(contrast(t.text, fill) >= 4.5, "{kind:?}: selected text {} on {fill:?}", contrast(t.text, fill));
+        }
     }
 }
