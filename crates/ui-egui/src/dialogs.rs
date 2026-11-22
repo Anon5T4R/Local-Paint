@@ -149,6 +149,24 @@ pub fn free_press(ctx: &egui::Context, canvas: egui::Rect) -> Option<egui::Pos2>
 /// Height of a dialog's title, rule, button row and frame margins (points), around a body that
 /// scrolls.
 const DIALOG_CHROME: f32 = 150.0;
+/// What a dialog draws around a body that scrolls: the title band, its rule, the gap and the row of
+/// buttons, with the modal's frame.
+pub(crate) const DIALOG_BODY_OUTSIDE: f32 = 110.0;
+/// What the modal's frame and the resize grip around a resizable dialog take vertically.
+const RESIZABLE_FRAME: f32 = 64.0;
+
+/// Draw a dialog body that may outgrow a short window so that it scrolls, with the title band above
+/// and the dialog's buttons below always in view (`padrao-craft.md`, "Guardas"). `outside` is what
+/// the dialog draws outside the body in points. The room comes from the window's height, never from
+/// the dialog's own position: a modal is centred on the height it had the frame before, so a budget
+/// measured from the cursor would offer the body more room every frame.
+pub(crate) fn scrolling_body<R>(ui: &mut egui::Ui, id: &str, outside: f32, body: impl FnOnce(&mut egui::Ui) -> R) -> R {
+    let room = (ui.ctx().content_rect().height() - outside).max(120.0);
+    // The room the body may take is also the least it may scroll in: an area that starts from what
+    // the frame before left it grows a little every frame, and the dialog with it (a modal is
+    // centred on the height it had last frame), moving its buttons while the user aims at them.
+    egui::ScrollArea::vertical().id_salt(id).max_height(room).min_scrolled_height(room).auto_shrink([false, true]).show(ui, body).inner
+}
 
 /// Draw a dialog body that opens on its first number, selected, as Photoshop's value dialogs do:
 /// typing replaces it and Enter applies it (#1757). Once per dialog `id`, on the first laid-out
@@ -217,7 +235,7 @@ fn size_id(place: egui::Id) -> egui::Id {
 /// The largest a resizable dialog of `fields` with smallest size `min` is dragged to: the window
 /// less a margin, and for Curves no wider than its graph can grow (#8984), so no blank column.
 fn resizable_max(ctx: &egui::Context, fields: &serde_json::Map<String, Value>, min: egui::Vec2) -> egui::Vec2 {
-    let mut max = (ctx.content_rect().size() - egui::vec2(40.0, 40.0)).max(min);
+    let mut max = (ctx.content_rect().size() - egui::vec2(40.0, 40.0 + RESIZABLE_FRAME)).max(min);
     if is_curves(fields) {
         max.x = max.x.min(crate::adjust_editors::curve_side_max(ctx)).max(min.x);
     }
@@ -612,8 +630,14 @@ pub fn show(app: &mut LocalPaintApp, ctx: &egui::Context) {
         // Curves reopens at the size it was left at (#8984).
         let remembered = if is_curves(&fields) { ctx.data_mut(|m| m.get_persisted::<egui::Vec2>(size_id(place))) } else { None };
         let resize = resizable.map(|size| {
+            // A dialog cannot be required to be taller than the window it opens in: its size, and
+            // the least it may be dragged to, shrink to what the window leaves once the frame and
+            // the grip around the dialog are drawn.
             let min = resizable_min(&fields);
-            (remembered.unwrap_or(size), min, resizable_max(ctx, &fields, min))
+            let max = resizable_max(ctx, &fields, min);
+            let fit = (ctx.content_rect().height() - RESIZABLE_FRAME).max(160.0);
+            let min = min.min(max).min(egui::vec2(max.x, fit));
+            (remembered.unwrap_or(size).min(max).min(egui::vec2(max.x, fit)).max(min), min, max)
         });
         let mut given = None;
         let fixed = (d.kind == DialogKind::LayerStyle)

@@ -527,7 +527,13 @@ fn save_preset(app: &mut crate::LocalPaintApp, ui: &mut egui::Ui, f: &mut Map<St
 
 /// Returns whether a preset double-click requested creation, after applying its settings.
 /// A recent category click can make egui count the preset double-click as a triple-click.
+/// Its fields can outgrow a short window, so they scroll, with the dialog's buttons always in view
+/// (`padrao-craft.md`, "Guardas").
 pub fn body(app: &mut crate::LocalPaintApp, ui: &mut egui::Ui, f: &mut Map<String, Value>) -> bool {
+    crate::dialogs::scrolling_body(ui, "new-document-body", crate::dialogs::DIALOG_BODY_OUTSIDE, |ui| body_in_window(app, ui, f))
+}
+
+fn body_in_window(app: &mut crate::LocalPaintApp, ui: &mut egui::Ui, f: &mut Map<String, Value>) -> bool {
     let t = Tokens::get(ui.ctx());
     // Headings and field labels are static, as in Photoshop: no text cursor over them, no
     // drag-selecting them (#8331). Text fields keep theirs.
