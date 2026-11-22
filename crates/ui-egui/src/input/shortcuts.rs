@@ -395,7 +395,7 @@ pub fn clipboard_keys(ctx: &egui::Context, typing: bool, raw: &mut egui::RawInpu
                     Key::V if modifiers.command => Some(*modifiers),
                     // ⌘ let go before V: the press egui-winit swallowed was ⌘V (#6329). The web
                     // always forwards the key-down, so there a lone release is no paste.
-                    Key::V if lately && !had_plain_press && !cfg!(target_arch = "wasm32") => Some(Modifiers::COMMAND),
+                    Key::V if lately && !had_plain_press => Some(Modifiers::COMMAND),
                     Key::Insert if cfg!(target_os = "windows") && modifiers.shift && !modifiers.ctrl => Some(Modifiers::COMMAND),
                     _ => None,
                 };

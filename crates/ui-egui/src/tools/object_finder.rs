@@ -144,15 +144,12 @@ fn spawn(doc: Arc<Document>, layer: Option<LayerId>, all_layers: bool, px: [i32;
             let _ = tx.send(find_object(&doc, layer, all_layers, at[0] as f32, at[1] as f32));
         }
     };
-    #[cfg(not(target_arch = "wasm32"))]
     {
         let spawned = std::thread::Builder::new().name("object-finder".into()).spawn(work);
         if spawned.is_err() {
             // No thread: the receiver reports Disconnected and the next rest retries.
         }
     }
-    #[cfg(target_arch = "wasm32")]
-    work();
     Job { at: px, doc, rx }
 }
 

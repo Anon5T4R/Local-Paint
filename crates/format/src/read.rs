@@ -10,8 +10,6 @@
 //!   its stat length while being read grows the buffer with `try_reserve` too.
 //! - **A total limit.** No read returns more than [`MAX_OPEN_BYTES`], so a file that keeps growing
 //!   while it is read cannot keep an open or a save from finishing.
-//!
-//! On `wasm32` there is no file system and every call returns the `std` "unsupported" error.
 
 use std::io::{self, Read};
 use std::path::Path;

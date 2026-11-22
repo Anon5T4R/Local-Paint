@@ -3,7 +3,6 @@
 //! pixel count, so the dialog stays instant on 36 MP documents.
 
 use std::sync::Arc;
-#[cfg(not(target_arch = "wasm32"))]
 use std::sync::Mutex;
 
 use localpaint_cms::Profile;
@@ -252,7 +251,6 @@ fn batch_paths(path: &str, docs: &[Document]) -> Vec<String> {
             let candidate = parent.join(format!("{stem}-{}-{name}.{ext}", i + 1));
             // The first file's overwrite is handled by the Save dialog; never overwrite sibling
             // files silently on desktop. Downloads on the web are named by the browser.
-            #[cfg(not(target_arch = "wasm32"))]
             let candidate = {
                 let mut candidate = candidate;
                 let mut suffix = 1u64;
@@ -544,7 +542,6 @@ fn cache_preview(ui: &mut egui::Ui, key: egui::Id, signature: String, result: Re
     preview
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[derive(Clone)]
 struct PendingPreview {
     key: egui::Id,
@@ -552,14 +549,12 @@ struct PendingPreview {
     result: Arc<Mutex<Option<Result<PreviewPixels, String>>>>,
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 fn background_preview_needed(doc: &Document) -> bool {
     doc.walk().len() > 32 || doc.size.area() > 16_000_000
 }
 
 /// Native app: keep the UI responsive while a many-layer document is reduced and encoded.
 /// A single pending job per document also avoids starting a worker for every slider tick.
-#[cfg(not(target_arch = "wasm32"))]
 fn poll_or_start_preview(
     ui: &mut egui::Ui,
     key: egui::Id,
@@ -603,7 +598,6 @@ fn poll_or_start_preview(
 }
 
 /// The native exporter uses this same IO encoder. Keep the entire estimate off the UI thread.
-#[cfg(not(target_arch = "wasm32"))]
 fn estimate_native(doc: &Document, proxy: &Document, f: &Map<String, Value>) -> Option<u64> {
     let bytes = localpaint_io::export(proxy, &format!("estimate.{}", s_fmt(f)), &settings(f).io_options()).ok()?.bytes;
     Some(scaled_estimate(bytes.len(), doc, proxy, f))
@@ -612,12 +606,10 @@ fn estimate_native(doc: &Document, proxy: &Document, f: &Map<String, Value>) -> 
 /// Exports up to this many pixels get an exact size: the full image encoded as Export will
 /// write it, as Photoshop's Export As reports (#6595). Larger ones keep the proxy estimate, which
 /// reads low for detailed images (a downscaled proxy compresses better).
-#[cfg(not(target_arch = "wasm32"))]
 const EXACT_ESTIMATE_PX: f64 = 40_000_000.0;
 
 /// The exported file's size in bytes, from encoding the full export, or `None` when it is too
 /// large to encode for an estimate or can't be encoded.
-#[cfg(not(target_arch = "wasm32"))]
 fn exact_estimate(doc: &Document, f: &Map<String, Value>, source_profile: &Profile) -> Option<u64> {
     // The size `export_document` will make: exact pixels only in pixel mode, else the scale.
     let (w, h) = export_pixels(f64::from(doc.size.width), f64::from(doc.size.height), f, None).ok()?;
@@ -632,7 +624,6 @@ fn exact_estimate(doc: &Document, f: &Map<String, Value>, source_profile: &Profi
 
 /// The exact size for `signature`, worked out off the UI thread: `None` until it is ready (the
 /// proxy estimate shows meanwhile), then `Some(None)` when there is no exact size.
-#[cfg(not(target_arch = "wasm32"))]
 fn poll_or_start_exact_estimate(
     ui: &mut egui::Ui,
     key: egui::Id,
@@ -992,15 +983,9 @@ pub fn body(app: &mut LocalPaintApp, ui: &mut egui::Ui, f: &mut Map<String, Valu
             let preview = match cached.filter(|cached| cached.signature == sig) {
                 Some(cached) => Some(cached),
                 None => {
-                    #[cfg(not(target_arch = "wasm32"))]
                     let result = if background_preview_needed(&doc) {
                         poll_or_start_preview(ui, key, &sig, doc.clone(), f, source_profile.clone())
                     } else {
-                        let source = source_document(app, f).unwrap_or_else(|_| doc.clone());
-                        Some(preview_sync(app, &source, f, &source_profile))
-                    };
-                    #[cfg(target_arch = "wasm32")]
-                    let result = {
                         let source = source_document(app, f).unwrap_or_else(|_| doc.clone());
                         Some(preview_sync(app, &source, f, &source_profile))
                     };
@@ -1022,10 +1007,7 @@ pub fn body(app: &mut LocalPaintApp, ui: &mut egui::Ui, f: &mut Map<String, Valu
                 ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, tl!("Preview"), egui::FontId::proportional(12.0), t.text_dim);
             }
             ui.painter().rect_stroke(r, 0.0, egui::Stroke::new(1.0, t.separator), egui::StrokeKind::Outside);
-            #[cfg(not(target_arch = "wasm32"))]
             let exact = poll_or_start_exact_estimate(ui, key, &sig, doc.clone(), f, source_profile.clone()).flatten();
-            #[cfg(target_arch = "wasm32")]
-            let exact: Option<u64> = None;
             let est =
                 exact.or_else(|| preview.as_ref().and_then(|preview| preview.estimate)).map_or("—".to_string(), |b| crate::sizing::human_bytes(b as f64));
             ui.label(egui::RichText::new(format!("{}  ≈ {est}", s_fmt(f).to_uppercase())).color(t.text_dim).size(11.5));
@@ -1128,33 +1110,25 @@ fn confirm_layers(app: &mut LocalPaintApp, f: &Map<String, Value>, ids: &[localp
 }
 
 /// File › Export › Quick Export as PNG: the format, quality, metadata, colour space and location
-/// from File › Export › Export Preferences (engine `file.export.quickExport`). On the web (no
-/// file system) it falls back to a PNG download through the export service.
+/// from File › Export › Export Preferences (engine `file.export.quickExport`).
 pub fn quick_export_png(app: &mut LocalPaintApp) -> Result<Value, String> {
-    if !cfg!(target_arch = "wasm32") {
-        let prefs = app.session.prefs().export.clone();
-        let fmt = serde_json::to_value(prefs.quick_export_format).ok().and_then(|v| v.as_str().map(str::to_string)).unwrap_or_else(|| "png".into());
-        let same = serde_json::to_value(prefs.quick_export_location).ok().is_some_and(|v| v == "sameFolder");
-        let saved = app.session.active().is_some_and(|d| d.path.is_some());
-        // Same Folder writes beside the document's file without asking, except when that would
-        // replace the file itself (a document opened from photo.png): then the save dialog asks,
-        // so replacing it is the user's choice (#6599).
-        if same && saved && !localpaint_engine::web_cmds::quick_export_target_is_own_file(&app.session) {
-            return quick_export(app, json!({}));
-        }
-        let st = app.session.active().ok_or("no document")?;
-        let stem = st.doc.name.rsplit_once('.').map_or(st.doc.name.as_str(), |(a, _)| a);
-        let (suggested, doc) = (format!("{stem}.{fmt}"), st.doc.id);
-        return app.pick_save(&suggested, move |app, path| {
-            app.refocus(doc)?;
-            quick_export(app, json!({"path": path}))
-        });
+    let prefs = app.session.prefs().export.clone();
+    let fmt = serde_json::to_value(prefs.quick_export_format).ok().and_then(|v| v.as_str().map(str::to_string)).unwrap_or_else(|| "png".into());
+    let same = serde_json::to_value(prefs.quick_export_location).ok().is_some_and(|v| v == "sameFolder");
+    let saved = app.session.active().is_some_and(|d| d.path.is_some());
+    // Same Folder writes beside the document's file without asking, except when that would
+    // replace the file itself (a document opened from photo.png): then the save dialog asks,
+    // so replacing it is the user's choice (#6599).
+    if same && saved && !localpaint_engine::web_cmds::quick_export_target_is_own_file(&app.session) {
+        return quick_export(app, json!({}));
     }
-    let mut f = Map::new();
-    f.insert("format".into(), json!("png"));
-    f.insert("transparency".into(), json!(true));
-    f.insert("scale".into(), json!(100));
-    confirm(app, &f)
+    let st = app.session.active().ok_or("no document")?;
+    let stem = st.doc.name.rsplit_once('.').map_or(st.doc.name.as_str(), |(a, _)| a);
+    let (suggested, doc) = (format!("{stem}.{fmt}"), st.doc.id);
+    app.pick_save(&suggested, move |app, path| {
+        app.refocus(doc)?;
+        quick_export(app, json!({"path": path}))
+    })
 }
 
 /// Runs Quick Export with `p` (an explicit `path`, or none for the document's folder).

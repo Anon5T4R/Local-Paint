@@ -69,7 +69,7 @@ impl Drop for CamPreview {
 /// `paint.contentAwareMove`'s params for what the pointer or the box has now; `None` without a
 /// move to preview.
 fn wanted(app: &mut LocalPaintApp) -> Option<Value> {
-    if app.ui.tool != Tool::ContentAwareMove || cfg!(target_arch = "wasm32") {
+    if app.ui.tool != Tool::ContentAwareMove {
         return None;
     }
     if let Some(t) = &app.ui.cam_transform {

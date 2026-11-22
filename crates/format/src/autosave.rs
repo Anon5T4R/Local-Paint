@@ -10,7 +10,6 @@
 //! the document is saved or closed, never just because it was recovered.
 
 use std::collections::BTreeSet;
-#[cfg(not(target_arch = "wasm32"))]
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, Receiver, Sender};
@@ -335,7 +334,6 @@ pub fn discard_recovery(recovery_dir: &Path, entry: &RecoveryEntry) -> Result<()
 /// that entry in place (each save is atomic, so the old copy stays loadable until the new one is
 /// complete), and saving or closing it removes the entry. Nothing is deleted just because it was
 /// recovered, so a second crash before the next autosave loses nothing.
-#[cfg(not(target_arch = "wasm32"))]
 pub struct RecoveryStore {
     dir: PathBuf,
     session: String,
@@ -343,7 +341,6 @@ pub struct RecoveryStore {
     adopted: HashMap<u64, String>,
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 impl RecoveryStore {
     pub fn new(recovery_dir: impl Into<PathBuf>) -> Self {
         use std::sync::atomic::{AtomicU64, Ordering};
@@ -418,7 +415,6 @@ impl RecoveryStore {
 /// How long recovery data must have been left untouched before [`sweep_orphans`] may remove
 /// it. Far longer than any save takes, so another running instance's in-progress first
 /// autosave (bundle written, sidecar not yet) is never mistaken for an orphan.
-#[cfg(not(target_arch = "wasm32"))]
 const ORPHAN_AGE: std::time::Duration = std::time::Duration::from_secs(24 * 60 * 60);
 
 /// Best-effort removal of recovery data nothing can ever load or clean up:
@@ -430,7 +426,6 @@ const ORPHAN_AGE: std::time::Duration = std::time::Duration::from_secs(24 * 60 *
 ///
 /// Only entries untouched for at least `min_age` are removed. Bundles with a sidecar, symlinks,
 /// and anything outside `recovery_dir` are never touched; errors are ignored.
-#[cfg(not(target_arch = "wasm32"))]
 fn sweep_orphans(recovery_dir: &Path, min_age: std::time::Duration) {
     let Ok(rd) = std::fs::read_dir(recovery_dir) else { return };
     let mut bundles = Vec::new();
@@ -470,7 +465,6 @@ fn sweep_orphans(recovery_dir: &Path, min_age: std::time::Duration) {
 }
 
 /// Remove `path` if it is an atomic-write temp file of another process, untouched for `min_age`.
-#[cfg(not(target_arch = "wasm32"))]
 fn sweep_temp_file(path: &Path, min_age: std::time::Duration) {
     let Some(name) = path.file_name().and_then(|n| n.to_str()) else { return };
     // `.{stem}.{pid}-{n}.pcsave.tmp`
@@ -484,7 +478,6 @@ fn sweep_temp_file(path: &Path, min_age: std::time::Duration) {
 
 /// Whether `path` was last modified at least `min_age` ago. Unreadable times count as recent;
 /// a missing path counts as untouched only when `missing_ok`.
-#[cfg(not(target_arch = "wasm32"))]
 fn untouched_for(path: &Path, min_age: std::time::Duration, missing_ok: bool) -> bool {
     match std::fs::symlink_metadata(path) {
         Ok(m) => m.modified().ok().and_then(|t| SystemTime::now().duration_since(t).ok()).is_some_and(|age| age >= min_age),
@@ -531,7 +524,6 @@ mod tests {
         assert!(msg.contains("could not start"), "{msg}");
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     #[test]
     fn sweep_removes_orphaned_bundles_and_foreign_temp_files_only() {
         let dir = std::env::temp_dir().join(format!(
@@ -573,7 +565,6 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     #[test]
     fn a_committed_bundle_without_a_sidecar_is_listed_and_survives_the_sweep() {
         let dir = std::env::temp_dir().join(format!(

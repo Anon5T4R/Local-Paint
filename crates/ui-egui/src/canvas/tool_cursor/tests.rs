@@ -1,9 +1,6 @@
 use super::*;
-#[cfg(not(target_arch = "wasm32"))]
 use egui::{Event, Modifiers, PointerButton, pos2};
-#[cfg(not(target_arch = "wasm32"))]
 use egui_kittest::Harness;
-#[cfg(not(target_arch = "wasm32"))]
 use serde_json::json;
 
 fn alpha(image: &CustomCursorImage, x: u16, y: u16) -> u8 {
@@ -252,7 +249,6 @@ fn lifecycle_clears_sticky_images_and_respects_later_widgets() {
 }
 
 #[test]
-#[cfg(not(target_arch = "wasm32"))]
 fn ordinary_brush_cursor_is_not_part_of_the_canvas_draw_list() {
     let ctx = egui::Context::default();
     ctx.add_plugin(CursorLifecycle);
@@ -352,7 +348,6 @@ fn write_cursor_preview() {
     std::fs::write(path, png).unwrap();
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 fn harness() -> Harness<'static, crate::LocalPaintApp> {
     let mut app = crate::LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
@@ -381,7 +376,6 @@ fn harness() -> Harness<'static, crate::LocalPaintApp> {
 }
 
 #[test]
-#[cfg(not(target_arch = "wasm32"))]
 fn brush_cursor_follows_pen_orientation_6350() {
     for control in ["penTilt", "rotation"] {
         let mut h = harness();
@@ -423,7 +417,6 @@ fn brush_cursor_follows_pen_orientation_6350() {
 }
 
 #[test]
-#[cfg(not(target_arch = "wasm32"))]
 fn round_cursor_shows_brush_projection_6350() {
     let mut h = harness();
     h.state_mut().session.tools.brush.shape_dynamics.enabled = true;
@@ -442,7 +435,6 @@ fn round_cursor_shows_brush_projection_6350() {
     assert_eq!(upright.rgba, h.output().platform_output.cursor_image.clone().unwrap().rgba, "mouse restores the unprojected tip");
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 fn save_pen_cursor_image(name: &str, cursor: &egui::CustomCursorImage) {
     let Some(dir) = std::env::var_os("LOCALPAINT_CURSOR_OUTPUT") else { return };
     let dir = std::path::PathBuf::from(dir);
@@ -455,7 +447,6 @@ fn save_pen_cursor_image(name: &str, cursor: &egui::CustomCursorImage) {
 }
 
 #[test]
-#[cfg(not(target_arch = "wasm32"))]
 fn brush_hover_uses_an_os_bitmap_that_survives_motion_but_not_tool_or_panel_changes() {
     let mut h = harness();
     let initial = h.output().platform_output.cursor_image.clone().expect("brush hover must reach the OS, not the painter");
@@ -511,7 +502,6 @@ fn brush_hover_uses_an_os_bitmap_that_survives_motion_but_not_tool_or_panel_chan
 }
 
 #[test]
-#[cfg(not(target_arch = "wasm32"))]
 fn painting_preference_and_zoom_change_the_native_cursor_without_changing_pointer_input() {
     let mut h = harness();
     let image = h.output().platform_output.cursor_image.clone().unwrap();

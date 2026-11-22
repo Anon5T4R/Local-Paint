@@ -381,14 +381,13 @@ fn fontconfig_cjk_font(script: CjkScript) -> Option<FontFile> {
     scan.result.lock().unwrap_or_else(std::sync::PoisonError::into_inner).as_ref()?.get(index)?.clone()
 }
 
-#[cfg(all(not(target_os = "linux"), not(target_arch = "wasm32")))]
+#[cfg(not(target_os = "linux"))]
 fn fontconfig_cjk_font(_: CjkScript) -> Option<FontFile> {
     None
 }
 
 /// System font files for `script`, most preferred first. Paths that don't exist are included;
 /// callers skip them.
-#[cfg(not(target_arch = "wasm32"))]
 pub fn font_files(script: CjkScript) -> Vec<FontFile> {
     use CjkScript::*;
     let f = |p: &str, family: &'static str| FontFile { path: p.into(), family: family.to_string() };
@@ -467,7 +466,6 @@ pub fn font_files(script: CjkScript) -> Vec<FontFile> {
 
 /// Flatpak mounts the host system font directory outside the runtime's `/usr/share/fonts`.
 /// Preserve the collection face and font preference order when trying that mirror.
-#[cfg(not(target_arch = "wasm32"))]
 fn with_flatpak_host_fonts(files: Vec<FontFile>) -> Vec<FontFile> {
     let mut candidates = Vec::new();
     for file in files {
@@ -487,7 +485,6 @@ fn with_flatpak_host_fonts(files: Vec<FontFile>) -> Vec<FontFile> {
 
 /// Broad-coverage fonts tried after every script's own fonts (they cover Han, kana and Hangul
 /// but look worse than the script fonts).
-#[cfg(not(target_arch = "wasm32"))]
 pub fn last_resort_files() -> Vec<FontFile> {
     let f = |p: &str| FontFile { path: p.into(), family: String::new() };
     if cfg!(target_os = "macos") {
@@ -506,7 +503,6 @@ pub fn last_resort_files() -> Vec<FontFile> {
 /// macOS ships PingFang as a pre-installed "mobile asset" outside `/System/Library/Fonts`
 /// (`/System/Library/AssetsV2/com_apple_MobileAsset_Font*/<hash>.asset/AssetData/PingFang.ttc`).
 /// Looks there (a few small directory listings) and in the pre-Catalina location.
-#[cfg(not(target_arch = "wasm32"))]
 pub fn mac_pingfang() -> Option<std::path::PathBuf> {
     use std::path::{Path, PathBuf};
     let old = PathBuf::from("/System/Library/Fonts/PingFang.ttc");

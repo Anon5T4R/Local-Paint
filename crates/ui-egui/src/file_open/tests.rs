@@ -1074,7 +1074,6 @@ fn a_path_that_is_not_valid_unicode_is_refused_not_rewritten() {
 /// a second copy bound to the same file (saving one would overwrite the other). The path is
 /// compared as the file it names: another spelling of it, a symlink to it or, with background
 /// opens, a file still opening finds the same tab.
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn opening_an_open_file_again_shows_its_tab() {
     let (dir, paths) = files("already-open", &["a.psd", "b.psd"], b"x");

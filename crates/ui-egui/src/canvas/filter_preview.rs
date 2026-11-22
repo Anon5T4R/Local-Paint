@@ -21,7 +21,7 @@ use super::{Document, LayerContent, LocalPaintApp};
 pub(crate) fn filter_preview_factor(app: &LocalPaintApp, doc: &Document, cmd: &str, params: &serde_json::Value) -> u32 {
     // A smart filter edit re-renders the whole stack: every stage constrains the factor.
     let k = crate::filter_dialog::smart_preview_factor(doc, cmd, params, crate::proxy::preview_factor(doc, crate::proxy::reduced_previews(app)));
-    if cfg!(target_arch = "wasm32") { k } else { crate::proxy::view_factor(k, app.current_zoom()) }
+    crate::proxy::view_factor(k, app.current_zoom())
 }
 
 /// Live preview for an open filter dialog: run the filter on the proxy and upload it. With
@@ -74,7 +74,6 @@ pub(crate) fn ensure_filter_preview(app: &mut LocalPaintApp, idx: usize, ctx: &e
     // Every filter's preview computes off the UI thread in the desktop app: Gaussian Blur at
     // 1000 px takes long enough to freeze the window. Once the slider settles, a preview still
     // running for an older value is cancelled.
-    #[cfg(not(target_arch = "wasm32"))]
     if app.background_jobs {
         app.filter_preview_worker.supersede(&request, crate::gpu_canvas::now_ms());
         if let Some((finished, computed)) = app.filter_preview_worker.poll() {

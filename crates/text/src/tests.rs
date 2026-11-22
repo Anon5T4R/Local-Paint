@@ -16,7 +16,6 @@ fn styled(text: &str, style: CharStyle) -> TextLayer {
 /// The rasteriser's pixel stages — composing one colour's coverage, unpremultiplying it, and
 /// converting the tiles — are per pixel: no pixel reads a slot another pixel wrote. Spreading them
 /// over threads therefore has to leave every byte as it was, which a one-thread pool checks.
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn parallel_raster_matches_a_single_thread() {
     let one = rayon::ThreadPoolBuilder::new().num_threads(1).build().expect("one-thread pool");

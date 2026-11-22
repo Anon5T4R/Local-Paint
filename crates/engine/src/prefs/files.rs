@@ -17,7 +17,6 @@ pub(super) fn file_target(cmd: &str, v: Option<&Value>) -> Result<Option<Option<
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 pub(super) fn read_text_file(path: &str, max: usize) -> std::result::Result<String, String> {
     let meta = std::fs::metadata(path).map_err(|e| e.to_string())?;
     if !meta.is_file() || meta.len() > max as u64 {
@@ -26,13 +25,7 @@ pub(super) fn read_text_file(path: &str, max: usize) -> std::result::Result<Stri
     std::fs::read_to_string(path).map_err(|e| e.to_string())
 }
 
-#[cfg(target_arch = "wasm32")]
-pub(super) fn read_text_file(_: &str, _: usize) -> std::result::Result<String, String> {
-    Err("paths can't be read on the web; pass the file's text instead".into())
-}
-
 /// Whether `path` can be written: not a folder, in a folder that exists.
-#[cfg(not(target_arch = "wasm32"))]
 pub(super) fn writable(path: &str) -> std::result::Result<(), String> {
     let p = std::path::Path::new(path);
     if p.is_dir() {
@@ -47,24 +40,12 @@ pub(super) fn writable(path: &str) -> std::result::Result<(), String> {
     }
 }
 
-#[cfg(target_arch = "wasm32")]
-pub(super) fn writable(_: &str) -> std::result::Result<(), String> {
-    Err("paths can't be written on the web; omit `path` to get the text back".into())
-}
-
-#[cfg(not(target_arch = "wasm32"))]
 pub(super) fn rename_path(from: &std::path::Path, to: &std::path::Path) -> std::io::Result<()> {
     std::fs::rename(from, to)
 }
 
-#[cfg(target_arch = "wasm32")]
-pub(super) fn rename_path(_: &std::path::Path, _: &std::path::Path) -> std::io::Result<()> {
-    Err(std::io::Error::other("paths can't be written on the web"))
-}
-
 /// Where `path` points, for telling whether two targets are one file: its folder resolved, its
 /// name compared without case where the file system ignores it.
-#[cfg(not(target_arch = "wasm32"))]
 fn path_key(path: &str) -> String {
     let p = std::path::Path::new(path);
     let dir = p.parent().filter(|d| !d.as_os_str().is_empty()).unwrap_or(std::path::Path::new("."));
@@ -75,7 +56,6 @@ fn path_key(path: &str) -> String {
 
 /// A new, empty file beside `path` with a name nothing else uses (`create_new`), for staging
 /// (`kind` "tmp") or a backup ("bak").
-#[cfg(not(target_arch = "wasm32"))]
 fn sibling(path: &str, kind: &str) -> std::io::Result<(std::path::PathBuf, std::fs::File)> {
     for n in 0..1000u32 {
         let p = std::path::PathBuf::from(format!("{path}.{}-{n}.localpaint-{kind}", std::process::id()));
@@ -93,7 +73,6 @@ fn sibling(path: &str, kind: &str) -> std::io::Result<(std::path::PathBuf, std::
 /// staged file moved in. Any failure moves the backups back and removes what was staged, so the
 /// user's files end as they began; on success the backups go. Two targets naming one file are
 /// refused. `rename` is `std::fs::rename` (a test fails it on purpose).
-#[cfg(not(target_arch = "wasm32"))]
 pub(crate) fn write_files_atomically(
     files: &[(&str, &str)],
     rename: &dyn Fn(&std::path::Path, &std::path::Path) -> std::io::Result<()>,
@@ -188,12 +167,4 @@ pub(crate) fn write_files_atomically(
         }
     }
     Ok(())
-}
-
-#[cfg(target_arch = "wasm32")]
-pub(crate) fn write_files_atomically(
-    files: &[(&str, &str)],
-    _: &dyn Fn(&std::path::Path, &std::path::Path) -> std::io::Result<()>,
-) -> std::result::Result<(), String> {
-    if files.is_empty() { Ok(()) } else { Err("paths can't be written on the web; omit `path` to get the text back".into()) }
 }

@@ -366,7 +366,6 @@ fn create_droplet(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 /// A tiny shell script next to the droplet: drop files on it (or pass them) to run the droplet.
-#[cfg(not(target_arch = "wasm32"))]
 fn write_shim(droplet: &str) -> Result<String> {
     let abs = std::fs::canonicalize(droplet).map(|p| p.to_string_lossy().into_owned()).unwrap_or_else(|_| droplet.to_string());
     let base = abs.trim_end_matches(".pcdroplet").trim_end_matches(".json");
@@ -398,10 +397,6 @@ exec "$cli" droplet {quoted_abs} "$@"
         let _ = std::fs::set_permissions(&shim, std::fs::Permissions::from_mode(0o700));
     }
     Ok(shim)
-}
-#[cfg(target_arch = "wasm32")]
-fn write_shim(_: &str) -> Result<String> {
-    Err(EngineError::Other("no file system on the web".into()))
 }
 
 /// Runs a droplet file on inputs (files and/or folders).

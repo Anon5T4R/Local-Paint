@@ -129,7 +129,6 @@ impl LocalPaintApp {
     }
 
     /// Read and open the file at `path` (see [`open_file`](Self::open_file)).
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn open_path(&mut self, path: &str) -> Result<Vec<String>, String> {
         if self.show_if_open(path) {
             return Ok(Vec::new());
@@ -143,11 +142,6 @@ impl LocalPaintApp {
         }
         let bytes = localpaint_format::read_file(std::path::Path::new(path)).map_err(|e| format!("{path}: {e}"))?;
         self.open_file(path, &bytes)
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    pub fn open_path(&mut self, path: &str) -> Result<Vec<String>, String> {
-        Err(format!("cannot open paths on the web: {path}"))
     }
 
     /// Open several files, reporting each failure to the user instead of stopping. Relative paths
@@ -409,26 +403,14 @@ fn digit_run(it: &mut std::iter::Peekable<std::str::Chars>) -> String {
     run
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 fn absolute(p: &str) -> String {
     std::path::absolute(p).map(|a| a.to_string_lossy().to_string()).unwrap_or_else(|_| p.to_string())
 }
 
-#[cfg(target_arch = "wasm32")]
-fn absolute(p: &str) -> String {
-    p.to_string()
-}
-
 /// `path` with symlinks, `.` and `..` and (on case-insensitive volumes) letter case resolved;
 /// `None` when it can't be (a missing file).
-#[cfg(not(target_arch = "wasm32"))]
 fn canonical(path: &str) -> Option<std::path::PathBuf> {
     std::fs::canonicalize(path).ok()
-}
-
-#[cfg(target_arch = "wasm32")]
-fn canonical(_path: &str) -> Option<std::path::PathBuf> {
-    None
 }
 
 /// Whether an open document's path `p` names the file at `path` (`canon`: its [`canonical`]

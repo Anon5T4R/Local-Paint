@@ -48,7 +48,6 @@ pub(crate) fn batch_inputs_tree(p: &Value, cmd: &str, output: &str) -> Result<Ve
 /// subfolders in name order (depth first). Bounded by [`MAX_SUBFOLDER_DEPTH`] and
 /// [`MAX_SUBFOLDER_FILES`]; a folder reached twice (a symlink loop) is walked once, and `skip`
 /// (the output folder) is left out.
-#[cfg(not(target_arch = "wasm32"))]
 pub(crate) fn list_images_tree(dir: &str, skip: &str, cmd: &str) -> Result<Vec<BatchInput>> {
     use std::path::{Path, PathBuf};
     let canon = |p: &Path| std::fs::canonicalize(p).ok();
@@ -94,11 +93,6 @@ pub(crate) fn list_images_tree(dir: &str, skip: &str, cmd: &str) -> Result<Vec<B
         }
     }
     Ok(out)
-}
-
-#[cfg(target_arch = "wasm32")]
-pub(crate) fn list_images_tree(dir: &str, _skip: &str, _cmd: &str) -> Result<Vec<BatchInput>> {
-    Err(EngineError::Other(format!("cannot list {dir}: no file system on the web")))
 }
 
 /// Opens each input in a scratch session, runs `f` on it and saves it to `output` as `format`

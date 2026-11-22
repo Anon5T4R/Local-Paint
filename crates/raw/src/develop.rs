@@ -773,15 +773,9 @@ mod tests {
         }
     }
 
-    /// `f` on a pool of `n` threads (the browser builds have none).
+    /// `f` on a pool of `n` threads.
     fn with_threads<R: Send>(n: usize, f: impl FnOnce() -> R + Send) -> R {
-        #[cfg(not(target_arch = "wasm32"))]
-        return rayon::ThreadPoolBuilder::new().num_threads(n).build().unwrap().install(f);
-        #[cfg(target_arch = "wasm32")]
-        {
-            let _ = n;
-            f()
-        }
+        rayon::ThreadPoolBuilder::new().num_threads(n).build().unwrap().install(f)
     }
 
     fn assert_fused_matches_full(s: &Sensor, opts: &DevelopOptions, what: &str) {

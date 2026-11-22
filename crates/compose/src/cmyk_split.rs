@@ -148,13 +148,10 @@ fn stand_in_surface_in(s: &Surface, planes: Planes, budget: u64) -> Surface {
             end += 1;
         }
         let batch = rects.get(start..end).unwrap_or_default();
-        #[cfg(not(target_arch = "wasm32"))]
         let tiles: Vec<(Rect, Vec<f32>)> = {
             use rayon::prelude::*;
             batch.par_iter().map(convert).collect()
         };
-        #[cfg(target_arch = "wasm32")]
-        let tiles: Vec<(Rect, Vec<f32>)> = batch.iter().map(convert).collect();
         for (r, data) in &tiles {
             out.write_region(*r, data);
         }

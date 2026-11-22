@@ -359,7 +359,7 @@ pub(super) fn image_assets(s: &mut Session, p: &Value) -> Result<Value> {
         return Ok(json!({"enabled": false}));
     }
     match dir {
-        Some(dir) if !cfg!(target_arch = "wasm32") => {
+        Some(dir) => {
             let (files, errors) = generate_assets(&d.doc, &dir);
             Ok(json!({"enabled": true, "dir": dir, "files": files, "errors": errors}))
         }

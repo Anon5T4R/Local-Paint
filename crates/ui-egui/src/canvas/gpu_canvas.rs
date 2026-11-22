@@ -70,7 +70,6 @@ use setup::texture_buffer;
 pub use setup::{Refresh, device_descriptor, device_limits, display_texels, timing_features, use_adapter_limits, use_adapter_limits_with, wgpu_setup};
 #[cfg(test)]
 use shaders::{CANVAS_WGSL, ENCODE_WGSL, MIP_WGSL};
-#[cfg(not(target_arch = "wasm32"))]
 use texels::texel_to_f32;
 pub use texels::{LayerFit, premultiply_rgba8, premultiply_rgba16f};
 #[cfg(test)]
@@ -712,7 +711,6 @@ impl GpuCanvas {
             d.regenerate_mips(device, queue, res, [region.x0 as u32, region.y0 as u32, region.x1 as u32, region.y1 as u32]);
             if std::env::var_os("LOCALPAINT_GPU_SYNC").is_some() {
                 // Benchmarking: wait for the GPU so callers can time the whole refresh.
-                #[cfg(not(target_arch = "wasm32"))]
                 self.health.wait(device, None);
             }
         } else if fresh {
@@ -948,7 +946,6 @@ impl GpuCanvas {
     /// Read back level 0 of document `key`'s canvas texture: its format, size and the stored
     /// (premultiplied) texels as `f32` RGBA, row-major. Waits for the GPU; for tests, benchmarks
     /// and debugging.
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn read_texels(&self, key: u64) -> Option<(wgpu::TextureFormat, [u32; 2], Vec<[f32; 4]>)> {
         if !self.health.is_ok() {
             return None;

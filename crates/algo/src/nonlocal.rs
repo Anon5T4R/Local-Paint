@@ -29,7 +29,6 @@ use crate::inpaint::Rng;
 use localpaint_raster::{Cancelled, Interrupt};
 
 /// Below this many grid cells a level runs single-threaded (thread hand-off costs more than it saves).
-#[cfg(not(target_arch = "wasm32"))]
 const PAR_MIN: usize = 128 * 128;
 
 /// Parameters for [`complete_with`]. The defaults are the paper's, except for the PatchMatch
@@ -303,7 +302,6 @@ impl Solver<'_> {
                 }
             }
         };
-        #[cfg(not(target_arch = "wasm32"))]
         if w * self.h >= PAR_MIN {
             use rayon::prelude::*;
             nnf.par_chunks_mut(BAND * w).zip(cost.par_chunks_mut(BAND * w)).enumerate().for_each(|(bi, (nn, co))| band(bi, nn, co));
@@ -319,7 +317,6 @@ impl Solver<'_> {
         let one = |(i, c): (usize, &mut f32)| {
             *c = if self.targets[i] { self.dist(((i % self.w) as i32, (i / self.w) as i32), nnf[i], f32::INFINITY, None) } else { f32::INFINITY };
         };
-        #[cfg(not(target_arch = "wasm32"))]
         if self.w * self.h >= PAR_MIN {
             use rayon::prelude::*;
             cost.par_iter_mut().enumerate().for_each(one);
@@ -337,15 +334,12 @@ impl Solver<'_> {
             }
             (0..w).filter(|&x| self.hole[y * w + x]).filter_map(|x| pick(x, y).map(|v| (y * w + x, v))).collect()
         };
-        #[cfg(not(target_arch = "wasm32"))]
         let rows: Vec<Vec<(usize, T)>> = if w * h >= PAR_MIN {
             use rayon::prelude::*;
             (0..h).into_par_iter().map(row).collect()
         } else {
             (0..h).map(row).collect()
         };
-        #[cfg(target_arch = "wasm32")]
-        let rows: Vec<Vec<(usize, T)>> = (0..h).map(row).collect();
         rows.into_iter().flatten().collect()
     }
 
@@ -530,13 +524,10 @@ impl Solver<'_> {
             crate::poisson::solve_membrane(bw, bh, &unknown, &mut v);
             v
         };
-        #[cfg(not(target_arch = "wasm32"))]
         let shifts: Vec<Vec<f32>> = {
             use rayon::prelude::*;
             (0..ch).into_par_iter().map(channel).collect()
         };
-        #[cfg(target_arch = "wasm32")]
-        let shifts: Vec<Vec<f32>> = (0..ch).map(channel).collect();
         for &(p, _, _) in copied {
             let lp = local(p);
             for (c, shift) in shifts.iter().enumerate() {
@@ -640,13 +631,10 @@ impl Solver<'_> {
                         *o = cur + OMEGA * ((*o - div[p * ch + c]) / deg.max(1.0) - cur);
                     }
                 };
-                #[cfg(not(target_arch = "wasm32"))]
                 {
                     use rayon::prelude::*;
                     cells.par_iter().zip(next.par_chunks_mut(ch)).for_each(relax);
                 }
-                #[cfg(target_arch = "wasm32")]
-                cells.iter().zip(next.chunks_mut(ch)).for_each(relax);
                 for (p, v) in cells.iter().zip(next.chunks(ch)) {
                     delta[p * ch..(p + 1) * ch].copy_from_slice(v);
                 }
@@ -736,13 +724,10 @@ impl Solver<'_> {
                 }
                 (ci, best, bc)
             };
-            #[cfg(not(target_arch = "wasm32"))]
             let found: Vec<(usize, (i32, i32), f32)> = {
                 use rayon::prelude::*;
                 centres.par_iter().map(search).collect()
             };
-            #[cfg(target_arch = "wasm32")]
-            let found: Vec<(usize, (i32, i32), f32)> = centres.iter().map(search).collect();
             let mut cs = Vec::with_capacity(found.len());
             for &(ci, s, c) in &found {
                 if c.is_finite() {

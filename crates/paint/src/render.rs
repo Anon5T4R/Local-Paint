@@ -45,16 +45,13 @@ pub const COV_TILE: i32 = 64;
 /// Work on at least this many pixels runs in parallel (rows of a dab, tiles of a stroke): below
 /// it the threads cost more than they save. A large soft tip is tens of megapixels per dab, and
 /// every stage of it is independent per row or tile, so the pixels come out the same.
-#[cfg(not(target_arch = "wasm32"))]
 pub(crate) const DEFAULT_PARALLEL_MIN_PIXELS: usize = 256 * 256;
 
 /// The threshold in use: [`DEFAULT_PARALLEL_MIN_PIXELS`] (tests move it).
-#[cfg(not(target_arch = "wasm32"))]
 static PARALLEL_MIN_PIXELS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(DEFAULT_PARALLEL_MIN_PIXELS);
 
 /// Whether `pixels` of independent work are worth the thread pool (the web has none: there every
 /// stage takes its serial path).
-#[cfg(not(target_arch = "wasm32"))]
 fn parallel(pixels: usize) -> bool {
     pixels >= PARALLEL_MIN_PIXELS.load(std::sync::atomic::Ordering::Relaxed)
 }
@@ -63,33 +60,27 @@ fn parallel(pixels: usize) -> bool {
 /// The static is process-wide, so brush tests on other threads see the change too; that is
 /// harmless, because every stage gives the same pixels serially and in parallel (the point of
 /// the test that uses this), so no test can tell which way it ran.
-#[cfg(all(test, not(target_arch = "wasm32")))]
+#[cfg(test)]
 pub(crate) fn set_parallel_min_pixels(n: usize) {
     PARALLEL_MIN_PIXELS.store(n, std::sync::atomic::Ordering::Relaxed);
 }
 
 /// `f` over `items`, in parallel when `pixels` are worth it.
 fn for_each_item<T: Send>(items: &mut [T], pixels: usize, f: impl Fn(&mut T) + Sync) {
-    #[cfg(not(target_arch = "wasm32"))]
     if parallel(pixels) {
         use rayon::prelude::*;
         items.par_iter_mut().for_each(&f);
         return;
     }
-    #[cfg(target_arch = "wasm32")]
-    let _ = pixels;
     items.iter_mut().for_each(&f);
 }
 
 /// `f` over `items`, collecting its results in order, in parallel when `pixels` are worth it.
 fn map_items<T: Sync, R: Send>(items: &[T], pixels: usize, f: impl Fn(&T) -> R + Sync) -> Vec<R> {
-    #[cfg(not(target_arch = "wasm32"))]
     if parallel(pixels) {
         use rayon::prelude::*;
         return items.par_iter().map(&f).collect();
     }
-    #[cfg(target_arch = "wasm32")]
-    let _ = pixels;
     items.iter().map(&f).collect()
 }
 /// Computed tips with a smaller radius (in pixels) are rasterised by area, not at pixel centres.
@@ -548,7 +539,6 @@ impl CoverageMap {
                 ((tx, ty), tr)
             })
         });
-        #[cfg(not(target_arch = "wasm32"))]
         {
             let n = (COV_TILE * COV_TILE) as usize;
             let count = (i64::from(t1x) - i64::from(t0x) + 1) as usize;
@@ -1310,7 +1300,6 @@ fn rasterize_round(d: &Dab, rect: Rect, out: &mut [f32], profile: TipProfile, al
     // Rows are independent: a large tip's rows run in parallel, to the same values. The serial
     // path stays a plain loop over an inlined row: the same code as before the threads (a closure
     // passed to a helper cost a small tip half its rasterization time).
-    #[cfg(not(target_arch = "wasm32"))]
     if parallel(out.len()) {
         use rayon::prelude::*;
         out.par_chunks_exact_mut(w).enumerate().for_each(|(yy, row)| tip.row(yy, row));

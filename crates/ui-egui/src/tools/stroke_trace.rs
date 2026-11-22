@@ -122,7 +122,6 @@ fn percentiles(mut v: Vec<f64>) -> [f64; 2] {
 impl StrokeTrace {
     /// Reads `LOCALPAINT_STROKE_TRACE` (off on the web, where there is no clock).
     pub fn from_env() -> Self {
-        #[cfg(not(target_arch = "wasm32"))]
         if let Some(v) = std::env::var_os("LOCALPAINT_STROKE_TRACE") {
             return Self::from_value(&v.to_string_lossy());
         }
@@ -135,7 +134,6 @@ impl StrokeTrace {
     pub fn from_value(v: &str) -> Self {
         let v = v.trim();
         let output = match v {
-            _ if cfg!(target_arch = "wasm32") => Output::Off,
             "" | "0" | "off" | "false" => Output::Off,
             "1" | "stderr" | "true" => Output::Stderr,
             path => Output::Csv(path.into()),
@@ -191,7 +189,6 @@ impl StrokeTrace {
         if self.enabled() {
             eprintln!("{}", summary.line());
         }
-        #[cfg(not(target_arch = "wasm32"))]
         if let Output::Csv(path) = &self.output
             && let Err(e) = append_csv(path, self.strokes, &rows)
         {
@@ -216,7 +213,6 @@ pub(crate) fn csv(stroke: usize, rows: &[Row], header: bool) -> String {
     s
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 fn append_csv(path: &std::path::Path, stroke: usize, rows: &[Row]) -> std::io::Result<()> {
     use std::io::Write as _;
     let header = std::fs::metadata(path).map_or(true, |m| m.len() == 0);
@@ -311,7 +307,6 @@ mod tests {
         assert_eq!(percentiles((1..=100).map(f64::from).collect()), [51.0, 95.0]);
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     #[test]
     fn the_csv_gets_one_header_and_every_strokes_frames() {
         let dir = std::env::temp_dir().join(format!("localpaint-stroke-trace-{}", std::process::id()));

@@ -18,7 +18,6 @@ impl Base {
 }
 
 /// A computed preview: the filled rectangle as an image, or why it failed.
-#[cfg(not(target_arch = "wasm32"))]
 type PreviewResult = Result<(Rect, egui::ColorImage), String>;
 
 /// The preview being computed or shown.
@@ -26,7 +25,6 @@ type PreviewResult = Result<(Rect, egui::ColorImage), String>;
 pub(super) struct Preview {
     /// Bumped whenever the state changes; a result for an older generation is dropped.
     pub(super) want: u64,
-    #[cfg(not(target_arch = "wasm32"))]
     running: Option<(u64, std::sync::mpsc::Receiver<PreviewResult>, localpaint_engine::jobs::JobCtx)>,
     pub(super) shown: u64,
     /// A finished preview waiting to be uploaded (on the UI thread, which has the context).
@@ -149,15 +147,11 @@ pub(super) fn rebase(app: &mut LocalPaintApp) {
     w.stale();
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 pub(super) fn cancel_preview(w: CafWorkspace) {
     if let Some((_, _, job)) = w.preview.running {
         job.cancel();
     }
 }
-
-#[cfg(target_arch = "wasm32")]
-pub(super) fn cancel_preview(_: CafWorkspace) {}
 
 /// The document changed under the workspace (an Apply): new textures, a new base.
 pub(super) fn refresh(app: &mut LocalPaintApp) {
@@ -254,7 +248,6 @@ fn compute_preview(
 
 /// Starts a background preview when the shown one is out of date (and the pointer is up), and
 /// collects a finished one.
-#[cfg(not(target_arch = "wasm32"))]
 pub(super) fn drive_preview(app: &mut LocalPaintApp, ctx: &egui::Context, dragging: bool) {
     let doc = app.session.active().map(|s| s.doc.clone());
     let Some(w) = app.distort.caf.as_mut() else { return };
@@ -302,14 +295,5 @@ pub(super) fn drive_preview(app: &mut LocalPaintApp, ctx: &egui::Context, draggi
     match spawned {
         Ok(_) => w.preview.running = Some((generation, rx, job)),
         Err(e) => w.preview.error = Some(format!("could not start the preview: {e}")),
-    }
-}
-
-/// The web build has no threads: the preview is computed when the pointer comes up.
-#[cfg(target_arch = "wasm32")]
-pub(super) fn drive_preview(app: &mut LocalPaintApp, _ctx: &egui::Context, dragging: bool) {
-    let stale = app.distort.caf.as_ref().is_some_and(|w| w.preview.shown != w.preview.want);
-    if stale && !dragging {
-        let _ = wait_preview(app);
     }
 }

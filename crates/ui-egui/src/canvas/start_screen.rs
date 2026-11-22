@@ -17,8 +17,7 @@ pub(super) fn start_screen(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
     open_on_double_click(app, ui, area);
     // File › Open Recent, newest first (on the web there are no paths to reopen).
     let show_recent = app.session.prefs().interface.show_home_recent_files;
-    let recent: Vec<String> =
-        if cfg!(target_arch = "wasm32") || !show_recent { Vec::new() } else { app.ui.recent_files.iter().take(HOME_RECENT).cloned().collect() };
+    let recent: Vec<String> = if !show_recent { Vec::new() } else { app.ui.recent_files.iter().take(HOME_RECENT).cloned().collect() };
     let recent_h = if recent.is_empty() { 0.0 } else { 34.0 + recent.len() as f32 * HOME_RECENT_ROW };
     // A tiling window manager can give the canvas less room than the card wants: shrink the card
     // to fit, and stack the buttons when they don't fit side by side.

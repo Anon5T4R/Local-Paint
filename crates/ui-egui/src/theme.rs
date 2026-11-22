@@ -1165,7 +1165,7 @@ mod tests;
 /// Set `LOCALPAINT_THEME_FILE=/path/tokens.json` in a debug build; the file is polled and applied
 /// on change, so colours, radii and sizes can be tuned without recompiling. Keys are `Tokens` field
 /// names; values are `"#rrggbb"`, `"#rrggbbaa"` or numbers. Compiled out of release builds.
-#[cfg(all(debug_assertions, not(target_arch = "wasm32")))]
+#[cfg(debug_assertions)]
 pub mod live {
     use super::Tokens;
     use egui::Color32;

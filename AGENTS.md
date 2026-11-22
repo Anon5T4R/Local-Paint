@@ -16,13 +16,12 @@ Rust puro + egui. Sem conta, sem telemetria, sem dependência de servidores de t
 
 ## Estrutura
 - `crates/` — engine e módulos (`localpaint-*`), em camadas L0–L6 (`cargo xtask layers`)
-- `apps/localpaint` — app desktop + control channel; `apps/localpaint-cli` — CLI/MCP;
-  `apps/localpaint-web` e `apps/localpaint-web-boot` — wasm
+- `apps/localpaint` — app desktop + control channel; `apps/localpaint-cli` — CLI/MCP
 - `libs/` — forks vendored: `craft-libs`, `egui`, `winit`, `winprint.rs`
-- `packaging/` — Windows (WiX/MSI), Linux (AppImage/deb/rpm/tar FHS com `install.sh`), Arch (PKGBUILD), macOS, FreeBSD, web
+- `packaging/` — Windows (WiX/MSI), Linux (AppImage/deb/rpm/tar FHS com `install.sh`), Arch (PKGBUILD), macOS, FreeBSD
 - `book/` — o livro de documentação (mdBook); `docs/` — arquitetura, formatos, release e notas de design (scorecard e checklist de menu são gerados pelo xtask)
 - `scripts/check-mirror.sh` — confere as crates e os assets (`craft-fonts`) espelhados do `local-libs` contra a fonte (CI e `xtask ci`)
-- `xtask/` — tarefas de build/CI (`cargo xtask ci`, `layers`, `wasm`, `parity`, `scorecard`)
+- `xtask/` — tarefas de build/CI (`cargo xtask ci`, `layers`, `parity`, `scorecard`)
 
 ## Agent-native (MCP)
 O eixo mais completo da suíte: `crates/automation` (MCP headless + bridge com o token do control
@@ -37,12 +36,12 @@ porta nua = loopback; host público recusado). Docs: `book/src/automation/{cli,m
 ```
 cargo build --locked          # debug
 cargo test --locked           # testes (as fontes vendored entram sempre: .cargo/config.toml, igual ao CI)
-cargo xtask ci                # o gate local: fmt, clippy, camadas, scorecard, testes, wasm, cargo-deny e espelhos do local-libs
+cargo xtask ci                # o gate local: fmt, clippy, camadas, scorecard, testes, cargo-deny e espelhos do local-libs
 packaging/windows/package.ps1 # MSI + portable (Windows)
 packaging/linux/package.sh    # AppImage/deb/rpm/tar (Linux)
 ```
 
-Regras técnicas do código (never-crash, camadas, tudo é comando, wasm, testes):
+Regras técnicas do código (never-crash, camadas, tudo é comando, testes):
 `docs/contributing.md`.
 
 

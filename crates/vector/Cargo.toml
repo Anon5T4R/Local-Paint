@@ -15,6 +15,4 @@ localpaint-geom = { workspace = true }
 localpaint-color = { workspace = true }
 localpaint-raster = { workspace = true }
 localpaint-doc = { workspace = true }
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 rayon = { workspace = true }

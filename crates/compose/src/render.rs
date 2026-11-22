@@ -103,7 +103,6 @@ pub(crate) fn render_tiled_with(doc: &Document, rect: Rect, tile: i32, cx: &Ctx)
         }
     };
     let band_len = w * tile as usize;
-    #[cfg(not(target_arch = "wasm32"))]
     {
         use rayon::prelude::*;
         let bands = rect.height().div_ceil(tile as u32) as usize;
@@ -128,13 +127,6 @@ pub(crate) fn render_tiled_with(doc: &Document, rect: Rect, tile: i32, cx: &Ctx)
                     put(&mut band, y0, &part);
                 });
             });
-        }
-    }
-    #[cfg(target_arch = "wasm32")]
-    for (i, band) in out.px.chunks_mut(band_len).enumerate() {
-        let y0 = rect.y0 + i as i32 * tile;
-        for t in band_tiles(y0) {
-            put(band, y0, &run(t));
         }
     }
     out

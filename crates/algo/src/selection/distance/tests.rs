@@ -97,7 +97,6 @@ fn selection_modifiers_keep_fractional_coverage() {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn results_do_not_depend_on_the_worker_count() {
     let (w, h) = (521, 139);
@@ -109,7 +108,6 @@ fn results_do_not_depend_on_the_worker_count() {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 #[ignore = "release comparison on 24 and 36 MP masks"]
 #[allow(clippy::assertions_on_constants)] // This opt-in benchmark needs an optimized build.

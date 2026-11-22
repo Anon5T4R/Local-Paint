@@ -63,9 +63,9 @@ fn has_doc(s: &Session) -> std::result::Result<(), String> {
     s.active().map(|_| ()).ok_or_else(|| "no document open".into())
 }
 
-/// The file system is reachable (not on the web).
+/// The file system is reachable (the app is desktop-only).
 pub(crate) fn native(_: &Session) -> std::result::Result<(), String> {
-    if cfg!(target_arch = "wasm32") { Err("not available on the web (no file system)".into()) } else { Ok(()) }
+    Ok(())
 }
 
 pub(crate) fn native_doc(s: &Session) -> std::result::Result<(), String> {

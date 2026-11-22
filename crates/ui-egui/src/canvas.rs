@@ -1599,7 +1599,7 @@ fn draw_default_tool_cursor(app: &mut LocalPaintApp, ui: &mut egui::Ui, input: &
         }
         _ => egui::CursorIcon::Crosshair,
     };
-    let icon = visible_crosshair(icon, painter, p, cfg!(not(target_arch = "wasm32")));
+    let icon = visible_crosshair(icon, painter, p, true);
     ui.ctx().set_cursor_icon(icon);
     // Selection tools: + / − / × badge for the effective mode (#170). A gesture keeps the
     // mode it started with (⇧ then constrains the marquee instead of adding).

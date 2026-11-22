@@ -105,7 +105,6 @@ pub(super) fn open_raw(app: &mut LocalPaintApp, ctx: &egui::Context, raw: RawOpe
     }
     let curve = match (&raw.bytes, &raw.path) {
         (Some(b), _) => Some(localpaint_io::raw::tone_curve(b)),
-        #[cfg(not(target_arch = "wasm32"))]
         (None, Some(p)) => std::fs::read(p).ok().map(|b| localpaint_io::raw::tone_curve(&b)),
         _ => None,
     };
@@ -185,7 +184,6 @@ pub(super) fn commit_open_raw(app: &mut LocalPaintApp, params: &CameraRaw, raw: 
     // Without the file the raw-stage settings stay RGB adjustments, like the filter's.
     let source = match (&raw.bytes, &raw.path) {
         (Some(b), _) => Some(localpaint_engine::jobs::OpenSource::Bytes(b.clone())),
-        #[cfg(not(target_arch = "wasm32"))]
         (None, Some(p)) => Some(localpaint_engine::jobs::OpenSource::Path(p.clone())),
         _ => None,
     };
@@ -199,12 +197,9 @@ pub(super) fn commit_open_raw(app: &mut LocalPaintApp, params: &CameraRaw, raw: 
         ctx.progress(0.0, "Reading");
         let bytes = match source {
             localpaint_engine::jobs::OpenSource::Bytes(b) => b,
-            #[cfg(not(target_arch = "wasm32"))]
             localpaint_engine::jobs::OpenSource::Path(p) => {
                 std::sync::Arc::new(std::fs::read(&p).map_err(|e| localpaint_engine::EngineError::Other(format!("{p}: {e}")))?)
             }
-            #[cfg(target_arch = "wasm32")]
-            localpaint_engine::jobs::OpenSource::Path(p) => return Err(localpaint_engine::EngineError::Other(format!("{p}: cannot read files here"))),
         };
         ctx.check()?;
         ctx.progress(0.05, "Developing");

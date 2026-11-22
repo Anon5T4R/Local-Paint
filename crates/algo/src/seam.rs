@@ -46,13 +46,10 @@ pub fn energy(w: usize, h: usize, ch: usize, img: &[f32]) -> Vec<f32> {
             *v = energy_at(img, w, w, h, ch, x, y, |xx, _| xx);
         }
     };
-    #[cfg(not(target_arch = "wasm32"))]
     {
         use rayon::prelude::*;
         e.par_chunks_mut(w).enumerate().for_each(row);
     }
-    #[cfg(target_arch = "wasm32")]
-    e.chunks_mut(w).enumerate().for_each(row);
     e
 }
 
@@ -324,7 +321,6 @@ impl<'a> Carver<'a> {
     /// Remove `seam[y]` from each row of the per-pixel buffers.
     fn shift(&mut self, seam: &[usize]) {
         let (w, cw) = (self.w, self.cw);
-        #[cfg(not(target_arch = "wasm32"))]
         {
             use rayon::prelude::*;
             self.e
@@ -335,14 +331,6 @@ impl<'a> Carver<'a> {
                 .zip(seam.par_iter())
                 .for_each(|((((e, idx), cost), off), &x)| shift_row(e, idx, cost, off, x, cw));
         }
-        #[cfg(target_arch = "wasm32")]
-        self.e
-            .chunks_mut(w)
-            .zip(self.idx.chunks_mut(w))
-            .zip(self.dp.cost.chunks_mut(w))
-            .zip(self.off.iter_mut())
-            .zip(seam)
-            .for_each(|((((e, idx), cost), off), &x)| shift_row(e, idx, cost, off, x, cw));
     }
 
     /// Recompute the energy of the pixels whose neighbours changed when `seam` was removed: in
@@ -368,13 +356,10 @@ impl<'a> Carver<'a> {
         };
         // A few pixels per row (seams move at most one column per row), but each waits on reads
         // from three rows of the source: rows in parallel overlap the waits.
-        #[cfg(not(target_arch = "wasm32"))]
         {
             use rayon::prelude::*;
             self.e.par_chunks_mut(w).enumerate().for_each(row);
         }
-        #[cfg(target_arch = "wasm32")]
-        self.e.chunks_mut(w).enumerate().for_each(row);
     }
 
     /// The carved pixels, `cw × h × ch`, rows packed.
@@ -392,13 +377,10 @@ impl<'a> Carver<'a> {
                 px.copy_from_slice(&src[s..s + ch]);
             }
         };
-        #[cfg(not(target_arch = "wasm32"))]
         {
             use rayon::prelude::*;
             out.par_chunks_mut(cw * ch).enumerate().for_each(row);
         }
-        #[cfg(target_arch = "wasm32")]
-        out.chunks_mut(cw * ch).enumerate().for_each(row);
         out
     }
 }
@@ -437,13 +419,10 @@ fn transpose(w: usize, h: usize, ch: usize, img: &[f32]) -> Vec<f32> {
             }
         }
     };
-    #[cfg(not(target_arch = "wasm32"))]
     {
         use rayon::prelude::*;
         out.par_chunks_mut(BLOCK * h * ch).enumerate().for_each(block);
     }
-    #[cfg(target_arch = "wasm32")]
-    out.chunks_mut(BLOCK * h * ch).enumerate().for_each(block);
     out
 }
 
@@ -464,13 +443,10 @@ fn average_rows(src: &[f32], row_len: usize, h: usize, step: usize) -> Vec<f32> 
             }
         }
     };
-    #[cfg(not(target_arch = "wasm32"))]
     {
         use rayon::prelude::*;
         out.par_chunks_exact_mut(row_len).enumerate().for_each(group);
     }
-    #[cfg(target_arch = "wasm32")]
-    out.chunks_exact_mut(row_len).enumerate().for_each(group);
     out
 }
 
@@ -622,15 +598,9 @@ fn carve_width_proxy_height(w: usize, h: usize, ch: usize, img: &[f32], protect:
         Ok(())
     };
     let mut out = vec![0.0f32; new_w * h * ch];
-    #[cfg(not(target_arch = "wasm32"))]
     {
         use rayon::prelude::*;
         out.par_chunks_exact_mut(new_w * ch).enumerate().try_for_each_init(|| Vec::with_capacity(seam_count), rebuild)?;
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        let mut columns = Vec::with_capacity(seam_count);
-        out.chunks_exact_mut(new_w * ch).enumerate().try_for_each(|r| rebuild(&mut columns, r))?;
     }
     ctl.progress(1.0);
     Ok(out)
@@ -719,13 +689,10 @@ pub fn resize_bilinear(w: usize, h: usize, ch: usize, img: &[f32], nw: usize, nh
             }
         }
     };
-    #[cfg(not(target_arch = "wasm32"))]
     {
         use rayon::prelude::*;
         out.par_chunks_mut(nw * ch).enumerate().for_each(row);
     }
-    #[cfg(target_arch = "wasm32")]
-    out.chunks_mut(nw * ch).enumerate().for_each(row);
     out
 }
 

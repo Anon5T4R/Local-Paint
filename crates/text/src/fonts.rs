@@ -4,13 +4,12 @@
 //! user-registered font data, and PostScript-name lookup for PSD import.
 
 use std::collections::HashMap;
-#[cfg(not(target_arch = "wasm32"))]
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, LazyLock};
 
 use parley::FontContext;
-#[cfg(any(target_os = "macos", all(test, not(target_arch = "wasm32"))))]
+#[cfg(any(target_os = "macos", test))]
 use parley::fontique::SourceKind;
 use parley::fontique::{Blob, Collection, CollectionOptions, FontInfoOverride, FontStyle, FontWeight, FontWidth, GenericFamily, SourceCache};
 use skrifa::raw::{FileRef, TableProvider, types::Tag};
@@ -259,7 +258,6 @@ impl FontDb {
             return;
         }
         self.system_loaded = true;
-        #[cfg(not(target_arch = "wasm32"))]
         {
             // One call per file: fontique's directory scan is much slower on large folders.
             let mut files = Vec::new();
@@ -855,7 +853,6 @@ pub fn guess_from_postscript(ps: &str) -> ResolvedFont {
     ResolvedFont { family: family.trim().to_string(), weight, italic, exact: false }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 pub(crate) fn collect_font_files(dir: &std::path::Path, depth: u32, out: &mut Vec<std::path::PathBuf>) {
     let Ok(rd) = std::fs::read_dir(dir) else {
         return;
@@ -875,7 +872,7 @@ pub(crate) fn collect_font_files(dir: &std::path::Path, depth: u32, out: &mut Ve
 /// Fontconfig knows about configured font directories that are not in our portable path list.
 /// Keep this optional and shell-free: directory scans remain the fallback when `fc-list` is not
 /// installed or Fontconfig cannot enumerate fonts.
-#[cfg(all(target_os = "linux", not(target_arch = "wasm32")))]
+#[cfg(target_os = "linux")]
 fn fontconfig_font_paths() -> Vec<std::path::PathBuf> {
     let Ok(output) = std::process::Command::new("fc-list").arg("--format=%{file}\\n").output() else {
         return Vec::new();
@@ -886,7 +883,7 @@ fn fontconfig_font_paths() -> Vec<std::path::PathBuf> {
     fontconfig_paths_from_output(&output.stdout).into_iter().filter(|path| path.is_file()).collect()
 }
 
-#[cfg(all(target_os = "linux", not(target_arch = "wasm32")))]
+#[cfg(target_os = "linux")]
 fn fontconfig_paths_from_output(output: &[u8]) -> Vec<std::path::PathBuf> {
     use std::ffi::OsString;
     use std::os::unix::ffi::OsStringExt;
@@ -905,7 +902,7 @@ fn fontconfig_paths_from_output(output: &[u8]) -> Vec<std::path::PathBuf> {
         .collect()
 }
 
-#[cfg(all(test, target_os = "linux", not(target_arch = "wasm32")))]
+#[cfg(all(test, target_os = "linux"))]
 mod fontconfig_tests {
     use super::fontconfig_paths_from_output;
     use std::path::PathBuf;
@@ -944,7 +941,7 @@ const MACOS_PRIVATE_FONTS: &str = "/System/Library/PrivateFrameworks";
 
 /// The files `collection`'s fonts are read from, each once and in a fixed order. Fonts
 /// registered from memory have no file.
-#[cfg(any(target_os = "macos", all(test, not(target_arch = "wasm32"))))]
+#[cfg(any(target_os = "macos", test))]
 fn font_files_of(collection: &mut Collection) -> Vec<std::path::PathBuf> {
     let names: Vec<String> = collection.family_names().map(str::to_string).collect();
     let mut files = HashSet::new();
@@ -963,7 +960,6 @@ fn font_files_of(collection: &mut Collection) -> Vec<std::path::PathBuf> {
     files
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 pub(crate) fn system_font_dirs() -> Vec<std::path::PathBuf> {
     use std::path::PathBuf;
     let home = std::env::var_os("HOME").map(PathBuf::from);
@@ -1019,7 +1015,7 @@ pub fn is_hidden_family(name: &str) -> bool {
     name.starts_with('.')
 }
 
-#[cfg(all(test, not(target_arch = "wasm32")))]
+#[cfg(test)]
 mod tests {
     #[test]
     fn hidden_families_sort_last_and_are_not_listed() {

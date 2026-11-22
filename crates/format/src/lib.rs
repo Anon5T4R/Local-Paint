@@ -41,7 +41,6 @@ use localpaint_doc::Document;
 use localpaint_raster::Rgba8Image;
 
 pub use atomic::{atomic_write, atomic_write_progress};
-#[cfg(not(target_arch = "wasm32"))]
 pub use autosave::RecoveryStore;
 pub use autosave::{Autosaver, RecoveryEntry, discard_recovery, list_recovery, recover};
 pub use convert::MAX_GROUP_DEPTH;

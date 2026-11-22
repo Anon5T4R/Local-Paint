@@ -364,7 +364,6 @@ fn mips_and_premultiply() {
     assert_eq!(premultiply_rgba8(&[[1.0, 0.5, 0.0, 0.5]]), vec![128, 64, 0, 128]);
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn half_floats() {
     // Every finite half survives the round trip; ties round to even; overflow saturates.
@@ -386,7 +385,6 @@ fn half_floats() {
     assert_eq!(premultiply_rgba16f(&[[2.0, -1.0, f32::NAN, 0.5]]), [0x00, 0x3c, 0, 0, 0, 0, 0x00, 0x38]);
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn shaders_validate() {
     use wgpu::naga;

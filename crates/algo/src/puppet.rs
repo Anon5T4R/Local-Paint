@@ -184,13 +184,10 @@ impl Field {
                     }
                 }
             };
-            #[cfg(not(target_arch = "wasm32"))]
             {
                 use rayon::prelude::*;
                 cov.par_chunks_mut(bw).enumerate().for_each(|(by, out)| scan(by, out));
             }
-            #[cfg(target_arch = "wasm32")]
-            cov.chunks_mut(bw).enumerate().for_each(|(by, out)| scan(by, out));
         }
         let outside = edt(&cov, true, bw, bh);
         let inside = edt(&cov, false, bw, bh);

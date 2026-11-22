@@ -22,10 +22,6 @@
 //!   (`F_FULLFSYNC`), which SMB shares and some virtual file systems refuse while a plain `fsync`
 //!   works. [`sync_file`] falls back to the plain one there (#1336).
 //!
-//! On the web there is no file system: writes go through the platform services (downloads), so
-//! this module is never reached there; on `wasm32` every call returns the `std` "unsupported"
-//! error.
-//!
 //! Replacing a file also carries its metadata across — permission bits, extended attributes,
 //! the "downloaded from the internet" mark and the access-control list — so that saving a
 //! document does not quietly undo a security decision someone made about the file. That part is
@@ -344,12 +340,9 @@ pub fn retry_rename(retry: RenameRetry, mut rename: impl FnMut() -> io::Result<(
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 fn sleep_ms(ms: u64) {
     std::thread::sleep(std::time::Duration::from_millis(ms));
 }
-#[cfg(target_arch = "wasm32")]
-fn sleep_ms(_ms: u64) {}
 
 /// How deep a symlink chain we follow before giving up, like the OS limit.
 const MAX_LINK_DEPTH: u32 = 40;

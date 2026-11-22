@@ -144,13 +144,7 @@ pub(super) fn save(s: &mut Session, p: &Value) -> Result<Value> {
     Ok(out)
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 fn write_file(path: &str, bytes: &[u8]) -> std::io::Result<()> {
     // Atomic replacement (temporary file + rename): a failed write keeps the previous ATN (#7290).
     localpaint_format::atomic_write(std::path::Path::new(path), bytes)
-}
-
-#[cfg(target_arch = "wasm32")]
-fn write_file(path: &str, _bytes: &[u8]) -> std::io::Result<()> {
-    Err(std::io::Error::other(format!("cannot write paths on the web ({path}); omit `path` to get the bytes back as `data`")))
 }

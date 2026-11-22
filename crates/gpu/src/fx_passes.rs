@@ -258,11 +258,8 @@ impl Compositor {
 /// A start time when `LOCALPAINT_FX_TRACE=1` (it prints the CPU time of effect shapes and
 /// distance fields); never on wasm.
 fn web_time_now() -> Option<std::time::Instant> {
-    #[cfg(not(target_arch = "wasm32"))]
     {
         static T: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
         T.get_or_init(|| std::env::var_os("LOCALPAINT_FX_TRACE").is_some()).then(std::time::Instant::now)
     }
-    #[cfg(target_arch = "wasm32")]
-    None
 }

@@ -93,7 +93,6 @@ fn saturated_radius_does_not_pad_a_thin_axis_to_the_long_axis() {
     assert_eq!(morph(&src, w, h, usize::MAX, false), vec![0.0; w * h]);
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn worker_counts_are_bit_identical() {
     let (w, h) = (769, 351);
@@ -106,7 +105,6 @@ fn worker_counts_are_bit_identical() {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn parallel_square_matches_serial_for_partial_blocks_and_thin_images() {
     for (w, h) in [(769, 351), (513, 512), (3, 90001), (90001, 3)] {
@@ -178,7 +176,6 @@ fn bounded_tiles_match_dense_windows_on_partial_cores_and_fractional_values() {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn bounded_tiles_match_across_worker_counts() {
     let (w, h) = (1031usize, 1021usize);

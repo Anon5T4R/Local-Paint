@@ -59,7 +59,6 @@ pub struct CameraRawDevelop {
     luts_view: wgpu::TextureView,
     source: Option<Image>,
     target: Option<Image>,
-    #[cfg(not(target_arch = "wasm32"))]
     readback: Option<wgpu::Buffer>,
 }
 
@@ -137,17 +136,7 @@ impl CameraRawDevelop {
             view_formats: &[],
         });
         let luts_view = luts.create_view(&Default::default());
-        CameraRawDevelop {
-            pipeline,
-            layout,
-            params,
-            luts,
-            luts_view,
-            source: None,
-            target: None,
-            #[cfg(not(target_arch = "wasm32"))]
-            readback: None,
-        }
+        CameraRawDevelop { pipeline, layout, params, luts, luts_view, source: None, target: None, readback: None }
     }
 
     /// Records the develop of `source` (`w × h` straight RGBA, display-encoded) with `stages`
@@ -226,7 +215,6 @@ impl CameraRawDevelop {
     /// Develops `source` and reads the result back (blocking; native only, the web has no
     /// blocking wait). GPU errors and a lost device are `Err`; `health`, when the device is
     /// watched, records a loss.
-    #[cfg(not(target_arch = "wasm32"))]
     #[allow(clippy::too_many_arguments)]
     pub fn develop(
         &mut self,
@@ -252,7 +240,6 @@ impl CameraRawDevelop {
         }
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     #[allow(clippy::too_many_arguments)]
     fn develop_inner(
         &mut self,

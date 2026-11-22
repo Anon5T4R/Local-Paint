@@ -64,13 +64,10 @@ pub(super) fn apply_reference(
     };
     let mut out = s.clone();
     for chunk in tiles.chunks(group) {
-        #[cfg(not(target_arch = "wasm32"))]
         let results: Vec<_> = {
             use rayon::prelude::*;
             chunk.par_iter().map(run).collect()
         };
-        #[cfg(target_arch = "wasm32")]
-        let results: Vec<_> = chunk.iter().map(run).collect();
         for (t, data) in results {
             out.write_region(t, &data);
         }
@@ -80,14 +77,7 @@ pub(super) fn apply_reference(
 }
 
 fn workers() -> usize {
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        rayon::current_num_threads()
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        1
-    }
+    rayon::current_num_threads()
 }
 
 #[test]

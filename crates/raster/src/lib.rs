@@ -257,18 +257,9 @@ fn write_tile(t: &mut Tile, tc: TileCoord, r: Rect, data: &[f32], w: usize, n: u
 
 /// Converts the tiles of a region write. A tile holds no state another tile reads, so the tiles
 /// are converted on all cores; each writes only its own bytes, in the same arithmetic.
-#[cfg(not(target_arch = "wasm32"))]
 fn convert_tiles(tiles: &mut [(TileCoord, Arc<Tile>)], r: Rect, data: &[f32], w: usize, n: usize, sample: SampleType) {
     use rayon::prelude::*;
     tiles.par_iter_mut().for_each(|(tc, t)| write_tile(Arc::make_mut(t), *tc, r, data, w, n, sample));
-}
-
-/// Serial counterpart, for the web build (there are no threads to spread tiles over).
-#[cfg(target_arch = "wasm32")]
-fn convert_tiles(tiles: &mut [(TileCoord, Arc<Tile>)], r: Rect, data: &[f32], w: usize, n: usize, sample: SampleType) {
-    for (tc, t) in tiles.iter_mut() {
-        write_tile(Arc::make_mut(t), *tc, r, data, w, n, sample);
-    }
 }
 
 /// Copies the rows of `r` (interleaved `bytes`, `w` px wide, `bpp` bytes per pixel) into one
@@ -290,16 +281,9 @@ fn copy_tile(tc: TileCoord, t: &mut Arc<Tile>, r: Rect, bytes: &[u8], w: usize, 
 }
 
 /// The tiles of an interleaved write, on all cores: each writes only its own bytes.
-#[cfg(not(target_arch = "wasm32"))]
 fn copy_tiles(tiles: &mut [(TileCoord, Arc<Tile>)], r: Rect, bytes: &[u8], w: usize, bpp: usize) -> Result<(), AllocationError> {
     use rayon::prelude::*;
     tiles.par_iter_mut().try_for_each(|(tc, t)| copy_tile(*tc, t, r, bytes, w, bpp))
-}
-
-/// Serial counterpart, for the web build.
-#[cfg(target_arch = "wasm32")]
-fn copy_tiles(tiles: &mut [(TileCoord, Arc<Tile>)], r: Rect, bytes: &[u8], w: usize, bpp: usize) -> Result<(), AllocationError> {
-    tiles.iter_mut().try_for_each(|(tc, t)| copy_tile(*tc, t, r, bytes, w, bpp))
 }
 
 fn decode_tile_row_rgba(fmt: &PixelFormat, t: &Tile, base: usize, dst: &mut [[f32; 4]], row: &mut Vec<f32>) {
@@ -1110,14 +1094,9 @@ impl Surface {
             };
             finished.map(|t| (dc, t))
         };
-        #[cfg(not(target_arch = "wasm32"))]
         {
             use rayon::prelude::*;
             out.tiles = targets.into_par_iter().filter_map(build_target).collect();
-        }
-        #[cfg(target_arch = "wasm32")]
-        {
-            out.tiles = targets.into_iter().filter_map(build_target).collect();
         }
         out
     }

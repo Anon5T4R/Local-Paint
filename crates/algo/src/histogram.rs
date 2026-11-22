@@ -31,7 +31,6 @@ impl RgbHistogram {
         // Camera Raw counts its whole proxy (~450k pixels) on every slider step, so the count
         // runs in blocks across cores (#211, P36). Integer sums don't depend on the order the
         // blocks finish in, so the result is the same as one pass over all pixels.
-        #[cfg(not(target_arch = "wasm32"))]
         if pixels.len() >= PARALLEL_PIXELS {
             use rayon::prelude::*;
             return pixels.par_chunks(PARALLEL_PIXELS / 2).map(Self::count).reduce(Self::default, Self::merge);
@@ -82,7 +81,6 @@ impl RgbHistogram {
     }
 
     /// Sum of two block counts. Saturating like the counters themselves.
-    #[cfg(not(target_arch = "wasm32"))]
     fn merge(mut self, other: Self) -> Self {
         let add = |a: &mut [u64], b: &[u64]| a.iter_mut().zip(b).for_each(|(a, b)| *a = a.saturating_add(*b));
         for (a, b) in self.channels.iter_mut().zip(&other.channels) {
@@ -100,7 +98,6 @@ impl RgbHistogram {
 }
 
 /// Below this many pixels one pass is faster than splitting the count across cores.
-#[cfg(not(target_arch = "wasm32"))]
 const PARALLEL_PIXELS: usize = 64 * 1024;
 
 /// Clipped channels of one visible straight RGBA pixel as bit masks (bit 0=R, 1=G, 2=B):
@@ -128,7 +125,6 @@ mod tests {
     use super::*;
 
     // The parallel path, and its threshold, exist only off wasm32.
-    #[cfg(not(target_arch = "wasm32"))]
     #[test]
     fn matches_the_single_pass_on_every_domain_and_across_block_edges() {
         // Every special value at every channel, plus a dense ramp through each bin's rounding

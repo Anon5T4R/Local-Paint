@@ -154,15 +154,9 @@ pub fn local_blur(data: &[f32], w: usize, h: usize, ch: usize, alpha: Option<usi
             }
         }
     };
-    #[cfg(not(target_arch = "wasm32"))]
     {
         use rayon::prelude::*;
         tmp.par_chunks_mut(stride).enumerate().for_each_init(scratch, horizontal);
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        let mut row = scratch();
-        tmp.chunks_mut(stride).enumerate().for_each(|item| horizontal(&mut row, item));
     }
     let mut out = vec![0.0f32; ow * oh * ch];
     let vertical = |(oy, dst): (usize, &mut [f32])| {
@@ -182,14 +176,9 @@ pub fn local_blur(data: &[f32], w: usize, h: usize, ch: usize, alpha: Option<usi
             }
         }
     };
-    #[cfg(not(target_arch = "wasm32"))]
     {
         use rayon::prelude::*;
         out.par_chunks_mut(stride).enumerate().for_each(vertical);
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        out.chunks_mut(stride).enumerate().for_each(vertical);
     }
     out
 }
@@ -274,14 +263,9 @@ pub fn local_sharpen(
         }
     };
 
-    #[cfg(not(target_arch = "wasm32"))]
     {
         use rayon::prelude::*;
         out.par_chunks_mut(stride).enumerate().for_each(process_row);
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        out.chunks_mut(stride).enumerate().for_each(process_row);
     }
 
     out

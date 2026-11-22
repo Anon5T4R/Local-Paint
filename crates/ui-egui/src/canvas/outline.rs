@@ -73,16 +73,10 @@ fn outline_scaled_impl(mask: &Surface, bounds: Rect, step: u32, parallel: bool) 
             };
         }
     };
-    #[cfg(not(target_arch = "wasm32"))]
     if parallel {
         use rayon::prelude::*;
         grid.par_chunks_mut(w).enumerate().for_each(|(gy, row)| sample_row(gy, row));
     } else {
-        grid.chunks_mut(w).enumerate().for_each(|(gy, row)| sample_row(gy, row));
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        let _ = parallel;
         grid.chunks_mut(w).enumerate().for_each(|(gy, row)| sample_row(gy, row));
     }
     let inside = |x: usize, y: usize| grid[y * w + x];

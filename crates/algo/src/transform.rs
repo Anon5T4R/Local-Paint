@@ -533,14 +533,9 @@ fn warp(
         }
         Ok(())
     };
-    #[cfg(not(target_arch = "wasm32"))]
     {
         use rayon::prelude::*;
         tiles.into_par_iter().try_for_each(|tile| warp_and_write(&tile))?;
-    }
-    #[cfg(target_arch = "wasm32")]
-    for tile in tiles {
-        warp_and_write(&tile)?;
     }
     if ctl.cancelled() {
         return Ok(Surface::new(fmt));

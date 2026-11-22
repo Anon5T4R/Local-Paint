@@ -12,7 +12,6 @@ use crate::layout::{GlyphOrient, PlacedGlyph, TextLayout};
 use crate::raster::{Bounds, Coverage, LineSink, Pen, Xform, rect_to};
 use crate::warp::{Placement, Warp};
 
-#[cfg(not(target_arch = "wasm32"))]
 use rayon::prelude::*;
 
 /// Faux-italic slant in degrees (Photoshop-like).
@@ -452,10 +451,7 @@ fn composite(acc: &mut [f32], width: usize, sub: Rect, cov: &[f32], stride: usiz
             px[n] = s + px[n] * keep;
         }
     };
-    #[cfg(not(target_arch = "wasm32"))]
     acc.par_chunks_mut(width * stride).skip(y0).take(sh).zip(cov.par_chunks(sw)).for_each(|(a, c)| row(a, c));
-    #[cfg(target_arch = "wasm32")]
-    acc.chunks_mut(width * stride).skip(y0).take(sh).zip(cov.chunks(sw)).for_each(|(a, c)| row(a, c));
 }
 
 /// Divides the premultiplied accumulator back to straight colour. Each pixel stands alone.
@@ -471,10 +467,7 @@ fn unpremultiply(acc: &mut [f32], n: usize, stride: usize, sample: SampleType) {
             }
         }
     };
-    #[cfg(not(target_arch = "wasm32"))]
     acc.par_chunks_exact_mut(stride).for_each(one);
-    #[cfg(target_arch = "wasm32")]
-    acc.chunks_exact_mut(stride).for_each(one);
 }
 
 /// One element of a glyph outline in document space (see [`outlines`]).

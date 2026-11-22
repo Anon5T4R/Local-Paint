@@ -114,21 +114,16 @@ pub fn menu_items(app: &LocalPaintApp) -> Vec<MenuItem> {
     {
         item.label = "Merge Group".into();
     }
-    // The File quick-export command uses the format selected in Export Preferences.
-    // On the web it intentionally downloads PNG until the quick-export service supports
-    // the other formats; the Layer quick-export command also always produces PNG.
+    // The File quick-export command uses the format selected in Export Preferences; the Layer
+    // quick-export command always produces PNG.
     if let Some(item) = items.iter_mut().find(|i| i.id == "file.export.quickExportAsPng") {
         use localpaint_engine::prefs::QuickExportFormat;
-        let format = if cfg!(target_arch = "wasm32") {
-            "PNG"
-        } else {
-            match app.session.prefs().export.quick_export_format {
-                QuickExportFormat::Png => "PNG",
-                QuickExportFormat::Jpg => "JPG",
-                QuickExportFormat::Gif => "GIF",
-                QuickExportFormat::Webp => "WebP",
-                QuickExportFormat::Exr => "EXR",
-            }
+        let format = match app.session.prefs().export.quick_export_format {
+            QuickExportFormat::Png => "PNG",
+            QuickExportFormat::Jpg => "JPG",
+            QuickExportFormat::Gif => "GIF",
+            QuickExportFormat::Webp => "WebP",
+            QuickExportFormat::Exr => "EXR",
         };
         item.label = format!("Quick Export as {format}");
     }

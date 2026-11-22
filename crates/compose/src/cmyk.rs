@@ -636,13 +636,10 @@ pub fn render_display(doc: &Document, rect: Rect) -> Option<super::Buffer> {
     };
     // Rows of tiles at a time, on every core (the profile is set per worker thread).
     let chunk = (rect.width() as usize).max(1) * RENDER_TILE as usize;
-    #[cfg(not(target_arch = "wasm32"))]
     let px: Vec<[f32; 4]> = {
         use rayon::prelude::*;
         inks.px.par_chunks(chunk).flat_map_iter(show).collect()
     };
-    #[cfg(target_arch = "wasm32")]
-    let px: Vec<[f32; 4]> = inks.px.chunks(chunk).flat_map(show).collect();
     Some(super::Buffer { rect, px })
 }
 
@@ -696,13 +693,10 @@ fn render_with(rect: Rect, tile: i32, render_tile: impl Fn(Rect) -> CmykBuffer +
         }
         y = y1;
     }
-    #[cfg(not(target_arch = "wasm32"))]
     let parts: Vec<CmykBuffer> = {
         use rayon::prelude::*;
         tiles.par_iter().map(|t| render_tile(*t)).collect()
     };
-    #[cfg(target_arch = "wasm32")]
-    let parts: Vec<CmykBuffer> = tiles.iter().map(|t| render_tile(*t)).collect();
     for part in &parts {
         place(&mut out, part);
     }

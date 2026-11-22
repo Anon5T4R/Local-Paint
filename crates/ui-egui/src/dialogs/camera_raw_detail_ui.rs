@@ -130,7 +130,6 @@ impl DetailPreview {
                 ctx.request_repaint();
             }
         };
-        #[cfg(not(target_arch = "wasm32"))]
         {
             // A closed dialog can leave one non-interruptible engine stage finishing. Serialize
             // that work with the next dialog instead of multiplying its peak memory.
@@ -145,15 +144,6 @@ impl DetailPreview {
                     self.failed_revision = Some(revision);
                 }
             }
-        }
-        #[cfg(target_arch = "wasm32")]
-        {
-            // No browser worker/executor is available here. Preserve the interactive proxy
-            // instead of blocking its UI with the full-image engine pipeline.
-            drop(work);
-            drop(rx);
-            self.error = Some("Full-resolution filtered preview requires a native Camera Raw worker; the web preview keeps the proxy".into());
-            self.failed_revision = Some(revision);
         }
     }
 
@@ -427,14 +417,9 @@ pub(crate) fn display_image(
             *o = Color32::from_rgba_unmultiplied(r, g, b, a);
         }
     };
-    #[cfg(not(target_arch = "wasm32"))]
     {
         use rayon::prelude::*;
         pixels.par_chunks_mut(band_rows * width).enumerate().for_each(|(i, out)| band(i, out));
-    }
-    #[cfg(target_arch = "wasm32")]
-    for (i, out) in pixels.chunks_mut(band_rows * width).enumerate() {
-        band(i, out);
     }
     ColorImage::new([width, height], pixels)
 }

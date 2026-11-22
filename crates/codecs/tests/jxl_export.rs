@@ -34,7 +34,6 @@ fn jpeg_xl_encoding_is_deterministic_and_converts_float_to_integer() {
     assert_eq!(detect(&bytes), Some(Format::Jxl));
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn jpeg_xl_decodes_losslessly_with_independent_decoder() {
     use jxl_oxide::JxlImage;
@@ -78,7 +77,6 @@ fn jpeg_xl_decodes_losslessly_with_independent_decoder() {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn jpeg_xl_preserves_sixteen_bit_alpha_across_dimension_header_sizes() {
     use jxl_oxide::JxlImage;

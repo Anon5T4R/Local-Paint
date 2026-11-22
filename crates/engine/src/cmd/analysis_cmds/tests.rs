@@ -329,7 +329,6 @@ fn log_delete_and_csv_export() {
     assert!(header.contains("Length") && header.contains("Gray Value (Mean)"));
     assert!(lines.next().unwrap().starts_with("Measurement 1,t,"));
     assert!(lines.next().unwrap().contains(",5.0,"), "{csv}");
-    #[cfg(not(target_arch = "wasm32"))]
     {
         let path = std::env::temp_dir().join(format!("pc-log-{}.csv", std::process::id()));
         let r = s.execute("measurementLog.export", json!({"path": path.to_str().unwrap(), "rows": [2]})).unwrap();
@@ -537,7 +536,6 @@ fn count_add_keeps_first_group_creation_and_targets_the_requested_group() {
 }
 
 #[test]
-#[cfg(not(target_arch = "wasm32"))]
 fn iso_from_unix_matches_the_old_cycle_conversion_including_beyond_chrono() {
     use super::iso_from_unix;
     assert_eq!(iso_from_unix(0), "1970-01-01T00:00:00Z");

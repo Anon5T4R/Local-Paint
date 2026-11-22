@@ -113,7 +113,6 @@ impl LocalPaintApp {
             outline_cache: None,
             filter_preview: None,
             smart_filter_targets: Default::default(),
-            #[cfg(not(target_arch = "wasm32"))]
             filter_preview_worker: Default::default(),
             redraws: Default::default(),
             kept: Default::default(),
@@ -201,7 +200,7 @@ impl LocalPaintApp {
             min_frame_ms: None,
             last_frame_start_ms: 0.0,
             jobs: Default::default(),
-            #[cfg(all(debug_assertions, not(target_arch = "wasm32")))]
+            #[cfg(debug_assertions)]
             live_tokens: theme::live::LiveTokens::from_env(),
         };
         // Saved preferences are in place before the first frame; recovery starts in upkeep.

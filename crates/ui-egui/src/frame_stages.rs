@@ -289,7 +289,7 @@ mod tests {
     }
 }
 
-#[cfg(all(test, not(target_arch = "wasm32")))]
+#[cfg(test)]
 mod app_tests {
     use serde_json::json;
 

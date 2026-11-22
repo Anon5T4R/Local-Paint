@@ -161,7 +161,6 @@ fn enormous_finite_radii_keep_the_no_seed_sentinel_behavior() {
 }
 
 #[test]
-#[cfg(not(target_arch = "wasm32"))]
 fn bounded_and_general_paths_are_worker_count_independent() {
     let (w, h) = (400, 300);
     let m: Vec<f32> = (0..w * h).map(|i| if (i * 73 + i / w * 11) % 19 == 0 { 1.0 } else { 0.0 }).collect();

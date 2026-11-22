@@ -278,18 +278,9 @@ fn invoke_file_commands(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, 
             Ok(Value::Null)
         }
         id if id.starts_with("file.openRecent.") => {
-            #[cfg(not(target_arch = "wasm32"))]
-            {
-                match id.rsplit('.').next().and_then(|s| s.parse::<usize>().ok()).and_then(|i| app.ui.recent_files.get(i).cloned()) {
-                    Some(p) => open_path(app, &p),
-                    None => Err("no such recent file".to_string()),
-                }
-            }
-            #[cfg(target_arch = "wasm32")]
-            {
-                let _ = app;
-                let message = "Open Recent is unavailable on the web";
-                Err(tl!(message).to_string())
+            match id.rsplit('.').next().and_then(|s| s.parse::<usize>().ok()).and_then(|i| app.ui.recent_files.get(i).cloned()) {
+                Some(p) => open_path(app, &p),
+                None => Err("no such recent file".to_string()),
             }
         }
         "file.saveAs" => {
@@ -485,19 +476,12 @@ fn invoke_export_command(app: &mut LocalPaintApp, id: &str, params: &Value) -> R
         "file.export.exportAs" => Some(Ok(json!({"dialog": crate::export_dialog::open(app)?}))),
         "file.export.quickExportAsPng" => Some(crate::export_dialog::quick_export_png(app)),
         "file.export.renderVideo" if params.get("dir").is_none() => {
-            #[cfg(target_arch = "wasm32")]
-            {
-                Some(Err("Render Video to a local directory is unavailable on the web".into()))
-            }
-            #[cfg(not(target_arch = "wasm32"))]
-            {
-                let document = app.session.active().ok_or("no document")?.doc.id;
-                let mut render_params = params.as_object().cloned().unwrap_or_default();
-                Some(app.ask_folder(move |app, dir| {
-                    render_params.insert("dir".into(), json!(dir));
-                    app.with_document(document, |app| app.run("file.export.renderVideo", Value::Object(render_params)))
-                }))
-            }
+            let document = app.session.active().ok_or("no document")?.doc.id;
+            let mut render_params = params.as_object().cloned().unwrap_or_default();
+            Some(app.ask_folder(move |app, dir| {
+                render_params.insert("dir".into(), json!(dir));
+                app.with_document(document, |app| app.run("file.export.renderVideo", Value::Object(render_params)))
+            }))
         }
         layer if matches!(layer, "layer.exportAs" | "layer.quickExportAsPng") && params.as_object().is_none_or(|object| object.is_empty()) => {
             let selected = app.session.active().and_then(|document| document.active_layer).ok_or("no active layer")?;

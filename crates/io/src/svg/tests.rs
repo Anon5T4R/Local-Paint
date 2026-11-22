@@ -356,7 +356,6 @@ fn text_in_missing_fonts_falls_back_to_an_installed_one() {
 /// glyph: fontdb re-reads a file source's whole font on every glyph it outlines, about a
 /// millisecond a character. The face text is set in comes from memory, and the outlines
 /// match the same font loaded from memory in the first place.
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn text_in_a_font_on_disk_is_set_from_memory() {
     fn inter_on_disk() -> Arc<usvg::fontdb::Database> {
@@ -384,7 +383,6 @@ fn text_in_a_font_on_disk_is_set_from_memory() {
 /// A font file that no longer loads (replaced or cut short since fontdb indexed it) keeps its
 /// faces in the database and isn't remembered: once the file is whole again, text is set
 /// from it.
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn a_font_file_gone_bad_since_indexing_is_not_cached() {
     use std::sync::atomic::{AtomicBool, Ordering};
@@ -417,7 +415,6 @@ fn a_font_file_gone_bad_since_indexing_is_not_cached() {
 
 /// Imports that miss the cache for the same file at once read it once: every one sets its
 /// text from the same bytes, not a copy of its own next to the kept one.
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn imports_missing_the_same_font_at_once_share_one_read() {
     use std::sync::atomic::{AtomicUsize, Ordering};
@@ -460,7 +457,6 @@ fn imports_missing_the_same_font_at_once_share_one_read() {
 
 /// #9406: moving a font collection into memory keeps its faces in their order, so the
 /// fallback search for a later text still finds the face it found on disk first.
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn a_collection_in_memory_keeps_its_face_order() {
     fn collection_on_disk() -> Arc<usvg::fontdb::Database> {

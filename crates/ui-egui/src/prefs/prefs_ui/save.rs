@@ -29,7 +29,6 @@ pub fn tick(app: &mut LocalPaintApp, ctx: &egui::Context) {
         app.prefs_rt.gpu_style = Some(style);
     }
     autosave(app);
-    #[cfg(not(target_arch = "wasm32"))]
     link_updates(app, ctx);
     history_log(app);
 }
@@ -190,7 +189,6 @@ pub(crate) fn save_preferences(app: &mut LocalPaintApp) -> Result<(), String> {
 /// seconds, and as soon as the window comes back to the front (after saving in another app), stamp
 /// the active document's linked files on a worker thread and re-render the layers of the ones that
 /// changed ([`localpaint_engine::link_watch`]).
-#[cfg(not(target_arch = "wasm32"))]
 fn link_updates(app: &mut LocalPaintApp, ctx: &egui::Context) {
     match app.session.poll_link_scan() {
         Some(Ok(r)) => {

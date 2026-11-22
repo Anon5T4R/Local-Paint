@@ -9,7 +9,7 @@ struct Scrub {
 }
 
 pub(crate) fn active(ui: &Ui) -> bool {
-    !cfg!(target_arch = "wasm32") && ui.input(|i| i.focused && i.viewport().fullscreen == Some(true) && !i.any_touches())
+    ui.input(|i| i.focused && i.viewport().fullscreen == Some(true) && !i.any_touches())
 }
 
 fn wrap_target(pos: Pos2, viewport: Rect) -> Option<Pos2> {

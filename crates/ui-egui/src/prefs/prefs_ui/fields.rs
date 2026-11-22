@@ -365,7 +365,7 @@ pub(super) fn field_visible(section: &str, obj: &Map<String, Value>, k: &str, qu
         || path == "unitsAndRulers.showRulers"
         || (section == "performance" && matches!(k, "useGpu" | "gpuBackend" | "gpuAdapter" | "renderingMode" | "memoryUsageMb"))
         // The browser presents frames itself: Low-Latency Drawing does nothing there.
-        || (cfg!(target_arch = "wasm32") && path == "performance.lowLatencyDrawing")
+        || (false && path == "performance.lowLatencyDrawing")
         || (section == "export" && !export_field_visible(obj, k))
         || (section == "tools" && !tools_field_visible(obj, k));
     (query.is_empty() || preference_matches(section, k, query))

@@ -132,7 +132,6 @@ fn fonts() -> Arc<usvg::fontdb::Database> {
         for f in localpaint_text::CRAFT_FONTS {
             db.load_font_data(f.bytes.to_vec());
         }
-        #[cfg(not(target_arch = "wasm32"))]
         db.load_system_fonts();
         resolve_generic_families(&mut db, system_generic_family);
         Arc::new(db)
@@ -191,20 +190,19 @@ fn resolve_generic_families(db: &mut usvg::fontdb::Database, system: impl Fn(&st
 
 /// The family Fontconfig sets a generic family in (`fc-match sans-serif`), as the rest of the
 /// desktop does; `None` without Fontconfig.
-#[cfg(all(target_os = "linux", not(target_arch = "wasm32")))]
+#[cfg(target_os = "linux")]
 fn system_generic_family(generic: &str) -> Option<String> {
     let out = std::process::Command::new("fc-match").args(["--format=%{family[0]}", generic]).output().ok()?;
     let name = String::from_utf8(out.stdout).ok()?;
     Some(name.trim().to_string()).filter(|n| out.status.success() && !n.is_empty())
 }
 
-#[cfg(not(all(target_os = "linux", not(target_arch = "wasm32"))))]
+#[cfg(not(target_os = "linux"))]
 fn system_generic_family(_generic: &str) -> Option<String> {
     None
 }
 
 /// Most font file bytes [`in_memory`] keeps; past it a face stays on disk (slow, still right).
-#[cfg(not(target_arch = "wasm32"))]
 const MAX_CACHED_FONT_BYTES: usize = 256 << 20;
 
 /// `id`, or the same face loaded from memory when the database names a file for it. fontdb
@@ -212,7 +210,6 @@ const MAX_CACHED_FONT_BYTES: usize = 256 << 20;
 /// character with Times New Roman), so a short entity-expanded text could keep an import busy
 /// for minutes. Each file is read once per process; the parse's own database copy then holds
 /// every face of that file from memory.
-#[cfg(not(target_arch = "wasm32"))]
 fn in_memory(id: usvg::fontdb::ID, db: &mut Arc<usvg::fontdb::Database>) -> usvg::fontdb::ID {
     use std::collections::HashMap;
     use std::path::PathBuf;
@@ -270,7 +267,6 @@ fn in_memory(id: usvg::fontdb::ID, db: &mut Arc<usvg::fontdb::Database>) -> usvg
 
 /// usvg's font choice, with the chosen faces read from memory ([`in_memory`]).
 fn font_resolver() -> usvg::FontResolver<'static> {
-    #[cfg(not(target_arch = "wasm32"))]
     {
         let select = usvg::FontResolver::default_font_selector();
         let fallback = usvg::FontResolver::default_fallback_selector();
@@ -279,8 +275,6 @@ fn font_resolver() -> usvg::FontResolver<'static> {
             select_fallback: Box::new(move |c, used, db| fallback(c, used, db).map(|id| in_memory(id, db))),
         }
     }
-    #[cfg(target_arch = "wasm32")]
-    usvg::FontResolver::default()
 }
 
 /// Parse options for an untrusted drawing. `<image href>` resolves only `data:` URLs: a file path

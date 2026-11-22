@@ -16,7 +16,6 @@ fn test_surface() -> (Surface, Option<Surface>) {
     (surface, None)
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn cold_callers_share_one_build_without_retaining_a_second_cache() {
     use std::sync::Barrier;
@@ -57,7 +56,6 @@ fn cold_callers_share_one_build_without_retaining_a_second_cache() {
     drop(next);
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn distinct_keys_build_while_another_key_is_paused() {
     use std::sync::mpsc;
@@ -112,7 +110,6 @@ fn a_purge_during_a_shared_build_keeps_the_cache_empty() {
     assert_eq!(c.lock().unwrap().bytes, 0);
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn parallel_feathered_pixel_mask_returns_the_same_tiles() {
     let canvas = Rect::new(0, 0, 600, 400);
@@ -167,7 +164,6 @@ fn feather_at_the_canvas_edge_continues_the_mask_past_it() {
     assert!(middle[0] > 0.99, "the left edge stays white: {}", middle[0]);
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn vector_mask_build_inside_a_small_rayon_pool_completes() {
     use rayon::prelude::*;

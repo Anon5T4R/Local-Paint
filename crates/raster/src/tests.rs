@@ -214,7 +214,6 @@ fn region_writes_match_scalar_bytes_for_every_format() {
 /// Mask builds call `write_region` inside a `OnceLock` initializer, where entering Rayon can
 /// run another tile's job that waits on the same lock. With every global worker held, a write
 /// that queued work on Rayon could not finish.
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn write_region_does_not_enter_rayon() {
     use std::sync::{Barrier, mpsc};

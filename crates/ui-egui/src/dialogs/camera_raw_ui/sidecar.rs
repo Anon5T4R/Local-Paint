@@ -19,7 +19,6 @@ fn is_dng(path: &str) -> bool {
 /// The settings of the sidecar beside `path`, when there is one that parses: the settings, what
 /// the loader skipped, and the sidecar's file name. A sidecar that doesn't parse is ignored (the
 /// raw still opens) and reported in the log.
-#[cfg(not(target_arch = "wasm32"))]
 pub(super) fn read_sidecar(path: &str) -> Option<(CameraRaw, localpaint_io::camera_raw_xmp::LoadReport, String)> {
     let sidecar = sidecar_path(path);
     let Some(bytes) = read_bounded(&sidecar) else {
@@ -34,11 +33,6 @@ pub(super) fn read_sidecar(path: &str) -> Option<(CameraRaw, localpaint_io::came
             None
         }
     }
-}
-
-#[cfg(target_arch = "wasm32")]
-pub(super) fn read_sidecar(_: &str) -> Option<(CameraRaw, localpaint_io::camera_raw_xmp::LoadReport, String)> {
-    None
 }
 
 /// Keep the develop settings beside the raw file (Camera Raw Defaults › Write xmp sidecars):
@@ -77,7 +71,6 @@ pub(super) fn write_sidecar(app: &mut LocalPaintApp, raw: &RawOpen, params: &Cam
 
 /// `None` when there is no sidecar at `sidecar`, else whether Local Paint wrote it. One that
 /// can't be read or is too large to be ours counts as another application's.
-#[cfg(not(target_arch = "wasm32"))]
 pub(super) fn existing_sidecar_is_ours(sidecar: &str) -> Option<bool> {
     std::fs::symlink_metadata(sidecar).ok()?;
     Some(read_bounded(sidecar).is_some_and(|b| localpaint_io::camera_raw_xmp::is_localpaint_xmp(&b)))
@@ -86,7 +79,6 @@ pub(super) fn existing_sidecar_is_ours(sidecar: &str) -> Option<bool> {
 /// The bytes of the regular file at `path` when it holds at most
 /// [`localpaint_io::camera_raw_xmp::MAX_XMP_BYTES`]; `None` for anything else (missing, a folder,
 /// a pipe or device that might never end, larger). Never reads more than the cap plus one byte.
-#[cfg(not(target_arch = "wasm32"))]
 pub(super) fn read_bounded(path: &str) -> Option<Vec<u8>> {
     use std::io::Read;
     let cap = localpaint_io::camera_raw_xmp::MAX_XMP_BYTES;
@@ -98,11 +90,6 @@ pub(super) fn read_bounded(path: &str) -> Option<Vec<u8>> {
     let mut bytes = Vec::new();
     file.take(cap as u64 + 1).read_to_end(&mut bytes).ok()?;
     (bytes.len() <= cap).then_some(bytes)
-}
-
-#[cfg(target_arch = "wasm32")]
-fn existing_sidecar_is_ours(_: &str) -> Option<bool> {
-    None
 }
 
 /// Save Settings…: the dialog's settings as a Camera Raw `.xmp` settings file.

@@ -136,7 +136,6 @@ mod encode;
 mod fx_passes;
 mod kit;
 mod paging;
-#[cfg(not(target_arch = "wasm32"))]
 mod readback;
 mod setup;
 mod textures;
@@ -156,7 +155,6 @@ pub use paging::OVER_BUDGET;
 use paging::first_error;
 #[cfg(test)]
 use paging::{lru_victims, uniform_buffer_len};
-#[cfg(not(target_arch = "wasm32"))]
 pub use readback::{render_to_vec, render_to_vec_stats};
 #[cfg(test)]
 use textures::TexKind;

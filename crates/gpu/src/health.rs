@@ -7,8 +7,6 @@
 //! registers the device-lost callback, and [`DeviceHealth::wait`] polls only while the device is
 //! healthy (catching the poll's panic as a last resort). Every GPU entry point checks
 //! [`DeviceHealth::fault`] first.
-//!
-//! Builds for the web too: the callbacks only touch atomics and a mutex.
 
 use std::fmt;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -132,10 +130,7 @@ impl DeviceHealth {
         if self.lost() {
             return;
         }
-        #[cfg(not(target_arch = "wasm32"))]
         self.poll(device);
-        #[cfg(target_arch = "wasm32")]
-        let _ = device;
         if self.lost() {
             return;
         }
@@ -209,7 +204,6 @@ impl DeviceHealth {
     /// Returns whether the device is still healthy afterwards. `Device::poll` panics on a lost
     /// device, so a panic is caught and recorded as a loss (native only; the web has no blocking
     /// wait).
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn wait(&self, device: &wgpu::Device, index: Option<wgpu::SubmissionIndex>) -> bool {
         self.wait_idle(device, index);
         self.is_ok()
@@ -217,7 +211,6 @@ impl DeviceHealth {
 
     /// Like [`Self::wait`], but returns whether the wait completed: `false` also when the poll
     /// itself failed, so the work may still be running.
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn wait_idle(&self, device: &wgpu::Device, index: Option<wgpu::SubmissionIndex>) -> bool {
         if !self.is_ok() {
             return false;

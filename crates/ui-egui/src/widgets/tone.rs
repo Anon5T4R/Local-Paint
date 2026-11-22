@@ -180,10 +180,9 @@ pub fn compute_histograms_at(doc: &Document, source: HistSource, space: ToneSpac
     Histograms { tag: tag(source, space), ch: h, lum, level }
 }
 
-/// The largest document counted pixel by pixel at the automatic cache level. The web build counts
-/// on the UI thread (it has no worker threads), so it reduces documents a quarter that size.
+/// The largest document counted pixel by pixel at the automatic cache level.
 fn exact_limit() -> u64 {
-    if cfg!(target_arch = "wasm32") { localpaint_compose::PROXY_THUMBNAIL_PIXELS / 4 } else { localpaint_compose::PROXY_THUMBNAIL_PIXELS }
+    localpaint_compose::PROXY_THUMBNAIL_PIXELS
 }
 
 /// The cache level a histogram of `doc` is counted at: 1 (every pixel) up to the size a proxy
@@ -233,7 +232,6 @@ fn composite_bins(doc: &Document, source: HistSource, space: ToneSpace, max_leve
     let level = cache_level(&d, max_level);
     let d = if level > 1 { localpaint_compose::proxy::proxy_document(&d, proxy_factor(&d, level)) } else { d };
     let _ = localpaint_compose::render_bands(&d, d.bounds(), 0, |band| -> Result<(), ()> {
-        #[cfg(not(target_arch = "wasm32"))]
         let part = {
             use rayon::prelude::*;
             band.px
@@ -244,12 +242,6 @@ fn composite_bins(doc: &Document, source: HistSource, space: ToneSpace, max_leve
                     part
                 })
                 .reduce(|| vec![[0u32; 256]; h.len()], add_bins)
-        };
-        #[cfg(target_arch = "wasm32")]
-        let part = {
-            let mut part = vec![[0u32; 256]; h.len()];
-            count_pixels(&band.px, space, &mut part);
-            part
         };
         for (dst, src) in h.iter_mut().zip(&part) {
             for (a, b) in dst.iter_mut().zip(src) {
@@ -262,7 +254,6 @@ fn composite_bins(doc: &Document, source: HistSource, space: ToneSpace, max_leve
 }
 
 /// Bin-wise sum of two sets of histograms (saturating: a hostile canvas can exceed `u32`).
-#[cfg(not(target_arch = "wasm32"))]
 fn add_bins(mut a: Vec<[u32; 256]>, b: Vec<[u32; 256]>) -> Vec<[u32; 256]> {
     for (dst, src) in a.iter_mut().zip(&b) {
         for (x, y) in dst.iter_mut().zip(src) {

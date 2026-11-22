@@ -7,10 +7,9 @@
 //! interface theme…) live here too: keeping one document means the headless MCP server sees and
 //! edits exactly what the desktop app persists, and the shell has no second store to keep in sync.
 //!
-//! The engine never touches the filesystem for preferences (it must build for wasm). Frontends
-//! persist [`Session::prefs_to_json`] wherever the platform keeps settings (the desktop app: the
-//! OS config directory; the web shell: browser storage) and restore it with
-//! [`Session::load_prefs_json`].
+//! The engine never touches the filesystem for preferences. Frontends persist
+//! [`Session::prefs_to_json`] wherever the platform keeps settings (the desktop app: the
+//! OS config directory) and restore it with [`Session::load_prefs_json`].
 //!
 //! Engine-side values are applied by [`Session::apply_prefs`]: the history state limit and
 //! History Options › Allow Non-Linear History (every open document), the effect-cache memory
@@ -630,7 +629,7 @@ impl Performance {
     /// [`Performance::memory_usage_mb`] as the build can honour it: capped on the web, where the
     /// stored preference (a saved 8192 still loads) is larger than the module's address space.
     pub fn effective_memory_usage_mb(&self) -> u32 {
-        honoured_memory_usage_mb(self.memory_usage_mb, cfg!(target_arch = "wasm32"))
+        honoured_memory_usage_mb(self.memory_usage_mb, false)
     }
 
     /// Pixel memory a document and its History may hold (Memory Usage), in bytes: beyond it

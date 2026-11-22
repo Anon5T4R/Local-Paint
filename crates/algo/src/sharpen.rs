@@ -8,13 +8,12 @@ use crate::image::Image;
 
 pub(crate) mod exact;
 
-#[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod fft;
 
 #[cfg(test)]
 mod tests;
 
-#[cfg(all(test, not(target_arch = "wasm32")))]
+#[cfg(test)]
 mod fft_bench;
 
 fn with_blur(src: &Image, out: Rect, ctx: &Ctx, radius: f32, mut f: impl FnMut(f32, f32) -> f32) -> Vec<f32> {

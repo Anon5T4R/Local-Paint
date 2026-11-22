@@ -143,7 +143,6 @@ fn new_group(app: &mut LocalPaintApp) {
 /// Command params for a picked file: a real path keeps the journal small; browser files arrive
 /// as bytes.
 pub(crate) fn source(name: &str, bytes: &[u8]) -> Value {
-    #[cfg(not(target_arch = "wasm32"))]
     if std::path::Path::new(name).is_absolute() && std::path::Path::new(name).is_file() {
         return json!({"path": name});
     }

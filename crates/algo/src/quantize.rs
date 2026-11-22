@@ -184,17 +184,10 @@ fn histogram(px: &[[f32; 4]]) -> Vec<(Rgb8, u32)> {
         let [r, g, b] = rgb8(p);
         u32::from(r) << 16 | u32::from(g) << 8 | u32::from(b)
     };
-    #[cfg(not(target_arch = "wasm32"))]
     let keys = {
         use rayon::prelude::*;
         let mut keys: Vec<u32> = px.par_iter().filter(|p| p[3] >= 0.5).map(pack).collect();
         keys.par_sort_unstable();
-        keys
-    };
-    #[cfg(target_arch = "wasm32")]
-    let keys = {
-        let mut keys: Vec<u32> = px.iter().filter(|p| p[3] >= 0.5).map(pack).collect();
-        keys.sort_unstable();
         keys
     };
     let mut out: Vec<(Rgb8, u32)> = Vec::new();
@@ -346,13 +339,10 @@ fn kmeans(pts: &[([f32; 3], u32)], centers: &mut [[f32; 3]], iters: usize) {
         // The nearest-centre search is the expensive part and has no cross-point state, so it
         // runs in parallel. The f64 sums below stay sequential in the original point order:
         // float addition is not associative, and this keeps every bit of the result unchanged.
-        #[cfg(not(target_arch = "wasm32"))]
         let nearest: Vec<u32> = {
             use rayon::prelude::*;
             pts.par_iter().map(|(p, _)| lookup.find(*p) as u32).collect()
         };
-        #[cfg(target_arch = "wasm32")]
-        let nearest: Vec<u32> = pts.iter().map(|(p, _)| lookup.find(*p) as u32).collect();
         for ((p, w), &i) in pts.iter().zip(&nearest) {
             let i = i as usize;
             for a in 0..3 {
@@ -377,13 +367,10 @@ fn lab_to_rgb8(lab: [f32; 3]) -> Rgb8 {
 /// in `srgb_to_lab` made this a visible serial cost with millions of unique colours.
 fn lab_points(hist: &[(Rgb8, u32)]) -> Vec<([f32; 3], u32)> {
     let lab = |(c, n): &(Rgb8, u32)| (srgb_to_lab(c.map(|v| f32::from(v) / 255.0)), *n);
-    #[cfg(not(target_arch = "wasm32"))]
     {
         use rayon::prelude::*;
         hist.par_iter().map(lab).collect()
     }
-    #[cfg(target_arch = "wasm32")]
-    hist.iter().map(lab).collect()
 }
 
 /// Builds the palette for `px`. `colors` is the requested count (2..=256) for the computed

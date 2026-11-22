@@ -9,7 +9,6 @@ use super::{
 impl LocalPaintApp {
     /// Wait out the rest of [`Self::min_frame_ms`] since the last frame started.
     fn cap_frame_rate(&mut self) {
-        #[cfg(not(target_arch = "wasm32"))]
         if let Some(min) = self.min_frame_ms.filter(|m| m.is_finite() && *m > 0.0) {
             let wait = min.min(100.0) - (gpu_canvas::now_ms() - self.last_frame_start_ms);
             if wait > 0.0 {
@@ -45,7 +44,7 @@ impl LocalPaintApp {
         self.sync_views();
         crate::type_font_preview::follow_hover(self, ctx);
         self.check_gpu(ctx);
-        #[cfg(all(debug_assertions, not(target_arch = "wasm32")))]
+        #[cfg(debug_assertions)]
         if self.live_tokens.poll(ctx, self.ui.theme) {
             self.checker = None;
         }
@@ -82,7 +81,6 @@ impl LocalPaintApp {
         // shortcuts see Esc).
         if !screen_picker::tick(self, ctx) {
             jobs_ui::tick(self, ctx);
-            #[cfg(not(target_arch = "wasm32"))]
             crate::dialogs::filter_preview_worker::discard_closed(self);
             if type_tool::in_ui_pass(ctx) {
                 if self.fonts_ready {
