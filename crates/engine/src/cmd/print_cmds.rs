@@ -166,7 +166,7 @@ fn keep<T>(kept: &Kept<T>, source: Option<&PrinterSource>, value: T) {
 
 /// Lists the printers; called with the spooler lock held.
 fn list_system_printers(s: &Session) -> Vec<craft_print::Printer> {
-    let list = match stand_in_printers(s.printer_source.as_ref(), cfg!(target_arch = "wasm32")) {
+    let list = match stand_in_printers(s.printer_source.as_ref(), false) {
         Some(source) => source(),
         None => {
             SYSTEM_LISTINGS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -227,7 +227,7 @@ pub fn rgb_printers_without_waiting(s: &Session) -> RgbPrinters {
 /// Lists printers for the Print dialog. While the system spooler is busy, returns the cached
 /// list for the same source, or an empty list if that source has no cached list.
 pub fn printers_without_waiting(s: &mut Session) -> Value {
-    if stand_in_printers(s.printer_source.as_ref(), cfg!(target_arch = "wasm32")).is_none() && system_spooler().is_none() {
+    if stand_in_printers(s.printer_source.as_ref(), false).is_none() && system_spooler().is_none() {
         return system_printers(s, &json!({})).unwrap_or_default();
     }
     let list = try_with_spooler(|| list_system_printers(s)).or_else(|| last(&LAST_PRINTERS, s.printer_source.as_ref())).unwrap_or_default();
@@ -373,7 +373,7 @@ fn system_spooler() -> Option<&'static str> {
 
 /// The printer a job goes to: the one asked for when the server knows it, else the default,
 /// else the only one; otherwise an error that names what there is.
-#[cfg(all(not(target_arch = "wasm32"), not(target_os = "windows")))]
+#[cfg(not(target_os = "windows"))]
 fn resolve_printer(requested: Option<&str>, default: Option<&str>, printers: &[localpaint_ipp::Printer]) -> std::result::Result<String, SpoolError> {
     let names: Vec<&str> = printers.iter().map(|p| p.name.as_str()).collect();
     let known = |n: &str| names.iter().find(|k| k.eq_ignore_ascii_case(n)).map(|k| (*k).to_string());
@@ -393,7 +393,7 @@ fn resolve_printer(requested: Option<&str>, default: Option<&str>, printers: &[l
     }
 }
 
-#[cfg(all(not(target_arch = "wasm32"), not(target_os = "windows")))]
+#[cfg(not(target_os = "windows"))]
 fn cups_server(named: Option<&str>) -> std::result::Result<localpaint_ipp::Endpoint, SpoolError> {
     match named {
         Some(server) => {
@@ -409,7 +409,7 @@ fn cups_server(named: Option<&str>) -> std::result::Result<localpaint_ipp::Endpo
 }
 
 /// The IPP route: the job to the system's (or the named) CUPS server.
-#[cfg(all(not(target_arch = "wasm32"), not(target_os = "windows")))]
+#[cfg(not(target_os = "windows"))]
 fn cups_spool(job: &PrintJob) -> std::result::Result<String, SpoolError> {
     let failed = |e: localpaint_ipp::Error| SpoolError::Failed(e.to_string());
     let ep = cups_server(job.server.as_deref())?;
@@ -428,13 +428,9 @@ fn cups_spool(job: &PrintJob) -> std::result::Result<String, SpoolError> {
 
 /// No IPP route here: a named server is a failure, the system's a missing route (the app's
 /// spooler may have one).
-#[cfg(any(target_arch = "wasm32", target_os = "windows"))]
+#[cfg(target_os = "windows")]
 fn cups_spool(job: &PrintJob) -> std::result::Result<String, SpoolError> {
-    let why = if cfg!(target_arch = "wasm32") {
-        "printing needs the desktop app"
-    } else {
-        "a print server over IPP is not available on Windows yet; print to PDF instead"
-    };
+    let why = "a print server over IPP is not available on Windows yet; print to PDF instead";
     match job.server {
         Some(_) => Err(SpoolError::Failed(why.into())),
         None => Err(SpoolError::NoRoute(why.into())),
@@ -446,10 +442,10 @@ fn cups_spool(job: &PrintJob) -> std::result::Result<String, SpoolError> {
 /// server and where there is no `lp` (a sandbox).
 fn system_printers(s: &mut Session, p: &Value) -> Result<Value> {
     let named = p.get("printServer").and_then(Value::as_str).filter(|v| !v.is_empty());
-    if named.is_none() && (stand_in_printers(s.printer_source.as_ref(), cfg!(target_arch = "wasm32")).is_some() || system_spooler().is_some()) {
+    if named.is_none() && (stand_in_printers(s.printer_source.as_ref(), false).is_some() || system_spooler().is_some()) {
         return Ok(printers_answer(system_printer_list(s)));
     }
-    #[cfg(all(not(target_arch = "wasm32"), not(target_os = "windows")))]
+    #[cfg(not(target_os = "windows"))]
     {
         let ep = match cups_server(named) {
             Ok(ep) => ep,
@@ -467,7 +463,7 @@ fn system_printers(s: &mut Session, p: &Value) -> Result<Value> {
             .collect();
         Ok(json!({"server": ep.to_string(), "default": default, "printers": printers}))
     }
-    #[cfg(not(all(not(target_arch = "wasm32"), not(target_os = "windows"))))]
+    #[cfg(not(not(target_os = "windows")))]
     {
         let _ = named;
         Ok(json!({"server": Value::Null, "default": Value::Null, "printers": [], "note": "listing printers is not available on this platform yet"}))

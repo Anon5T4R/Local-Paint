@@ -219,9 +219,8 @@ permitting a localized artifact to hide in a mean error. NaN classifications mat
 Algorithm tests: 399 passed, 15 existing/diagnostic tests ignored. The five Iris
 differential/cancellation tests also pass in release; their profiling test is
 opt-in. All-target
-algorithm Clippy passes with warnings denied. Layering passes (29 crates). Wasm
-checks pass for all required crates and HEIF; unrelated existing dead-code warnings
-in CMS/engine remain. Scorecard regeneration produces identical content; no budget,
+algorithm Clippy passes with warnings denied. Layering passes (29 crates); unrelated
+existing dead-code warnings in CMS/engine remain. Scorecard regeneration produces identical content; no budget,
 corpus floor, menu parity or checklist status changed. `test-corpus --changed`
 correctly skips this algorithm-only change. Commands and UI code are unchanged,
 so command panic-hunt and UI screenshot checks are not triggered.
@@ -232,15 +231,15 @@ checked-in baseline is for an Apple M4 Pro, while this machine is Windows/Ryzen
 with a Radeon RX 9060 XT. Quick mode does not enforce the full-size budgets.
 Results are retained locally in `target/agent-iris-blur/perf/results.json`;
 the Iris base/candidate measurements above provide this change's comparison.
-Final complete wasm and algorithm formatting checks also pass.
+Final complete algorithm formatting checks also pass.
 
 Final diagnostic single-tile reference/candidate calls (same profile workload,
 one pair each, not a statistical benchmark): blur 15, 31.6 → 25.3 ms; blur 80,
 52.9 → 43.1 ms; blur 300, 224.1 → 174.7 ms. The repeated complete-filter results
 remain the performance evidence used to retain the change.
 
-Native Iris GUI frame/slider latency, ARM/macOS/Linux performance and wasm runtime
-speed were not measured. Compilation confirms wasm compatibility only. Photoshop
+Native Iris GUI frame/slider latency and ARM/macOS/Linux performance were not measured.
+Photoshop
 equivalence beyond the base implementation's semantics is not asserted. Repository
 AGENTS.md and architecture/development/contributing/control/performance rules were
 followed. Existing source allocation and per-tile cancellation limits are retained.

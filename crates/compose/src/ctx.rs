@@ -192,7 +192,6 @@ pub(crate) fn prepare_effects(layers: &[Layer], rect: Rect, cx: &Ctx, setting: i
             let _ = effect_maps(l, rect, cx);
         });
     };
-    #[cfg(not(target_arch = "wasm32"))]
     if todo.len() > 1 {
         use rayon::prelude::*;
         todo.par_iter().for_each(build);

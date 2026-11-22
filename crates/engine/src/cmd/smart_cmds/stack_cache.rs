@@ -30,10 +30,7 @@ struct Entry {
 static STAGES: Mutex<Vec<Entry>> = Mutex::new(Vec::new());
 const ENTRIES: usize = 64;
 /// Accounted tile bytes; a stage larger than this on its own isn't kept.
-#[cfg(not(target_arch = "wasm32"))]
 pub const BUDGET: usize = 768 << 20;
-#[cfg(target_arch = "wasm32")]
-pub const BUDGET: usize = 256 << 20;
 
 /// The first stage: what placing `bytes` (the source contents) through the smart object's
 /// transform, warp or perspective gives at pixel format `fmt` on `canvas`.

@@ -1,6 +1,6 @@
 # Dependencies
 
-Cargo dependencies are pinned through `Cargo.lock` and exercised by the normal workspace build, test, clippy, and WebAssembly jobs. Parser and GPU dependencies deserve additional review because they process attacker-controlled data or interface with native drivers.
+Cargo dependencies are pinned through `Cargo.lock` and exercised by the normal workspace build, test, and clippy jobs. Parser and GPU dependencies deserve additional review because they process attacker-controlled data or interface with native drivers.
 
 ## Current repository state
 

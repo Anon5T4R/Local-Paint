@@ -33,7 +33,7 @@ Beta pede ~75% pronto e nenhum buraco de PSD bloqueante.
 7. **Pro parity:** print, HDR e timeline; CMYK/Lab/Indexed/Bitmap/Duotone, soft proofing,
    Quick Mask, stack modes de smart object, artboards e layer comps são parciais.
 8. **Caneta nativa no Linux Wayland** (tablet-v2; hoje via Xwayland, #79). Windows (WM_POINTER),
-   web (Pointer Events), macOS (AppKit) e X11 (XInput2) estão feitos.
+   macOS (AppKit) e X11 (XInput2) estão feitos.
 9. **ML:** backend não começado (Select Subject aprendido, recursos generativos); Photomerge
    implementado, validação de qualidade no mundo real aberta.
 10. **Interface RTL:** painéis, diálogos, abas e canvas seguem LTR por ora; só o chrome da janela

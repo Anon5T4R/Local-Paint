@@ -459,7 +459,6 @@ pub fn update(app: &mut LocalPaintApp, ctx: &egui::Context) {
 /// spawn fails), delivered through `app.hist_job`.
 fn spawn(app: &mut LocalPaintApp, ctx: &egui::Context, doc: Arc<Document>, key: HistKey, source: HistSource, space: ToneSpace) {
     let (tx, rx) = std::sync::mpsc::channel();
-    #[cfg(not(target_arch = "wasm32"))]
     let spawned = {
         let doc = doc.clone();
         let tx = tx.clone();
@@ -473,11 +472,6 @@ fn spawn(app: &mut LocalPaintApp, ctx: &egui::Context, doc: Arc<Document>, key: 
                 ctx.request_repaint();
             })
             .is_ok()
-    };
-    #[cfg(target_arch = "wasm32")]
-    let spawned = {
-        let _ = ctx;
-        false
     };
     if !spawned {
         let t0 = crate::gpu_canvas::now_ms();

@@ -2,7 +2,7 @@
 
 Local Paint opens Krita's native documents (`.kra`, and the `.krz` archive variant) with their
 layers. File › Open, recent files, drops, the CLI (`convert`, `info`, `batch`) and automation
-(`doc.open`, MCP) all use the reader in `localpaint-io`; the browser build accepts them too. A
+(`doc.open`, MCP) all use the reader in `localpaint-io`. A
 file is recognised by its `mimetype` entry (`application/x-krita`). Krita files are import-only:
 Save suggests OpenRaster (`.ora`), which Krita opens with its layers, and `.pcraft` keeps
 everything.

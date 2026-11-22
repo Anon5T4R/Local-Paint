@@ -229,14 +229,9 @@ pub(crate) fn compound<R>(s: &mut Session, label: &str, f: impl FnOnce(&mut Sess
 
 /// Current time as ISO 8601 UTC (`2026-10-01T12:34:56Z`); empty on the web (no clock).
 pub fn now_iso() -> String {
-    #[cfg(not(target_arch = "wasm32"))]
     {
         let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0);
         iso_from_unix(secs)
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        String::new()
     }
 }
 
@@ -244,7 +239,6 @@ pub fn now_iso() -> String {
 /// chrono's year range still converts (the calendar repeats every 400 years, so the instant is
 /// moved into range by whole cycles and only the year is carried, matching the old hand-rolled
 /// code), never a silent reset to the epoch. chrono is the only calendar logic.
-#[cfg(not(target_arch = "wasm32"))]
 fn iso_from_unix(secs: i64) -> String {
     use chrono::Datelike;
     let (days, sod) = (secs.div_euclid(86_400), secs.rem_euclid(86_400));

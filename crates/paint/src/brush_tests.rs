@@ -1816,7 +1816,6 @@ fn an_aliased_stroke_at_partial_opacity_is_one_flat_colour() {
 /// Large tips rasterize, accumulate and composite in parallel (rows of a dab, tiles of a stroke);
 /// the pixels are the ones the serial path gives, with 8-bit dithering, a selection, Dissolve and
 /// per-dab colour included.
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn large_tips_render_the_same_in_parallel_and_serially() {
     let mut sel = Surface::new(PixelFormat::GRAY8);
@@ -1877,7 +1876,6 @@ fn large_tips_render_the_same_in_parallel_and_serially() {
 /// A CMYK document with its own profile: blend modes other than Normal convert each pixel through
 /// that profile, which is active per thread, so a stroke composited in parallel gives the pixels the
 /// serial path gives (the workers enter the caller's CMYK space too).
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn a_parallel_composite_converts_through_the_documents_cmyk_profile() {
     use localpaint_cms::synth::{CmykParams, cmyk_profile};

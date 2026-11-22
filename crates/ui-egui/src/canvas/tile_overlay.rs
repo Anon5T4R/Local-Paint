@@ -21,7 +21,6 @@ use std::sync::Arc;
 use egui::{Align2, Color32, FontId, Painter, Shape, Stroke};
 use localpaint_geom::{Rect as DRect, TILE_SIZE, TileCoord};
 use localpaint_raster::{Surface, Tile};
-#[cfg(not(target_arch = "wasm32"))]
 use rayon::prelude::*;
 
 use crate::LocalPaintApp;
@@ -72,15 +71,9 @@ pub fn tile_infos(s: &Surface, parallel: bool) -> Vec<TileInfo> {
     }
     let distinct: Vec<(usize, &Arc<Tile>)> = by_ptr.into_iter().collect();
     // rayon is a native-only dependency; the web build hashes serially.
-    #[cfg(not(target_arch = "wasm32"))]
     let hashed: Vec<(usize, u64)> = if parallel {
         distinct.par_iter().map(|(p, t)| (*p, content_hash(t))).collect()
     } else {
-        distinct.iter().map(|(p, t)| (*p, content_hash(t))).collect()
-    };
-    #[cfg(target_arch = "wasm32")]
-    let hashed: Vec<(usize, u64)> = {
-        let _ = parallel;
         distinct.iter().map(|(p, t)| (*p, content_hash(t))).collect()
     };
     let hash_of: HashMap<usize, u64> = hashed.into_iter().collect();

@@ -46,9 +46,9 @@ The first time you run the AppImage, it adds its icon and menu entry under `~/.l
 
 On a Wayland session, files dropped on the Local Paint window do not open yet. Use **File › Open…** instead, or copy the image in your file manager and paste it with Ctrl+V. To drag and drop, start Local Paint under XWayland with `WAYLAND_DISPLAY= localpaint`. Local Paint shows the right command for your install in a notice until you dismiss it.
 
-## FreeBSD and the web
+## FreeBSD
 
-FreeBSD 14 (x86_64) has a tarball, `localpaint-<version>-freebsd-x86_64.tar.gz`, laid out like `/usr/local`. The web version comes as `localpaint-web-<version>.zip`, a static site you host on any web server. It runs in a modern browser.
+FreeBSD 14 (x86_64) has a tarball, `localpaint-<version>-freebsd-x86_64.tar.gz`, laid out like `/usr/local`.
 
 ## Check your download
 

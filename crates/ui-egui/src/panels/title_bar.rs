@@ -157,7 +157,7 @@ pub fn title_bar(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
 /// does the web build (the browser tab has no document title), nor an embedder or the snapshot
 /// example that never turned the preference on.
 pub fn system_title_bar(app: &LocalPaintApp) -> bool {
-    !app.custom_titlebar && app.session.prefs().interface.system_title_bar && !cfg!(any(target_os = "macos", target_arch = "wasm32"))
+    !app.custom_titlebar && app.session.prefs().interface.system_title_bar && !cfg!(target_os = "macos")
 }
 
 /// The OS window title: the active document's name suffixed with the app name (a `*` prefix

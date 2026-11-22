@@ -411,7 +411,6 @@ fn entropy_combine_matches_reference_with_changing_contributor_counts() {
             .collect();
         let expected = bits(&combine_with(&layers, |v, _| entropy_reference(v)));
         assert_eq!(bits(&combine(&layers, Stat::Entropy)), expected);
-        #[cfg(not(target_arch = "wasm32"))]
         for threads in [1, 3] {
             let pool = rayon::ThreadPoolBuilder::new().num_threads(threads).build().unwrap();
             assert_eq!(pool.install(|| bits(&combine(&layers, Stat::Entropy))), expected, "{threads} threads");

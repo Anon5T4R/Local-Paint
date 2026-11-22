@@ -3,7 +3,6 @@
 //! Defaults: 6000x4000 RGBA8, Good, amount 100, 12 Rayon workers, three runs.
 //! Optional positional arguments: width height amount repeats.
 
-#[cfg(not(target_arch = "wasm32"))]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     use localpaint_algo::{Ctx, FilterParams, Image, RadialMethod, RadialQuality, TILE, apply_in, kernel};
     use localpaint_color::PixelFormat;
@@ -111,6 +110,3 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     })
     .map_err(|error| -> Box<dyn std::error::Error> { error })
 }
-
-#[cfg(target_arch = "wasm32")]
-fn main() {}

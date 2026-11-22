@@ -342,15 +342,9 @@ fn bands(r: Rect, rows: i32) -> Vec<Rect> {
     out
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 pub(crate) fn par_map<T: Send, R: Send>(items: Vec<T>, f: impl Fn(T) -> R + Sync + Send) -> Vec<R> {
     use rayon::prelude::*;
     items.into_par_iter().map(f).collect()
-}
-
-#[cfg(target_arch = "wasm32")]
-pub(crate) fn par_map<T, R>(items: Vec<T>, f: impl Fn(T) -> R) -> Vec<R> {
-    items.into_iter().map(f).collect()
 }
 
 /// Band height for parallel field / shape computation.
@@ -368,8 +362,7 @@ pub(crate) fn field(kind: FieldKind, reach: i32, shape: &[f32], region: Rect, ou
 /// (the chamfer fields, a sequential sweep) the window is cut into bands that go in parallel. Without
 /// threads (wasm) there is nothing to spread over, and bands keep the memory small.
 fn threaded_inside(kind: FieldKind) -> bool {
-    !cfg!(target_arch = "wasm32")
-        && matches!(kind, FieldKind::Outside | FieldKind::Inside | FieldKind::BevelOutside | FieldKind::BevelInside | FieldKind::StrokeOutsideExact)
+    true && matches!(kind, FieldKind::Outside | FieldKind::Inside | FieldKind::BevelOutside | FieldKind::BevelInside | FieldKind::StrokeOutsideExact)
 }
 
 /// [`field`] with the halo given (the tests shrink it to see that they notice).

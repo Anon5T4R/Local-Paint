@@ -246,14 +246,9 @@ pub fn render_lab(doc: &Document, rect: Rect, tile: i32) -> Option<Buffer> {
             }
         }
     };
-    #[cfg(not(target_arch = "wasm32"))]
     {
         use rayon::prelude::*;
         out.px.par_chunks_mut(w * rows).enumerate().for_each(|(i, px)| band(i, px));
-    }
-    #[cfg(target_arch = "wasm32")]
-    for (i, px) in out.px.chunks_mut(w * rows).enumerate() {
-        band(i, px);
     }
     Some(out)
 }

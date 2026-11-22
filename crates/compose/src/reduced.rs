@@ -155,14 +155,9 @@ pub(crate) fn render_reduced_with(
             }
         };
         let part = &mut acc[(t0 - oy0) * ow..(t1 - oy0) * ow];
-        #[cfg(not(target_arch = "wasm32"))]
         {
             use rayon::prelude::*;
             part.par_chunks_mut(ow).enumerate().for_each(|(i, out)| sum_row(t0 + i, out));
-        }
-        #[cfg(target_arch = "wasm32")]
-        for (i, out) in part.chunks_mut(ow).enumerate() {
-            sum_row(t0 + i, out);
         }
     };
     let add = |o: &mut [f32; 4], p: &[f32; 4]| {
@@ -218,13 +213,10 @@ pub(crate) fn render_reduced_with(
                     None => Part::Px(render(*part)),
                 }
             };
-            #[cfg(not(target_arch = "wasm32"))]
             let parts: Vec<Part> = {
                 use rayon::prelude::*;
                 tiles.par_iter().map(one).collect()
             };
-            #[cfg(target_arch = "wasm32")]
-            let parts: Vec<Part> = tiles.iter().map(one).collect();
             stats.composited += parts.iter().map(|p| if let Part::Px(b) = p { b.px.len() as u64 } else { 0 }).sum::<u64>();
             let (by0, by1) = (y.max(sy0 as i64) as usize, y1 as usize);
             let n = tile_cols.len();
@@ -287,14 +279,9 @@ pub(crate) fn render_reduced_with(
             }
         }
     };
-    #[cfg(not(target_arch = "wasm32"))]
     {
         use rayon::prelude::*;
         acc.par_chunks_mut(ow).enumerate().for_each(|(row, out)| norm_row(row, out));
-    }
-    #[cfg(target_arch = "wasm32")]
-    for (row, out) in acc.chunks_mut(ow).enumerate() {
-        norm_row(row, out);
     }
     Buffer { rect: out, px: acc }
 }

@@ -25,8 +25,7 @@ reads and writes only its own slots.
 
 ## What runs in parallel now
 
-`composite`, `unpremultiply` and the tile conversion run on all cores (rayon, native only; the web
-build keeps the serial loops, since wasm has no threads). The rasterizer writes its tiles with
+`composite`, `unpremultiply` and the tile conversion run on all cores (rayon). The rasterizer writes its tiles with
 `Surface::write_region_par`; `Surface::write_region` stays serial, because mask builds call it inside
 a `OnceLock` initializer, which must not enter rayon. Nothing about them
 is order-dependent, so each pixel still sees the same operations on the same inputs — the pixels

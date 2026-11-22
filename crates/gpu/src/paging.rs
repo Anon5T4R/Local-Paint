@@ -110,9 +110,6 @@ pub(crate) fn first_error<T>(device: &wgpu::Device, f: impl FnOnce() -> T) -> (T
 /// used and let the caller fall back to the CPU compositor.
 pub(crate) fn scoped_work<T>(device: &wgpu::Device, health: Option<DeviceHealth>, f: impl FnOnce() -> Result<T, Unsupported>) -> Result<T, Unsupported> {
     // WebGPU errors arrive asynchronously; its callers still use the health callbacks.
-    if cfg!(target_arch = "wasm32") {
-        return f();
-    }
     let (result, error) = first_error(device, f);
     match error {
         Some(error) => {

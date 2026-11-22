@@ -841,7 +841,6 @@ impl Ex {
                 Ok(Source { uuid, size, dpi })
             }
             SmartSource::Linked { path } => {
-                #[cfg(not(target_arch = "wasm32"))]
                 {
                     if !self.read_linked_files {
                         return Err(format!("the linked file {path} is not read for this export"));
@@ -855,8 +854,6 @@ impl Ex {
                     self.warnings.push(format!("the linked smart object {name} was embedded (PSD export keeps no external links)"));
                     Ok(source)
                 }
-                #[cfg(target_arch = "wasm32")]
-                Err(format!("the linked file {path} can't be read here"))
             }
             SmartSource::Embedded { file_name, bytes } => {
                 let identity = std::sync::Arc::as_ptr(bytes).addr();
@@ -914,7 +911,6 @@ impl Ex {
     /// per contents identity and bytes. Equal bytes in independent objects stay independent.
     /// `linked`: the bytes were read from a path the document names, so only a file Local Paint
     /// can open is embedded (a link to a text or settings file is written as pixels instead).
-    #[cfg(not(target_arch = "wasm32"))]
     fn embed(&mut self, contents_id: SmartContentsId, file_name: &str, bytes: &[u8], linked: bool) -> Result<Source, String> {
         self.embed_hashed(contents_id, file_name, bytes, linked, embed_source_hash(bytes))
     }

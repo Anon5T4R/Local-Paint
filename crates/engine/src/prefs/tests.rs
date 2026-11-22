@@ -1036,7 +1036,6 @@ fn a_wrongly_typed_section_or_colour_setting_resets_only_that_part() {
 
 /// A saved Memory Usage is kept as stored, and means the same on desktop; only the web build
 /// caps what it honours.
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn the_history_budget_is_the_stored_memory_usage_on_native() {
     for mb in [0u32, 1, 1536, 8192, 65536, u32::MAX] {

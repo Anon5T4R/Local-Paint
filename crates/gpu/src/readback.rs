@@ -2,13 +2,11 @@ use super::textures::Stats;
 use super::{Compositor, Document, Rect, Unsupported};
 
 /// Blocking readback of a composite (native tests and tools).
-#[cfg(not(target_arch = "wasm32"))]
 pub fn render_to_vec(comp: &mut Compositor, device: &wgpu::Device, queue: &wgpu::Queue, doc: &Document, rect: Rect) -> Result<Vec<[f32; 4]>, Unsupported> {
     render_to_vec_stats(comp, device, queue, doc, rect).map(|(v, _)| v)
 }
 
 /// [`render_to_vec`] plus the render's [`Stats`].
-#[cfg(not(target_arch = "wasm32"))]
 pub fn render_to_vec_stats(
     comp: &mut Compositor,
     device: &wgpu::Device,

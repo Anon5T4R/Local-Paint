@@ -85,14 +85,11 @@ pub(super) fn split_extra_samples(
 pub(super) fn zeroed(len: usize) -> Result<Vec<u8>, CodecError> {
     let mut v = Vec::new();
     v.try_reserve_exact(len).map_err(|_| CodecError::LimitExceeded(format!("cannot allocate {len} bytes for the image")))?;
-    #[cfg(not(target_arch = "wasm32"))]
     {
         use rayon::prelude::*;
         // The capacity is already there: this only writes the zeros.
         v.par_extend(rayon::iter::repeat_n(0u8, len));
     }
-    #[cfg(target_arch = "wasm32")]
-    v.resize(len, 0);
     Ok(v)
 }
 
@@ -103,13 +100,10 @@ pub(super) fn refill_zeroed(mut v: Vec<u8>, len: usize) -> Result<Vec<u8>, Codec
         return zeroed(len);
     }
     v.clear();
-    #[cfg(not(target_arch = "wasm32"))]
     {
         use rayon::prelude::*;
         v.par_extend(rayon::iter::repeat_n(0u8, len));
     }
-    #[cfg(target_arch = "wasm32")]
-    v.resize(len, 0);
     Ok(v)
 }
 
@@ -130,7 +124,6 @@ impl std::ops::Add for Tally {
 /// Decodes the bands from `first` on into `data` (`band_bytes` each), in parallel on native
 /// targets (one decoder and scratch buffer per worker). `extra` receives samples that are not
 /// part of the colour image, `extra_band` bytes per band, when it is non-empty.
-#[cfg(not(target_arch = "wasm32"))]
 pub(super) fn decode_bands(
     p: &Prepared,
     b: &[u8],
@@ -165,32 +158,6 @@ pub(super) fn decode_bands(
             },
         )
         .try_reduce(Tally::default, |a, b| Ok(a + b))
-}
-
-/// Decodes the bands from `first` on into `data` (`band_bytes` each), one after the other.
-#[cfg(target_arch = "wasm32")]
-pub(super) fn decode_bands(
-    p: &Prepared,
-    b: &[u8],
-    data: &mut [u8],
-    band_bytes: usize,
-    first: usize,
-    extra: &mut [u8],
-    extra_band: usize,
-) -> Result<Tally, CodecError> {
-    let mut dec = p.open(b)?;
-    let mut scratch = Vec::new();
-    let mut tally = Tally::default();
-    if extra.is_empty() {
-        for (i, band) in data.chunks_mut(band_bytes.max(1)).enumerate() {
-            tally = tally + decode_band(&p.lay, &mut dec, &mut scratch, first + i, band, None)?;
-        }
-        return Ok(tally);
-    }
-    for (i, (band, extra_band)) in data.chunks_mut(band_bytes.max(1)).zip(extra.chunks_mut(extra_band.max(1))).enumerate() {
-        tally = tally + decode_band(&p.lay, &mut dec, &mut scratch, first + i, band, Some(extra_band))?;
-    }
-    Ok(tally)
 }
 
 /// Decodes band `b` (one strip, or one row of tiles, in every plane) into its output rows.

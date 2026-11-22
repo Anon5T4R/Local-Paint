@@ -48,7 +48,6 @@ mod mac_menu;
 #[cfg(target_os = "macos")]
 mod mac_window;
 // Pure logic is tested on every platform; only Linux runs the check.
-#[cfg(not(target_arch = "wasm32"))]
 mod external_svg;
 #[cfg(any(target_os = "linux", test))]
 mod linux_libs;
@@ -342,7 +341,6 @@ fn main() -> eframe::Result {
     // First, so the panic hook and every start-up warning are recorded (`logging`).
     let logger = logging::install();
     crash_guard::install_hook();
-    #[cfg(not(target_arch = "wasm32"))]
     if let Some(done) = craft_update::self_update::finish(&localpaint_ui_egui::UPDATE_APP, &std::env::args_os().skip(1).collect::<Vec<_>>()) {
         if let Err(e) = done {
             eprintln!("Local Paint update helper failed: {e}");

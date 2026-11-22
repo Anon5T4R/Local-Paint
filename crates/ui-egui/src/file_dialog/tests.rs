@@ -1283,7 +1283,6 @@ fn save_as_openraster_of_what_it_cannot_hold_is_a_copy() {
     assert_eq!(written.borrow().len(), 1);
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn render_video_menu_asks_for_directory_and_writes_frames_only_after_confirmation() {
     let (mut app, open, _) = app();

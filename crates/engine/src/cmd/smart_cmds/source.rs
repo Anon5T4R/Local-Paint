@@ -84,16 +84,10 @@ struct CacheEntry {
 /// a smart object never decodes its contents again.
 static SOURCE_CACHE: Mutex<Vec<CacheEntry>> = Mutex::new(Vec::new());
 
-#[cfg(not(target_arch = "wasm32"))]
 const CACHE_ENTRIES: usize = 32;
-#[cfg(target_arch = "wasm32")]
-const CACHE_ENTRIES: usize = 4;
 
 /// Accounted tile bytes; a source larger than this on its own isn't kept.
-#[cfg(not(target_arch = "wasm32"))]
 const CACHE_BYTES: usize = 1 << 30;
-#[cfg(target_arch = "wasm32")]
-const CACHE_BYTES: usize = 384 << 20;
 
 fn cache() -> std::sync::MutexGuard<'static, Vec<CacheEntry>> {
     SOURCE_CACHE.lock().unwrap_or_else(PoisonError::into_inner)

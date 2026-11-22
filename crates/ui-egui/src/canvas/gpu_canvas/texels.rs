@@ -50,7 +50,6 @@ pub(super) fn texels_into(format: wgpu::TextureFormat, px: &[[f32; 4]], out: &mu
     let convert = if format == FORMAT_HIGH { rgba16f } else { rgba8 };
     out.clear();
     out.resize(px.len() * bpp, 0);
-    #[cfg(not(target_arch = "wasm32"))]
     if px.len() > 1 << 18 {
         let threads = std::thread::available_parallelism().map_or(4, |n| n.get()).min(16);
         let chunk = px.len().div_ceil(threads);
@@ -93,7 +92,6 @@ pub(super) fn f32_to_f16(v: f32) -> u16 {
 }
 
 /// IEEE 754 binary16 → binary32.
-#[cfg(not(target_arch = "wasm32"))]
 pub(super) fn f16_to_f32(h: u16) -> f32 {
     let sign = if h & 0x8000 != 0 { -1.0 } else { 1.0 };
     let exp = i32::from((h >> 10) & 0x1f);
@@ -112,7 +110,6 @@ pub(super) fn f16_to_f32(h: u16) -> f32 {
 }
 
 /// One stored texel of `format` as f32 RGBA.
-#[cfg(not(target_arch = "wasm32"))]
 pub(super) fn texel_to_f32(format: wgpu::TextureFormat, b: &[u8]) -> [f32; 4] {
     let mut o = [0.0f32; 4];
     for (i, v) in o.iter_mut().enumerate() {

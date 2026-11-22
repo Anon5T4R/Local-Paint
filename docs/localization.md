@@ -1,7 +1,6 @@
 # UI localisation and live language switching
 
-Local Paint uses the same Rust catalog implementation in the native egui shell and the
-WebAssembly build. English source strings are lookup keys. UTF-8 TSV catalogs supply plain,
+Local Paint uses a Rust catalog implementation in the egui shell. English source strings are lookup keys. UTF-8 TSV catalogs supply plain,
 contextual, command-ID and plural translations; missing entries fall back to English.
 
 ## Supported languages
@@ -81,8 +80,7 @@ The native-only, pinned `sys-locale` dependency provides safe Rust access to the
 override falls back to English. Empty overrides use the system. Unix locale variables do not
 override Windows/macOS UI-language preferences. Tags are read once per process (at most 64,
 128 bytes each) and matched against the supported language registry. Changes to the
-OS language list itself take effect at the next launch. The web build keeps its existing
-English Auto fallback until browser-locale detection is implemented.
+OS language list itself take effect at the next launch.
 
 API implementation and licensing: [sys-locale](https://github.com/1Password/sys-locale).
 
@@ -119,8 +117,7 @@ its logical end. Document text is laid out by the text engine.
 
 Arabic (`ar`) is the first right-to-left catalog: Modern Standard Arabic, Western digits, the six
 CLDR plural forms (zero|one|two|few|many|other). To check the mirrored layout with any language, launch with
-`LOCALPAINT_UI_DIRECTION=rtl` (or `ltr` to force left-to-right); it is read once per process
-and has no effect on the web build:
+`LOCALPAINT_UI_DIRECTION=rtl` (or `ltr` to force left-to-right); it is read once per process:
 
 ```sh
 LOCALPAINT_UI_DIRECTION=rtl cargo run -p localpaint-ui-egui --example snapshot -- --out rtl.png
@@ -133,10 +130,10 @@ Switching languages rebuilds the font definitions and resets the existing loader
 removed from the definitions can be registered again. Idle frames keep their font cache.
 Other languages retain the system's CJK fallback preference for document names and text.
 
-Font files are not added to this repository. Native rendering uses installed system fonts
+Font files are not added to this repository. Rendering uses installed system fonts
 and the optional craft-fonts build input; see [Fonts](development.md#fonts-craft-fonts).
-The web build can select every catalog, but CJK glyph delivery and automatic browser-locale
-detection remain separate outstanding work. Switching catalogs does not supply missing fonts.
+CJK glyph delivery remains separate outstanding work. Switching catalogs does not supply
+missing fonts.
 
 ## Add or maintain a catalog
 
@@ -153,7 +150,6 @@ cargo test -p localpaint-ui-egui --locked
 cargo clippy -p localpaint-ui-egui --all-targets --locked -- -D warnings
 cargo xtask i18n-coverage
 cargo xtask layers
-cargo xtask wasm
 ```
 
 Render representative dialogs with the offscreen `snapshot` example, including a sequence

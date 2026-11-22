@@ -133,9 +133,9 @@ pub(super) fn memory_usage_row(ui: &mut egui::Ui, obj: &mut Map<String, Value>) 
 pub(super) fn read_at_launch(path: &str) -> bool {
     match path {
         // Only Windows and Linux draw their own title bar.
-        "interface.systemTitleBar" => cfg!(all(not(target_arch = "wasm32"), not(target_os = "macos"))),
+        "interface.systemTitleBar" => cfg!(not(target_os = "macos")),
         // The desktop app decides on the control server before its window opens.
-        "integrations.allowAgentControl" | "integrations.controlPort" => cfg!(not(target_arch = "wasm32")),
+        "integrations.allowAgentControl" | "integrations.controlPort" => true,
         _ => false,
     }
 }

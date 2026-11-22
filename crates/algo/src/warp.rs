@@ -464,13 +464,10 @@ fn triangles(src: &Surface, src_rect: Rect, verts: &[([f64; 2], [f64; 2])], tris
         }
         one.take_tiles(*t).pop()
     };
-    #[cfg(not(target_arch = "wasm32"))]
     let done: Vec<(TileCoord, Arc<Tile>)> = {
         use rayon::prelude::*;
         tiles.par_iter().zip(bins.par_iter()).filter_map(work).collect()
     };
-    #[cfg(target_arch = "wasm32")]
-    let done: Vec<(TileCoord, Arc<Tile>)> = tiles.iter().zip(bins.iter()).filter_map(work).collect();
     if ctl.cancelled() {
         return out;
     }

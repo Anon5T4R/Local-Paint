@@ -380,7 +380,7 @@ fn encode_rle(decoded: &[u8], layout: &PlaneLayout) -> Result<Vec<u8>> {
         return Ok(Vec::new());
     }
     // Rows are independent, so they pack in parallel chunks and concatenate in order.
-    let threads = if cfg!(target_arch = "wasm32") { 1 } else { std::thread::available_parallelism().map_or(1, |v| v.get()).clamp(1, 32) };
+    let threads = std::thread::available_parallelism().map_or(1, |v| v.get()).clamp(1, 32);
     let chunk_rows = rows.div_ceil(threads).max(1);
     struct Chunk {
         counts: Vec<u8>,

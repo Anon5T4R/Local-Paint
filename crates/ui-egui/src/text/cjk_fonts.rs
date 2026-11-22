@@ -569,7 +569,6 @@ fn effective_locale(ui_code: &str, os_locale: Option<&str>) -> Option<String> {
 }
 
 impl Sources {
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn system() -> Self {
         cjk::start_fontconfig_cjk_scan();
         Self {
@@ -581,20 +580,6 @@ impl Sources {
             covers: scripts::covering_face,
             embedded: craft_embedded_iso,
             eager_craft_fonts: true,
-        }
-    }
-    #[cfg(target_arch = "wasm32")]
-    pub fn system() -> Self {
-        Self {
-            locale: || None,
-            files: |_| Vec::new(),
-            last_resort: Vec::new,
-            pending: || false,
-            scripts: |_| Vec::new(),
-            covers: scripts::covering_face,
-            embedded: craft_embedded_iso,
-            // The web build embeds no craft fonts; keep its font stack as it was.
-            eager_craft_fonts: false,
         }
     }
 }
@@ -1013,5 +998,4 @@ pub(crate) fn set_craft_font_scale(ctx: &egui::Context, scale: f32) {
     ctx.set_font_providers(vec![as_provider]);
 }
 #[cfg(test)]
-#[cfg(not(target_arch = "wasm32"))]
 pub(crate) mod tests;

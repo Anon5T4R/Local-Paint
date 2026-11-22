@@ -40,7 +40,6 @@ refinement retain the proxy with a notification. Only the visible crop is upload
 to the GPU (at most 16,777,216 pixels and the device texture-size limit).
 The initial preview domain is bounded to 512 megapixels, including sparse content
 outside the canvas. Histogram and vectorscope statistics remain proxy-based.
-WebAssembly retains the processed proxy until a browser worker path is available.
 
 Gesture references: [Adobe Camera Raw introduction](https://helpx.adobe.com/camera-raw/desktop/get-started/overview-and-setup/introduction-camera-raw.html)
 and [Julieanne Kost's Camera Raw shortcuts](https://jkost.com/blog/2022/10/225-shortcuts-tips-and-tricks-for-adobe-camera-raw.html).

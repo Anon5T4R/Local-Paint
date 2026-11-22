@@ -270,7 +270,6 @@ impl Streamed {
     }
 
     /// Writes the file to `path` (created or truncated). Returns its size.
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn write_file(&self, path: &std::path::Path) -> io::Result<u64> {
         let mut w = io::BufWriter::with_capacity(8 << 20, std::fs::File::create(path)?);
         self.write_to(&mut w)

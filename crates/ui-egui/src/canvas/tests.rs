@@ -239,7 +239,6 @@ fn filter_preview_factor_caps_at_the_view_without_overriding_the_preference() {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn every_filter_previews_off_the_ui_thread_and_a_newer_value_cancels_the_old() {
     // Dragging Gaussian Blur's radius to 1000 px froze the window: the preview ran inline in
@@ -309,7 +308,6 @@ fn every_filter_previews_off_the_ui_thread_and_a_newer_value_cancels_the_old() {
 // finishes when the returned sender is signalled. Gating it here keeps these tests off the
 // clock: `supersede` cancels a running job once the values have been still for SETTLE_MS, so a
 // test that relies on a real blur beating a 150 ms timer is a test that fails on a loaded box.
-#[cfg(not(target_arch = "wasm32"))]
 fn gated_blur_preview(app: &mut LocalPaintApp, ctx: &egui::Context) -> (std::sync::mpsc::Sender<()>, f64) {
     let d = app.ui.dialogs.first().expect("a dialog is open");
     let st = app.session.active().expect("a document is active");
@@ -361,7 +359,6 @@ fn gated_blur_preview(app: &mut LocalPaintApp, ctx: &egui::Context) -> (std::syn
 // The worker hands its result to the channel only after `compute` returns, so a signal sent
 // from inside `compute` would still race that send. These tests drive the canvas until the
 // state they need appears instead of assuming a timing.
-#[cfg(not(target_arch = "wasm32"))]
 fn drive_until(app: &mut LocalPaintApp, ctx: &egui::Context, what: &str, done: impl Fn(&LocalPaintApp) -> bool) {
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
     while !done(app) {
@@ -371,7 +368,6 @@ fn drive_until(app: &mut LocalPaintApp, ctx: &egui::Context, what: &str, done: i
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn a_preview_computed_mid_drag_reaches_the_canvas_and_then_converges() {
     // A drag used to paint nothing at all: every completion was dropped for carrying stale
@@ -409,7 +405,6 @@ fn a_preview_computed_mid_drag_reaches_the_canvas_and_then_converges() {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn a_mid_drag_frame_does_not_replace_a_frame_that_is_already_exact() {
     let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
@@ -448,7 +443,6 @@ fn a_mid_drag_frame_does_not_replace_a_frame_that_is_already_exact() {
     assert_eq!(shown.key.params["radius"].as_f64(), Some(first), "a late frame replaced an exact one");
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn a_mid_drag_empty_result_leaves_the_preview_alone() {
     let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
@@ -500,7 +494,6 @@ fn a_mid_drag_empty_result_leaves_the_preview_alone() {
     assert!(app.filter_preview.as_ref().expect("a preview is still shown").result.is_some(), "an empty mid-drag result blanked the canvas");
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn a_reopened_dialog_never_paints_the_previous_dialogs_preview() {
     let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());

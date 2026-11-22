@@ -188,15 +188,12 @@ pub fn tick(app: &mut LocalPaintApp, ctx: &egui::Context) {
         repaint.request_repaint();
     };
     // No threads (the browser): the reduced copy is small enough to carve inline.
-    #[cfg(not(target_arch = "wasm32"))]
     {
         let spawned = std::thread::Builder::new().name("content-aware-scale-preview".into()).spawn(compute);
         if spawned.is_err() {
             return;
         }
     }
-    #[cfg(target_arch = "wasm32")]
-    compute();
     live.running = Some(Running { key: want, rx, job, started_ms: now });
     ctx.request_repaint();
 }

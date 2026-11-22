@@ -367,7 +367,6 @@ struct Shown {
     covers: [f32; 2],
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 type Outcome = Result<(Shown, BaseCache, Arc<Document>), String>;
 
 /// The preview being computed or shown.
@@ -375,7 +374,6 @@ type Outcome = Result<(Shown, BaseCache, Arc<Document>), String>;
 struct Preview {
     /// Bumped whenever the state changes; a result for an older generation is dropped.
     want: u64,
-    #[cfg(not(target_arch = "wasm32"))]
     running: Option<(u64, u64, std::sync::mpsc::Receiver<Outcome>, localpaint_engine::jobs::JobCtx)>,
     shown: u64,
     pending: Option<Shown>,
@@ -856,15 +854,11 @@ fn close(app: &mut LocalPaintApp) {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 fn cancel_preview(w: SelectMaskWorkspace) {
     if let Some((_, _, _, job)) = w.preview.running {
         job.cancel();
     }
 }
-
-#[cfg(target_arch = "wasm32")]
-fn cancel_preview(_: SelectMaskWorkspace) {}
 
 /// Enter: closes a Polygonal Lasso polygon, else OK. True when it closed a polygon.
 pub fn enter(app: &mut LocalPaintApp) -> bool {
@@ -1291,7 +1285,6 @@ fn wait_preview(app: &mut LocalPaintApp) -> Result<(), String> {
 /// Starts a background preview when the shown one is out of date, and collects a finished one.
 /// While a stroke is drawn with Real-Time Refinement, a running preview is let finish (cancelling
 /// it on every move would never show one) and the next starts from the latest state.
-#[cfg(not(target_arch = "wasm32"))]
 fn drive_preview(app: &mut LocalPaintApp, ctx: &egui::Context) {
     let Some(w) = app.distort.select_mask.as_mut() else { return };
     if let Some((generation, revision, rx, _)) = &w.preview.running {
@@ -1335,15 +1328,6 @@ fn drive_preview(app: &mut LocalPaintApp, ctx: &egui::Context) {
     match spawned {
         Ok(_) => w.preview.running = Some((generation, revision, rx, ctl)),
         Err(e) => w.preview.error = Some(format!("could not start the preview: {e}")),
-    }
-}
-
-/// The web build has no threads: the preview is computed when the pointer comes up.
-#[cfg(target_arch = "wasm32")]
-fn drive_preview(app: &mut LocalPaintApp, _ctx: &egui::Context) {
-    let due = app.distort.select_mask.as_ref().is_some_and(|w| w.preview.shown != w.preview.want && !w.pressed);
-    if due {
-        let _ = wait_preview(app);
     }
 }
 

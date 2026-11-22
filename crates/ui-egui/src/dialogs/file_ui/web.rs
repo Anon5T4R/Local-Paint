@@ -555,9 +555,6 @@ pub(super) fn web_confirm(app: &mut LocalPaintApp, f: &Map<String, Value>) -> Re
 
 /// Runs Save for Web with `p`, which says where to write.
 fn save_for_web(app: &mut LocalPaintApp, p: Value) -> Result<Value, String> {
-    #[cfg(target_arch = "wasm32")]
-    let result = download_for_web(app, p);
-    #[cfg(not(target_arch = "wasm32"))]
     let result = app.run(WEB_COMMAND, p);
     let r = result.inspect_err(|error| {
         app.ui.status = error.clone();
@@ -570,7 +567,7 @@ fn save_for_web(app: &mut LocalPaintApp, p: Value) -> Result<Value, String> {
     Ok(r)
 }
 
-#[cfg(any(test, target_arch = "wasm32"))]
+#[cfg(test)]
 pub(super) fn download_for_web(app: &mut LocalPaintApp, mut p: Value) -> Result<Value, String> {
     // Browser downloads have no directory hierarchy. Keep the HTML's image and spacer URLs
     // beside the downloaded page, matching the names handed to the platform service.

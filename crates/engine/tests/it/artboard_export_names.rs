@@ -1,5 +1,4 @@
 //! #6613: each artboard must have its own output even when names collide on disk.
-#![cfg(not(target_arch = "wasm32"))]
 
 use std::collections::HashSet;
 use std::path::Path;

@@ -7,16 +7,11 @@
 //! inference is plain Rust: no runtime, so it works offline.
 //!
 //! [`detect`] takes straight RGBA in `0..=1` and returns faces in pixel coordinates of that image.
-//!
-//! The browser build (wasm32) leaves the network and its weights out, as `localpaint-raw` does with
-//! its JPEG XL decoder: they would push the wasm over the per-file cap of static hosts
-//! (packaging/web/package.sh). There [`AVAILABLE`] is false and [`detect`] finds nothing.
 
-#[cfg(not(target_arch = "wasm32"))]
 mod cnn;
 
 /// Whether this build can detect faces (not the browser build: see the module docs).
-pub const AVAILABLE: bool = cfg!(not(target_arch = "wasm32"));
+pub const AVAILABLE: bool = true;
 
 /// Longest side the network looks at; larger images are scaled down first (faces smaller than
 /// about 10 px at this scale are missed).
@@ -36,7 +31,6 @@ pub struct Face {
 
 /// Faces in `px` (straight RGBA `0..=1`, `w × h`, row-major) scoring at least `min_score`, best
 /// first. Transparent pixels count as white. `None` when `px` doesn't match the size.
-#[cfg(not(target_arch = "wasm32"))]
 pub fn detect(px: &[[f32; 4]], w: usize, h: usize, min_score: f32) -> Option<Vec<Face>> {
     if w == 0 || h == 0 || px.len() != w.checked_mul(h)? {
         return None;
@@ -70,13 +64,7 @@ pub fn detect(px: &[[f32; 4]], w: usize, h: usize, min_score: f32) -> Option<Vec
     Some(faces)
 }
 
-/// The browser build has no detector (see the module docs): always `None`.
-#[cfg(target_arch = "wasm32")]
-pub fn detect(_px: &[[f32; 4]], _w: usize, _h: usize, _min_score: f32) -> Option<Vec<Face>> {
-    None
-}
-
-#[cfg(all(test, not(target_arch = "wasm32")))]
+#[cfg(test)]
 mod tests {
     use super::*;
 

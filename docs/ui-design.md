@@ -243,8 +243,8 @@ Not translated: status-bar
 messages and errors (they stay English, also for agents), names that are user data (layers, styles,
 documents), strings assembled with `format!` that were not converted to `fmt`/`trn`. Not done yet:
 right-to-left layout inside panels and dialogs (the shell mirrors, `direction.rs`),
-locale-aware number and date formats, automatic language detection on the web build (native
-builds read `LANG`/`LC_*`, the macOS preferred languages and the Windows user locale).
+locale-aware number and date formats, automatic language detection (the app reads
+`LANG`/`LC_*`, the macOS preferred languages and the Windows user locale).
 
 Camera Raw has explicit coverage for all ten available languages, including Korean and
 Simplified Chinese. Its contextual `cameraRaw` entries distinguish tonal regions,
@@ -253,8 +253,8 @@ names and the universal RGB/Lab channel symbols stay unchanged. Collapse IDs use
 source keys, so switching languages preserves open sections. Mixer tabs wrap within the
 panel width. Shell language-switch tests check that the panel draws in the selected language.
 
-Native CJK font fallback follows the selected UI script and resets its cache when switching
-languages; font delivery on the web remains separate work.
+CJK font fallback follows the selected UI script and resets its cache when switching
+languages.
 
 ## Arithmetic in numeric fields
 

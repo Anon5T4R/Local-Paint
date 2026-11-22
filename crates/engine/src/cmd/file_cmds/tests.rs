@@ -1879,7 +1879,6 @@ fn exposure_text_near_one_second_is_not_one_over_one() {
 }
 
 /// A folder batch picks up GIMP's gzipped `.xcf.gz`, whose last extension alone (`gz`) says nothing.
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn folder_listing_recognises_gzipped_xcf_by_its_double_extension() {
     assert!(super::openable_name("/scans/page 01.xcf.gz"));
@@ -1894,7 +1893,6 @@ fn folder_listing_recognises_gzipped_xcf_by_its_double_extension() {
 /// XPM, DDS, the Netpbm family, and Photoshop templates. Not the raws whose usual files open only
 /// as the embedded JPEG preview (CR3, compressed ORF and RAF, RW2 other than raw formats 3, 4 and
 /// 5): a batch would process the thumbnail without a word.
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn folder_listing_takes_every_format_localpaint_opens() {
     let codecs = ["a.cin", "a.dcm", "a.dicom", "a.dc3", "a.iff", "a.lbm", "a.ilbm", "a.pcx", "a.xpm", "a.dds", "a.pbm", "a.pam", "a.pfm", "a.psdt", "A.PCX"];

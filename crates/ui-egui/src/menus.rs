@@ -117,7 +117,6 @@ mod open_recent_tests {
         assert!(invoke(&mut app, &ctx, "file.removeRecent", json!({})).is_err(), "needs a path");
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     #[test]
     fn opening_a_file_records_it_as_recent() {
         use localpaint_color::{ColorMode, SampleType};
@@ -156,7 +155,7 @@ mod quick_export_label_tests {
             let items = menu_items(&app);
             let quick: Vec<_> = items.iter().filter(|i| i.id == "file.export.quickExportAsPng").collect();
             assert_eq!(quick.len(), 1, "the catalogue and UI command must not create duplicate items");
-            let shown_format = if cfg!(target_arch = "wasm32") { "PNG" } else { expected };
+            let shown_format = expected;
             assert_eq!(quick[0].label, format!("Quick Export as {shown_format}"));
             let id = crate::i18n::Lang::from_code("id").unwrap();
             let localized = translated_menu_label(id, quick[0]);

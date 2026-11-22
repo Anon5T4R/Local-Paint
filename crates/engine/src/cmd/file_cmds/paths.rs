@@ -2,42 +2,23 @@ use super::{EngineError, Result, Session};
 
 // ---------- file system (native only) ----------
 
-#[cfg(not(target_arch = "wasm32"))]
 pub(super) fn is_file(path: &str) -> bool {
     std::path::Path::new(path).is_file()
 }
 
-#[cfg(target_arch = "wasm32")]
-pub(super) fn is_file(_path: &str) -> bool {
-    false
-}
-
-#[cfg(not(target_arch = "wasm32"))]
 /// Every file the engine opens is read here: in bounded reads, with a clear error when it does
 /// not fit in memory (see [`localpaint_format::read`]).
 pub(crate) fn read_file(path: &str) -> Result<Vec<u8>> {
     localpaint_format::read_file(std::path::Path::new(path)).map_err(|e| EngineError::Other(format!("{path}: {e}")))
 }
 
-#[cfg(target_arch = "wasm32")]
-pub(crate) fn read_file(path: &str) -> Result<Vec<u8>> {
-    Err(EngineError::Other(format!("cannot read {path}: no file system on the web")))
-}
-
-#[cfg(not(target_arch = "wasm32"))]
 /// Every file the engine writes goes through here: crash-safe (temp file + fsync + rename, see
 /// [`localpaint_format::atomic`]), so a failed save never destroys the previous file.
 pub(crate) fn write_file(path: &str, bytes: &[u8]) -> Result<()> {
     localpaint_format::atomic_write(std::path::Path::new(path), bytes).map_err(|e| EngineError::Other(e.to_string()))
 }
 
-#[cfg(target_arch = "wasm32")]
-pub(crate) fn write_file(path: &str, _bytes: &[u8]) -> Result<()> {
-    Err(EngineError::Other(format!("cannot write {path}: no file system on the web")))
-}
-
 /// Files of a folder that look like images we can open, sorted by name.
-#[cfg(not(target_arch = "wasm32"))]
 pub fn list_images(dir: &str) -> Result<Vec<String>> {
     let rd = std::fs::read_dir(dir).map_err(|e| EngineError::Other(format!("{dir}: {e}")))?;
     let mut out: Vec<String> = rd
@@ -50,15 +31,9 @@ pub fn list_images(dir: &str) -> Result<Vec<String>> {
     Ok(out)
 }
 
-#[cfg(target_arch = "wasm32")]
-pub fn list_images(dir: &str) -> Result<Vec<String>> {
-    Err(EngineError::Other(format!("cannot list {dir}: no file system on the web")))
-}
-
 /// Whether a folder entry is one the batch commands open: an `OPENABLE` extension, an extension
 /// of a format `localpaint-codecs` reads in this build, or GIMP's gzipped `.xcf.gz`, whose last
 /// extension alone says nothing.
-#[cfg(not(target_arch = "wasm32"))]
 pub(super) fn openable_name(path: &str) -> bool {
     let lower = file_name(path).to_ascii_lowercase();
     lower.ends_with(".xcf.gz")
@@ -71,7 +46,6 @@ pub(super) fn openable_name(path: &str) -> bool {
 /// CR3, compressed ORF and RAF and RW2 raw formats other than 3, 4 and 5 aren't decoded yet, and
 /// import falls back to the embedded JPEG preview with only a warning, which a batch must not
 /// process silently.
-#[cfg(not(target_arch = "wasm32"))]
 const OPENABLE: &[&str] = &[
     "pdn", "ora", "xcf", "xcfgz", "kra", "krz", "psd", "psb", "psdt", "pcraft", "svg", "svgz", "af", "afdesign", "afphoto", "afpub", "dng", "cr2", "nef",
     "nrw", "arw", "pef",

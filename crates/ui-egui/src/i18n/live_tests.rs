@@ -183,7 +183,6 @@ fn cjk_font_order_follows_the_selected_language() {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn korean_glyphs_remain_available_after_repeated_language_switches() {
     use localpaint_text::cjk::{self, CjkChar, CjkScript};

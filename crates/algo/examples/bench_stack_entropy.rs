@@ -88,7 +88,6 @@ fn benchmark(o: &Options) -> Result<(), String> {
 
 fn run() -> Result<(), String> {
     let o = options()?;
-    #[cfg(not(target_arch = "wasm32"))]
     if let Some(threads) = o.threads {
         let pool = rayon::ThreadPoolBuilder::new().num_threads(threads).build().map_err(|e| e.to_string())?;
         return pool.install(|| benchmark(&o));

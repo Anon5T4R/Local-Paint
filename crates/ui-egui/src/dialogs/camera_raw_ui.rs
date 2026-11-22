@@ -54,7 +54,6 @@ use sidecar::{existing_sidecar_is_ours, read_bounded};
 const PROXY_SIDE: usize = 900;
 /// Smallest run of proxy pixels one rayon task takes in the per-pixel passes: below it the
 /// split costs more than the work.
-#[cfg(not(target_arch = "wasm32"))]
 pub(crate) const PARALLEL_MIN_PIXELS: usize = 16 * 1024;
 const PANEL_W: f32 = 330.0;
 const BANDS: [&str; 8] = ["Red", "Orange", "Yellow", "Green", "Aqua", "Blue", "Purple", "Magenta"];
@@ -239,7 +238,6 @@ impl CameraRawDialog {
         if !self.dirty || self.pending.is_some() {
             return;
         }
-        #[cfg(not(target_arch = "wasm32"))]
         {
             let job = self.proxy_job();
             let (tx, rx) = std::sync::mpsc::channel::<Result<ProxyFrame, String>>();
@@ -260,8 +258,6 @@ impl CameraRawDialog {
                 Err(_) => self.render(ctx),
             }
         }
-        #[cfg(target_arch = "wasm32")]
-        self.render(ctx);
     }
 
     /// Shows the worker's frame once it is done. `Err` when the develop failed; the preview keeps

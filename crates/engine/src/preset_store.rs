@@ -155,12 +155,10 @@ impl PresetBackend for MemBackend {
 }
 
 /// A store directory on disk (desktop).
-#[cfg(not(target_arch = "wasm32"))]
 pub struct DirBackend {
     root: std::path::PathBuf,
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 impl DirBackend {
     pub fn new(root: impl Into<std::path::PathBuf>) -> Self {
         DirBackend { root: root.into() }
@@ -196,7 +194,6 @@ impl DirBackend {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 impl PresetBackend for DirBackend {
     fn list(&self) -> Result<Vec<(String, u64)>, String> {
         let mut out = Vec::new();
@@ -817,13 +814,10 @@ fn load_tiles(
             let t = decode_tip(r.as_ref().map_err(Clone::clone)?)?;
             Ok((t.width, t.height, t.preview(PREVIEW_SIDE)))
         };
-        #[cfg(not(target_arch = "wasm32"))]
         let made: Vec<_> = {
             use rayon::prelude::*;
             raw.par_iter().map(make).collect()
         };
-        #[cfg(target_arch = "wasm32")]
-        let made: Vec<_> = raw.iter().map(make).collect();
         for (h, r) in batch.iter().zip(made) {
             match r {
                 Ok((w, ht, p)) => {
@@ -838,13 +832,11 @@ fn load_tiles(
 }
 
 /// Open a store directory (desktop). Never fails: problems become warnings.
-#[cfg(not(target_arch = "wasm32"))]
 pub fn open_dir(root: impl Into<std::path::PathBuf>) -> Opened {
     open(Box::new(DirBackend::new(root)))
 }
 
 /// Open a store directory on a background thread; the receiver yields it once loaded.
-#[cfg(not(target_arch = "wasm32"))]
 pub fn open_dir_async(root: std::path::PathBuf) -> std::sync::mpsc::Receiver<Opened> {
     let (tx, rx) = std::sync::mpsc::channel();
     let spawned = std::thread::Builder::new().name("brush-presets".into()).spawn(move || {

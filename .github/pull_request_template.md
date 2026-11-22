@@ -16,7 +16,7 @@ Baseie o PR em `main`, a única branch de integração. Apague as seções que n
 - [ ] `cargo fmt --check`
 - [ ] clippy com `-D warnings` nos crates que mudei
 - [ ] testes passam nos crates que mudei
-- [ ] `cargo xtask layers` e `cargo xtask wasm` (se mexi em fronteira de crate ou em L0–L6)
+- [ ] `cargo xtask layers` (se mexi em fronteira de crate ou em L0–L6)
 - [ ] `cargo xtask parity` e `docs/parity-checklist.md` regerado (se adicionei ou mudei comandos)
 
 **Testes.** Comportamento novo precisa de teste na escala certa — unitário, de integração do crate

@@ -73,7 +73,7 @@ pub fn apply(ctx: &egui::Context) {
     let before = (learnt.brackets, learnt.table_layout);
     ctx.input_mut(|i| {
         for at in 0..i.events.len() {
-            let text_at = if cfg!(target_arch = "wasm32") { at.checked_sub(1) } else { at.checked_add(1) };
+            let text_at = at.checked_add(1);
             let text = match text_at.and_then(|t| i.events.get(t)) {
                 Some(Event::Text(text)) => text.clone(),
                 _ => String::new(),

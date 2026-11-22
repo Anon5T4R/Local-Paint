@@ -647,13 +647,10 @@ pub(crate) fn preview(ui: &mut egui::Ui, d: &mut CameraRawDialog, view: &mut Cam
             };
             // Rebuilt for every new preview while a warning is on: one colour per proxy pixel,
             // each independent, so it runs across cores (#211, P36).
-            #[cfg(not(target_arch = "wasm32"))]
             let colors = {
                 use rayon::prelude::*;
                 d.pixels().par_iter().with_min_len(crate::camera_raw_ui::PARALLEL_MIN_PIXELS).map(color).collect()
             };
-            #[cfg(target_arch = "wasm32")]
-            let colors = d.pixels().iter().map(color).collect();
             let image = egui::ColorImage::new([d.pw, d.ph], colors);
             match &mut d.scope.overlay_tex {
                 Some(t) => t.set(image, egui::TextureOptions::NEAREST),

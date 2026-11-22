@@ -28,7 +28,6 @@ fn to8_matches_round_on_samples_and_edges() {
 }
 
 #[test]
-#[cfg(not(target_arch = "wasm32"))]
 #[ignore = "checks all 2^32 floats, a few seconds in release; run with --release --ignored"]
 fn to8_matches_round_for_every_float() {
     use rayon::prelude::*;

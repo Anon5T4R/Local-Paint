@@ -5,13 +5,10 @@ use std::sync::{Mutex, PoisonError};
 /// Calls `f(index, chunk)` for each `chunk`-sized piece of `buf`.
 pub(crate) fn chunks_mut<T: Send>(buf: &mut [T], chunk: usize, f: impl Fn(usize, &mut [T]) + Sync + Send) {
     let chunk = chunk.max(1);
-    #[cfg(not(target_arch = "wasm32"))]
     {
         use rayon::prelude::*;
         buf.par_chunks_mut(chunk).enumerate().for_each(|(i, c)| f(i, c));
     }
-    #[cfg(target_arch = "wasm32")]
-    buf.chunks_mut(chunk).enumerate().for_each(|(i, c)| f(i, c));
 }
 
 /// Like [`chunks_mut`], with `f(state, index, chunk)` borrowing a state: a chunk takes a free one
@@ -44,16 +41,9 @@ pub(crate) fn chunks_mut_pooled<T: Send, S: Send>(
     });
 }
 
-/// Native worker count (the browser builds run sequentially).
+/// Worker count.
 pub(crate) fn workers() -> usize {
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        rayon::current_num_threads()
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        1
-    }
+    rayon::current_num_threads()
 }
 
 /// Processes normal-sized chunks with at most `jobs` live scratch buffers.
@@ -75,13 +65,10 @@ pub(crate) fn chunks_mut_limited<T: Send>(buf: &mut [T], chunk: usize, jobs: usi
 
 /// Maps `f` over `0..n`, keeping order.
 pub(crate) fn map<T: Send>(n: usize, f: impl Fn(usize) -> T + Sync + Send) -> Vec<T> {
-    #[cfg(not(target_arch = "wasm32"))]
     {
         use rayon::prelude::*;
         (0..n).into_par_iter().map(f).collect()
     }
-    #[cfg(target_arch = "wasm32")]
-    (0..n).map(f).collect()
 }
 
 /// Rows per parallel band for an image `width` samples wide (about 64 K samples a band).
@@ -96,7 +83,6 @@ mod tests {
 
     /// Every chunk is visited once with its own index (the last one short), and the chunks share
     /// the states: a 4-worker pool makes at most 4 for 101 chunks, an empty buffer none.
-    #[cfg(not(target_arch = "wasm32"))]
     #[test]
     fn chunks_mut_pooled_makes_one_state_per_worker_at_most() {
         let pool = rayon::ThreadPoolBuilder::new().num_threads(4).build().unwrap();

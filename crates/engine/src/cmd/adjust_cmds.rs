@@ -194,7 +194,6 @@ const MAX_FOLDER_LUT_BYTES: u64 = 64 << 20;
 /// missing or unreadable folder lists nothing; hidden files, subfolders and files too large to be
 /// a LUT are skipped. A symlink to a LUT file is listed, as a studio's shared library often is.
 /// Contents are only parsed when one is picked, which reports a malformed file.
-#[cfg(not(target_arch = "wasm32"))]
 pub fn folder_luts(dir: &str) -> Vec<(String, String)> {
     let dir = dir.trim();
     let Some(entries) = (!dir.is_empty()).then(|| std::fs::read_dir(dir).ok()).flatten() else { return Vec::new() };
@@ -216,19 +215,8 @@ pub fn folder_luts(dir: &str) -> Vec<(String, String)> {
     out
 }
 
-/// No file system on the web: a LUT folder lists nothing there.
-#[cfg(target_arch = "wasm32")]
-pub fn folder_luts(_: &str) -> Vec<(String, String)> {
-    Vec::new()
-}
-
-#[cfg(not(target_arch = "wasm32"))]
 fn read_file(path: &str) -> Option<Vec<u8>> {
     std::fs::read(path).ok()
-}
-#[cfg(target_arch = "wasm32")]
-fn read_file(_: &str) -> Option<Vec<u8>> {
-    None
 }
 
 /// `layer.setAdjustment` for the kinds edited one range / option at a time: params merge into the

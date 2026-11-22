@@ -76,7 +76,6 @@ pub(crate) fn import_gradients_dialog(app: &mut LocalPaintApp) {
 
 /// Command params for the file: a real path keeps the journal small; browser files arrive as bytes.
 fn source(name: &str, bytes: &[u8]) -> Value {
-    #[cfg(not(target_arch = "wasm32"))]
     if std::path::Path::new(name).is_absolute() && std::path::Path::new(name).is_file() {
         return json!({"path": name});
     }

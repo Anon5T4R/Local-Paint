@@ -850,13 +850,10 @@ impl ProxyImage {
                 }
             }
         };
-        #[cfg(not(target_arch = "wasm32"))]
         {
             use rayon::prelude::*;
             px.par_chunks_mut(w).enumerate().for_each(|(y, row)| fill_rows(y, row));
         }
-        #[cfg(target_arch = "wasm32")]
-        px.chunks_mut(w).enumerate().for_each(|(y, row)| fill_rows(y, row));
         ProxyImage { bounds, scale, w, h, px }
     }
 
@@ -887,7 +884,6 @@ impl ProxyImage {
         };
         let rows = &mut out[y0 * self.w..y1 * self.w];
         // A dab's few thousand pixels are faster on this thread than waking the pool.
-        #[cfg(not(target_arch = "wasm32"))]
         if (x1 - x0) * (y1 - y0) > 150_000 {
             use rayon::prelude::*;
             rows.par_chunks_mut(self.w).enumerate().for_each(|(i, line)| row(y0 + i, line));
@@ -1015,7 +1011,6 @@ impl ProxyImage {
             }
         };
         let Some(rows) = out.get_mut(y0 * width..y1 * width) else { return false };
-        #[cfg(not(target_arch = "wasm32"))]
         if (x1 - x0).saturating_mul(y1 - y0) > 150_000 {
             use rayon::prelude::*;
             rows.par_chunks_mut(width).enumerate().for_each(|(offset, line)| render_rows(y0 + offset, line));

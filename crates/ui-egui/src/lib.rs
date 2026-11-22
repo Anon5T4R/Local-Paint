@@ -11,7 +11,6 @@
 
 /// Local Paint as craft-update knows it, with its 128 px icon and accent colour: the update
 /// prompt shows both, and an AppImage's menu entry gets the icon.
-#[cfg(not(target_arch = "wasm32"))]
 pub const UPDATE_APP: craft_update::app::App = craft_update::app::App {
     icon_png: Some(include_bytes!("../../../assets/app-icon/hicolor/128x128/apps/com.localpaint.app.png")),
     accent: Some([0xd9, 0x77, 0x06]),
@@ -75,10 +74,6 @@ mod app;
 mod input;
 mod prefs;
 mod services;
-#[cfg(not(target_arch = "wasm32"))]
-mod smart_svg_ui;
-#[cfg(target_arch = "wasm32")]
-#[path = "smart_svg_ui/browser.rs"]
 mod smart_svg_ui;
 mod text;
 mod tools;
@@ -507,7 +502,6 @@ pub struct LocalPaintApp {
     /// Live filter preview (proxy document with the filter applied).
     pub(crate) filter_preview: Option<filter_dialog::FilterPreview>,
     pub(crate) smart_filter_targets: smart_filter_dialog::Targets,
-    #[cfg(not(target_arch = "wasm32"))]
     filter_preview_worker: crate::dialogs::filter_preview_worker::Worker,
     /// Full CPU canvas redraws running in the background, by document (#4024).
     pub(crate) redraws: std::collections::HashMap<localpaint_doc::DocId, background_redraw::Redraw>,
@@ -709,7 +703,7 @@ pub struct LocalPaintApp {
     last_frame_start_ms: f64,
     /// Background job bookkeeping: opening tabs, control replies waiting on a job.
     pub jobs: jobs_ui::JobsUi,
-    #[cfg(all(debug_assertions, not(target_arch = "wasm32")))]
+    #[cfg(debug_assertions)]
     live_tokens: theme::live::LiveTokens,
 }
 

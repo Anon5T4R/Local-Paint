@@ -999,7 +999,7 @@ fn eyedropper_and_alt_sampling_show_a_pipette() {
         let icon = cursor(h);
         (icon, h.output().platform_output.cursor_image.is_some())
     };
-    let desktop = cfg!(not(target_arch = "wasm32"));
+    let desktop = true;
     assert_eq!(precise(&mut h), (egui::CursorIcon::Crosshair, desktop), "Precise keeps the crosshair");
     h.event(egui::Event::ModifiersChanged(Modifiers::NONE));
     h.state_mut().ui.tool = crate::state::Tool::Eyedropper;
@@ -1145,7 +1145,6 @@ fn esc_ends_a_pen_path_and_keeps_it() {
 /// Over the first anchor of a Pen path the canvas shows the close-path pointer (#4596), a bitmap
 /// of its own; anywhere else the Pen keeps its crosshair.
 #[test]
-#[cfg(not(target_arch = "wasm32"))]
 fn pen_shows_the_close_path_pointer_over_the_first_anchor() {
     let mut h = harness();
     h.state_mut().ui.tool = crate::state::Tool::Pen;

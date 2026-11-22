@@ -1,5 +1,4 @@
 //! Use the actual platform UI-language API and the production (non-cfg(test)) Auto path.
-#![cfg(not(target_arch = "wasm32"))]
 
 use egui_kittest::{Harness, kittest::Queryable};
 use localpaint_ui_egui::{LocalPaintApp, i18n};

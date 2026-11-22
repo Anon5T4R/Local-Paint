@@ -89,7 +89,6 @@ pub struct GalleryDialog {
     shown: Option<(u64, Rect)>,
     /// The preview rendering off the UI thread (desktop), and the latest wanted key with when it
     /// was first wanted (ms), to cancel a stale render once the settings settle.
-    #[cfg(not(target_arch = "wasm32"))]
     job: Option<PreviewJob>,
     latest: Option<(u64, f64)>,
     /// A key whose render failed: not retried until the settings or view change.
@@ -125,7 +124,6 @@ impl GalleryDialog {
 
     /// The progress (`0.0..=1.0`) of a preview still rendering.
     fn rendering(&self) -> Option<f32> {
-        #[cfg(not(target_arch = "wasm32"))]
         if let Some(j) = &self.job {
             return Some(j.ctl.fraction());
         }
@@ -267,14 +265,9 @@ pub(crate) fn reduce(surf: &Surface, r: Rect, k: u32) -> Surface {
         }
     };
     let mut data = vec![0.0f32; w * h * n];
-    #[cfg(not(target_arch = "wasm32"))]
     {
         use rayon::prelude::*;
         data.par_chunks_mut(w * n).enumerate().for_each(|(j, out)| row(j, out));
-    }
-    #[cfg(target_arch = "wasm32")]
-    for (j, out) in data.chunks_mut(w * n).enumerate() {
-        row(j, out);
     }
     out.write_region(Rect::new(0, 0, w as i32, h as i32), &data);
     out
@@ -385,7 +378,6 @@ fn open_on(
         center: [(canvas.x0 + canvas.x1) as f32 / 2.0, (canvas.y0 + canvas.y1) as f32 / 2.0],
         tex: None,
         shown: None,
-        #[cfg(not(target_arch = "wasm32"))]
         job: None,
         latest: None,
         failed: None,
@@ -463,7 +455,6 @@ pub fn control(app: &mut LocalPaintApp, ui: &Value) -> Result<Value, String> {
 }
 
 /// A preview rendering on a worker thread: what it shows, its result and its cancellation.
-#[cfg(not(target_arch = "wasm32"))]
 struct PreviewJob {
     key: u64,
     vis: Rect,
@@ -471,7 +462,6 @@ struct PreviewJob {
     ctl: localpaint_engine::jobs::JobCtx,
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 impl Drop for PreviewJob {
     /// A closed dialog or a superseded render stops at its next tile.
     fn drop(&mut self) {
@@ -537,10 +527,8 @@ fn update_preview(d: &mut GalleryDialog, ctx: &egui::Context, area: ERect, backg
     if d.latest.is_none_or(|(k0, _)| k0 != key) {
         d.latest = Some((key, now));
     }
-    #[cfg(not(target_arch = "wasm32"))]
     poll_job(d, ctx);
     let wanted = d.shown.is_none_or(|(k0, _)| k0 != key) && !vis.is_empty() && d.failed != Some(key);
-    #[cfg(not(target_arch = "wasm32"))]
     if wanted && background {
         start_job(d, ctx, key, vis, k, &params, now);
     } else if d.job.as_ref().is_some_and(|j| j.key != key) {
@@ -575,7 +563,6 @@ fn show_image(d: &mut GalleryDialog, ctx: &egui::Context, img: egui::ColorImage,
 
 /// Takes a finished render: shown when it completed, dropped when cancelled, remembered when it
 /// failed (so a failing stack isn't retried every frame).
-#[cfg(not(target_arch = "wasm32"))]
 fn poll_job(d: &mut GalleryDialog, ctx: &egui::Context) {
     let Some(job) = &d.job else { return };
     let result = match job.rx.try_recv() {
@@ -593,7 +580,6 @@ fn poll_job(d: &mut GalleryDialog, ctx: &egui::Context) {
 
 /// One render at a time: a running render for older settings finishes (so a slider drag keeps
 /// updating) unless the settings have been unchanged for a moment, then it is cancelled.
-#[cfg(not(target_arch = "wasm32"))]
 fn start_job(d: &mut GalleryDialog, ctx: &egui::Context, key: u64, vis: Rect, k: u32, params: &Value, now: f64) {
     if let Some(job) = &d.job {
         let settled = d.latest.is_some_and(|(k0, t)| k0 == key && now - t >= crate::dialogs::filter_preview_worker::SETTLE_MS);

@@ -39,7 +39,7 @@ endpoint (Preferences › General disables it).
 | Windows 10+ x64 / x86 | `localpaint-<ver>-windows-<arch>.msi` (per-machine, installs in `Program Files\Local Paint`) and `localpaint-<ver>-windows-<arch>-portable.zip` |
 | Linux x86_64 / aarch64 | `.AppImage`, `.deb`, `.rpm`, `.tar.gz`, and the standalone CLI tarball (`packaging/linux/package.sh`) |
 | Arch Linux | `packaging/arch/PKGBUILD` |
-| macOS, FreeBSD, web (WebAssembly) | built by the scripts in `packaging/` |
+| macOS, FreeBSD | built by the scripts in `packaging/` |
 
 ## Everything in the box
 

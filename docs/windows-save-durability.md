@@ -52,7 +52,6 @@ Run the format tests and repository checks:
 cargo test -p localpaint-format
 cargo clippy -p localpaint-format --all-targets -- -D warnings
 cargo xtask layers
-cargo xtask wasm
 cargo xtask test-corpus -p io
 ```
 

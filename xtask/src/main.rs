@@ -23,11 +23,9 @@ usage: cargo xtask <command>
 
 commands:
   layers          enforce the crate dependency layering (docs/architecture.md §3)
-  wasm            cargo check --target wasm32-unknown-unknown for the wasm-safe crates (one call, plus
-                  one per optional web feature)
   test            workspace tests (cargo nextest when installed, else cargo test), then doctests
   ci              the CI gate: fmt --check, clippy -D warnings, layers, scorecard --check, tests, cargo-deny, local-libs mirrors
-                  (nextest --profile ci), panic_hunt, doctests and wasm, with --locked --features heif
+                  (nextest --profile ci), panic_hunt and doctests, with --locked --features heif
                   (stops at first failure), then the i18n-coverage report
   corpus [--all | --pngsuite | --psd | --psd-tools | --pixls | --atn | --photoshop | --gimp] [--local] [--update-manifest]
                   show where test corpora live and their pins (xtask/src/corpus_pins.rs), or fetch
@@ -58,7 +56,6 @@ fn main() -> ExitCode {
     let rest: Vec<&str> = args.iter().skip(1).map(String::as_str).collect();
     let result = match args.first().map(String::as_str) {
         Some("layers") => cmd_layers(),
-        Some("wasm") => cmd_wasm(),
         Some("test") => cmd_test().and_then(|()| cmd_doctest()),
         Some("ci") => cmd_ci(),
         Some("corpus") => corpus::cmd(&rest),
@@ -142,56 +139,6 @@ fn cmd_layers() -> Result<(), String> {
         }
         Err(format!("{} layering violation(s)", violations.len()))
     }
-}
-
-/// Workspace packages that must build for wasm32: all L0–L5 crates plus
-/// the egui shell.
-fn wasm_set() -> Result<Vec<String>, String> {
-    let crates = layers::from_metadata(&metadata()?)?;
-    Ok(crates
-        .into_iter()
-        .filter(|c| match layers::classify(&c.name) {
-            Some(layers::Class::Layer(l)) => l <= 5 || layers::short_name(&c.name) == "ui-egui",
-            Some(layers::Class::Standalone) => true,
-            _ => false,
-        })
-        .map(|c| c.name)
-        .collect())
-}
-
-/// Optional features that official builds enable and the web app ships, also checked for wasm32:
-/// (package, feature).
-const WASM_FEATURES: &[(&str, &str)] = &[("localpaint-codecs", "heif")];
-
-/// One `cargo check` for the whole set: each crate is checked once, and `--keep-going` still
-/// reports every failing crate. Features unify across the set, so each crate is checked with the
-/// union of the features the set enables. The optional features get a call each, so the crates
-/// are also checked without them.
-fn cmd_wasm() -> Result<(), String> {
-    let set = wasm_set()?;
-    if set.is_empty() {
-        return Err("no wasm-safe crates found in the workspace metadata".into());
-    }
-    let mut results = Vec::new();
-    let mut c = cargo();
-    c.args(["check", "--target", "wasm32-unknown-unknown", "--keep-going"]);
-    for pkg in &set {
-        c.args(["-p", pkg]);
-    }
-    let ok = run(c, &format!("cargo check --target wasm32-unknown-unknown --keep-going -p {}", set.join(" -p "))).is_ok();
-    results.push((format!("{} crates", set.len()), ok));
-    for (pkg, feature) in WASM_FEATURES {
-        let mut c = cargo();
-        c.args(["check", "--target", "wasm32-unknown-unknown", "-p", pkg, "--features", feature]);
-        let ok = run(c, &format!("cargo check --target wasm32-unknown-unknown -p {pkg} --features {feature}")).is_ok();
-        results.push((format!("{pkg} --features {feature}"), ok));
-    }
-    println!("\nwasm32-unknown-unknown check:");
-    for (p, ok) in &results {
-        println!("  {:<6} {p}", if *ok { "ok" } else { "FAIL" });
-    }
-    let failed = results.iter().filter(|r| !r.1).count();
-    if failed == 0 { Ok(()) } else { Err(format!("{failed} wasm check(s) failed")) }
 }
 
 /// Test targets for the test build. Examples are left out so they aren't linked; clippy
@@ -318,7 +265,6 @@ fn cmd_ci() -> Result<(), String> {
                 run(c, "cargo test --workspace --locked --features heif --doc")
             }),
         ),
-        ("wasm", Box::new(cmd_wasm)),
         (
             "i18n",
             Box::new(|| {

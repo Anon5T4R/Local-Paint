@@ -450,14 +450,9 @@ fn header(width: u32, height: u32, store: Store, levels: u32, top: usize) -> Res
 
 /// Runs `f` on each `len`-byte row of `out` with its index, in parallel on native targets.
 fn rows(out: &mut [u8], len: usize, f: impl Fn(usize, &mut [u8]) + Send + Sync) {
-    #[cfg(not(target_arch = "wasm32"))]
     {
         use rayon::prelude::*;
         out.par_chunks_mut(len.max(1)).enumerate().for_each(|(i, row)| f(i, row));
-    }
-    #[cfg(target_arch = "wasm32")]
-    for (i, row) in out.chunks_mut(len.max(1)).enumerate() {
-        f(i, row);
     }
 }
 

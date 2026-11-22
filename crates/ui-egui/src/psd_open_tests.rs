@@ -179,7 +179,6 @@ fn damage_confirmation_precedes_the_profile_question() {
 }
 
 /// Verifies background decoding shows only the damage prompt when no profile question exists.
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn background_damage_only_open_does_not_create_a_spurious_profile_question() {
     let mut app = app();

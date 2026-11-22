@@ -410,10 +410,9 @@ fn quantize_band(px: &mut [[f32; 4]], w: usize, y0: usize, pal: &[[u8; 3]], dith
 /// position-independent. Error diffusion carries error down the image, so it stays sequential.
 fn quantize_rows(px: &mut [[f32; 4]], w: usize, pal: &[[u8; 3]], dither: Dither, amount: f32, t: Option<usize>) -> Vec<u8> {
     let h = px.len() / w.max(1);
-    if dither == Dither::Diffusion || h < 128 || cfg!(target_arch = "wasm32") {
+    if dither == Dither::Diffusion || h < 128 {
         return quantize_band(px, w, 0, pal, dither, amount, t);
     }
-    #[cfg(not(target_arch = "wasm32"))]
     {
         use rayon::prelude::*;
         let band = w * 64;
@@ -425,6 +424,4 @@ fn quantize_rows(px: &mut [[f32; 4]], w: usize, pal: &[[u8; 3]], dither: Dither,
         idx
     }
     // Single-threaded on wasm (the early return above always takes this path there).
-    #[cfg(target_arch = "wasm32")]
-    quantize_band(px, w, 0, pal, dither, amount, t)
 }

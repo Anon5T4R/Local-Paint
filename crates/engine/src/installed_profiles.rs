@@ -115,11 +115,8 @@ fn read_one(path: &Path) -> Option<InstalledProfile> {
 /// within this long.
 const FRESH: std::time::Duration = std::time::Duration::from_secs(10);
 
-/// The installed profiles (cached; see [`FRESH`]). Empty on the web.
+/// The installed profiles (cached; see [`FRESH`]).
 pub fn installed() -> Vec<InstalledProfile> {
-    if cfg!(target_arch = "wasm32") {
-        return Vec::new();
-    }
     type Cache = Mutex<Option<(std::time::Instant, Vec<InstalledProfile>)>>;
     static CACHE: std::sync::OnceLock<Cache> = std::sync::OnceLock::new();
     let cache = CACHE.get_or_init(Default::default);

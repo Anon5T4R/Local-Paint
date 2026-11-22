@@ -249,7 +249,6 @@ pub fn candidates(script: Script, files: &[std::path::PathBuf]) -> Vec<std::path
 
 /// Every font file in the platform font directories, listed on first use and cached for the
 /// process (names only; nothing is opened).
-#[cfg(not(target_arch = "wasm32"))]
 pub fn system_font_files() -> &'static [std::path::PathBuf] {
     static FILES: std::sync::OnceLock<Vec<std::path::PathBuf>> = std::sync::OnceLock::new();
     FILES.get_or_init(|| {
@@ -264,7 +263,6 @@ pub fn system_font_files() -> &'static [std::path::PathBuf] {
 }
 
 /// Installed font files that may cover `script`, most preferred first.
-#[cfg(not(target_arch = "wasm32"))]
 pub fn system_candidates(script: Script) -> Vec<std::path::PathBuf> {
     candidates(script, system_font_files())
 }
@@ -368,7 +366,6 @@ mod tests {
 
     /// With the real system fonts, each script that has a candidate installed has one that
     /// covers it (skipped per script when the machine has none, e.g. CI Linux).
-    #[cfg(not(target_arch = "wasm32"))]
     #[test]
     fn system_candidates_cover_their_script() {
         for (s, c) in [(Script::Thai, 'ส'), (Script::Arabic, 'ر'), (Script::Hebrew, 'ש'), (Script::Devanagari, 'न')] {

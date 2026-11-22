@@ -142,13 +142,10 @@ fn start_folder_scan(folder: String, ctx: egui::Context) -> Arc<Mutex<Option<Fol
         *shared.lock().unwrap_or_else(PoisonError::into_inner) = Some(luts);
         ctx.request_repaint();
     };
-    #[cfg(not(target_arch = "wasm32"))]
     if std::thread::Builder::new().name("lut-folder-scan".into()).spawn(work).is_err() {
         // No thread: list nothing this time; the next scan retries.
         *result.lock().unwrap_or_else(PoisonError::into_inner) = Some(Vec::new());
     }
-    #[cfg(target_arch = "wasm32")]
-    work();
     result
 }
 

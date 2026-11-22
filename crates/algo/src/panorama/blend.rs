@@ -321,13 +321,10 @@ fn par_zip(a: &[f32], b: &[f32], f: impl Fn(f32, f32) -> f32 + Sync + Send) -> V
             *o = f(a, b);
         }
     };
-    #[cfg(not(target_arch = "wasm32"))]
     {
         use rayon::prelude::*;
         out.par_chunks_mut(CHUNK).zip(a.par_chunks(CHUNK)).zip(b.par_chunks(CHUNK)).for_each(|((o, a), b)| fill(o, a, b));
     }
-    #[cfg(target_arch = "wasm32")]
-    out.chunks_mut(CHUNK).zip(a.chunks(CHUNK)).zip(b.chunks(CHUNK)).for_each(|((o, a), b)| fill(o, a, b));
     out
 }
 
@@ -490,13 +487,7 @@ fn band_row(band: &PyramidBand, l: usize, ch: usize, py: usize) -> Option<(usize
 /// (#7758). Four 24 MP RGB sources (~1.2 GB each) fit in one batch: building bands side by side
 /// uses a many-core machine better than one band's row-parallel work, and one at a time made the
 /// usual 2–4 image Photomerge 12–36% slower on a 32-thread desktop.
-#[cfg(not(target_arch = "wasm32"))]
 const BAND_BUDGET: usize = 5 << 30;
-
-/// Without threads the bands of a batch are built one after another anyway, so each is added as
-/// soon as it is built (the browser's address space is 4 GB).
-#[cfg(target_arch = "wasm32")]
-const BAND_BUDGET: usize = 0;
 
 /// Multi-band blend of `imgs` into a `w × h` panorama (origin 0,0) with one weight map per image
 /// over the same grid as its ROI (`weights[i]` has `w_i × h_i` entries). Returns the colour

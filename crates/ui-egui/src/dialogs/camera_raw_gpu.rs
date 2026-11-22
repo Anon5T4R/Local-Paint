@@ -26,11 +26,8 @@ pub(crate) type Slot = Arc<OnceLock<Option<Pass>>>;
 
 impl Pass {
     /// Whether `adapter` may run the pass: not a software adapter (the CPU develop is faster
-    /// there), one that renders `Rgba32Float`, and not on the web (no blocking readback yet).
+    /// there), and one that renders `Rgba32Float`.
     fn usable(adapter: &wgpu::Adapter) -> bool {
-        if cfg!(target_arch = "wasm32") {
-            return false;
-        }
         if adapter.get_info().device_type == wgpu::DeviceType::Cpu {
             log::info!("Camera Raw develops on the CPU: software graphics adapter");
             return false;
@@ -48,7 +45,6 @@ impl Pass {
             let _ = (slot.set(None), device);
             return;
         }
-        #[cfg(not(target_arch = "wasm32"))]
         {
             let (on, out) = (device.clone(), slot.clone());
             let spawned = std::thread::Builder::new().name("camera-raw-pipeline".into()).spawn(move || {
@@ -125,12 +121,6 @@ impl CameraRawGpu {
         if p.spatial() || p.is_identity() || self.failed.load(Ordering::Relaxed) || !self.health.is_ok() {
             return None;
         }
-        #[cfg(target_arch = "wasm32")]
-        {
-            let _ = (px, key, w, h, float);
-            None
-        }
-        #[cfg(not(target_arch = "wasm32"))]
         {
             let Some(Some(pass)) = self.pass.get() else { return None };
             let points = self.points(px, key, w, h, p);
@@ -148,7 +138,6 @@ impl CameraRawGpu {
         }
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     fn points(&self, px: &[[f32; 4]], key: Option<u64>, w: usize, h: usize, p: &CameraRaw) -> Option<(f32, f32)> {
         if p.whites == 0.0 && p.blacks == 0.0 {
             return None;

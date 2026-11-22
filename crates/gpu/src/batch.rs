@@ -199,7 +199,6 @@ pub(crate) fn submit_batch(
         t.split(&mut done, encoder);
     }
     let prev = last.replace(queue.submit([done.finish()]));
-    #[cfg(not(target_arch = "wasm32"))]
     if let Some(prev) = prev {
         match health {
             Some(h) => {
@@ -210,6 +209,4 @@ pub(crate) fn submit_batch(
             }
         }
     }
-    #[cfg(target_arch = "wasm32")]
-    let _ = (prev, health);
 }

@@ -4630,39 +4630,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "localpaint-web"
-version = "0.20.23"
-dependencies = [
- "eframe",
- "egui",
- "js-sys",
- "localpaint-codecs",
- "localpaint-doc",
- "localpaint-engine",
- "localpaint-io",
- "localpaint-paint",
- "localpaint-psd",
- "localpaint-ui-egui",
- "log",
- "rfd",
- "serde_json",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
-]
-
-[[package]]
-name = "localpaint-web-boot"
-version = "0.20.23"
-dependencies = [
- "flate2",
- "js-sys",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
-]
-
-[[package]]
 name = "lock_api"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"

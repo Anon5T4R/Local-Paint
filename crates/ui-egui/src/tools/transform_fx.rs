@@ -286,14 +286,9 @@ fn crop(buf: &Buffer, rect: Rect) -> Buffer {
 
 /// `out` in chunks of `len`, each with its index, in parallel on native targets.
 fn bands<T: Send>(out: &mut [T], len: usize, band: impl Fn(usize, &mut [T]) + Sync) {
-    #[cfg(not(target_arch = "wasm32"))]
     {
         use rayon::prelude::*;
         out.par_chunks_mut(len.max(1)).enumerate().for_each(|(i, o)| band(i, o));
-    }
-    #[cfg(target_arch = "wasm32")]
-    for (i, o) in out.chunks_mut(len.max(1)).enumerate() {
-        band(i, o);
     }
 }
 

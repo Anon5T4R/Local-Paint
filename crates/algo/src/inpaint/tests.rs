@@ -166,7 +166,6 @@ fn a_hole_is_as_thick_as_it_is_through_not_along() {
 /// A long thin hole goes the thin way (a shallow pyramid that starts from a membrane): it is
 /// filled, only it changes, and the result does not depend on the thread count either.
 #[test]
-#[cfg(not(target_arch = "wasm32"))]
 fn thin_holes_are_filled_the_same_on_any_number_of_threads() {
     let (w, h) = (300, 200);
     let img = busy(w, h, 3, 5);
@@ -184,7 +183,6 @@ fn thin_holes_are_filled_the_same_on_any_number_of_threads() {
 }
 
 #[test]
-#[cfg(not(target_arch = "wasm32"))]
 fn results_do_not_depend_on_the_thread_count() {
     // Big enough for the parallel passes, and for PatchMatch to sweep in wavefronts where
     // there are fewer bands than threads (never with one thread).

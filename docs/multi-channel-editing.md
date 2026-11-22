@@ -159,7 +159,7 @@ The three `candidate*-before-fused-original.json` files preserve the original fe
 
 Validation after the main merge and review fixes: 6,542 engine and UI tests passed
 (38 ignored), including 58 focused engine regressions. Strict all-target Clippy,
-formatting, layering, wasm, parity generation and the adversarial command panic hunt passed.
+formatting, layering, parity generation and the adversarial command panic hunt passed.
 The complete `cargo xtask perf --quick` runner now finishes successfully after the main
 merge; its report still lists unrelated, non-enforced budget overruns. Six further local
 review/fix rounds followed the latest CodeRabbit review; the last found no actionable issues.

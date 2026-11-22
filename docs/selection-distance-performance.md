@@ -8,7 +8,7 @@ The first pass finds the nearest selected pixel above and below each pixel. Sinc
 input is binary, two sweeps replace the general parabola envelope for that axis. Vertical
 distances are stored as integers in column order. The second pass copies 32-row bands
 into contiguous rows and evaluates the lower envelope of squared-distance parabolas.
-Both passes are linear in the number of pixels. WebAssembly uses the same scalar kernels.
+Both passes are linear in the number of pixels.
 
 The row envelope follows [Felzenszwalb and Huttenlocher, 2012](https://toc.cs.uchicago.edu/articles/v008a019/).
 Its intersections use `(fq - fp) / (2 * (q - p)) + (q + p) / 2` in f64. This avoids the old

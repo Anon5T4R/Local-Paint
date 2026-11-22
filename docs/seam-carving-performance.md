@@ -64,7 +64,7 @@ past 2× and proxy-size images. No difference appeared on any input whose energy
 - NaN protection protects nothing.
 
 Before, these inputs fed NaN to the seam search. The chosen seam then depended on NaN payloads,
-which arithmetic does not keep consistently across builds or on wasm. `nan_payloads_do_not_steer_seams`
+which arithmetic does not keep consistently across builds. `nan_payloads_do_not_steer_seams`
 and `infinite_samples_carve_deterministically` pin the new behaviour.
 
 **The height pass now keeps infinite protection.** It resamples the protection map; where that
@@ -137,7 +137,6 @@ channel), the energy and the stored directions, plus protection and an 8-byte in
 - **A worst case.** When every seam hugs the right edge of a one-sided smooth ramp, the old code
   shifted nothing, but the new code's cost changes cover almost the whole map. The review measured
   that case 1.3–1.5× slower than before. No other input it tried was slower.
-- **wasm** builds run the same code on one thread.
 
 ## P28's recorded number is stale (2026-10-22, #8526)
 

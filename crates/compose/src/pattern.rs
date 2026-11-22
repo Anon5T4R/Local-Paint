@@ -14,15 +14,12 @@ use std::sync::{Arc, Mutex, OnceLock, Weak};
 use localpaint_doc::{ColorMode, Pattern, PixelFormat, Rect, SampleType};
 
 /// What one rendering call may keep of its patterns' working copies: every pattern it paints with
-/// stays converted for the call (four of the largest 8-bit ones on desktop), so none is converted
+/// stays converted for the call (four of the largest 8-bit ones), so none is converted
 /// once per output tile. A ceiling, not an allocation: only the patterns a call paints with are
 /// converted. Past it a pattern is converted under one lock and shared while in use (see
-/// [`PreparedPatterns::get`]). The web build keeps a quarter of that.
-#[cfg(not(target_arch = "wasm32"))]
+/// [`PreparedPatterns::get`]).
 pub(crate) const PREPARED_PATTERN_BYTES: usize = 1 << 30;
 /// See the desktop value above.
-#[cfg(target_arch = "wasm32")]
-pub(crate) const PREPARED_PATTERN_BYTES: usize = 256 << 20;
 const MAX_PREPARED_PATTERNS: usize = 64;
 /// Absolute cap on a single pattern's working copy on the uncached path: the document's own cap
 /// on what paints (`Pattern::is_paintable`). A pattern above it is skipped, not converted.
@@ -126,7 +123,6 @@ impl<'a> PreparedPatterns<'a> {
                 }
                 if !self.over_budget.warned.swap(true, Ordering::Relaxed) {
                     // Written, not printed: a warning must never panic, even with no stderr.
-                    #[cfg(not(target_arch = "wasm32"))]
                     {
                         use std::io::Write as _;
                         let _ = writeln!(
@@ -162,8 +158,7 @@ pub fn pattern_rgba(p: &Pattern, mode: ColorMode) -> Vec<[f32; 4]> {
 
 /// Rows `top..bottom` of [`pattern_rgba`] (of a paintable pattern), replacing `out`: a large
 /// pattern is read a band at a time instead of as one copy at 16 bytes per pixel. `None` when the
-/// memory for the rows cannot be had (on the web a failed allocation aborts the tab, so it is
-/// asked for, not assumed).
+/// memory for the rows cannot be had (it is asked for, not assumed).
 pub fn pattern_rgba_rows(p: &Pattern, mode: ColorMode, top: u32, bottom: u32, out: &mut Vec<[f32; 4]>) -> Option<()> {
     let bottom = bottom.min(p.height);
     let top = top.min(bottom);

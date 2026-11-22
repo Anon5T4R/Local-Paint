@@ -148,10 +148,7 @@ impl<'a> TiffBands<'a> {
     /// Bands decoded at once: about [`GROUP_BYTES`], at least one per worker, at most `max_alloc`.
     fn bands_per_group(&self) -> Result<usize, CodecError> {
         let band = self.p.band_bytes()?.max(1);
-        #[cfg(not(target_arch = "wasm32"))]
         let workers = rayon::current_num_threads();
-        #[cfg(target_arch = "wasm32")]
-        let workers = 1;
         let cap = usize::try_from(self.cap).unwrap_or(usize::MAX);
         Ok((GROUP_BYTES / band).max(workers).min(cap / band).max(1))
     }

@@ -1,4 +1,3 @@
-#[cfg(not(target_arch = "wasm32"))]
 use super::PARALLEL_MIN_PIXELS;
 use super::open::raw_stage;
 use super::{CameraRaw, CameraRawDialog, RgbHistogram};
@@ -64,13 +63,10 @@ impl ProxyJob {
                 }
             };
             // Each pixel is independent, so bands of the proxy blend in parallel (#211, P36).
-            #[cfg(not(target_arch = "wasm32"))]
             {
                 use rayon::prelude::*;
                 px.par_iter_mut().zip(self.proxy.par_iter().zip(mask.par_iter())).with_min_len(PARALLEL_MIN_PIXELS).for_each(blend);
             }
-            #[cfg(target_arch = "wasm32")]
-            px.iter_mut().zip(self.proxy.iter().zip(mask.iter())).for_each(blend);
         }
         let histogram_start = crate::gpu_canvas::now_ms();
         let histogram = RgbHistogram::from_rgba(&px);

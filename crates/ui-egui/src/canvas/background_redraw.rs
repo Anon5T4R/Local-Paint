@@ -25,7 +25,6 @@ use std::sync::{Arc, Weak};
 use localpaint_doc::{DocId, Document};
 use localpaint_engine::display_color::CanvasDisplay;
 use localpaint_geom::Rect;
-#[cfg(not(target_arch = "wasm32"))]
 use rayon::prelude::*;
 
 use crate::LocalPaintApp;
@@ -242,7 +241,7 @@ fn keep_cap(app: &LocalPaintApp, doc: DocId) -> u64 {
 
 /// Whether full CPU refreshes run in the background here.
 pub(crate) fn enabled(app: &LocalPaintApp) -> bool {
-    cfg!(not(target_arch = "wasm32")) && app.background_jobs
+    app.background_jobs
 }
 
 /// `bounds` cut into [`BLOCK`]-sized blocks, row by row.
@@ -554,10 +553,7 @@ fn draw(
             return;
         }
         // Never reached in the browser ([`enabled`]); it only has to build there, without rayon.
-        #[cfg(not(target_arch = "wasm32"))]
         let batch = batch.par_iter();
-        #[cfg(target_arch = "wasm32")]
-        let batch = batch.iter();
         let pieces: Vec<Piece> = batch
             .map(|&block| Piece { block, texels: crate::gpu_canvas::display_texels(format, display, &localpaint_compose::render(doc, blocks[block])) })
             .collect();

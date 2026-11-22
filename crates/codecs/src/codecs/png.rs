@@ -568,7 +568,7 @@ const PARALLEL_MIN_BYTES: usize = 4 << 20;
 /// A 36 MP RGB export drops from ~9 s to well under a second on 12 cores; the output is a few
 /// percent larger (no dictionary across bands).
 fn parallel_idat(data: &[u8], w: usize, h: usize, bpp: usize, level: PngCompression) -> Option<Vec<u8>> {
-    if cfg!(target_arch = "wasm32") || data.len() < PARALLEL_MIN_BYTES || level == PngCompression::None || w == 0 || h == 0 {
+    if data.len() < PARALLEL_MIN_BYTES || level == PngCompression::None || w == 0 || h == 0 {
         return None;
     }
     banded_idat(data, w, h, bpp, level, encode_threads())
@@ -602,9 +602,9 @@ fn band_rows(stride: usize) -> usize {
     (BAND_BYTES / stride.saturating_add(1)).max(1)
 }
 
-/// Worker threads for the banded encoders: one on wasm (no threads), else the machine's cores.
+/// Worker threads for the banded encoders: the machine's cores.
 fn encode_threads() -> usize {
-    if cfg!(target_arch = "wasm32") { 1 } else { std::thread::available_parallelism().map_or(1, |n| n.get()).clamp(1, 32) }
+    std::thread::available_parallelism().map_or(1, |n| n.get()).clamp(1, 32)
 }
 
 /// [`parallel_idat`] on `threads` worker threads.

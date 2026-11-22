@@ -229,7 +229,6 @@ impl Compositor {
             if flush && self.layer_alloc.as_deref() == Some(OVER_BUDGET) {
                 self.layer_alloc = None;
                 submit_batch(device, queue, encoder, self.health.as_ref(), self.timer.as_mut(), &mut last_submit);
-                #[cfg(not(target_arch = "wasm32"))]
                 {
                     let idle = match self.health.as_ref() {
                         Some(h) => h.wait_idle(device, last_submit.clone()),
@@ -377,9 +376,6 @@ impl Compositor {
         stats.evicted += n;
         self.admit_freed = self.admit_freed.saturating_add(dropped);
         // WebGPU reports errors asynchronously: its failures reach the health callbacks.
-        if cfg!(target_arch = "wasm32") {
-            return Some(device.create_texture(desc));
-        }
         for retry in [false, true] {
             let (texture, mut error) = first_error(device, || device.create_texture(desc));
             if error.is_none() && self.fail_allocs > 0 {

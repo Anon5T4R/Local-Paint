@@ -167,13 +167,10 @@ pub(super) fn quick_select_batched<const OPTIMIZED: bool>(
         // about what that window alone costs.
         let batch = margins_to_try(margin, bbox, canvas, batch);
         kept.store(usize::MAX, std::sync::atomic::Ordering::Relaxed);
-        #[cfg(not(target_arch = "wasm32"))]
         let results: Vec<Attempt> = {
             use rayon::prelude::*;
             batch.par_iter().enumerate().map(|(i, &m)| attempt(i, m)).collect()
         };
-        #[cfg(target_arch = "wasm32")]
-        let results: Vec<Attempt> = batch.iter().enumerate().map(|(i, &m)| attempt(i, m)).collect();
         for result in results {
             sizes += 1;
             match result {

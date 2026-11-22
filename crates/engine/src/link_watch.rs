@@ -37,16 +37,10 @@ pub type LinkScan = Arc<Mutex<Option<(u64, Vec<(String, Vec<u64>, Option<Stamp>)
 
 /// Stamps `file`, a linked path resolved by [`crate::doc_path`]; `None` (not looked at, like a
 /// missing file) when it is not followed.
-#[cfg(not(target_arch = "wasm32"))]
 fn stamp(file: Option<&std::path::Path>) -> Option<Stamp> {
     let meta = std::fs::metadata(file?).ok()?;
     let modified = meta.modified().ok()?.duration_since(std::time::UNIX_EPOCH).ok()?;
     Some((meta.len(), modified.as_nanos()))
-}
-
-#[cfg(target_arch = "wasm32")]
-fn stamp(_: Option<&std::path::Path>) -> Option<Stamp> {
-    None
 }
 
 /// The files of `d`'s linked smart objects, with the layers showing each.
@@ -88,7 +82,7 @@ impl Session {
     /// Start stamping the active document's linked files on a worker thread, unless a look is
     /// still running (or the build has no files to look at: the web app).
     pub fn start_link_scan(&mut self) {
-        if self.link_scan.is_some() || cfg!(target_arch = "wasm32") {
+        if self.link_scan.is_some() {
             return;
         }
         let Some(st) = self.active() else { return };

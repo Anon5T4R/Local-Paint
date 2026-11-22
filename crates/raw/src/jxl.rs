@@ -10,22 +10,14 @@
 //! must stay under the per-file cap of static hosts (packaging/web/package.sh), for a format only
 //! a few phones write. There, these segments are [`RawError::Unsupported`] with a clear message.
 
-#[cfg(not(target_arch = "wasm32"))]
 use jxl_oxide::{AllocTracker, JxlImage};
 
 use crate::Limits;
 use crate::error::{RawError, Result};
 
-/// The browser build has no JPEG XL decoder (see the module docs).
-#[cfg(target_arch = "wasm32")]
-pub(crate) fn decode(_src: &[u8], _w: usize, _h: usize, _samples: usize, _bits: u32, _float_scale: Option<f32>, _limits: &Limits) -> Result<Vec<u16>> {
-    Err(RawError::unsupported("JPEG XL-compressed DNG (DNG 1.7) can't be opened in the browser version of Local Paint; open it in the desktop app"))
-}
-
 /// Decodes one segment into `w * h * samples` interleaved samples at `bits` per sample (the
 /// TIFF BitsPerSample, which DNG requires the codestream's bit depth to match). Floating-point
 /// samples (SampleFormat 3) come back multiplied by `float_scale`, clipped to 0..=65535.
-#[cfg(not(target_arch = "wasm32"))]
 pub(crate) fn decode(src: &[u8], w: usize, h: usize, samples: usize, bits: u32, float_scale: Option<f32>, limits: &Limits) -> Result<Vec<u16>> {
     // Floating-point samples are read into an f32 buffer first: four bytes a sample, not two.
     let sample_bytes = if float_scale.is_some() { 4 } else { 2 };
@@ -76,7 +68,6 @@ pub(crate) fn decode(src: &[u8], w: usize, h: usize, samples: usize, bits: u32, 
     })
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 fn guarded<T>(f: impl FnOnce() -> Result<T>) -> Result<T> {
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or_else(|_| Err(RawError::malformed("the JPEG XL decoder failed on this file")))
 }

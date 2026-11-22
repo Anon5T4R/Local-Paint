@@ -113,13 +113,10 @@ impl Buffer {
         let out = img.pixels.as_chunks_mut::<4>().0;
         // In parallel off wasm: a 24 MP composite took 120 ms on one core (the CPU canvas,
         // previews, thumbnails and 8-bit exports all come through here).
-        #[cfg(not(target_arch = "wasm32"))]
         {
             use rayon::prelude::*;
             out.par_chunks_mut(16 * 1024).zip(self.px.par_chunks(16 * 1024)).for_each(|(o, p)| quantize(o, p));
         }
-        #[cfg(target_arch = "wasm32")]
-        quantize(out, &self.px);
         img
     }
     /// Flatten over an opaque background colour.

@@ -158,11 +158,7 @@ fn blur_padded_line(line: &mut [f32], padded: &mut [f32], scratch: &mut [f32], p
 
 /// How many workers blur `lines` lines of `len` samples.
 fn row_workers(lines: usize, len: usize) -> usize {
-    if cfg!(target_arch = "wasm32") || lines.saturating_mul(len) < 1 << 16 {
-        1
-    } else {
-        std::thread::available_parallelism().map_or(1, |n| n.get()).clamp(1, 16).min(lines.max(1))
-    }
+    if lines.saturating_mul(len) < 1 << 16 { 1 } else { std::thread::available_parallelism().map_or(1, |n| n.get()).clamp(1, 16).min(lines.max(1)) }
 }
 
 /// Line buffers for each of [`row_workers`]; `None` unless every one fits in memory.

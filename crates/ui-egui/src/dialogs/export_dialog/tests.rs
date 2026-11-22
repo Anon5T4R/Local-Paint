@@ -22,12 +22,10 @@ fn default_preview_proxy(doc: &Document, f: &Map<String, Value>) -> Result<Docum
     super::preview_proxy(doc, f, &localpaint_engine::color_cmds::document_profile(doc))
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 fn default_exact_estimate(doc: &Document, f: &Map<String, Value>) -> Option<u64> {
     super::exact_estimate(doc, f, &localpaint_engine::color_cmds::document_profile(doc))
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 fn default_poll_or_start_preview(
     ui: &mut egui::Ui,
     key: egui::Id,
@@ -553,7 +551,6 @@ fn export_document_scales_when_only_the_height_changes() {
     assert_eq!(scaled_size(10.0, 300.0, 0.01), (1.0, 3.0));
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn layered_preview_runs_outside_the_ui_frame() {
     let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
@@ -797,7 +794,6 @@ fn preview_cache_tracks_working_profiles_but_prefers_embedded_profiles() {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn preview_workers_keep_the_captured_source_profile() {
     let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());

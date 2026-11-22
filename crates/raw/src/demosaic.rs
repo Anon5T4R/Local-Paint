@@ -1071,7 +1071,6 @@ mod tests {
     /// so groups after the first start at band `group * 12` and every scratch is reused for several
     /// bands; with room for 4, every band is its own task and most borrow a used scratch. A wrong band
     /// index or a stale scratch cell would change pixels. The split does not depend on the machine.
-    #[cfg(not(target_arch = "wasm32"))]
     #[test]
     fn ahd_groups_of_several_bands_match_reference() {
         let m = [[0.41, 0.36, 0.18], [0.21, 0.72, 0.07], [0.02, 0.12, 0.95]];
@@ -1113,7 +1112,6 @@ mod tests {
 
     /// Every band runs once with its own index, and no more than `jobs` scratches (what `develop`'s
     /// memory check admits) or one per worker are alive at once, on either side of `jobs == workers`.
-    #[cfg(not(target_arch = "wasm32"))]
     #[test]
     fn for_bands_keeps_at_most_jobs_scratches_alive() {
         let pool = rayon::ThreadPoolBuilder::new().num_threads(8).build().unwrap();
@@ -1147,7 +1145,6 @@ mod tests {
     /// on band 0 (by other work on the shared pool, or a slow core) leaves the bands after it to
     /// the others. With a fixed share of 9 bands per worker, 8 of them would wait for band 0, so at
     /// most 26 of the other 34 could finish meanwhile.
-    #[cfg(not(target_arch = "wasm32"))]
     #[test]
     fn a_slow_band_does_not_hold_up_the_bands_after_it() {
         let pool = rayon::ThreadPoolBuilder::new().num_threads(4).build().unwrap();

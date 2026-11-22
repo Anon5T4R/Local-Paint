@@ -98,7 +98,6 @@ pub(super) fn plan(inputs: &[BatchInput], output: &str, format: &str, params: &V
     // Renaming within the source folder could replace a later input before it is read. Resolve
     // existing paths so aliases such as `source/./001.png` cannot bypass the check. The default
     // (no template) path keeps its existing in-place behavior.
-    #[cfg(not(target_arch = "wasm32"))]
     {
         let sources: std::collections::HashSet<_> = inputs.iter().filter_map(|i| std::fs::canonicalize(&i.path).ok()).collect();
         for output in &outputs {

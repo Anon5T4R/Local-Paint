@@ -30,7 +30,6 @@ fn rotated(text: &str, family: &str, size_pt: f32) -> TextLayer {
 
 /// An engine with an installed Japanese font registered, and that font's family.
 fn cjk_engine() -> Option<(TextEngine, String)> {
-    #[cfg(not(target_arch = "wasm32"))]
     for script in [crate::cjk::CjkScript::Japanese, crate::cjk::CjkScript::SimplifiedChinese] {
         for f in crate::cjk::font_files(script) {
             let Ok(bytes) = std::fs::read(&f.path) else { continue };
@@ -104,7 +103,6 @@ fn latin_stands_upright_one_per_em_by_default() {
 
 /// An engine with an installed font that joins "fi" into one ligature glyph, and its family.
 fn ligature_engine() -> Option<(TextEngine, String)> {
-    #[cfg(not(target_arch = "wasm32"))]
     for path in [
         "/System/Library/Fonts/Supplemental/Hoefler Text.ttc",
         "/System/Library/Fonts/Supplemental/Baskerville.ttc",
