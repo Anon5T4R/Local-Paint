@@ -31,7 +31,7 @@ The shared harness times in-memory operations. Input loading, image conversion, 
 
 Real PSD exports remain byte-identical and imported layer/mask float samples match main. The committed literal previous-interleave oracle covers depths, bands, fills, truncation and inversion.
 
-Current local checks: affected `pixels::` unit tests (five passed, one ignored manual benchmark); strict all-target IO Clippy; affected IO wasm32 check. All passed. Follow-up exports at float and 16-bit depth remain byte-identical to main; no synthetic timing test was run.
+Current local checks: affected `pixels::` unit tests (five passed, one ignored manual benchmark); strict all-target IO Clippy. All passed. Follow-up exports at float and 16-bit depth remain byte-identical to main; no synthetic timing test was run.
 
 Local raw evidence and the shared harness: `.local/perf-real-261019/` in the repository checkout (ignored). This comparison supersedes the earlier synthetic performance table. Small synthetic unit fixtures remain correctness checks; ignored synthetic timing tests were not run.
 
@@ -42,5 +42,4 @@ These checks passed when the split was prepared; they were not all rerun for thi
 - `cargo test -p localpaint-io --locked`: passed (617 passed, 6 ignored).
 - `cargo clippy -p localpaint-io --locked --all-targets -- -D warnings`: passed.
 - `cargo xtask layers`: passed.
-- `cargo check -p localpaint-io --locked --target wasm32-unknown-unknown`: passed.
 - `cargo xtask test-corpus -p io`: passed (646 passed, 6 ignored).

@@ -107,7 +107,7 @@ plane beyond the existing dilation workspace. Lines containing negative zero use
 the original scan to retain float bit patterns.
 
 `cargo fmt --all -- --check`, algorithm clippy with all targets and denied warnings,
-`cargo xtask layers`, full `cargo xtask wasm`, `cargo xtask perf --quick`, and
+`cargo xtask layers`, `cargo xtask perf --quick`, and
 scorecard generation/check passed. The quick performance run used llvmpipe and
 still reports existing over-budget UI scenarios. These operation measurements do
 not change those budget claims or establish Photoshop pixel parity.

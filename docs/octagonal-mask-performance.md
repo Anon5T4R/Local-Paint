@@ -27,8 +27,8 @@ No outside pixel participates in the old clipped passes or in the new result.
 The square uses the existing van Herk / Gil-Werman prefix/suffix window extrema, with
 constant comparisons per sample. Native dense buffers of at least 262,144 pixels run
 the horizontal windows in parallel, transpose in 32x32 cache blocks, filter contiguous columns, then transpose
-back. The two full-size float work planes are reused. Small inputs and wasm keep the
-serial square pass. Each axis caps the window radius at that axis's extent.
+back. The two full-size float work planes are reused. Small inputs keep the serial
+square pass. Each axis caps the window radius at that axis's extent.
 
 The Manhattan ball is built from the radius's binary digits. A radius-`2d` ball is the
 union of five radius-`d` balls, centered at the output and at its four axial offsets of

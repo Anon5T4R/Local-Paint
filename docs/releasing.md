@@ -5,7 +5,7 @@ installers and the Linux packages in a matrix-free pair of jobs, then publishes 
 **GitHub Release** of that tag (`gh release create`, with generated notes). The pipeline is ours:
 it calls no shared workflow of another organisation and needs no secret to run.
 
-The other packagers — macOS, FreeBSD, the web build and Flatpak — stay in `packaging/` and are run
+The other packagers - macOS, FreeBSD and Flatpak - stay in `packaging/` and are run
 by hand when needed; the tag workflow doesn't touch them.
 
 User-facing names say **Local Paint**. Files, binaries and ids stay lowercase (`localpaint-<version>-<platform>-<arch>.<ext>`, `com.localpaint.app`).
@@ -23,7 +23,7 @@ HTTPS validates certificates and host names against the operating system's trust
 Tags must be semantic versions (`v0.8.0` or `0.8.0`); only published stable versions newer
 than the installed workspace version trigger a notice. Prereleases do not trigger it.
 Flatpak builds also check for releases; repository-managed installations are updated through
-their package manager. Web/headless frontends have no update transport. No release-workflow
+their package manager. Headless frontends have no update transport. No release-workflow
 changes are required: publishing a newer stable GitHub Release makes it discoverable.
 
 ## Cutting a release
@@ -68,7 +68,7 @@ UI if it shouldn't be offered as "latest".
 The Windows job runs `packaging/windows/package.ps1` (x64) and the Linux job
 `packaging/linux/package.sh --formats "appimage deb rpm tar cli"`. The same scripts take `-Arch
 x86|arm64` and `CROSS_ARCH`/`CROSS_TARGET` respectively, and the other packagers in `packaging/`
-cover macOS, FreeBSD, Flatpak and the web build; none of those run for a tag.
+cover macOS, FreeBSD and Flatpak; none of those run for a tag.
 
 Every binary reports its version, the commit and the build date: `localpaint --version`,
 `localpaint-cli --version`, and *Help › About Local Paint*. The packaging scripts fill
@@ -80,8 +80,7 @@ Both jobs build with the fonts vendored in this repository: the workflow sets
 `CRAFT_FONTS_DIR=$GITHUB_WORKSPACE/assets/craft-fonts`, and the packaging scripts carry each font's
 licence as `OFL-<family>.txt` (`copy_font_licences` in `packaging/env.sh`; the portable zip on
 Windows; `Contents/Resources/Licenses` in the macOS app). A build without `CRAFT_FONTS_DIR` still
-compiles and falls back to the system's fonts; the web build embeds none (see
-`docs/development.md` › Fonts). Build option: `docs/development.md` › Fonts.
+compiles and falls back to the system's fonts. Build option: `docs/development.md` › Fonts.
 
 ### macOS
 
@@ -140,8 +139,7 @@ goes in `CARGO_TARGET_<TRIPLE>_RUSTFLAGS`, so host build scripts aren't affected
 - `apps/localpaint/build.rs` and `apps/localpaint-cli/build.rs` embed the icon
   (`assets/app-icon/localpaint.ico`) and VERSIONINFO with the `winresource` crate
   (build dependency `0.1`). They only do this when targeting Windows. Elsewhere each
-  script is a no-op, even if `LOCALPAINT_REQUIRE_WINRES` is set, and the web build
-  doesn't touch that crate. Both set ProductName to Local Paint, CompanyName to
+  script is a no-op, even if `LOCALPAINT_REQUIRE_WINRES` is set. Both set ProductName to Local Paint, CompanyName to
   Learning Machines LLC and the same copyright line. The GUI description is
   "Local Paint image editor" (`localpaint.exe`). The CLI description is
   "Local Paint command-line interface", with OriginalFilename `localpaint-cli.exe`
@@ -320,19 +318,6 @@ binaries.
 
 Locally, on any OS, `packaging/freebsd/package.sh --dry-run` stages the tree from stub binaries
 and lists the tarball, which checks the layout without a FreeBSD machine.
-
-### Web
-
-`packaging/web/package.sh` runs `trunk build --release` for the app (`apps/localpaint-web`, into
-`dist/web`) and for the module that starts it (`apps/localpaint-web-boot`, into `dist/web-boot`).
-It gzips the app's wasm, cuts it into parts of at most 20 MiB and zips the boot module's page with
-the parts, sample `_headers` and `.htaccess` files and the hosting guide. The site only uses
-relative URLs, so it works under any path and in an iframe. The wasm builds with the
-size-optimized `wasm-release` Cargo profile (set in `apps/localpaint-web/index.html`), and the
-script fails if any file in the site exceeds 24 MiB, below Cloudflare's 25 MiB per-file limit;
-the app's wasm itself may be larger, since it ships as parts.
-[`packaging/web/README.md`](../packaging/web/README.md) covers MIME types, compression,
-caching, the iframe snippet and the `?webgl` / `?cpu` flags.
 
 ## Signing
 

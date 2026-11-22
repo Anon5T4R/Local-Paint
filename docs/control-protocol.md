@@ -293,9 +293,9 @@ versions move there at startup), and the window size and
 position, the dock width and floating-panel geometry
 to `ui.ron` beside it (a file holding values that would crash startup is discarded). In portable mode (a `portable.txt` or `LocalPaint.portable` file beside the
 executable, as in the Windows portable zip) that directory is `LocalPaintData` next to the
-executable instead. The web build keeps them in `localStorage`. A save writes only the values
+executable instead. A save writes only the values
 this instance changed since it last loaded or saved them over what storage holds now, so a second
-browser tab (or app window) never reverts the other's changes; for a value changed in both, the
+second app window never reverts the other's changes; for a value changed in both, the
 latest save wins. A failed write stays pending and is retried (after 2 s, doubling up to 30 s, and
 sooner after a further change); the status bar reports the first failure and a notice a
 persistent one.
@@ -305,8 +305,8 @@ User and imported (`.abr`) brush presets live in the config directory's `Presets
 `index.json` with the group order and deleted built-ins (see `localpaint_engine::preset_store`).
 The store loads in the background at launch and syncs after every brush preset change; built-ins
 are never written. The Actions list is `actions.json` in that same folder and survives a restart.
-Headless CLI/MCP sessions and the web build keep brush presets and the action list for the session
-only, unless a store is attached. Gradient presets (including imported `.grd` groups) persist with
+Headless CLI/MCP sessions keep brush presets and the action list for the session only, unless a
+store is attached. Gradient presets (including imported `.grd` groups) persist with
 the preferences.
 
 `brush.presets.importAbr` and `gradient.presets.importGrd` never overwrite a group by default: a
@@ -318,8 +318,7 @@ drag-and-drop, Import Brushes…) shows a prompt instead: `ui.dialog.confirm` im
 group, `ui.dialog.set {"choice":"replace"}` then `ui.dialog.confirm` replaces, and
 `ui.dialog.cancel` imports nothing.
 
-Named New Document presets also persist with preferences (`presets.documents`) on desktop and
-web. File › New › Save Preset… saves the current form; the Saved tab selects a configuration or
+Named New Document presets also persist with preferences (`presets.documents`). File › New › Save Preset… saves the current form; the Saved tab selects a configuration or
 deletes it. Selection only fills the form: Create still runs `file.new`, and the document name
 is independent of the preset name. Settings include pixel width/height, resolution in ppi,
 mode, depth, background, and display `unit` (`px`, `in`, `cm`, `mm`, `pt`, `pica`) and
@@ -334,7 +333,7 @@ On desktop, `engine.execute` with `help.checkForUpdates` and `{}` starts a backg
 check; `updates.status` returns `{supported, currentVersion, result}`. The result's `status`
 is `idle`, `checking`, `upToDate`, `available` (with `release: {version, url}`), or `failed`
 (with `message`). No document is required and neither command adds history or journal entries.
-Headless and web sessions without a release transport report `supported: false`.
+Headless sessions without a release transport report `supported: false`.
 
 Set `general.automaticallyCheckUpdates` with `prefs.set` to enable or disable the next
 desktop startup's single check (enabled by default). Manual checks still work when automatic checks are off.
@@ -528,7 +527,7 @@ a driver process crash is detected by the startup marker on the next launch.
 
 ### Camera Raw dialog
 
-On the desktop the dialog is a window of its own (title bar, moved and resized like any window), as Adobe Camera Raw is; the main window is dimmed and takes no input while it is open, and closing the window is Cancel. Where the platform has no extra windows (the web build) it is drawn over the main window.
+On the desktop the dialog is a window of its own (title bar, moved and resized like any window), as Adobe Camera Raw is; the main window is dimmed and takes no input while it is open, and closing the window is Cancel. Where the platform has no extra windows it is drawn over the main window.
 
 **Screenshots:** `ui.screenshot` captures the main window only, and eframe cannot capture an
 immediate viewport, so while Camera Raw has its own window the PNG shows the dimmed main window,
@@ -593,7 +592,7 @@ The response and `ui.inspect.cameraRaw` contain:
   endpoint counters `shadows` (≤0) / `highlights` (≥1). Counts describe the bounded preview
   proxy in its RGB sample domain, not full-resolution or ICC display-gamut statistics.
 - `previewRevision` (advances only when the proxy is re-developed), `renderMs`, `histogramMs`
-  (CPU only; zero on WebAssembly).
+  (CPU only).
 - `curveState` (`selected`, `drag`) and `curveRect: [left, top, right, bottom] | null` (null while
   the Curve section is closed). Changing `set.pointCurve` cancels a stale gesture.
 - `scope` (the view state below), `hasScopeSelection`, `vectorscope` (`bins`, `samples`,
@@ -632,8 +631,8 @@ pan/zoom reuse developed pixels. Before and neutral settings read the original p
 Absurd proxy domains (over 512 MP, including distant sparse off-canvas pixels) are rejected
 before reading pixels. Full-resolution refinement is capped at 64 MP to bound the existing full-image engine pipeline;
 above that it explicitly reports unavailability and keeps the proxy. Oversized viewport crops
-also retain the proxy. Without a browser worker, wasm explicitly retains the filtered proxy
-rather than block its UI; Before and neutral settings still crop the original source pixels.
+also retain the proxy, rather than block the UI; Before and neutral settings still crop the
+original source pixels.
 The histogram and vectorscope continue to analyse the bounded proxy; readouts and clipping
 warnings use the full-resolution pixels once refinement is visible.
 
@@ -702,8 +701,8 @@ layer names. Selection is captured before opening the dialog; an unselected laye
 
 Panel arrangements support tab grouping and reordering, horizontal and vertical splits,
 and movable, resizable floating groups. Drag a panel tab or a group's drag bar, or use its
-context menu. On the desktop a floating group opens in its own OS window; on Wayland, in the
-web build and for the Studio Properties card it stays inside the application window.
+context menu. On the desktop a floating group opens in its own OS window; on Wayland and for
+the Studio Properties card it stays inside the application window.
 
 The shared layout begins with the existing workspace on the first docking operation.
 Workspace saves keep its groups, active tabs, split sizes, floating geometry, and the
@@ -726,7 +725,7 @@ by ID or label, and `onto` is accepted for `anchor`.
 - `window.panel.window {panel, native?}` floats a docked panel's group and gives its floating
   window its own OS window. On the desktop every floating window has one, except the Studio
   themes' Properties card, which stays over the canvas, and on Wayland, where floating windows
-  stay in the main window. The web refuses the command: floating panels stay in the page.
+  stay in the main window.
 - `ui.dock {operation, …}` takes the shared `ui.dock` operations (`open`, `close`, `activate`,
   `float`, `moveFloating`, `move`, `setStackOpen`, `resizeStack`, `resizeSplit`) or `{action}`.
 - `window.workspace.lock {locked?}` sets Lock Workspace; `window.workspace {name}`,

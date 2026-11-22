@@ -32,8 +32,8 @@ tracks broader slow algorithms. They inform the need for complete-filter and
 preview-workload measurements, rather than claiming a microbenchmark fixes GUI latency.
 
 [RustFFT's primary documentation](https://github.com/ejmahler/RustFFT/blob/master/README.md)
-describes O(N log N) transforms and automatic native AVX/SSE/NEON selection, with
-different wasm SIMD requirements. That is useful existing infrastructure for
+describes O(N log N) transforms and automatic native AVX/SSE/NEON selection. That is
+useful existing infrastructure for
 uniform expensive kernels, but does not remove the spatially varying blend or
 improve the asymptotic cost of Gallery's existing box passes. No FFT or explicit
 SIMD candidate is benchmarked here; the comparison above is an algorithmic and
@@ -225,9 +225,8 @@ The full `localpaint-algo` suite passes: 425 tests, 18 ignored, no failures.
 All six Tilt-Shift differential/regression tests also pass in release. Strict
 all-targets Clippy passes for the algorithm crate. The existing engine filter
 integration group passes all 16 tests, including selection, repeat, undo and
-16/32-bit filtering. `cargo xtask layers` reports 29 crates with no violations;
-`cargo xtask wasm` passes the required workspace packages and the HEIF-enabled
-codec check. Regenerating the scorecard produces identical content.
+16/32-bit filtering. `cargo xtask layers` reports 29 crates with no violations. Regenerating the scorecard
+produces identical content.
 
 `cargo xtask perf --quick` exits successfully; all five configured quick benches
 (`perf_scenarios`, `type_bench`, `layout_bench`, `camera_raw_bench`, `bevel_bench`)

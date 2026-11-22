@@ -7,13 +7,12 @@
 What exists on `main` today. The numbered sections below are the original design plan of
 2026-09-30; where the code differs, this summary wins.
 
-- **Workspace:** 25 library crates under `crates/`, 4 apps (`localpaint` desktop, `localpaint-cli`,
-  `localpaint-web`, `localpaint-web-boot`), `xtask`, an example plug-in and 5 fuzz crates; ~539,000 lines of Rust in
+- **Workspace:** 25 library crates under `crates/`, 2 apps (`localpaint` desktop, `localpaint-cli`),
+  `xtask`, an example plug-in and 5 fuzz crates; ~539,000 lines of Rust in
   ~1,310 files; ~8,040 `#[test]` functions (ui-egui 2,809, engine 1,796, algo 572, io 539,
   codecs 426, psd 341), counted 2026-10-13. Crate map and layers: [`AGENTS.md`](../AGENTS.md) §2 and
   `xtask/src/layers.rs` (enforced by `cargo xtask layers`).
-- **UI toolkit:** decided: egui/eframe on wgpu (no webview, no JavaScript). The same Rust builds
-  to WebAssembly for the browser (trunk + wasm-bindgen).
+- **UI toolkit:** decided: egui/eframe on wgpu (no webview, no JavaScript).
 - **Engine:** ~700 commands registered in `crates/engine` (`CommandSpec` in `commands.rs`); the
   UI, CLI, JSON control channel and MCP server all dispatch by command id. 628 Photoshop menu items
   map to them (`crates/ui-egui/src/menu_catalog.rs`).
@@ -43,7 +42,6 @@ This plan sets out:
 **Goals**
 - A native, portable (macOS / Windows / Linux), fully open-source layered image editor, roughly matching Photoshop's feature surface over time.
 - **The UI can be swapped** without touching the core: egui today, maybe Slint, Qt or something else later.
-- **The core compiles to `wasm32`,** which keeps a browser demo possible.
 - PSD read and write lives in its **own crate that can be published separately.**
 
 **Principles**
@@ -105,7 +103,7 @@ The test is simple: **adding 64-bit float, a new colour model, or a new file for
 localpaint/
 ├─ Cargo.toml                  # [workspace], shared deps, lints, profiles
 ├─ crates/
-│  │  ── foundation (no_std-friendly where practical, wasm-safe) ──
+│  │  ── foundation (no_std-friendly where practical) ──
 │  ├─ geom/                    localpaint-geom      points, rects, affine/perspective, tile coords, bezier (kurbo)
 │  ├─ cms/                     localpaint-cms       pure-Rust ICC colour management: profiles, transforms, intents, BPC, soft proof, 3D LUTs
 │  ├─ color/                   localpaint-color     pixel formats, color spaces, blend-mode math (scalar reference); conversions via cms
@@ -113,13 +111,13 @@ localpaint/
 │  │  ── document ──
 │  ├─ doc/                     localpaint-doc       document model: layer tree, masks, effects, channels, paths, guides, metadata (pure data + serde)
 │  ├─ ops/                     localpaint-ops       reversible operations on a doc + transactions + history/undo
-│  │  ── algorithms (CPU reference impls, rayon, wasm-safe) ──
+│  │  ── algorithms (CPU reference impls, rayon) ──
 │  ├─ algo/                    localpaint-algo      adjustments, filters, selection, inpaint/heal, warp/transform, resampling
 │  ├─ paint/                   localpaint-paint     brush engine: dabs, dynamics, stroke smoothing, brush presets (.abr import later)
 │  ├─ text/                    localpaint-text      font DB trait, shaping + layout (parley/skrifa/harfrust), text-layer rasterization
 │  ├─ vector/                  localpaint-vector    shapes, paths, strokes → coverage (vello_cpu / kurbo)
 │  │  ── rendering ──
-│  ├─ compose/                 localpaint-compose   layer tree → DrawOp plan; CPU compositor (reference + export + wasm fallback)
+│  ├─ compose/                 localpaint-compose   layer tree → DrawOp plan; CPU compositor (reference + export)
 │  ├─ gpu/                     localpaint-gpu       wgpu backend for the DrawOp plan + GPU kernels (WGSL), residency cache, memory budget
 │  ├─ viewport/                localpaint-viewport  camera (zoom/pan/rotate), visible tiles/mips, renders a doc into a wgpu texture; toolkit-agnostic
 │  │  ── I/O ──
@@ -132,21 +130,19 @@ localpaint/
 │  ├─ format/                  localpaint-format    native document format (.pcraft bundle): manifest + content-addressed tiles
 │  ├─ io/                      localpaint-io        import/export orchestration; doc ⇄ PSD mapping; PDF/SVG import (features)
 │  │  ── intelligence ──
-│  ├─ ml/                      localpaint-ml        model registry + InferenceBackend trait (ort native / burn|candle web); SAM2, matting, depth, sky
+│  ├─ ml/                      localpaint-ml        model registry + InferenceBackend trait (ort native); SAM2, matting, depth, sky
 │  ├─ plugins/                 localpaint-plugins   sandboxed WebAssembly filter plug-ins (wasmi host, limits, ABI v1, registry)
 │  │  ── the façade every frontend talks to ──
 │  ├─ tools/                   localpaint-tools     tool state machines (move, marquee, lasso, brush, clone, gradient, crop, transform, pen, text…)
 │  ├─ engine/                  localpaint-engine    Session: open docs, command registry + dispatch, jobs, events, view-models, preferences
 │  │  ── platform + frontends ──
-│  ├─ platform/                localpaint-platform  traits: file dialogs, clipboard, fonts, tablet input, menus, storage; native + web impls
+│  ├─ platform/                localpaint-platform  traits: file dialogs, clipboard, fonts, tablet input, menus, storage
 │  ├─ ui-egui/                 localpaint-ui-egui   the (first) GUI shell: panels, dialogs, canvas widget, theme
 │  ├─ automation/              localpaint-automation  MCP server (rmcp) + JSON-RPC over the command registry
 │  └─ testkit/                 localpaint-testkit   golden images, perceptual diff, fixtures, PSD corpus helpers
 ├─ apps/
 │  ├─ localpaint/              desktop binary (winit + wgpu + ui-egui + platform-native)
-│  ├─ localpaint-cli/          headless batch CLI (open → commands → export), also hosts `mcp` subcommand
-│  ├─ localpaint-web/          wasm32 binary (ui-egui + platform-web), demo
-│  └─ localpaint-web-boot/     wasm32 binary that starts the packaged web app from parts of its wasm
+│  └─ localpaint-cli/          headless batch CLI (open → commands → export), also hosts `mcp` subcommand
 ├─ shaders/                    (or inside gpu/) WGSL, with generated struct headers
 ├─ assets/                     icons, bundled fonts, default brushes/swatches/presets
 ├─ fuzz/                       cargo-fuzz targets (psd, codecs, format)
@@ -180,9 +176,8 @@ localpaint/
 1. A crate may depend only on crates in **lower** layers. No cycles and no sideways dependencies, except where listed.
 2. **Nothing below L6 may depend on any UI toolkit, winit, or a `platform` implementation.** Platform services reach the engine through traits defined in `engine` (or in `platform`'s trait-only core), and are injected at startup.
 3. **`localpaint-psd` depends on no workspace crate.** The doc ⇄ PSD mapping lives in `io`. This keeps the PSD crate publishable and reusable by other projects. The same holds for every standalone crate, with one documented exception: `codecs` → `heif` (both standalone and publishable; `STANDALONE_EXCEPTIONS` in `xtask/src/layers.rs`).
-4. **wasm gate:** every crate in L0–L5 (except feature-gated native backends) must build for `wasm32-unknown-unknown`. CI runs `cargo build -p localpaint-engine --target wasm32-unknown-unknown --no-default-features --features web`.
-5. `gpu` is optional for `engine`. Engine features are `gpu` (default on) and `cpu-only`, and `cpu-only` builds are what the headless CLI and CI tests use.
-6. **C dependencies** (optional LibRaw, pdfium) only behind features, only in `codecs`, `raw` or `io`, and never on by default for the web target.
+4. `gpu` is optional for `engine`. Engine features are `gpu` (default on) and `cpu-only`, and `cpu-only` builds are what the headless CLI and CI tests use.
+5. **C dependencies** (optional LibRaw, pdfium) only behind features, only in `codecs`, `raw` or `io`, and never on by default.
 
 ---
 
@@ -253,7 +248,7 @@ Coalesced high-rate pen samples come from `platform` and are handed to tools as 
 pub struct Viewport { pub camera: Camera /* zoom, pan, rotation, dpr */, /* tile/mip cache */ }
 impl Viewport {
     pub fn render_gpu(&mut self, snap: &DocSnapshot, gpu: &GpuContext, target: &wgpu::TextureView, damage: &Region);
-    pub fn render_cpu(&mut self, snap: &DocSnapshot, target: &mut RgbaImageMut, damage: &Region); // wasm fallback, tests
+    pub fn render_cpu(&mut self, snap: &DocSnapshot, target: &mut RgbaImageMut, damage: &Region); // CPU fallback, tests
     pub fn doc_to_screen(&self) -> Affine;  pub fn screen_to_doc(&self) -> Affine;
 }
 ```
@@ -336,7 +331,7 @@ Both backends consume the same plan. This is the only place that encodes Photosh
 
 ### 7.2 Backends
 
-- **CPU (`compose`).** The reference implementation, done per tile with rayon. It is used for export, tests, the CLI, and the web fallback when WebGPU is unavailable.
+- **CPU (`compose`).** The reference implementation, done per tile with rayon. It is used for export, tests and the CLI, and whenever the GPU canvas is unavailable.
 - **GPU (`gpu`).** wgpu compute and render pipelines that run the same plan. They use:
   - `rgba16float`/`rgba32float` accumulators,
   - specialized pipelines per blend family and adjustment (WGSL `override` constants, not one giant `switch`),
@@ -428,7 +423,7 @@ psd/src/
 | Inpaint/heal | spot heal, healing brush (Poisson), content-aware fill (PatchMatch + multiscale EM) | later |
 | Warp | free transform (affine/perspective/warp mesh), liquify, puppet (ARAP), lens correction, resampling (Lanczos/bicubic) | yes |
 | Paint (`paint`) | dab generation (hardness, roundness, angle, spacing, scatter), dynamics from pressure/tilt/velocity, smoothing (pulled string / lazy mouse), wet edges, airbrush, eraser, clone/heal sources, blend modes per stroke, `.abr` import | CPU first, GPU later |
-| Text (`text`) | font DB trait (system fonts native, bundled fonts on web), parley layout, per-run styles, paragraph options, warp; renders to a raster cache | — |
+| Text (`text`) | font DB trait (system fonts, bundled fonts), parley layout, per-run styles, paragraph options, warp; renders to a raster cache | — |
 | Vector (`vector`) | shapes, bezier paths, pen tool geometry, strokes (dash, align, caps), boolean ops → coverage via vello_cpu | — |
 | ML (`ml`) | `InferenceBackend` trait; tasks: `segment_point/box` (SAM2), `matte_subject` (background removal), `depth`, `sky`; model registry with SHA-256 verification and on-demand download | backend-dependent |
 
@@ -456,7 +451,7 @@ psd/src/
 - **Pen input path for low latency:** platform coalesced samples → tool (on the engine thread) → dab rasterization into COW tiles → damage published → viewport re-composites only the damaged tiles. Target: the stroke appears within the next frame.
 - **Cancellation:** every job takes a `CancelToken`, and the UI can cancel any job with progress.
 - **Services injected into `Session`:**
-  - `FileSystem` (native fs / web File System Access / in-memory for tests)
+  - `FileSystem` (native fs / in-memory for tests)
   - `Clipboard`, `FontSource`, `ModelStore`
   - `Clock`, `Notifier`
 
@@ -477,7 +472,7 @@ psd/src/
     access fail closed at the automation boundary.
 - **Actions:** recorded `Vec<CommandInvocation>`, replayable in batch (File → Automate → Batch).
 - **Scripting (later):** embed a scripting language over the same registry. Options are Rhai, or Lua via mlua (C). JS via QuickJS is possible if we want Photoshop-script familiarity.
-- **Plugins:** sandboxed WebAssembly filter plug-ins (`localpaint-plugins`, L4) run by `wasmi`, a pure-Rust interpreter, with fuel, memory, stack and wall-time limits and no host imports. They are driven by the `plugin.*` commands and listed under Filter › Plug-ins; the ABI is in [`plugins.md`](plugins.md). Native Photoshop `.8BF`/CEP/UXP hosting is out of scope (it needs unsafe FFI and can't run on the web). Panel plug-ins are later.
+- **Plugins:** sandboxed WebAssembly filter plug-ins (`localpaint-plugins`, L4) run by `wasmi`, a pure-Rust interpreter, with fuel, memory, stack and wall-time limits and no host imports. They are driven by the `plugin.*` commands and listed under Filter › Plug-ins; the ABI is in [`plugins.md`](plugins.md). Native Photoshop `.8BF`/CEP/UXP hosting is out of scope (it needs unsafe FFI). Panel plug-ins are later.
 
 ---
 
@@ -492,7 +487,7 @@ psd/src/
 | Engine | command-level tests: open fixture → dispatch commands → assert snapshot/render; action replays |
 | UI | headless egui tests (egui_kittest) for panels; kept thin because the UI is thin |
 | Perf | criterion benches + budget checks in CI (composite 4k² 20 layers, brush dab throughput, open 100 MP) |
-| Portability | CI matrix: macOS arm64, Windows x64, Linux x64, wasm32 build check |
+| Portability | CI matrix: macOS arm64, Windows x64, Linux x64 |
 
 **Performance targets for v1:**
 - Stroke-to-pixel within one frame at 120 Hz.
@@ -527,7 +522,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 schemars = "1"
 blake3 = "1"
-zstd = "*"           # native; ruzstd for wasm decode
+zstd = "*"           # native; ruzstd elsewhere
 # color / codecs
 # ICC: our own localpaint-cms (pure Rust)
 image = { version = "*", default-features = false }
@@ -564,14 +559,14 @@ Each phase ends with a demoable build and green CI on all targets. Phases 8–10
 
 | Phase | Scope | Done when |
 |---|---|---|
-| **0. Skeleton** (1–2 wk) | workspace, all crates stubbed, layering check, CI matrix incl. wasm, testkit, xtask | `cargo xtask ci` green on 3 OS + wasm |
+| **0. Skeleton** (1–2 wk) | workspace, all crates stubbed, layering check, CI matrix, testkit, xtask | `cargo xtask ci` green on 3 OS |
 | **1. Viewer** | raster doc, tiles, codecs (png/jpeg/tiff/webp), viewport pan/zoom/rotate on GPU + CPU fallback, `.pcraft` save/open, CLI `convert` | open a 100 MP JPEG, pan at refresh rate, save/reopen losslessly |
 | **2. Layers** | layer tree, all 27 blend modes, opacity/fill, masks, groups, clipping; planner + CPU/GPU compositors + parity tests; history; **PSD read** fidelity 1–3 | composite-oracle suite ≥ 95% within tolerance on the corpus |
 | **3. Paint and select** | platform tablet input, brush engine + presets, eraser, marquee/lasso/wand, move, free transform, crop | draw with pen pressure at <1 frame latency; selection-restricted painting |
 | **4. Adjust and filter** | adjustment layers (first 10), first 20 filters with schema-generated dialogs + live preview; **PSD write**; actions recording | PSD open → edit → save opens correctly in Photoshop/Photopea |
 | **5. Text, vector, styles** | text layers, shapes/pen/paths, layer effects (drop shadow, stroke, glows, overlays, bevel) | PSD text/shape/effects round-trip at fidelity 4–5 |
 | **6. Smart features** | ML backend + SAM2 select subject/object, background removal, content-aware fill, healing, RAW develop | select subject + remove background on a portrait in <3 s |
-| **7. Automation and web** | MCP server + CLI parity, batch; `localpaint-web` demo | an agent edits a PSD through MCP; the web demo opens a PSD, paints and filters |
+| **7. Automation** | MCP server + CLI parity, batch | an agent edits a PSD through MCP |
 
 ---
 

@@ -1,8 +1,8 @@
 # Plug-ins: the WebAssembly plug-in API (ABI v1)
 
 Local Paint does not host native Photoshop plug-ins (`.8BF`, CEP, UXP): that needs unsafe FFI into
-arbitrary machine code and cannot work in the browser build. Instead, plug-ins are **WebAssembly
-modules** run in a sandbox. One `.wasm` file works on macOS, Windows, Linux and the web.
+arbitrary machine code. Instead, plug-ins are **WebAssembly
+modules** run in a sandbox. One `.wasm` file works on macOS, Windows and Linux.
 
 This page is the contract for plug-in authors and the reference for the host
 (`crates/plugins`, the `plugin.*` commands in `crates/engine/src/plugin_cmds.rs`).
@@ -22,8 +22,7 @@ preview when they have parameters), next to **Install Plug-in…**.
 
 **Preference folder.** Edit › Settings › Plug-ins › *Use Additional Plug-ins Folder* plus
 *Additional Plug-ins Folder*: when both are set, every `*.wasm` in that folder (not recursive) is
-installed at startup and whenever the preference changes (native builds only; the web build installs
-from bytes).
+installed at startup and whenever the preference changes.
 
 Plug-ins are installed **per process**, not per document. A smart filter recorded from a plug-in
 (`{"command": "plugin.run", "params": {"id", "params"}}`) re-runs on re-render while that plug-in is
@@ -33,8 +32,7 @@ filters Local Paint does not implement.
 ## The sandbox
 
 The host is [`wasmi`](https://github.com/wasmi-labs/wasmi), a pure-Rust WebAssembly interpreter
-(MIT OR Apache-2.0). It builds for `wasm32-unknown-unknown` too, so plug-ins also run in the web
-build. Limits (`localpaint_plugins::Limits`, defaults):
+(MIT OR Apache-2.0). Limits (`localpaint_plugins::Limits`, defaults):
 
 | Limit | Default | On violation |
 |---|---|---|

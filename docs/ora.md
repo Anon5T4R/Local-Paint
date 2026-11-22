@@ -3,7 +3,7 @@
 Local Paint opens and saves OpenRaster (`.ora`), the layered format Krita, MyPaint, GIMP, Pinta
 and others share. File › Open, recent files, drops, Save and Save As, the CLI (`convert`, `info`,
 `batch`) and automation (`doc.open`, `doc.save`, MCP) all use the same reader and writer in
-`localpaint-io`. The browser build accepts `.ora` too. A file is recognised by its `mimetype`
+`localpaint-io`. A file is recognised by its `mimetype`
 entry, so an OpenRaster file with another extension still opens as one.
 
 ## What is kept

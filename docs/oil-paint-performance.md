@@ -22,8 +22,7 @@ filter's time went.
   versions, so the clamped results match for every input, including non-finite ones.
 
 No public API, `FilterParams`, tile size, halo or `perf/budgets.toml` entry changed. The change is
-pure arithmetic: no new dependency, no allocation, no threading, so the single-threaded wasm path
-is unaffected.
+pure arithmetic: no new dependency, no allocation, no threading.
 
 ## Output equivalence
 
@@ -105,7 +104,6 @@ for the fixtures in the table, write `v.to_bits().to_le_bytes()` in order and `c
 ## Checks
 
 - `cargo fmt --all --check`, `cargo clippy -p localpaint-algo --all-targets -- -D warnings`
-- `cargo check -p localpaint-algo --target wasm32-unknown-unknown` still builds.
 - `cargo test --release -p localpaint-algo`: 605 passed, 1 failed. The failure is
   `pixelate::tests::facet_reuse_matches_scalar_in_every_model`, which reports
   `sample 56: NaN != NaN` (0x7FC00000 against 0xFFC00000) and fails in exactly the same way on

@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Rust stable (1.95+). Add the web target with `rustup target add wasm32-unknown-unknown`.
+- Rust stable (1.95+).
 - macOS, Windows or Linux. On Linux, install the windowing, GL and GTK development packages:
   - Debian/Ubuntu: `sudo apt install libxkbcommon-dev libwayland-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libgtk-3-dev`
   - Fedora/RHEL: `sudo dnf install libxkbcommon-devel wayland-devel libX11-devel libXrandr-devel libXi-devel mesa-libGL-devel gtk3-devel`
@@ -42,7 +42,7 @@ cargo run --release -p localpaint -- --control 7878 --control-token-file .privat
   --automation-read-root work --automation-write-root work
 cargo test --workspace                                     # everything
 cargo xtask test                                           # tests (nextest when installed) + doctests
-cargo xtask ci                                             # the CI gate: fmt, clippy, layers, scorecard, tests, panic_hunt, doctests, wasm, i18n report
+cargo xtask ci                                             # the CI gate: fmt, clippy, layers, scorecard, tests, panic_hunt, doctests, i18n report
 cargo xtask stats                                          # tests and lines per crate
 cargo xtask parity                                         # Photoshop menu coverage -> docs/parity-checklist.md
 ```
@@ -126,7 +126,7 @@ CRAFT_FONTS_DIR="$PWD/assets/craft-fonts" cargo test --workspace   # runs the Ja
 - `crates/text/build.rs` reads `$CRAFT_FONTS_DIR/fonts/manifest.txt` and embeds the fonts as `localpaint_text::CRAFT_FONTS` (`crates/text/src/craft_fonts.rs`). Unset, `CRAFT_FONTS` is empty and the build is unchanged. A bad path is a build warning, or an error with `CRAFT_FONTS_REQUIRED=1` (release builds set both).
 - **UI:** the Japanese fonts (BIZ UDPGothic Regular first) are the first Japanese fallback in the lazy CJK loader (`crates/ui-egui/src/cjk_fonts.rs`), ahead of the system Japanese fonts and in the same locale script order, appended last to every egui family with the usual baseline alignment.
 - **Type tool:** the text engine registers them in `FontDb::new` (so also with no system fonts) and puts them first in the Japanese slot of the locale-ordered fallback list: BIZ UDPGothic for sans runs, Shippori Mincho / BIZ UDMincho for serif runs.
-- **Web:** the wasm32 build never embeds craft-fonts, even with `CRAFT_FONTS_DIR` set: measured on 2026-10-06, the UI face alone took the release wasm from 24.19 MB to 28.87 MB, over the 24 MiB gate in `packaging/web/package.sh`. Instead it loads fonts served next to it, on demand: `fonts/manifest.txt` beside `index.html`, in craft-fonts' manifest format (`crates/text/src/served.rs`; hosting: `packaging/web/README.md` › Fonts). `LOCALPAINT_WEB_FONTS_DIR="$PWD/assets/craft-fonts" packaging/web/package.sh` puts craft-fonts there. Served families are in the font menus and are fetched when picked or when a document's text needs them; they aren't in the script fallback list yet, so Japanese text set in a Latin font still needs a Japanese font picked (#1615).
+- **Served fonts:** the text engine can also load families served next to it, on demand, in craft-fonts' manifest format (`crates/text/src/served.rs`): they are in the font menus and are fetched when picked or when a document's text needs them; they aren't in the script fallback list yet, so Japanese text set in a Latin font still needs a Japanese font picked (#1615).
 - Tests that need the fonts skip with a message when `CRAFT_FONTS` is empty; `ci.yml` builds with `CRAFT_FONTS_DIR=$GITHUB_WORKSPACE/assets/craft-fonts`, so they run there. The release workflow does the same and ships each font's `OFL.txt` as `OFL-<family>.txt`.
 
 ## One instance per user
@@ -154,7 +154,7 @@ The window itself draws with the same device (or, with the CPU canvas, one it wa
 
 The desktop app writes its `log` records to standard error and to `logs/localpaint.log` in the settings directory (Linux `~/.config/localpaint/logs/`, macOS `~/Library/Application Support/LocalPaint/logs/`, Windows `%APPDATA%\LocalPaint\logs\`, or under `LOCALPAINT_CONFIG_DIR` / the portable data folder). A start launched from a desktop menu or the Dock has no terminal, so this file is what to attach to a bug report: GPU startup fallbacks, a lost device and the crash guard's panic report all land there. Each launch moves the previous log to `localpaint.1.log` (and that one to `localpaint.2.log`), so the log of a run that crashed survives the next start. A launch while another Local Paint is still running leaves that instance's log where it is and writes its own `localpaint-<pid>.log` next to it (the newest two of those are kept once their instances have exited; the `Local Paint <version>, log file <path>` line at startup names the file in use). The file stops growing at 16 MiB. `--version` and command-line errors write no file. A desktop start that fails before any window exists logs the error and, when no terminal, automation client or headless session can report it, shows it in a dialog naming this file (#7643).
 
-By default Local Paint's own crates log at `info` and everything else at `warn`. `RUST_LOG` replaces that with env_logger-style directives, for example `RUST_LOG=debug`, `RUST_LOG=warn,localpaint_gpu=trace` or `RUST_LOG=info,wgpu_core=warn`; a directive ending in `*` covers every target starting with it (`localpaint*=debug`). The logger is `apps/localpaint/src/logging.rs`; the web build logs to the browser console instead.
+By default Local Paint's own crates log at `info` and everything else at `warn`. `RUST_LOG` replaces that with env_logger-style directives, for example `RUST_LOG=debug`, `RUST_LOG=warn,localpaint_gpu=trace` or `RUST_LOG=info,wgpu_core=warn`; a directive ending in `*` covers every target starting with it (`localpaint*=debug`). The logger is `apps/localpaint/src/logging.rs`.
 
 ## Environment variables
 
@@ -272,7 +272,7 @@ The `--cli` selector is removed; all remaining arguments, stdin, stdout, stderr 
 - `thumb.png` and `composite/preview.png`: previews.
 - `save.lock` (directory bundles only): an empty file a save holds an OS file lock on, so two writers or processes saving one bundle take turns (#4957).
 
-Keep one `PcraftWriter` per open document: re-saving then only compresses and writes tiles that changed. Directory bundles verify objects on first encounter in a folder; later saves reuse them while their file size and modification time are unchanged, and re-verify changed objects, repair missing or damaged objects, and garbage-collect unreferenced ones. `format::Autosaver` writes snapshots into a recovery directory on a background thread. `list_recovery` / `recover` / `discard_recovery` implement crash recovery, and `format::RecoveryStore` is the lifecycle the desktop app uses: new documents autosave under per-launch keys (document ids restart every launch, so they never overwrite an older entry), and a recovered document adopts the entry it came from. That entry is replaced in place by the next autosave and removed only when the document is saved or closed, never just because it was recovered, so a second crash loses nothing. The web build has no crash recovery (no autosave services).
+Keep one `PcraftWriter` per open document: re-saving then only compresses and writes tiles that changed. Directory bundles verify objects on first encounter in a folder; later saves reuse them while their file size and modification time are unchanged, and re-verify changed objects, repair missing or damaged objects, and garbage-collect unreferenced ones. `format::Autosaver` writes snapshots into a recovery directory on a background thread. `list_recovery` / `recover` / `discard_recovery` implement crash recovery, and `format::RecoveryStore` is the lifecycle the desktop app uses: new documents autosave under per-launch keys (document ids restart every launch, so they never overwrite an older entry), and a recovered document adopts the entry it came from. That entry is replaced in place by the next autosave and removed only when the document is saved or closed, never just because it was recovered, so a second crash loses nothing.
 
 At startup the desktop lists recovery metadata, then decodes one document at a time through the existing background-job system. The window stays usable, with recovery progress and Cancel in the status bar. Cancel skips the rest of that launch's recovery queue and prevents the current result from opening; the decoder may finish in the background. Failed or cancelled loads leave their recovery files intact for a later launch. Turning off Preferences › File Handling › Recover on launch skips discovery altogether.
 
@@ -534,35 +534,6 @@ longer than PR CI should). Run `cargo xtask perf` locally on a quiet machine and
 `cargo xtask scorecard --check` before committing a regenerated `docs/scorecard.md`. To give a
 machine its own baseline, run `cargo xtask perf --update-baseline` and commit `perf/baseline.json`.
 
-## Web build
-
-`apps/localpaint-web` runs the same `LocalPaintApp` in the browser through eframe's web runner. The renderer is wgpu: WebGPU where the browser has it, WebGL2 otherwise. It is Rust only. The only JavaScript is the glue that wasm-bindgen generates.
-
-```sh
-brew install trunk                 # or: cargo install trunk --locked
-cd apps/localpaint-web
-trunk build --release              # writes ../../dist/web (index.html, .js glue, .wasm)
-trunk serve --release              # dev server on http://127.0.0.1:8765
-```
-
-Any static file server works for `dist/web`, for example `python3 -m http.server 8765` run inside that directory. Trunk downloads the matching `wasm-bindgen` and `wasm-opt` itself. `trunk build --release` uses the `wasm-release` Cargo profile (`data-cargo-profile` in `index.html`: fat LTO, opt-level "z" for the UI, engine, I/O and web shells and for large crates off the hot paths (document model, file parsers, JSON, SVG parsing, shader translation), "s" for other crates except pixel processing, which keeps level 3). The UI override reduces browser code size while retaining the speed-oriented settings for filters and compositing. Serve the `.wasm` with compression; its raw size varies with the source and compiler. Some static hosts refuse a file that large (Cloudflare's per-file cap is 25 MiB), so the release site doesn't hold it as one file: `packaging/web/package.sh` gzips it, cuts it into parts of at most 20 MiB under `app/`, and ships the page of `apps/localpaint-web-boot`, a small module that fetches the parts, has the browser inflate them (or inflates them itself where the browser can't) and passes the stream to the app's own loader (issue #5302). The script fails if any file in the site is over 24 MiB; the wasm's own size is no longer limited, but it is still what every visitor downloads, so watch it. Pull-request CI also builds the actual browser app with the same pinned Trunk version as the release job and runs `packaging/web/package.sh`, including the relative-URL and file-size checks. The `web build and wasm size gate` check runs on main and on PRs that change something the web build compiles or packages (`apps/localpaint-web`, `apps/localpaint-web-boot`, `packaging/web`, crate sources and manifests, `Cargo.toml`/`Cargo.lock`, the CI workflow), and reports the wasm's size and the site's largest file in the Actions job summary. The web build never embeds craft-fonts (see Fonts above). To see where the bytes go, run `twiggy top -n 40` on `target/wasm32-unknown-unknown/wasm-release/localpaint-web.wasm` (before wasm-opt strips the names).
-
-URL flags: `?webgl` forces the WebGL2 backend, and `?cpu` forces the CPU canvas path.
-
-To serve the built site under nginx, start from [`packaging/web/nginx.conf`](../packaging/web/nginx.conf)
-and point its `root` at the site; [`packaging/web/README.md`](../packaging/web/README.md) covers the
-headers, HTTPS and browser limitations. This repository ships no Dockerfile.
-
-How the web shell (`apps/localpaint-web/src/web.rs`) differs from desktop:
-
-- **File dialogs** use `rfd::AsyncFileDialog`. Chosen file contents arrive asynchronously through `Services::file_dialog`; this includes File › Open and single-file commands such as Place Embedded.
-- **Save / Save As / Export** trigger a browser download of the encoded bytes. The shell does this with a Blob, an object URL and a temporary `<a download>`, all created from Rust. There is no save dialog, so the suggested name becomes the download name.
-- **Drag-and-drop:** `WebShell` takes the frame's `dropped_files` before the app sees them. It reads each file with `DroppedFile::bytes_async` and pushes the bytes into `Services::inbox`.
-- **Startup failures:** `index.html` shows "Loading Local Paint…" until the app removes it, or replaces it with the error when the web runner fails to start. If the `.wasm` never downloads or doesn't match the page's `.js` (a stale cached `index.html` after a deploy), no Rust runs at all, so the page itself (CSS only, no script) adds a hint with a Reload link after 20 seconds.
-- **No control server:** browsers can't listen on TCP. To automate the web build, drive headless Chrome with `--remote-debugging-port`. `Page.setInterceptFileChooserDialog` plus `DOM.setFileInputFiles` covers Open, `Input.dispatchDragEvent` with `files` covers drops, and `Browser.setDownloadBehavior` captures downloads.
-- Headless Chrome on macOS (`--headless=new --enable-unsafe-webgpu`) gets a real WebGPU adapter.
-
-
 ## Indexed Color timings
 
 `cargo run --release -p localpaint-engine --example indexed_color_perf -- image.png` measures
@@ -655,7 +626,7 @@ before merged-image validation or decoding. The conservative estimate sums retai
 storage (including padding and negative offsets) and the largest decode/conversion workspace.
 It does not credit uniform-tile sharing or pruning, so some files that could fit after decoding
 are refused. Valid off-canvas pixels are preserved; oversized layers are rejected rather than
-clipped. Defaults are 2 GiB on native targets and 1 GiB on wasm. Applications can lower the
+clipped. Defaults are 2 GiB. Applications can lower the
 allowance with `ImportOptions::psd_max_pixel_bytes`; values above the default are capped.
 The source-only convenience API uses the default; `import_file_for_open_with` honours options.
 

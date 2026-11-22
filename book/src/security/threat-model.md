@@ -1,6 +1,6 @@
 # Threat model
 
-This threat model covers the source repository's desktop, CLI, WebAssembly, format, and automation surfaces. It assumes files, paths, JSON, MCP messages, agent decisions, and embedded metadata may be malicious.
+This threat model covers the source repository's desktop, CLI, format, and automation surfaces. It assumes files, paths, JSON, MCP messages, agent decisions, and embedded metadata may be malicious.
 
 ## Assets
 

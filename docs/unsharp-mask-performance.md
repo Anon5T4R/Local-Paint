@@ -6,8 +6,8 @@ separable path preserves the original tap order for exact processing.
 
 FFT is eligible for radii 64–1000 with at least 65,536 output pixels, a nonzero
 amount and a zero or negative threshold. Positive thresholds, unstable samples,
-unsupported geometry and insufficient scratch use the exact path. WebAssembly
-retains exact processing. Alpha, selections, edges and cancellation are preserved.
+unsupported geometry and insufficient scratch use the exact path. Alpha, selections,
+edges and cancellation are preserved.
 Smart Sharpen, High Pass and shared blur math are unchanged.
 
 FFT changes summation order and permits small rounding differences. The measured

@@ -129,7 +129,7 @@ and 5 for Pointillize. The engine example takes the size explicitly.
 
 - 2,447 tests passed across algo and engine; 43 ignored.
 - Clippy passed for both crates with all targets and warnings denied.
-- Layer checks, wasm checks, scorecard freshness and the quick performance suite passed.
+- Layer checks, scorecard freshness and the quick performance suite passed.
 - Scalar comparisons cover RGB, Gray, CMYK, Lab and Multichannel, alpha on/off,
   negative origins, fractional cells, boundary averages, HDR and nonfinite samples.
 - Storage comparisons cover U8/U16/F32, soft selections, clamped extents and

@@ -26,7 +26,6 @@ Screen snapshots are held in memory, are never written or transmitted by the pic
 - **Linux/Wayland:** the desktop's XDG `PickColor` portal owns selection and permission UI and returns sRGB. Magnification and zoom controls depend on the portal implementation; Local Paint cannot capture other applications directly under Wayland.
 - **Windows:** native screen capture with monitor-specific fullscreen viewports. Captured pixels currently use an sRGB fallback; HDR and arbitrary monitor-profile accuracy are not guaranteed.
 - **macOS:** safe CoreGraphics bindings capture the composed screen and use the snapshot's own ICC profile when available. Screen Recording permission may be required. The existing macOS 11 deployment target is preserved. The window-list capture API is deprecated by Apple, so current macOS releases require explicit manual validation; migration to modern native sampling must also preserve older-app compatibility.
-- **Web:** browsers exposing the standard EyeDropper API use the browser's native sampling/magnification UI. Browser support and zoom controls vary. Unsupported browsers retain document sampling and color fields; external screen sampling is unavailable.
 
 The implementation follows publicly documented Photoshop behavior for the full Type Color Picker and outside-image sampling. Local Paint uses an explicit screen-pick action and frozen snapshots rather than Photoshop's press-and-drag gesture.
 

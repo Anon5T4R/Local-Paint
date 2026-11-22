@@ -5,7 +5,7 @@
 - **Facet:** calculate luma once per source pixel and calculate each 3x3 quadrant once. A three-row ring shares that quadrant with its four output pixels. The nine-sample addition order, variance calculation, quadrant order and strict tie comparison stay the same.
 - **Color Halftone:** memoize the five-tap ink calculation and dot radius in the rotated screen grid, separately for each channel. Pixels still use the same candidate dots, distances and anti-alias coverage. Lab conversion, CMYK ink direction and alpha handling stay the same.
 
-Facet uses about 291 KiB of additional scratch for a 256x256 output tile. The luma plane is capped at 1,048,576 samples. Halftone tables are capped at 2 MiB per channel. Scratch allocations are fallible; an incomplete halo, oversized table or unsuitable screen coordinates uses the original calculation. The default tiled filter path stays parallel on native targets and single-threaded on wasm.
+Facet uses about 291 KiB of additional scratch for a 256x256 output tile. The luma plane is capped at 1,048,576 samples. Halftone tables are capped at 2 MiB per channel. Scratch allocations are fallible; an incomplete halo, oversized table or unsuitable screen coordinates uses the original calculation. The default tiled filter path stays parallel on native targets.
 
 ## Full filter timings
 
@@ -52,4 +52,4 @@ Repeat each pair three times, reversing the order for the middle pair. Use `7200
 
 The independent scalar oracles retain the original kernels. Tests compare every sample bit across all eight color models, alpha on/off, constant colors and edges, random samples, HDR/negative values, non-finite samples, thin regions, partial halos, extreme screen offsets, extended channel counts and scratch rejection. Tiled surface tests add 8/16/32-bit storage, soft selections, tile sizes 1/7/17/256 and both transparent and repeated edges.
 
-Passed: 401 algorithm tests; clippy with warnings denied; formatting; dependency layering; the full `cargo xtask wasm` set; `cargo xtask perf --quick` on llvmpipe; and scorecard generation. No command, UI or format contracts changed.
+Passed: 401 algorithm tests; clippy with warnings denied; formatting; dependency layering; `cargo xtask perf --quick` on llvmpipe; and scorecard generation. No command, UI or format contracts changed.
