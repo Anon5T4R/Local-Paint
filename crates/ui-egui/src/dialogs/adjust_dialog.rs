@@ -402,6 +402,18 @@ fn curve_mode_for_fields(app: &LocalPaintApp, kind: &str, fields: &Map<String, V
 /// Dialog body: the kind's editor over the fields, then the Preview checkbox.
 pub fn body(app: &mut LocalPaintApp, ui: &mut egui::Ui, fields: &mut Map<String, Value>) {
     let kind = fields.get("__adjust").and_then(Value::as_str).unwrap_or_default().to_string();
+    // Curves and Levels size their editor to the window themselves; the other editors' controls
+    // can outgrow a short window, so they scroll, with the dialog's buttons always in view
+    // (`padrao-craft.md`, "Guardas").
+    if matches!(kind.as_str(), "levels" | "curves") {
+        body_in_window(app, ui, fields);
+    } else {
+        crate::dialogs::scrolling_body(ui, "adjust-body", crate::dialogs::DIALOG_BODY_OUTSIDE, |ui| body_in_window(app, ui, fields));
+    }
+}
+
+fn body_in_window(app: &mut LocalPaintApp, ui: &mut egui::Ui, fields: &mut Map<String, Value>) {
+    let kind = fields.get("__adjust").and_then(Value::as_str).unwrap_or_default().to_string();
     let mask = fields.get("target").and_then(Value::as_str) == Some("mask");
     let filter_mask = fields.get("target").and_then(Value::as_str) == Some("filterMask");
     let mode = curve_mode_for_fields(app, &kind, fields);

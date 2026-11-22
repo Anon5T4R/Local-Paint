@@ -416,8 +416,13 @@ fn set_points(f: &mut Map<String, Value>, k: &str, pts: &[[f64; 2]]) {
     f.insert(k.into(), json!(pts));
 }
 
-/// Dialog body.
+/// Dialog body. Its controls can outgrow a short window, so they scroll, with the dialog's buttons
+/// always in view (`padrao-craft.md`, "Guardas").
 pub fn body(app: &mut LocalPaintApp, ui: &mut egui::Ui, f: &mut Map<String, Value>) {
+    crate::dialogs::scrolling_body(ui, "color-range-body", crate::dialogs::DIALOG_BODY_OUTSIDE, |ui| body_in_window(app, ui, f));
+}
+
+fn body_in_window(app: &mut LocalPaintApp, ui: &mut egui::Ui, f: &mut Map<String, Value>) {
     let t = Tokens::get(ui.ctx());
     let c = controls(f);
     let select = s(f, "select", "sampledColors").to_string();

@@ -187,9 +187,9 @@ fn curve_side(ui: &egui::Ui) -> f32 {
 }
 
 /// The largest the Curves graph gets in this window: as tall as the window leaves room for beside
-/// the dialog's other rows, and never under the old 300 points. The Curves dialog is no wider.
+/// the dialog's other rows, down to the smallest side the editor works in. The dialog is no wider.
 pub(crate) fn curve_side_max(ctx: &egui::Context) -> f32 {
-    (ctx.content_rect().height() - CURVES_CHROME).max(CURVE_SIDE.1)
+    (ctx.content_rect().height() - CURVES_CHROME).max(CURVE_SIDE.0)
 }
 
 pub(super) fn curve_graph(full: Rect, side: f32) -> Rect {
