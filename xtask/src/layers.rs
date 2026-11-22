@@ -70,8 +70,6 @@ pub const TABLE: &[(&str, Class)] = &[
     // L7 apps and tooling
     ("localpaint", Class::Exempt),
     ("cli", Class::Exempt),
-    ("web", Class::Exempt),
-    ("web-boot", Class::Exempt),
     ("xtask", Class::Exempt),
 ];
 
@@ -388,7 +386,7 @@ mod tests {
 
     #[test]
     fn apps_and_xtask_exempt() {
-        for app in ["localpaint", "localpaint-cli", "localpaint-web", "localpaint-web-boot", "xtask"] {
+        for app in ["localpaint", "localpaint-cli", "xtask"] {
             assert!(check(&[c(app, &[("egui", Normal, false), ("localpaint-ui-egui", Normal, true)])]).is_empty());
         }
     }
