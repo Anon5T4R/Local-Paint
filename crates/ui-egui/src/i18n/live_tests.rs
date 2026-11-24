@@ -498,6 +498,6 @@ fn arabic_names_are_laid_out_right_to_left() {
         let job = crate::panels::title_bar::title_job(title, font, egui::Color32::WHITE);
         let galley = h.ctx.fonts_mut(|f| f.layout_job(job));
         assert!(x_in(&galley, 'ل') > x_in(&galley, 'م'), "{title}: the name's first word right of its second");
-        assert!(x_in(&galley, 'P') > x_in(&galley, 'ل'), "{title}: Local Raster stays at the right");
+        assert!(x_in(&galley, 'R') > x_in(&galley, 'ل'), "{title}: Local Raster stays at the right");
     });
 }
