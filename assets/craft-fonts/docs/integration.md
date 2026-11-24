@@ -233,7 +233,7 @@ one static weight-400 face without `fvar`/`avar`/`STAT`, outlines for `简体中
   acceptance text is unpointed, e.g. `שלום deck 42`; shaping needs separate app-level checks.
   Devanagari coverage likewise means each codepoint has a drawn outline: the font-only tests
   do not qualify conjunct formation or mark positioning, which need app-level shaping checks
-  such as LocalRaster's Camera Raw language-switch test with `फ़ा` (U+092B U+093C U+093E).
+  such as LocalPaint's Camera Raw language-switch test with `फ़ा` (U+092B U+093C U+093E).
 - **Document text engines:** register the same permitted script and symbol faces after the
   document's requested font and the app's existing fallback faces. Preserve the app's asset
   exclusions, and do not treat a script tag as proof that every character in that script exists.
