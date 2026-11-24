@@ -173,7 +173,7 @@ fn stroke_trace_is_on(value: &str) -> bool {
 /// The per-process options this launch's environment sets. A launch that sets only variables would
 /// otherwise hand its files to the running instance, which never sees the override, and exit.
 pub fn env_launch_options() -> Vec<PerProcess> {
-    env_launch_options_from(|name| localraster_engine::legacy_env::var_os(name))
+    env_launch_options_from(localraster_engine::legacy_env::var_os)
 }
 
 /// [`env_launch_options`] with the reader given, so the rule is testable without the environment.

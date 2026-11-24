@@ -50,7 +50,7 @@ pub fn current() -> &'static DataDir {
     static DIR: OnceLock<DataDir> = OnceLock::new();
     DIR.get_or_init(|| {
         let exe = std::env::current_exe().ok();
-        let d = resolve(|k| localraster_engine::legacy_env::var_os(k), exe.as_deref().and_then(Path::parent));
+        let d = resolve(localraster_engine::legacy_env::var_os, exe.as_deref().and_then(Path::parent));
         if let Some(w) = &d.warning {
             log::warn!("{w}");
             eprintln!("localraster: {w}");
@@ -72,7 +72,7 @@ const RECOVERY: &str = "Recovery";
 /// version moved there first ([`adopt_legacy_recovery`]). Call it once, at startup.
 pub fn recovery_dir() -> Option<PathBuf> {
     let data = current();
-    let dir = resolve_recovery(data, |k| localraster_engine::legacy_env::var_os(k))?;
+    let dir = resolve_recovery(data, localraster_engine::legacy_env::var_os)?;
     // `%LOCALAPPDATA%\LocalPaint` and `$XDG_STATE_HOME/localpaint` held the recovery folder under the old name.
     if data.mode == Mode::Platform
         && data.dir.as_ref().is_none_or(|config| dir.parent() != Some(config.as_path()))
