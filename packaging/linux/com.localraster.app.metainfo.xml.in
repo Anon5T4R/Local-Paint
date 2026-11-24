@@ -3,6 +3,10 @@
      manifest substitute @VERSION@ and @DATE@ from Cargo.toml and the build date. -->
 <component type="desktop-application">
   <id>com.localraster.app</id>
+  <!-- The app was called Local Paint (com.localpaint.app): software centres swap the old entry for this one. -->
+  <replaces>
+    <id>com.localpaint.app</id>
+  </replaces>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT OR Apache-2.0</project_license>
   <name>Local Raster</name>
