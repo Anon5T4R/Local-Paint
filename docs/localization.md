@@ -1,6 +1,6 @@
 # UI localisation and live language switching
 
-Local Paint uses a Rust catalog implementation in the egui shell. English source strings are lookup keys. UTF-8 TSV catalogs supply plain,
+Local Raster uses a Rust catalog implementation in the egui shell. English source strings are lookup keys. UTF-8 TSV catalogs supply plain,
 contextual, command-ID and plural translations; missing entries fall back to English.
 
 ## Supported languages
@@ -76,7 +76,7 @@ The native-only, pinned `sys-locale` dependency provides safe Rust access to the
   or depending on a particular `.plist` representation.
 - **Linux/BSD:** the platform's standard locale environment, including `LANGUAGE` lists.
 
-`LOCALPAINT_LOCALE` is an optional single-tag override for reproducible launches; an unsupported
+`LOCALRASTER_LOCALE` is an optional single-tag override for reproducible launches; an unsupported
 override falls back to English. Empty overrides use the system. Unix locale variables do not
 override Windows/macOS UI-language preferences. Tags are read once per process (at most 64,
 128 bytes each) and matched against the supported language registry. Changes to the
@@ -111,16 +111,16 @@ Not mirrored yet: panel interiors, dialogs, menu rows (shortcuts stay on the rig
 (they open to the right), document tabs and the canvas. egui 0.37 lays text out with the Unicode
 Bidirectional Algorithm (each paragraph takes the direction of its first strong letter), so
 catalogs, layer names and document names are handed to it in logical order, as typed; never
-pre-reorder a label. The title line forces a left-to-right paragraph so "— Local Paint" stays at
+pre-reorder a label. The title line forces a left-to-right paragraph so "— Local Raster" stays at
 the right of a right-to-left document name, and `bidi_text::elide` cuts a right-to-left name at
 its logical end. Document text is laid out by the text engine.
 
 Arabic (`ar`) is the first right-to-left catalog: Modern Standard Arabic, Western digits, the six
 CLDR plural forms (zero|one|two|few|many|other). To check the mirrored layout with any language, launch with
-`LOCALPAINT_UI_DIRECTION=rtl` (or `ltr` to force left-to-right); it is read once per process:
+`LOCALRASTER_UI_DIRECTION=rtl` (or `ltr` to force left-to-right); it is read once per process:
 
 ```sh
-LOCALPAINT_UI_DIRECTION=rtl cargo run -p localpaint-ui-egui --example snapshot -- --out rtl.png
+LOCALRASTER_UI_DIRECTION=rtl cargo run -p localraster-ui-egui --example snapshot -- --out rtl.png
 ```
 
 ## Fonts
@@ -141,18 +141,18 @@ missing fonts.
 2. Register its code, native name and plural rule in `i18n::LANGUAGES`.
 3. Translate the meaning of the English source keys. Preserve `{name}` placeholders, escaped
    characters and the trailing `…` on dialog commands. Use `@id` to disambiguate a command
-   label and `@plural` for count-sensitive text. Keep product names such as Local Paint.
+   label and `@plural` for count-sensitive text. Keep product names such as Local Raster.
 4. Set `complete_menus` once `cargo xtask i18n-coverage` lists nothing missing for the language. Add source and license
    attribution for translation assets, then run the catalog and shell tests.
 
 ```sh
-cargo test -p localpaint-ui-egui --locked
-cargo clippy -p localpaint-ui-egui --all-targets --locked -- -D warnings
+cargo test -p localraster-ui-egui --locked
+cargo clippy -p localraster-ui-egui --all-targets --locked -- -D warnings
 cargo xtask i18n-coverage
 cargo xtask layers
 ```
 
 Render representative dialogs with the offscreen `snapshot` example, including a sequence
 of language changes in one process. Inspect the PNGs for missing glyphs and truncated labels.
-Translations are original work or reuse the open Local Paint contributions credited in
+Translations are original work or reuse the open Local Raster contributions credited in
 [ATTRIBUTION.md](../ATTRIBUTION.md); no proprietary localisation resources are used.

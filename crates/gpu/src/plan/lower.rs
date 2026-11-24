@@ -30,7 +30,7 @@ pub(super) fn placement(anchor: (f64, f64), link: bool, phase: (f32, f32), scale
 }
 
 /// (inside width, outside width) of a stroke.
-pub fn stroke_widths(st: &localpaint_doc::StrokeFx) -> (f32, f32) {
+pub fn stroke_widths(st: &localraster_doc::StrokeFx) -> (f32, f32) {
     match st.position {
         StrokePosition::Outside => (0.0, st.size),
         StrokePosition::Inside => (st.size, 0.0),
@@ -38,13 +38,13 @@ pub fn stroke_widths(st: &localpaint_doc::StrokeFx) -> (f32, f32) {
     }
 }
 
-pub(super) fn style_index(s: localpaint_doc::GradientStyle) -> f32 {
+pub(super) fn style_index(s: localraster_doc::GradientStyle) -> f32 {
     match s {
-        localpaint_doc::GradientStyle::Linear => 0.0,
-        localpaint_doc::GradientStyle::Radial => 1.0,
-        localpaint_doc::GradientStyle::Angle => 2.0,
-        localpaint_doc::GradientStyle::Reflected => 3.0,
-        localpaint_doc::GradientStyle::Diamond => 4.0,
+        localraster_doc::GradientStyle::Linear => 0.0,
+        localraster_doc::GradientStyle::Radial => 1.0,
+        localraster_doc::GradientStyle::Angle => 2.0,
+        localraster_doc::GradientStyle::Reflected => 3.0,
+        localraster_doc::GradientStyle::Diamond => 4.0,
     }
 }
 
@@ -93,15 +93,15 @@ fn to_row(t: &[f32]) -> [f32; 4096] {
 
 /// Whether the adjustment kernel can evaluate `adj` in a document of colour `mode`: Levels and
 /// Curves on CMYK ink or Lab channels convert through ICC profiles per pixel, and so do the
-/// adjustments a Lab document evaluates on L, a and b (`localpaint_compose::adjust::lab_channel_adjustment`)
+/// adjustments a Lab document evaluates on L, a and b (`localraster_compose::adjust::lab_channel_adjustment`)
 /// and a CMYK document on its inks (`cmyk_channel_adjustment`), which only the CPU does.
-pub fn adjustment_on_gpu(adj: &Adjustment, mode: localpaint_color::ColorMode) -> bool {
-    use localpaint_compose::adjust::{cmyk_channel_adjustment, lab_channel_adjustment};
+pub fn adjustment_on_gpu(adj: &Adjustment, mode: localraster_color::ColorMode) -> bool {
+    use localraster_compose::adjust::{cmyk_channel_adjustment, lab_channel_adjustment};
     let tone_in_space =
         matches!(adj, Adjustment::Levels { space: ToneSpace::Cmyk | ToneSpace::Lab, .. } | Adjustment::Curves { space: ToneSpace::Cmyk | ToneSpace::Lab, .. });
     let own_channels = match mode {
-        localpaint_color::ColorMode::Lab => lab_channel_adjustment(adj),
-        localpaint_color::ColorMode::Cmyk => cmyk_channel_adjustment(adj),
+        localraster_color::ColorMode::Lab => lab_channel_adjustment(adj),
+        localraster_color::ColorMode::Cmyk => cmyk_channel_adjustment(adj),
         _ => false,
     };
     !tone_in_space && !own_channels
@@ -116,7 +116,7 @@ fn transfer_exponent(t: Transfer) -> f32 {
 }
 
 /// Adjustment → (kernel kind, parameters, LUT rows). Kinds are the `switch` in `adjust()`.
-pub fn adjustment_program(adj: &Adjustment, transfer: Transfer, depth: localpaint_color::SampleType, mode: localpaint_color::ColorMode) -> Program {
+pub fn adjustment_program(adj: &Adjustment, transfer: Transfer, depth: localraster_color::SampleType, mode: localraster_color::ColorMode) -> Program {
     let mut p = [[0.0f32; 4]; 4];
     match adj {
         Adjustment::Invert => (1, p, None),
@@ -124,16 +124,16 @@ pub fn adjustment_program(adj: &Adjustment, transfer: Transfer, depth: localpain
             // The level, the depth's split (compose::adjust::threshold_white) and the level in 16 bits.
             let t = (level * 255.0).round();
             p[0] = match depth {
-                localpaint_color::SampleType::U8 => [t, 1.0, 0.0, 0.0],
-                localpaint_color::SampleType::U16 => [t, 2.0, (t * 32768.0 / 255.0).round(), 0.0],
-                localpaint_color::SampleType::F32 => [t, 0.0, 0.0, 0.0],
+                localraster_color::SampleType::U8 => [t, 1.0, 0.0, 0.0],
+                localraster_color::SampleType::U16 => [t, 2.0, (t * 32768.0 / 255.0).round(), 0.0],
+                localraster_color::SampleType::F32 => [t, 0.0, 0.0, 0.0],
             };
             (2, p, None)
         }
         Adjustment::Posterize { levels } => {
             // The levels, and the 16-bit rule (compose::adjust::posterize_in).
             p[0][0] = (*levels).clamp(2, 255) as f32;
-            p[0][1] = if depth == localpaint_color::SampleType::U16 { 1.0 } else { 0.0 };
+            p[0][1] = if depth == localraster_color::SampleType::U16 { 1.0 } else { 0.0 };
             (3, p, None)
         }
         Adjustment::BrightnessContrast { brightness, contrast, legacy: true } => {
@@ -142,7 +142,7 @@ pub fn adjustment_program(adj: &Adjustment, transfer: Transfer, depth: localpain
             // Brightness before contrast when it is raised, after it when lowered (compose::adjust).
             let (pre, post) = if c >= 0.0 { (brightness / 255.0, 0.0) } else { (0.0, brightness / 255.0) };
             // 32-bit documents pivot at 127 of 255 and don't clip (the shader checks F_HDR).
-            let pivot = if depth == localpaint_color::SampleType::F32 { 127.0 / 255.0 } else { localpaint_compose::adjust::LEGACY_PIVOT };
+            let pivot = if depth == localraster_color::SampleType::F32 { 127.0 / 255.0 } else { localraster_compose::adjust::LEGACY_PIVOT };
             p[0] = [pre, k, pivot, post];
             (4, p, None)
         }
@@ -156,7 +156,7 @@ pub fn adjustment_program(adj: &Adjustment, transfer: Transfer, depth: localpain
             p[0] = [2f32.powf(*exposure), *offset, gamma.max(0.01), transfer_exponent(transfer.for_exposure())];
             (6, p, None)
         }
-        Adjustment::Levels { master, per_channel, space: ToneSpace::Rgb, .. } if depth == localpaint_color::SampleType::F32 => {
+        Adjustment::Levels { master, per_channel, space: ToneSpace::Rgb, .. } if depth == localraster_color::SampleType::F32 => {
             // Twenty coefficients exceed the sixteen uniform parameters. Store four records
             // in LUT row 0, read texel-exact by the analytic float Levels kernel.
             let mut row = [0.0f32; 4096];
@@ -188,7 +188,7 @@ pub fn adjustment_program(adj: &Adjustment, transfer: Transfer, depth: localpain
         }
         Adjustment::Vibrance { vibrance, saturation } => {
             // compose::adjust::vibrance_px; 32-bit samples aren't clipped at 1.
-            let hi = if depth == localpaint_color::SampleType::F32 { f32::MAX } else { 1.0 };
+            let hi = if depth == localraster_color::SampleType::F32 { f32::MAX } else { 1.0 };
             p[0] = [vibrance / 100.0, saturation / 100.0, transfer_exponent(transfer), hi];
             let b = adjust::VIBRANCE_BOOST;
             p[1] = [b[0], b[1], b[2], b[3]];
@@ -198,7 +198,7 @@ pub fn adjustment_program(adj: &Adjustment, transfer: Transfer, depth: localpain
         Adjustment::ChannelMixer { matrix, monochrome } => {
             // compose::adjust: 32-bit documents cut each percentage to 1/1024, count 255/512 of
             // the constant and don't clip (the shader checks F_HDR).
-            let hdr = depth == localpaint_color::SampleType::F32;
+            let hdr = depth == localraster_color::SampleType::F32;
             let cut = |v: f32| if hdr { (v * 1024.0).trunc() / 1024.0 } else { v };
             let rows = matrix.map(|r| [cut(r[0]), cut(r[1]), cut(r[2]), if hdr { r[3] * 255.0 / 512.0 } else { r[3] }]);
             p[0] = rows[0];
@@ -209,7 +209,7 @@ pub fn adjustment_program(adj: &Adjustment, transfer: Transfer, depth: localpain
         }
         Adjustment::PhotoFilter { color, density, preserve_luminosity } => {
             // compose::adjust: the linear-light matrix, then SetLum on the encoded values (8/16-bit).
-            let linear_doc = depth == localpaint_color::SampleType::F32;
+            let linear_doc = depth == localraster_color::SampleType::F32;
             let m = adjust::photo_filter_matrix(*color, *density, *preserve_luminosity && linear_doc);
             for (row, m) in p.iter_mut().zip(m) {
                 *row = [m[0], m[1], m[2], 0.0];
@@ -271,7 +271,7 @@ pub fn adjustment_program(adj: &Adjustment, transfer: Transfer, depth: localpain
 pub(super) fn gradient_rows(g: &Gradient) -> Vec<[f32; 4096]> {
     let mut rows = vec![[0.0f32; 4096]; 4];
     for k in 0..4096 {
-        let v = localpaint_compose::effects::sample_gradient(g, k as f32 / 4095.0);
+        let v = localraster_compose::effects::sample_gradient(g, k as f32 / 4095.0);
         for (ch, row) in rows.iter_mut().enumerate() {
             row[k] = v[ch];
         }

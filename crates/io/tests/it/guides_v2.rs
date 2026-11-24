@@ -1,13 +1,13 @@
 //! Image resources 1092 (guides with colours) and 1097 (guide GUIDs) next to 1032 (#5966).
 
-use localpaint_io::guides_map::{DEFAULT_GUIDE_RGB, GUIDE_IDS, GUIDES_V2};
-use localpaint_io::*;
-use localpaint_psd::testgen;
-use localpaint_psd::{Compression, ImageResource, PsdFile, Version};
+use localraster_io::guides_map::{DEFAULT_GUIDE_RGB, GUIDE_IDS, GUIDES_V2};
+use localraster_io::*;
+use localraster_psd::testgen;
+use localraster_psd::{Compression, ImageResource, PsdFile, Version};
 
 const RED: [u8; 3] = [0xff, 0x00, 0x00];
 
-type Edit = fn(&mut localpaint_doc::Document);
+type Edit = fn(&mut localraster_doc::Document);
 
 fn guides_v1(guides: &[(i32, u8)]) -> Vec<u8> {
     let mut v = Vec::new();

@@ -1,7 +1,7 @@
 //! Opt-in release comparison; full-canvas buffers belong on a CI runner.
 use super::*;
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_doc::{Layer, LayerContent, Size};
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_doc::{Layer, LayerContent, Size};
 use std::time::Instant;
 
 fn reference(s: &mut Session, p: &Value) {

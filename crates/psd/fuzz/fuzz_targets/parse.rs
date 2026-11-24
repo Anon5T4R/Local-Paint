@@ -2,7 +2,7 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
-use localpaint_psd::PsdFile;
+use localraster_psd::PsdFile;
 
 fuzz_target!(|data: &[u8]| {
     let Ok(f) = PsdFile::from_bytes(data) else { return };

@@ -5,9 +5,9 @@
 //! The selection itself lives in [`DocState::selected_layers`] (UI state, like the active layer):
 //! changing it never adds a history step. Every structural change below is one history step.
 
-use localpaint_color::PixelFormat;
-use localpaint_doc::{Document, Layer, LayerContent, LayerId, VideoData};
-use localpaint_geom::Rect;
+use localraster_color::PixelFormat;
+use localraster_doc::{Document, Layer, LayerContent, LayerId, VideoData};
+use localraster_geom::Rect;
 use serde_json::{Value, json};
 
 use crate::commands::{CommandSpec, int_i32};

@@ -27,8 +27,8 @@ pub enum EngineError {
 
 pub type Result<T> = std::result::Result<T, EngineError>;
 
-impl From<localpaint_raster::AllocationError> for EngineError {
-    fn from(error: localpaint_raster::AllocationError) -> Self {
+impl From<localraster_raster::AllocationError> for EngineError {
+    fn from(error: localraster_raster::AllocationError) -> Self {
         Self::Other(format!("not enough memory for this operation ({error}); the document was not changed"))
     }
 }

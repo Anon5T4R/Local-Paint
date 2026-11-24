@@ -5,7 +5,7 @@
 
 use std::path::{Path, PathBuf};
 
-use localpaint_psd::atn;
+use localraster_psd::atn;
 
 fn collect(dir: &Path, out: &mut Vec<PathBuf>) {
     // An unreadable folder fails the test rather than shrinking the corpus.

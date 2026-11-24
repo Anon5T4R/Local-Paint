@@ -15,8 +15,8 @@
 
 use std::path::{Path, PathBuf};
 
-use localpaint_doc::{Document, LayerContent};
-use localpaint_psd::PsdFile;
+use localraster_doc::{Document, LayerContent};
+use localraster_psd::PsdFile;
 
 /// Within two 8-bit steps of Photoshop (same tolerance as the io corpus).
 const PASS_TOL: f32 = 2.0 / 255.0;
@@ -64,14 +64,14 @@ fn rerender(doc: &mut Document) -> Result<usize, String> {
         let Some(l) = doc.layer_mut(id) else { continue };
         match &mut l.content {
             LayerContent::Smart(_) => {
-                if localpaint_engine::smart_cmds::refresh_layer(&snapshot, l).map_err(|e| e.to_string())? {
+                if localraster_engine::smart_cmds::refresh_layer(&snapshot, l).map_err(|e| e.to_string())? {
                     n += 1;
                 } else {
                     return Err("smart object source unavailable".into());
                 }
             }
             LayerContent::Text(t) => {
-                localpaint_engine::type_cmds::refresh(&snapshot, t);
+                localraster_engine::type_cmds::refresh(&snapshot, t);
                 n += 1;
             }
             _ => {}
@@ -86,14 +86,14 @@ fn screen_motion_blur_retains_input_coverage() {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../corpus/photoshop/smart-filters/sf-blend-screen-100.psd");
     let bytes = std::fs::read(&path).expect("Screen/Motion Blur oracle missing: run cargo xtask corpus --all");
     let file = PsdFile::from_bytes(&bytes).expect("parse Screen/Motion Blur oracle");
-    let mut doc = localpaint_io::import("sf-blend-screen-100.psd", &bytes).expect("import Screen/Motion Blur oracle").document;
+    let mut doc = localraster_io::import("sf-blend-screen-100.psd", &bytes).expect("import Screen/Motion Blur oracle").document;
     assert!(rerender(&mut doc).expect("re-render Screen/Motion Blur oracle") > 0);
-    let merged = localpaint_io::merged_composite(&file).expect("Photoshop merged composite");
-    let (error, bad) = max_diff(&localpaint_compose::flatten(&doc).px, &merged);
+    let merged = localraster_io::merged_composite(&file).expect("Photoshop merged composite");
+    let (error, bad) = max_diff(&localraster_compose::flatten(&doc).px, &merged);
     assert!(error <= PASS_TOL, "Screen/Motion Blur error {error}, {bad}% pixels exceed 2/255");
 }
 
-/// Re-render every Photoshop oracle in the corpus with Local Paint's filters and compare it with Photoshop's own merged composite.
+/// Re-render every Photoshop oracle in the corpus with Local Raster's filters and compare it with Photoshop's own merged composite.
 #[test]
 fn photoshop_oracles_rerendered() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../corpus/photoshop");
@@ -108,7 +108,7 @@ fn photoshop_oracles_rerendered() {
         let name = p.strip_prefix(&root).unwrap_or(p).display().to_string();
         let bytes = std::fs::read(p).unwrap_or_default();
         let Ok(file) = PsdFile::from_bytes(&bytes) else { continue };
-        let Ok(imp) = localpaint_io::import(&name, &bytes) else {
+        let Ok(imp) = localraster_io::import(&name, &bytes) else {
             eprintln!("{name:<60} IMPORT-ERROR");
             errors += 1;
             continue;
@@ -123,8 +123,8 @@ fn photoshop_oracles_rerendered() {
                 continue;
             }
         };
-        let Ok(merged) = localpaint_io::merged_composite(&file) else { continue };
-        let ours = localpaint_compose::flatten(&doc).px;
+        let Ok(merged) = localraster_io::merged_composite(&file) else { continue };
+        let ours = localraster_compose::flatten(&doc).px;
         let (m, bad) = max_diff(&ours, &merged);
         let group = name.split(['/', '\\']).next().unwrap_or(".").to_string();
         let g = groups.entry(group).or_default();

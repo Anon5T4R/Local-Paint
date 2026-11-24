@@ -1,6 +1,6 @@
 //! Displace, Shear, ZigZag (inverse mapping over the reference bounds).
 
-use localpaint_geom::Rect;
+use localraster_geom::Rect;
 
 use crate::distort::{centre, remap};
 use crate::image::Image;

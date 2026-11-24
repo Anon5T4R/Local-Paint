@@ -11,9 +11,9 @@ use super::{Layer, LayerContent, Rect, Surface, advanced, effects};
 /// Pixels are identified by their copy-on-write tile pointers. `pin` sees every tile hashed: a
 /// cache entry keeps a [`std::sync::Weak`] to each, which reserves the tile's address (so no
 /// other tile can reuse it and match the key) without keeping its pixels alive (#4530).
-pub(crate) fn layer_identity(layer: &Layer, h: &mut std::collections::hash_map::DefaultHasher, pin: &mut dyn FnMut(&std::sync::Arc<localpaint_raster::Tile>)) {
+pub(crate) fn layer_identity(layer: &Layer, h: &mut std::collections::hash_map::DefaultHasher, pin: &mut dyn FnMut(&std::sync::Arc<localraster_raster::Tile>)) {
     use std::hash::{Hash, Hasher};
-    fn surface_fp(s: &Surface, pin: &mut dyn FnMut(&std::sync::Arc<localpaint_raster::Tile>)) -> u64 {
+    fn surface_fp(s: &Surface, pin: &mut dyn FnMut(&std::sync::Arc<localraster_raster::Tile>)) -> u64 {
         let mut h = std::collections::hash_map::DefaultHasher::new();
         s.format().hash(&mut h);
         // Missing tiles read the default pixel, so tile identity alone is not pixel identity.
@@ -77,7 +77,7 @@ pub(crate) fn layer_identity(layer: &Layer, h: &mut std::collections::hash_map::
 struct FxEntry {
     maps: std::sync::Arc<effects::FxMaps>,
     /// The tiles the key identifies (see [`layer_identity`]): their addresses, not their pixels.
-    _pin: Vec<std::sync::Weak<localpaint_raster::Tile>>,
+    _pin: Vec<std::sync::Weak<localraster_raster::Tile>>,
     bytes: usize,
 }
 
@@ -200,7 +200,7 @@ pub(crate) fn effect_maps(layer: &Layer, rect: Rect, cx: &Ctx) -> std::sync::Arc
         region = Rect::EMPTY;
     }
     static NO_CACHE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-    if *NO_CACHE.get_or_init(|| std::env::var_os("LOCALPAINT_FX_NOCACHE").is_some()) {
+    if *NO_CACHE.get_or_init(|| std::env::var_os("LOCALRASTER_FX_NOCACHE").is_some()) {
         let shape = if region.is_empty() { Vec::new() } else { effect_shape(layer, region, cx) };
         return std::sync::Arc::new(effects::build_maps_prepared(layer, shape, region, &cx.light, &texture_ctx(layer, region, cx), cx.patterns));
     }
@@ -223,7 +223,7 @@ fn build_fx_slot_maps(layer: &Layer, region: Rect, key: u64, cx: &Ctx, slot: &Fx
     let mut pin = Vec::new();
     layer_identity(layer, &mut std::collections::hash_map::DefaultHasher::new(), &mut |t| pin.push(std::sync::Arc::downgrade(t)));
     // The maps, plus what each reserved tile address keeps allocated.
-    let bytes = maps.bytes().saturating_add(pin.len().saturating_mul(std::mem::size_of::<localpaint_raster::Tile>() + 2 * std::mem::size_of::<usize>()));
+    let bytes = maps.bytes().saturating_add(pin.len().saturating_mul(std::mem::size_of::<localraster_raster::Tile>() + 2 * std::mem::size_of::<usize>()));
     let maps = std::sync::Arc::new(maps);
     if slot.set(FxEntry { maps: maps.clone(), _pin: pin, bytes }).is_ok() {
         // Counted exactly once, by the build that filled the slot, and only while the

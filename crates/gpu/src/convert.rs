@@ -120,12 +120,12 @@ pub(crate) fn convert_tiles(
     // go in bands of rows, so even the one tile a dab touches spreads over the threads. Workers
     // don't inherit this thread's CMYK profile scope, so each band enters it.
     let bands = if colour_managed(&surface.format(), kind) { TILE_SIZE / MANAGED_BAND_ROWS } else { 1 };
-    let space = localpaint_color::convert::active_cmyk_space();
+    let space = localraster_color::convert::active_cmyk_space();
     for batch in groups.chunks(CONVERT_BATCH) {
         // A tile's content is the same at every coordinate sharing it: convert it at the first.
         let jobs: Vec<_> = batch.iter().filter_map(|(t, cs)| cs.first().map(|c| (t, *c))).flat_map(|(t, c)| (0..bands).map(move |b| (t, c, b))).collect();
         let parts = fx::par_map(jobs, |(t, c, b)| {
-            localpaint_color::convert::with_cmyk_space(space.as_ref(), || {
+            localraster_color::convert::with_cmyk_space(space.as_ref(), || {
                 if bands == 1 {
                     return convert_tile(surface, Some(t), kind, c);
                 }
@@ -150,7 +150,7 @@ const MANAGED_BAND_ROWS: i32 = 16;
 
 /// Whether `fmt` pixels reach `kind` texels through a per-pixel colour transform (CMYK, Lab).
 pub(crate) fn colour_managed(fmt: &PixelFormat, kind: TexKind) -> bool {
-    use localpaint_color::ColorMode;
+    use localraster_color::ColorMode;
     matches!(kind, TexKind::Rgba8 | TexKind::Rgba16F) && matches!(fmt.mode, ColorMode::Cmyk | ColorMode::Lab)
 }
 
@@ -169,7 +169,7 @@ pub(crate) fn convert_tile(surface: &Surface, tile: Option<&Arc<Tile>>, kind: Te
 }
 
 /// [`convert_tile`]'s general path for `rect` (rows of one tile): each pixel through
-/// `localpaint_raster::to_rgba`. A run of identical pixels (the transparent or flat areas around a
+/// `localraster_raster::to_rgba`. A run of identical pixels (the transparent or flat areas around a
 /// brush dab) is converted once: the same samples give the same texels.
 fn convert_rows(surface: &Surface, tile: Option<&Arc<Tile>>, kind: TexKind, rect: Rect) -> Vec<u8> {
     let n = rect.width() as usize * rect.height() as usize;
@@ -189,7 +189,7 @@ fn convert_rows(surface: &Surface, tile: Option<&Arc<Tile>>, kind: TexKind, rect
             {
                 return v;
             }
-            let v = localpaint_raster::to_rgba(&fmt, px);
+            let v = localraster_raster::to_rgba(&fmt, px);
             last = Some((i, v));
             v
         };
@@ -216,7 +216,7 @@ fn convert_rows(surface: &Surface, tile: Option<&Arc<Tile>>, kind: TexKind, rect
 /// half: the same bytes as the general path at a fraction of its cost (a 50 MP 16-bit refresh
 /// converts dozens of tiles). `None` for other formats.
 pub(crate) fn rgb_gray16_to_f16(fmt: &PixelFormat, bytes: &[u8]) -> Option<Vec<u8>> {
-    use localpaint_color::ColorMode;
+    use localraster_color::ColorMode;
     static HALF: std::sync::OnceLock<Box<[u16]>> = std::sync::OnceLock::new();
     if fmt.sample != SampleType::U16 {
         return None;
@@ -250,7 +250,7 @@ pub(crate) fn rgb_gray16_to_f16(fmt: &PixelFormat, bytes: &[u8]) -> Option<Vec<u
 /// pixel by pixel (a brush dab on a 32-bit layer re-uploads the tiles it touched). `None` for
 /// other formats.
 pub(crate) fn rgb_gray32_to_f16(fmt: &PixelFormat, bytes: &[u8]) -> Option<Vec<u8>> {
-    use localpaint_color::ColorMode;
+    use localraster_color::ColorMode;
     if fmt.sample != SampleType::F32 {
         return None;
     }

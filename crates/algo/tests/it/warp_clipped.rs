@@ -1,7 +1,7 @@
-use localpaint_algo::transform::{Homography, Interp, warp_surface, warp_surface_clipped};
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_algo::transform::{Homography, Interp, warp_surface, warp_surface_clipped};
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 
 #[test]
 fn clipped_warp_matches_the_existing_kernel_at_every_depth() {

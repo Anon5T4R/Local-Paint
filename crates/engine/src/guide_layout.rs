@@ -1,7 +1,7 @@
 //! Pure guide-layout calculation shared by the command and its non-destructive UI preview.
 
-use localpaint_doc::Guides;
-use localpaint_geom::Rect;
+use localraster_doc::Guides;
+use localraster_geom::Rect;
 use serde_json::Value;
 
 use crate::prefs::Unit;

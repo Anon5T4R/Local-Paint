@@ -293,17 +293,17 @@ mod tests {
 mod app_tests {
     use serde_json::json;
 
-    use crate::LocalPaintApp;
+    use crate::LocalRasterApp;
 
     #[test]
     fn an_app_frame_with_a_full_refresh_records_its_stages() {
         let (w, h) = (4000u64, 3000u64);
-        let mut s = localpaint_engine::Session::new();
+        let mut s = localraster_engine::Session::new();
         s.execute("file.new", json!({"width": w, "height": h, "background": "white"})).unwrap();
         let layer = s.active().and_then(|d| d.active_layer).expect("the background").0;
         let mut harness = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_max_steps(4).build_eframe(move |cc| {
-            LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-            LocalPaintApp::new(s, crate::Services::default())
+            LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+            LocalRasterApp::new(s, crate::Services::default())
         });
         harness.run_steps(6);
         // Every frame counts as slow, so the test doesn't depend on the machine's speed.

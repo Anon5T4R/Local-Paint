@@ -1,10 +1,10 @@
 //! PDF export: structure, pixel oracle, colour modes and refusal paths.
 
 use super::*;
-use localpaint_color::{PixelFormat, SampleType};
-use localpaint_doc::{Layer, LayerContent, Size};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_color::{PixelFormat, SampleType};
+use localraster_doc::{Layer, LayerContent, Size};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 
 fn solid(fmt: PixelFormat, x0: i32, y0: i32, x1: i32, y1: i32, px: &[f32]) -> Surface {
     let mut s = Surface::new(fmt);

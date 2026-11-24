@@ -48,7 +48,7 @@ pub(crate) struct CursorLifecycle;
 
 impl egui::plugin::Plugin for CursorLifecycle {
     fn debug_name(&self) -> &'static str {
-        "Local Paint tool cursor"
+        "Local Raster tool cursor"
     }
 
     fn on_begin_pass(&mut self, ui: &mut egui::Ui) {

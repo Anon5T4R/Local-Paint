@@ -1,11 +1,11 @@
 //! Deterministic 24 MP blur/resize benchmark. Run with --release; no private photos needed.
-use localpaint_algo::{
+use localraster_algo::{
     FilterParams, apply_in,
     resample::{Resample, resize_surface_in_canvas},
 };
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 use std::time::Instant;
 fn main() {
     let bounds = Rect::new(0, 0, 6000, 4000);

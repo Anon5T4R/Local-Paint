@@ -1,14 +1,14 @@
 use super::*;
 use crate::canvas::{ToolEvent, tool_event};
 
-fn app() -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn app() -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 100, "height": 60})).unwrap();
     app.run("tools.setBrush", json!({"brush": {"size": 16, "hardness": 1.0}})).unwrap();
     app
 }
 
-fn drag(app: &mut LocalPaintApp, tool: Tool) {
+fn drag(app: &mut LocalRasterApp, tool: Tool) {
     app.ui.tool = tool;
     let m = egui::Modifiers::NONE;
     tool_event(app, ToolEvent::Down { x: 10.0, y: 30.0, pressure: 1.0 }, m);
@@ -17,12 +17,12 @@ fn drag(app: &mut LocalPaintApp, tool: Tool) {
     assert!(!app.ui.status_error, "{tool:?}: {}", app.ui.status);
 }
 
-fn active(app: &LocalPaintApp) -> &localpaint_doc::Layer {
+fn active(app: &LocalRasterApp) -> &localraster_doc::Layer {
     let st = app.session.active().unwrap();
     st.active_layer.and_then(|id| st.doc.layer(id)).unwrap()
 }
 
-fn stripes(app: &mut LocalPaintApp, step: usize, target: &str) {
+fn stripes(app: &mut LocalRasterApp, step: usize, target: &str) {
     for x in (0..100).step_by(step) {
         app.run("paint.pencil", json!({"points": [[x, 0], [x, 60]], "size": 2, "color": "#606060", "target": target})).unwrap();
     }
@@ -127,7 +127,7 @@ fn healing_brush_heals_in_normal_with_a_mode_outside_its_menu() {
         let mut app = app();
         app.ui.tool = tool;
         crate::paint_mouse::sync_tool_brush(&mut app);
-        app.session.tools.brush.mode = localpaint_color::BlendMode::Overlay;
+        app.session.tools.brush.mode = localraster_color::BlendMode::Overlay;
         app.ui.clone_source = Some([10.0, 10.0]);
         drag(&mut app, tool);
         let (_, params) = app.session.journal.last().unwrap();
@@ -163,14 +163,14 @@ fn paint_bucket_mode_reaches_the_fill() {
     app.run("layer.new.layer", json!({})).unwrap();
     app.ui.tool = Tool::PaintBucket;
     app.session.tools.foreground = [0.5, 0.5, 0.5, 1.0];
-    let click = |app: &mut LocalPaintApp| {
+    let click = |app: &mut LocalRasterApp| {
         let m = egui::Modifiers::NONE;
         tool_event(app, ToolEvent::Down { x: 20.0, y: 20.0, pressure: 1.0 }, m);
         tool_event(app, ToolEvent::Up { x: 20.0, y: 20.0 }, m);
     };
     click(&mut app);
     app.session.tools.foreground = [1.0, 0.0, 0.0, 1.0];
-    app.ui.tool_options.bucket_blend_mode = localpaint_color::BlendMode::Multiply;
+    app.ui.tool_options.bucket_blend_mode = localraster_color::BlendMode::Multiply;
     click(&mut app);
     let px = active(&app).surface().unwrap().rgba(20, 20);
     assert!((px[0] - 0.5).abs() < 0.02 && px[1] < 0.02, "multiplied: {px:?}");
@@ -352,7 +352,7 @@ fn mixer_brush_is_selectable_and_paints_only_inside_the_selection_via_control() 
 fn patch_tool_lassoes_then_drags_the_patch() {
     let mut app = app();
     app.run("paint.pencil", json!({"points": [[68, 30], [74, 30]], "size": 6, "color": "#ff0000"})).unwrap();
-    let red = |app: &LocalPaintApp| active(app).surface().unwrap().rgba(71, 30)[1] < 0.5;
+    let red = |app: &LocalRasterApp| active(app).surface().unwrap().rgba(71, 30)[1] < 0.5;
     assert!(red(&app));
     app.ui.tool = Tool::Patch;
     let m = egui::Modifiers::NONE;
@@ -403,7 +403,7 @@ fn content_aware_move_tool_lassoes_then_moves_or_extends() {
     for (mode, keeps) in [("move", false), ("extend", true)] {
         let mut app = app();
         app.run("paint.pencil", json!({"points": [[20, 30], [24, 30]], "size": 6, "color": "#0000ff"})).unwrap();
-        let blue = |app: &LocalPaintApp, x: i32| active(app).surface().unwrap().rgba(x, 30)[0] < 0.5;
+        let blue = |app: &LocalRasterApp, x: i32| active(app).surface().unwrap().rgba(x, 30)[0] < 0.5;
         app.ui.tool = Tool::ContentAwareMove;
         app.ui.tool_options.cam_mode = mode.into();
         app.ui.tool_options.cam_structure = 7.0;
@@ -431,12 +431,12 @@ fn content_aware_move_tool_lassoes_then_moves_or_extends() {
 fn content_aware_move_transform_on_drop_turns_the_patch_on_enter() {
     let mut app = app();
     app.run("paint.pencil", json!({"points": [[16, 30], [28, 30]], "size": 4, "color": "#0000ff"})).unwrap();
-    let blue = |app: &LocalPaintApp, x: i32, y: i32| active(app).surface().unwrap().rgba(x, y)[0] < 0.5;
+    let blue = |app: &LocalRasterApp, x: i32, y: i32| active(app).surface().unwrap().rgba(x, y)[0] < 0.5;
     app.ui.tool = Tool::ContentAwareMove;
     app.ui.tool_options.cam_transform_on_drop = true;
     app.ui.tool_options.cam_structure = 7.0;
     let m = egui::Modifiers::NONE;
-    let drag = |app: &mut LocalPaintApp, path: &[[f64; 2]]| {
+    let drag = |app: &mut LocalRasterApp, path: &[[f64; 2]]| {
         let ([x, y], rest) = (path[0], &path[1..]);
         tool_event(app, ToolEvent::Down { x, y, pressure: 1.0 }, m);
         for &[x, y] in rest {
@@ -498,7 +498,7 @@ fn red_eye_options_bar_shows_pupil_size_and_darken() {
     let mut app = app();
     app.ui.tool = Tool::RedEye;
     let mut h = egui_kittest::Harness::builder().with_size(vec2(1400.0, 60.0)).build_ui_state(
-        |ui, app: &mut LocalPaintApp| {
+        |ui, app: &mut LocalRasterApp| {
             if !ui.ctx().fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                 return;
             }
@@ -506,7 +506,7 @@ fn red_eye_options_bar_shows_pupil_size_and_darken() {
         },
         app,
     );
-    LocalPaintApp::setup_context(&h.ctx, ThemeKind::Studio);
+    LocalRasterApp::setup_context(&h.ctx, ThemeKind::Studio);
     h.run_steps(4);
     h.get_by_label("Pupil Size");
     h.get_by_label("Darken Amount");
@@ -562,14 +562,14 @@ fn waiting_remove_strokes_keep_their_own_brush() {
     app.ui.tool = Tool::Remove;
     app.ui.tool_options.remove_after_each_stroke = false;
     let m = egui::Modifiers::NONE;
-    let stroke = |app: &mut LocalPaintApp, x: f64| {
+    let stroke = |app: &mut LocalRasterApp, x: f64| {
         tool_event(app, ToolEvent::Down { x, y: 20.0, pressure: 1.0 }, m);
         tool_event(app, ToolEvent::Move { x, y: 40.0, pressure: 1.0 }, m);
         tool_event(app, ToolEvent::Up { x, y: 40.0 }, m);
     };
     app.run("tools.setBrush", json!({"brush": {"size": 20, "hardness": 0.0}})).unwrap();
     stroke(&mut app, 25.0);
-    let tint = |app: &LocalPaintApp| app.remove_trail.as_ref().map(|t| (0..100).filter(|&x| t.coverage(x, 30) > 0).count());
+    let tint = |app: &LocalRasterApp| app.remove_trail.as_ref().map(|t| (0..100).filter(|&x| t.coverage(x, 30) > 0).count());
     let first = tint(&app);
     app.run("tools.setBrush", json!({"brush": {"size": 4, "hardness": 1.0}})).unwrap();
     stroke(&mut app, 75.0);
@@ -824,7 +824,7 @@ fn art_history_options_bar_defaults() {
     let mut app = app();
     app.ui.tool = Tool::ArtHistoryBrush;
     let mut h = egui_kittest::Harness::builder().with_size(vec2(1400.0, 60.0)).build_ui_state(
-        |ui, app: &mut LocalPaintApp| {
+        |ui, app: &mut LocalRasterApp| {
             if !ui.ctx().fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                 return;
             }
@@ -832,7 +832,7 @@ fn art_history_options_bar_defaults() {
         },
         app,
     );
-    LocalPaintApp::setup_context(&h.ctx, ThemeKind::Studio);
+    LocalRasterApp::setup_context(&h.ctx, ThemeKind::Studio);
     h.run_steps(4);
     h.get_by_label("Style");
     h.get_by_label("Area");

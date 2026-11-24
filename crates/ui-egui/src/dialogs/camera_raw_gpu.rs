@@ -1,7 +1,7 @@
 //! Camera Raw's preview develop on the GPU (#6916). When every stage the settings use reads
-//! only its own pixel, the proxy develops in one wgpu pass (`localpaint_gpu::CameraRawDevelop`)
+//! only its own pixel, the proxy develops in one wgpu pass (`localraster_gpu::CameraRawDevelop`)
 //! on the canvas's device and is read back for the histogram, scopes and display conversion.
-//! Spatial stages, Rendering Mode CPU, `LOCALPAINT_CPU_CAMERA_RAW`, no GPU canvas, a software
+//! Spatial stages, Rendering Mode CPU, `LOCALRASTER_CPU_CAMERA_RAW`, no GPU canvas, a software
 //! adapter, a device fault or a failed develop all keep the CPU develop on the worker.
 //!
 //! The pipeline builds on a thread the first time a dialog opens (DX12's shader compiler takes
@@ -11,10 +11,10 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 
 use eframe::wgpu;
-use localpaint_algo::camera_raw::CameraRaw;
-use localpaint_gpu::{CameraRawDevelop, DeviceHealth};
+use localraster_algo::camera_raw::CameraRaw;
+use localraster_gpu::{CameraRawDevelop, DeviceHealth};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
 /// The built pass, shared by every Camera Raw dialog on the device (never built on the web).
 #[derive(Clone)]
@@ -74,9 +74,9 @@ impl Pass {
 }
 
 /// The dialog's GPU develop, if the app may use one.
-pub(crate) fn for_app(app: &LocalPaintApp) -> Option<CameraRawGpu> {
-    let cpu = app.session.prefs().performance.effective_rendering_mode() == localpaint_engine::prefs::RenderingMode::Cpu;
-    if cpu || std::env::var_os("LOCALPAINT_CPU_CAMERA_RAW").is_some() {
+pub(crate) fn for_app(app: &LocalRasterApp) -> Option<CameraRawGpu> {
+    let cpu = app.session.prefs().performance.effective_rendering_mode() == localraster_engine::prefs::RenderingMode::Cpu;
+    if cpu || localraster_engine::legacy_env::var_os("LOCALRASTER_CPU_CAMERA_RAW").is_some() {
         return None;
     }
     app.gpu.as_ref()?.camera_raw()
@@ -124,7 +124,7 @@ impl CameraRawGpu {
         {
             let Some(Some(pass)) = self.pass.get() else { return None };
             let points = self.points(px, key, w, h, p);
-            let stages = localpaint_algo::camera_raw::per_pixel(p, w, h, float, points)?;
+            let stages = localraster_algo::camera_raw::per_pixel(p, w, h, float, points)?;
             let size = [u32::try_from(w).ok()?, u32::try_from(h).ok()?];
             let mut pass = pass.0.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
             match pass.develop(&self.device, &self.queue, Some(&self.health), px, key, size, &stages) {
@@ -142,7 +142,7 @@ impl CameraRawGpu {
         if p.whites == 0.0 && p.blacks == 0.0 {
             return None;
         }
-        let Some(key) = key else { return localpaint_algo::camera_raw::white_black_points(px, w, h, p) };
+        let Some(key) = key else { return localraster_algo::camera_raw::white_black_points(px, w, h, p) };
         let key = (key, [p.temperature, p.tint, p.exposure, p.contrast, p.encoding_gamma].map(f32::to_bits));
         let mut cache = self.points.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         if let Some((k, points)) = *cache
@@ -150,7 +150,7 @@ impl CameraRawGpu {
         {
             return points;
         }
-        let points = localpaint_algo::camera_raw::white_black_points(px, w, h, p);
+        let points = localraster_algo::camera_raw::white_black_points(px, w, h, p);
         *cache = Some((key, points));
         points
     }
@@ -159,19 +159,19 @@ impl CameraRawGpu {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_algo::camera_raw::develop;
+    use localraster_algo::camera_raw::develop;
     use serde_json::json;
 
-    /// The pass evaluates develop's expressions in f32 (see `localpaint-gpu`'s Camera Raw tests).
+    /// The pass evaluates develop's expressions in f32 (see `localraster-gpu`'s Camera Raw tests).
     const TOL: f32 = 1.0 / 4096.0;
 
     /// The app on egui_kittest's device (a software adapter where there is one), or `None`.
-    fn gpu_app(depth: u32) -> Option<(LocalPaintApp, egui::Context)> {
+    fn gpu_app(depth: u32) -> Option<(LocalRasterApp, egui::Context)> {
         let Ok(rs) = std::panic::catch_unwind(|| egui_kittest::wgpu::create_render_state(crate::gpu_canvas::wgpu_setup(), Default::default())) else {
             eprintln!("skipping: no GPU adapter");
             return None;
         };
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
         app.set_wgpu(rs);
         app.gpu.as_ref()?;
         app.run("file.new", json!({"width": 300, "height": 200, "depth": depth})).unwrap();
@@ -184,11 +184,11 @@ mod tests {
     }
 
     /// The canvas's pass, built even on a software adapter (which the app leaves on the CPU).
-    fn force_pass(app: &LocalPaintApp) {
+    fn force_pass(app: &LocalRasterApp) {
         app.gpu.as_ref().expect("GPU canvas").force_camera_raw_pass();
     }
 
-    fn developed(app: &mut LocalPaintApp, ctx: &egui::Context, p: CameraRaw) -> (&'static str, Vec<[f32; 4]>, Vec<[f32; 4]>) {
+    fn developed(app: &mut LocalRasterApp, ctx: &egui::Context, p: CameraRaw) -> (&'static str, Vec<[f32; 4]>, Vec<[f32; 4]>) {
         let d = app.camera_raw.as_mut().expect("dialog");
         d.params = p;
         d.render(ctx);
@@ -201,7 +201,7 @@ mod tests {
 
     #[test]
     fn the_pass_is_built_when_camera_raw_first_opens_not_with_the_canvas() {
-        let _gpu = localpaint_testkit::gpu_lock();
+        let _gpu = localraster_testkit::gpu_lock();
         let Some((mut app, ctx)) = gpu_app(8) else { return };
         let canvas = app.gpu.clone().expect("GPU canvas");
         assert!(!canvas.camera_raw_started(), "no Camera Raw pipeline at launch (#6419)");
@@ -216,7 +216,7 @@ mod tests {
 
     #[test]
     fn per_pixel_settings_develop_on_the_gpu_like_the_cpu_and_the_rest_stays_on_the_cpu() {
-        let _gpu = localpaint_testkit::gpu_lock();
+        let _gpu = localraster_testkit::gpu_lock();
         for depth in [8, 16, 32] {
             let Some((mut app, ctx)) = gpu_app(depth) else { return };
             force_pass(&app);
@@ -233,7 +233,7 @@ mod tests {
                 blacks: -20.0,
                 vibrance: 40.0,
                 curve_lights: 25.0,
-                grade_shadows: localpaint_algo::camera_raw::Wheel { hue: 220.0, sat: 40.0, lum: 0.0 },
+                grade_shadows: localraster_algo::camera_raw::Wheel { hue: 220.0, sat: 40.0, lum: 0.0 },
                 vignette_amount: -40.0,
                 grain_amount: 30.0,
                 ..Default::default()
@@ -248,7 +248,7 @@ mod tests {
             let (backend, shown, cpu) = developed(&mut app, &ctx, CameraRaw { shadows: 40.0, ..per_pixel.clone() });
             assert_eq!((backend, shown == cpu), ("cpu", true), "{depth}-bit");
             // A device fault: the CPU, from the next frame on.
-            app.gpu.as_ref().unwrap().health().mark(localpaint_gpu::Fault::Lost("test".into()));
+            app.gpu.as_ref().unwrap().health().mark(localraster_gpu::Fault::Lost("test".into()));
             let (backend, shown, cpu) = developed(&mut app, &ctx, per_pixel);
             assert_eq!((backend, shown == cpu), ("cpu", true), "{depth}-bit after a fault");
         }
@@ -256,7 +256,7 @@ mod tests {
 
     #[test]
     fn neutral_settings_skip_the_gpu_round_trip() {
-        let _gpu = localpaint_testkit::gpu_lock();
+        let _gpu = localraster_testkit::gpu_lock();
         let Some((mut app, ctx)) = gpu_app(8) else { return };
         force_pass(&app);
         crate::camera_raw_ui::open(&mut app, &ctx).unwrap();
@@ -272,7 +272,7 @@ mod tests {
 
     #[test]
     fn rendering_mode_cpu_keeps_the_cpu_develop() {
-        let _gpu = localpaint_testkit::gpu_lock();
+        let _gpu = localraster_testkit::gpu_lock();
         let Some((mut app, ctx)) = gpu_app(8) else { return };
         force_pass(&app);
         app.run("prefs.set", json!({"path": "performance.renderingMode", "value": "cpu"})).unwrap();

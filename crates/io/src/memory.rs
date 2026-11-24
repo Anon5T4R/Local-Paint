@@ -112,7 +112,7 @@ mod tests {
         assert_eq!(linux::meminfo(info, "Missing:"), None);
         assert_eq!(linux::meminfo("MemAvailable: lots kB", "MemAvailable:"), None);
 
-        let root = std::env::temp_dir().join(format!("localpaint-cgroup-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("localraster-cgroup-{}", std::process::id()));
         let leaf = root.join("app.slice/app.scope");
         std::fs::create_dir_all(&leaf).unwrap();
         let write = |d: &Path, f: &str, v: &str| std::fs::write(d.join(f), v).unwrap();

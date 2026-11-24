@@ -1,10 +1,10 @@
 ---
 title: FAQ
-description: Short answers about Local Paint's price, Photoshop files and how it compares with Photoshop.
+description: Short answers about Local Raster's price, Photoshop files and how it compares with Photoshop.
 order: 40
 verified: 0.8.2
 ---
 
-- [Is Local Paint free?](is-localpaint-free.md)
-- [Can Local Paint open my Photoshop files?](open-photoshop-files.md)
-- [Can Local Paint replace Photoshop?](replace-photoshop.md)
+- [Is Local Raster free?](is-localraster-free.md)
+- [Can Local Raster open my Photoshop files?](open-photoshop-files.md)
+- [Can Local Raster replace Photoshop?](replace-photoshop.md)

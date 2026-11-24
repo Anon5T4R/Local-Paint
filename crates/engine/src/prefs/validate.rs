@@ -29,7 +29,7 @@ pub const SECTIONS: [(&str, &str); 18] = [
 ];
 
 /// Preferences that nothing reads yet, so Edit › Preferences doesn't show them: a control that
-/// does nothing is worse than a missing one (https://github.com/Anon5T4R/Local-Paint/issues/204).
+/// does nothing is worse than a missing one (https://github.com/Anon5T4R/Local-Raster/issues/204).
 /// They still load, save and round-trip through `prefs.get` / `prefs.set` unchanged.
 ///
 /// When you implement one, remove it here; the `prefs_usage` test fails while a listed
@@ -114,7 +114,7 @@ pub fn range(path: &str) -> Option<(f64, f64)> {
         "fileHandling.autosaveMinutes" => (1.0, 240.0),
         "fileHandling.recentFileCount" => (0.0, 100.0),
         "tools.nudgeBundlePauseMs" => (100.0, 10_000.0),
-        "fileHandling.rasterizeSvgGroupsDeeperThan" => (0.0, localpaint_doc::MAX_GROUP_DEPTH as f64),
+        "fileHandling.rasterizeSvgGroupsDeeperThan" => (0.0, localraster_doc::MAX_GROUP_DEPTH as f64),
         "interface.notificationDurationSeconds" => (1.0, 120.0),
         "export.jpegQuality" | "export.webpQuality" => (1.0, 100.0),
         "performance.memoryUsageMb" => (256.0, 1_048_576.0),

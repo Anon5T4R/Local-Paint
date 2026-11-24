@@ -154,7 +154,7 @@ fn all_pdn_blend_modes_and_layer_properties_import_and_save_natively() {
             assert!(saved.warnings.is_empty());
             let back = crate::import("sample.pcraft", &saved.bytes).unwrap().document;
             assert_eq!(doc.layers, back.layers);
-            assert_eq!(localpaint_compose::flatten(&doc).px, localpaint_compose::flatten(&back).px);
+            assert_eq!(localraster_compose::flatten(&doc).px, localraster_compose::flatten(&back).px);
         }
     }
 }
@@ -222,9 +222,9 @@ proptest::proptest! {
 #[test]
 fn psd_export_reports_paint_net_blend_loss() {
     let mut doc = crate::import("sample.pdn", &fixture(&[5], false, false)).unwrap().document;
-    doc.layers[0].effects.items.push(localpaint_doc::effects::Effect::ColorOverlay {
-        common: localpaint_doc::effects::FxCommon::new(BlendMode::Glow, 1.0),
-        color: localpaint_color::Color::BLACK,
+    doc.layers[0].effects.items.push(localraster_doc::effects::Effect::ColorOverlay {
+        common: localraster_doc::effects::FxCommon::new(BlendMode::Glow, 1.0),
+        color: localraster_color::Color::BLACK,
     });
     let result = crate::export(&doc, "sample.psd", &Default::default()).unwrap();
     assert!(result.warnings.iter().any(|s| s.contains("Reflect") && s.contains("no PSD equivalent")));

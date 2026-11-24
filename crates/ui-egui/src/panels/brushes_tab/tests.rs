@@ -11,7 +11,7 @@ use super::*;
 fn dragging_a_brush_shows_its_tip_preview() {
     for theme in crate::theme::ThemeKind::ALL {
         for mode in 0..3 {
-            let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+            let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
             app.ui.tool = crate::Tool::Brush;
             app.run("prefs.set", json!({"path": "interface.theme", "value": theme.id()})).unwrap();
             app.ui.panels.brush_settings = mode != 2;
@@ -24,7 +24,7 @@ fn dragging_a_brush_shows_its_tip_preview() {
             let brush = app.session.tools.brush.clone();
             let presets = app.session.tools.presets.clone();
             let mut h = Harness::builder().with_size(vec2(1200.0, 900.0)).build_eframe(move |cc| {
-                LocalPaintApp::setup_context(&cc.egui_ctx, theme);
+                LocalRasterApp::setup_context(&cc.egui_ctx, theme);
                 app
             });
             h.run_steps(4);
@@ -57,7 +57,7 @@ fn dragging_a_brush_shows_its_tip_preview() {
 /// visible row.
 #[test]
 fn dragging_a_brush_to_the_list_edge_scrolls_the_list() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.ui.panels.brush_settings = true;
     app.ui.brush_tab = 1;
     app.ui.brushes_panel.view = BrushesView::List;
@@ -65,7 +65,7 @@ fn dragging_a_brush_to_the_list_edge_scrolls_the_list() {
     let name = app.session.tools.presets[0].name.clone();
     let (w, h_px) = (1200.0, 520.0);
     let mut h = Harness::builder().with_size(vec2(w, h_px)).build_eframe(move |cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, crate::theme::ThemeKind::ALL[0]);
+        LocalRasterApp::setup_context(&cc.egui_ctx, crate::theme::ThemeKind::ALL[0]);
         app
     });
     h.run_steps(4);
@@ -121,7 +121,7 @@ fn grid_columns_never_panic_or_return_no_columns() {
 
 /// Checks each of the first `groups` groups' rows against its header (which spans the list's
 /// width): the same left margin on every row, and on full rows the spare width split evenly.
-fn rows_are_centred(h: &Harness<'_, LocalPaintApp>, indent: f32, groups: usize) {
+fn rows_are_centred(h: &Harness<'_, LocalRasterApp>, indent: f32, groups: usize) {
     let presets = h.state().session.tools.presets.clone();
     let grouped = grouped_presets(&presets);
     let headers: Vec<Rect> = grouped
@@ -180,15 +180,15 @@ fn rows_are_centred(h: &Harness<'_, LocalPaintApp>, indent: f32, groups: usize) 
 #[test]
 fn brush_picker_cards_follow_the_part_boxes() {
     let mut h = Harness::builder().with_size(vec2(1440.0, 900.0)).with_max_steps(64).build_eframe(|cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default())
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default())
     });
     h.state_mut().run("file.new", serde_json::json!({"width": 400, "height": 300})).unwrap();
     h.state_mut().ui.tool = crate::state::Tool::Brush;
     h.state_mut().ui.brush_picker = Some([300.0, 120.0]);
     h.run_steps(8);
     let presets = h.state().session.tools.presets.clone();
-    let cards = |h: &Harness<'_, LocalPaintApp>| -> Vec<Rect> {
+    let cards = |h: &Harness<'_, LocalRasterApp>| -> Vec<Rect> {
         h.query_all_by_role(Role::Button)
             .filter(|n| n.accesskit_node().label().is_some_and(|l| presets.iter().any(|p| p.name == l)))
             .map(|n| n.rect())
@@ -223,8 +223,8 @@ fn brush_picker_cards_follow_the_part_boxes() {
 #[test]
 fn brush_picker_cards_floor_their_height_but_not_their_width() {
     let mut h = Harness::builder().with_size(vec2(1440.0, 900.0)).with_max_steps(64).build_eframe(|cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default())
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default())
     });
     h.state_mut().run("file.new", serde_json::json!({"width": 400, "height": 300})).unwrap();
     h.state_mut().ui.tool = crate::state::Tool::Brush;
@@ -252,12 +252,12 @@ fn brush_picker_cards_floor_their_height_but_not_their_width() {
 /// the menu is checked, so only the grab itself can have closed it.
 #[test]
 fn brush_picker_menu_closes_when_a_slider_or_the_grip_is_grabbed() {
-    fn click_gear(h: &Harness<'_, LocalPaintApp>) {
+    fn click_gear(h: &Harness<'_, LocalRasterApp>) {
         h.query_all_by_role(Role::Button).find(|n| n.accesskit_node().label().as_deref() == Some("Brush Preset Options")).expect("the gear button").click();
     }
     let mut h = Harness::builder().with_size(vec2(1440.0, 900.0)).with_max_steps(64).build_eframe(|cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default())
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default())
     });
     h.state_mut().run("file.new", serde_json::json!({"width": 400, "height": 300})).unwrap();
     h.state_mut().ui.tool = crate::state::Tool::Brush;
@@ -297,15 +297,15 @@ fn brush_picker_menu_closes_when_a_slider_or_the_grip_is_grabbed() {
 /// missed.
 #[test]
 fn brush_picker_upper_controls_stop_at_their_max_width() {
-    fn click(h: &mut Harness<'_, LocalPaintApp>, pos: egui::Pos2) {
+    fn click(h: &mut Harness<'_, LocalRasterApp>, pos: egui::Pos2) {
         for pressed in [true, false] {
             h.event(egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: egui::Modifiers::NONE });
             h.run_steps(2);
         }
     }
     let mut h = Harness::builder().with_size(vec2(1440.0, 900.0)).with_max_steps(64).build_eframe(|cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default())
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default())
     });
     h.state_mut().run("file.new", serde_json::json!({"width": 400, "height": 300})).unwrap();
     h.state_mut().ui.tool = crate::state::Tool::Brush;
@@ -329,12 +329,12 @@ fn brush_picker_upper_controls_stop_at_their_max_width() {
 
 #[test]
 fn the_brushes_tab_grid_is_centred_past_its_indent() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.ui.panels.brush_settings = true;
     app.ui.brush_tab = 1;
     app.ui.brushes_panel.view = BrushesView::Grid;
     let mut h = Harness::builder().with_size(vec2(1200.0, 900.0)).build_ui_state(
-        |ui, app: &mut LocalPaintApp| {
+        |ui, app: &mut LocalRasterApp| {
             let ctx = ui.ctx().clone();
             if !ctx.fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                 return;
@@ -343,7 +343,7 @@ fn the_brushes_tab_grid_is_centred_past_its_indent() {
         },
         app,
     );
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
     h.run_steps(6);
     rows_are_centred(&h, PANEL_LIST.indent, 2);
 }
@@ -361,7 +361,7 @@ fn card_tips_never_cover_their_size_number() {
         let g = ui.painter().layout_no_wrap("45".into(), egui::FontId::proportional(CARD_NUM_FONT), Color32::WHITE);
         seen.set(g.size().y);
     });
-    LocalPaintApp::setup_context(&h.ctx, Default::default());
+    LocalRasterApp::setup_context(&h.ctx, Default::default());
     h.run();
     let number_h = number_h.get();
     assert!(number_h > 8.0, "the number has a real height: {number_h}");
@@ -408,7 +408,7 @@ fn the_preview_slider_scales_the_previews_not_the_brush_size() {
     for grid in [true, false] {
         let mut sizes = Vec::new();
         for scale in [0.5f32, 1.0, 2.0] {
-            let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+            let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
             app.ui.panels.brush_settings = true;
             app.ui.brush_tab = 1;
             app.ui.brushes_panel.view = if grid { BrushesView::Grid } else { BrushesView::List };
@@ -416,7 +416,7 @@ fn the_preview_slider_scales_the_previews_not_the_brush_size() {
             let size = app.session.tools.brush.size;
             let name = app.session.tools.presets[0].name.clone();
             let mut h = Harness::builder().with_size(vec2(1200.0, 900.0)).build_eframe(move |cc| {
-                LocalPaintApp::setup_context(&cc.egui_ctx, crate::theme::ThemeKind::ALL[0]);
+                LocalRasterApp::setup_context(&cc.egui_ctx, crate::theme::ThemeKind::ALL[0]);
                 app
             });
             h.run_steps(4);

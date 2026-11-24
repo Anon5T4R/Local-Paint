@@ -1,25 +1,25 @@
 //! Vector masks on the GPU: the planner samples the layer's combined mask (pixel mask × the
 //! rasterised path, `compose::masks::combined_mask`); results must match the CPU compositor.
 
-use localpaint_color::{BlendMode, Color, ColorMode, PixelFormat, SampleType};
-use localpaint_doc::{Adjustment, Document, Effect, Layer, LayerContent, LayerMask, Path, Size, Subpath, VectorMask};
-use localpaint_geom::Rect;
+use localraster_color::{BlendMode, Color, ColorMode, PixelFormat, SampleType};
+use localraster_doc::{Adjustment, Document, Effect, Layer, LayerContent, LayerMask, Path, Size, Subpath, VectorMask};
+use localraster_geom::Rect;
 
-fn gpu() -> Option<(wgpu::Device, wgpu::Queue, localpaint_gpu::Compositor)> {
+fn gpu() -> Option<(wgpu::Device, wgpu::Queue, localraster_gpu::Compositor)> {
     let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle_from_env());
     let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default())).ok()?;
     let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default())).ok()?;
     // Exact comparison needs 32-bit float targets (see parity.rs); skip on adapters without them.
-    if localpaint_gpu::Compositor::preferred_acc_format(&adapter) != wgpu::TextureFormat::Rgba32Float {
+    if localraster_gpu::Compositor::preferred_acc_format(&adapter) != wgpu::TextureFormat::Rgba32Float {
         return None;
     }
-    let comp = localpaint_gpu::Compositor::try_new_with_format(&device, wgpu::TextureFormat::Rgba32Float).ok()?;
+    let comp = localraster_gpu::Compositor::try_new_with_format(&device, wgpu::TextureFormat::Rgba32Float).ok()?;
     Some((device, queue, comp))
 }
 
-fn check(g: &mut (wgpu::Device, wgpu::Queue, localpaint_gpu::Compositor), d: &Document, what: &str) {
-    let cpu = localpaint_compose::flatten(d);
-    let out = localpaint_gpu::render_to_vec(&mut g.2, &g.0, &g.1, d, d.bounds()).unwrap_or_else(|e| panic!("{what}: {e}"));
+fn check(g: &mut (wgpu::Device, wgpu::Queue, localraster_gpu::Compositor), d: &Document, what: &str) {
+    let cpu = localraster_compose::flatten(d);
+    let out = localraster_gpu::render_to_vec(&mut g.2, &g.0, &g.1, d, d.bounds()).unwrap_or_else(|e| panic!("{what}: {e}"));
     let worst = cpu
         .px
         .iter()
@@ -41,7 +41,7 @@ fn tri(inverted: bool, density: f32) -> VectorMask {
 
 fn painted(name: &str, fmt: PixelFormat, rgba: [f32; 4]) -> Layer {
     let mut l = Layer::raster(name, fmt);
-    l.surface_mut().unwrap().fill_rect(Rect::new(0, 0, 44, 34), &localpaint_raster::from_rgba(&fmt, rgba));
+    l.surface_mut().unwrap().fill_rect(Rect::new(0, 0, 44, 34), &localraster_raster::from_rgba(&fmt, rgba));
     l
 }
 
@@ -76,8 +76,8 @@ fn vector_masks_match_the_cpu() {
             adj.vector_mask = Some(tri(inverted, density));
             d.layers.push(adj);
             let mut fx = painted("fx", fmt, [0.2, 0.8, 0.3, 1.0]);
-            fx.surface_mut().unwrap().fill_rect(Rect::new(0, 0, 44, 34), &localpaint_raster::from_rgba(&fmt, [0.0; 4]));
-            fx.surface_mut().unwrap().fill_rect(Rect::new(8, 8, 30, 26), &localpaint_raster::from_rgba(&fmt, [0.2, 0.8, 0.3, 1.0]));
+            fx.surface_mut().unwrap().fill_rect(Rect::new(0, 0, 44, 34), &localraster_raster::from_rgba(&fmt, [0.0; 4]));
+            fx.surface_mut().unwrap().fill_rect(Rect::new(8, 8, 30, 26), &localraster_raster::from_rgba(&fmt, [0.2, 0.8, 0.3, 1.0]));
             fx.vector_mask = Some(tri(inverted, density));
             fx.effects.items = vec![Effect::default_drop_shadow()];
             d.layers.push(fx);

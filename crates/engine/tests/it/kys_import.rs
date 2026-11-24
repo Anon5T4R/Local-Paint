@@ -1,7 +1,7 @@
 //! `edit.keyboardShortcuts {"importKys": <xml>}`: agents, the CLI and MCP import a Photoshop
 //! `.kys` set without the app's dialog (#1163).
-use localpaint_engine::Session;
-use localpaint_engine::prefs::normalize_shortcut;
+use localraster_engine::Session;
+use localraster_engine::prefs::normalize_shortcut;
 use serde_json::json;
 
 const SET: &str = "\u{feff}<?xml version=\"1.0\" encoding=\"UTF-8\"?>

@@ -1,18 +1,18 @@
-//! Large-file fixtures (#216, #5107), generated at test time by `localpaint_psd::fixtures`: a 20 MP
+//! Large-file fixtures (#216, #5107), generated at test time by `localraster_psd::fixtures`: a 20 MP
 //! layered PSD, a 150-layer layout, a PSD just under Photoshop's 2 GB cap and a 4.4 GB PSB. Each
-//! is opened through `localpaint_io`, checked (size, layers, masks, effects, merged pixels), saved
+//! is opened through `localraster_io`, checked (size, layers, masks, effects, merged pixels), saved
 //! again and re-opened.
 //!
 //! The two layered documents run in memory; the streamed files are written to
-//! `$LOCALPAINT_FIXTURE_DIR` (default: the system temp dir), removed afterwards, and are opt-in:
-//! `cargo test --release -p localpaint-io --test it -- large_files:: --ignored`.
+//! `$LOCALRASTER_FIXTURE_DIR` (default: the system temp dir), removed afterwards, and are opt-in:
+//! `cargo test --release -p localraster-io --test it -- large_files:: --ignored`.
 
 use std::path::PathBuf;
 
-use localpaint_doc::{Document, LayerContent};
-use localpaint_geom::Rect;
-use localpaint_psd::Version;
-use localpaint_psd::fixtures::{Grid, LAYERED_20MP, LAYOUT_150, PSB_4GB, PSD_2GB, Streamed};
+use localraster_doc::{Document, LayerContent};
+use localraster_geom::Rect;
+use localraster_psd::Version;
+use localraster_psd::fixtures::{Grid, LAYERED_20MP, LAYOUT_150, PSB_4GB, PSD_2GB, Streamed};
 
 /// Raster layers, groups, masked layers, layers with effects and hidden layers in `doc`.
 fn census(doc: &Document) -> [usize; 5] {
@@ -42,7 +42,7 @@ fn check_grid(g: &Grid, doc: &Document, what: &str) {
     ];
     assert_eq!(census(doc), want, "{what}: [raster, groups, masked, with effects, hidden]");
     for (x, y) in g.sample_points() {
-        let px = localpaint_compose::render(doc, Rect::from_xywh(x as i32, y as i32, 1, 1)).px;
+        let px = localraster_compose::render(doc, Rect::from_xywh(x as i32, y as i32, 1, 1)).px;
         let got = px.first().copied().unwrap_or_default();
         let want = g.expected(x, y);
         for c in 0..3 {
@@ -59,11 +59,11 @@ fn grid_roundtrip(g: Grid, what: &str) {
     let bytes = g.build(Version::Psd).and_then(|f| f.to_bytes()).unwrap();
     let gen_s = t.elapsed().as_secs_f64();
     let t = std::time::Instant::now();
-    let res = localpaint_io::import("fixture.psd", &bytes).unwrap();
+    let res = localraster_io::import("fixture.psd", &bytes).unwrap();
     let open_s = t.elapsed().as_secs_f64();
     check_grid(&g, &res.document, what);
-    let out = localpaint_io::export(&res.document, "fixture.psd", &Default::default()).unwrap();
-    let again = localpaint_io::import("fixture.psd", &out.bytes).unwrap();
+    let out = localraster_io::export(&res.document, "fixture.psd", &Default::default()).unwrap();
+    let again = localraster_io::import("fixture.psd", &out.bytes).unwrap();
     check_grid(&g, &again.document, &format!("{what}, saved and re-opened"));
     eprintln!(
         "{what}: {:.1} MB, generated in {gen_s:.2} s, opened in {open_s:.2} s, saved as {:.1} MB",
@@ -86,7 +86,7 @@ fn layered_20_mp_psd_opens_and_saves() {
 }
 
 fn fixture_dir() -> PathBuf {
-    let dir = std::env::var_os("LOCALPAINT_FIXTURE_DIR").map_or_else(std::env::temp_dir, PathBuf::from).join("localpaint-large-files");
+    let dir = std::env::var_os("LOCALRASTER_FIXTURE_DIR").map_or_else(std::env::temp_dir, PathBuf::from).join("localraster-large-files");
     std::fs::create_dir_all(&dir).unwrap();
     dir
 }
@@ -127,17 +127,17 @@ fn streamed_roundtrip(case: &Streamed) {
 
     let t = std::time::Instant::now();
     let bytes = std::fs::read(&path).unwrap();
-    let res = localpaint_io::import(&case.file_name(), &bytes).unwrap();
+    let res = localraster_io::import(&case.file_name(), &bytes).unwrap();
     drop(bytes);
     eprintln!("{}: read and opened in {:.1} s, warnings {:?}", case.name, t.elapsed().as_secs_f64(), res.warnings);
     check_streamed(case, &res.document, case.name);
 
     let t = std::time::Instant::now();
-    let out = localpaint_io::export(&res.document, &case.file_name(), &Default::default()).unwrap();
+    let out = localraster_io::export(&res.document, &case.file_name(), &Default::default()).unwrap();
     drop(res);
     // Version 2 = PSB: a re-save past 2 GB must switch to PSB; a smaller one stays PSD.
     let psb = out.bytes.get(4..6) == Some(&[0, 2]);
-    assert!(psb || (case.version == Version::Psd && (out.bytes.len() as u64) < localpaint_psd::fixtures::PSD_MAX_FILE_BYTES), "{}", case.name);
+    assert!(psb || (case.version == Version::Psd && (out.bytes.len() as u64) < localraster_psd::fixtures::PSD_MAX_FILE_BYTES), "{}", case.name);
     eprintln!(
         "{}: saved {:.2} GB ({}) in {:.1} s, warnings {:?}",
         case.name,
@@ -146,7 +146,7 @@ fn streamed_roundtrip(case: &Streamed) {
         t.elapsed().as_secs_f64(),
         out.warnings
     );
-    let again = localpaint_io::import(if psb { "again.psb" } else { "again.psd" }, &out.bytes).unwrap();
+    let again = localraster_io::import(if psb { "again.psb" } else { "again.psd" }, &out.bytes).unwrap();
     drop(out);
     check_streamed(case, &again.document, &format!("{}, saved and re-opened", case.name));
 }

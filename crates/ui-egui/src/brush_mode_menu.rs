@@ -5,10 +5,10 @@
 //! the same command (`tools.setBrush` for a brush-based tool's mode) or tool option.
 
 use egui::{Context, Id};
-use localpaint_doc::BlendMode;
+use localraster_doc::BlendMode;
 use serde_json::{Value, json};
 
-use crate::{LocalPaintApp, state::Tool, theme::Tokens};
+use crate::{LocalRasterApp, state::Tool, theme::Tokens};
 
 /// One row of the menu.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -114,7 +114,7 @@ pub(crate) fn labels(tool: Tool) -> Vec<&'static str> {
 }
 
 /// Is a row available? Behind and Clear need transparency: greyed on the Background layer.
-pub(crate) fn enabled(app: &LocalPaintApp, item: Item) -> bool {
+pub(crate) fn enabled(app: &LocalRasterApp, item: Item) -> bool {
     match item {
         Item::Separator => false,
         Item::Behind | Item::Clear => !app
@@ -126,7 +126,7 @@ pub(crate) fn enabled(app: &LocalPaintApp, item: Item) -> bool {
 }
 
 /// The checked row: `tool`'s current mode, as its options bar shows it.
-pub(crate) fn current(app: &LocalPaintApp, tool: Tool) -> Option<Item> {
+pub(crate) fn current(app: &LocalRasterApp, tool: Tool) -> Option<Item> {
     let o = &app.ui.tool_options;
     let brush = &app.session.tools.brush;
     let painting = |clear: bool| {
@@ -151,7 +151,7 @@ pub(crate) fn current(app: &LocalPaintApp, tool: Tool) -> Option<Item> {
 }
 
 /// Whether a tool-option row (Eraser, Range, Sponge) is the current value; `None` for other rows.
-fn ui_value(app: &LocalPaintApp, item: Item) -> Option<bool> {
+fn ui_value(app: &LocalRasterApp, item: Item) -> Option<bool> {
     let o = &app.ui.tool_options;
     Some(match item {
         Item::Eraser(m) => o.eraser_mode == m,
@@ -195,7 +195,7 @@ pub(crate) fn menu_id() -> Id {
 }
 
 /// Opens the active tool's menu at screen point `pos`.
-pub(crate) fn open(app: &mut LocalPaintApp, ctx: &Context, pos: [f32; 2]) {
+pub(crate) fn open(app: &mut LocalRasterApp, ctx: &Context, pos: [f32; 2]) {
     if !pos.iter().all(|v| v.is_finite()) || items(app.ui.tool).is_empty() {
         return;
     }
@@ -209,18 +209,18 @@ pub(crate) fn open(app: &mut LocalPaintApp, ctx: &Context, pos: [f32; 2]) {
     crate::canvas_popup::mark_open(ctx, menu_id());
 }
 
-fn close(app: &mut LocalPaintApp) {
+fn close(app: &mut LocalRasterApp) {
     app.ui.brush_mode_menu = None;
     app.ui.brush_mode_menu_tool = None;
 }
 
 /// Is the open menu still the active tool's? A tool change closes it.
-fn current_tool(app: &LocalPaintApp) -> bool {
+fn current_tool(app: &LocalRasterApp) -> bool {
     app.ui.brush_mode_menu_tool == Some(app.ui.tool)
 }
 
 /// A press outside dismisses the popup, and consumes that entire canvas gesture through Up.
-pub(crate) fn blocks_canvas(app: &LocalPaintApp, ctx: &Context) -> bool {
+pub(crate) fn blocks_canvas(app: &LocalRasterApp, ctx: &Context) -> bool {
     let key = menu_id().with("dismiss-pointer");
     if ctx.data(|d| d.get_temp::<bool>(key)).unwrap_or(false) {
         if !ctx.input(|i| i.pointer.any_down()) {
@@ -241,7 +241,7 @@ pub(crate) fn blocks_canvas(app: &LocalPaintApp, ctx: &Context) -> bool {
 
 /// Document-coordinate control pointers dismiss; menu rows are chosen with screen-space ui.click
 /// or `ui.context.choose`.
-pub(crate) fn blocks_control(app: &mut LocalPaintApp, ctx: &Context, ev: crate::canvas::ToolEvent) -> bool {
+pub(crate) fn blocks_control(app: &mut LocalRasterApp, ctx: &Context, ev: crate::canvas::ToolEvent) -> bool {
     use crate::canvas::ToolEvent;
     let key = menu_id().with("control-dismiss");
     let blocked = ctx.data(|d| d.get_temp::<bool>(key)).unwrap_or(false);
@@ -268,7 +268,7 @@ pub(crate) fn blocks_control(app: &mut LocalPaintApp, ctx: &Context, ev: crate::
 /// The engine command a row runs, if any: a brush-based tool's mode goes through
 /// `tools.setBrush`, as its options-bar dropdown does. The Brush and Pencil also set or clear
 /// Behind (Clear keeps the underlying mode, as the options bar does).
-pub(crate) fn engine_call(app: &LocalPaintApp, tool: Tool, item: Item) -> Option<(&'static str, Value)> {
+pub(crate) fn engine_call(app: &LocalRasterApp, tool: Tool, item: Item) -> Option<(&'static str, Value)> {
     let brush = match (tool, item) {
         (Tool::Brush | Tool::Pencil, Item::Blend(m)) => json!({"mode": m, "behind": false}),
         (Tool::Brush | Tool::Pencil, Item::Behind) => json!({"mode": BlendMode::Normal, "behind": true}),
@@ -280,7 +280,7 @@ pub(crate) fn engine_call(app: &LocalPaintApp, tool: Tool, item: Item) -> Option
 }
 
 /// The row of the open menu whose English label is `label`, if it can be chosen now.
-pub(crate) fn find(app: &LocalPaintApp, label: &str) -> Result<Item, String> {
+pub(crate) fn find(app: &LocalRasterApp, label: &str) -> Result<Item, String> {
     if app.ui.brush_mode_menu.is_none() || !current_tool(app) {
         return Err("no Shift+right-click menu is open".into());
     }
@@ -292,7 +292,7 @@ pub(crate) fn find(app: &LocalPaintApp, label: &str) -> Result<Item, String> {
 }
 
 /// Chooses `item` for the active tool and closes the menu.
-pub(crate) fn choose(app: &mut LocalPaintApp, ctx: &Context, item: Item) {
+pub(crate) fn choose(app: &mut LocalRasterApp, ctx: &Context, item: Item) {
     let tool = app.ui.tool;
     let pos = app.ui.brush_mode_menu;
     close(app);
@@ -330,7 +330,7 @@ pub(crate) fn choose(app: &mut LocalPaintApp, ctx: &Context, item: Item) {
     }
 }
 
-pub(crate) fn show(app: &mut LocalPaintApp, ctx: &Context) {
+pub(crate) fn show(app: &mut LocalRasterApp, ctx: &Context) {
     let Some([x, y]) = app.ui.brush_mode_menu else { return };
     if !current_tool(app) || ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
         let same_tool = current_tool(app);

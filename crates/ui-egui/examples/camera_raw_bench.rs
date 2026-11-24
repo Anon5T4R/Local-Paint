@@ -1,5 +1,5 @@
 //! Real Camera Raw proxy-update timing on a 36 MP document (CPU preparation, not GPU presentation).
-use localpaint_ui_egui::{LocalPaintApp, camera_raw_ui};
+use localraster_ui_egui::{LocalRasterApp, camera_raw_ui};
 use serde_json::{Value, json};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -7,9 +7,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let quick = args.iter().any(|a| a == "--quick");
     let (width, height, reps) = if quick { (6000, 4000, 12) } else { (7360, 4912, 40) };
     let ctx = egui::Context::default();
-    LocalPaintApp::setup_context(&ctx, Default::default());
+    LocalRasterApp::setup_context(&ctx, Default::default());
     let _ = ctx.run_ui(Default::default(), |_| {});
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     // A full-resolution synthetic image with dense hue/saturation coverage and exact clipped
     // endpoints. Setup/import is outside the interactive measurements.
     let mut bytes = Vec::with_capacity(width * height * 3);
@@ -19,9 +19,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     let image =
-        localpaint_codecs::Image::from_raw(width as u32, height as u32, localpaint_codecs::ChannelLayout::Rgb, localpaint_codecs::SampleType::U8, bytes)?;
-    let encoded = localpaint_codecs::encode(&image, localpaint_codecs::Format::Png, &Default::default())?;
-    app.session.open_document(localpaint_io::import("scope.png", &encoded)?.document, None);
+        localraster_codecs::Image::from_raw(width as u32, height as u32, localraster_codecs::ChannelLayout::Rgb, localraster_codecs::SampleType::U8, bytes)?;
+    let encoded = localraster_codecs::encode(&image, localraster_codecs::Format::Png, &Default::default())?;
+    app.session.open_document(localraster_io::import("scope.png", &encoded)?.document, None);
     camera_raw_ui::menu(&mut app, &ctx, "filter.cameraRaw", &json!({})).ok_or("no dialog entry point")??;
     let mut samples = Vec::new();
     let mut histogram_samples = Vec::new();
@@ -93,14 +93,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             [0.5 + 0.4 * (x * 0.07).sin(), 0.5 + 0.4 * (y * 0.13).cos(), (x + y) / 192.0, 1.0]
         })
         .collect();
-    let histogram = localpaint_algo::histogram::RgbHistogram::from_rgba(&pixels);
+    let histogram = localraster_algo::histogram::RgbHistogram::from_rgba(&pixels);
     let mut draw_samples = Vec::new();
     for i in 0..reps + 3 {
         let start = std::time::Instant::now();
         let output = ctx.run_ui(
             egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(330.0, 160.0))), ..Default::default() },
             |ui| {
-                localpaint_ui_egui::widgets::rgb_histogram(ui, &histogram, 110.0);
+                localraster_ui_egui::widgets::rgb_histogram(ui, &histogram, 110.0);
             },
         );
         let _meshes = ctx.tessellate(output.shapes, output.pixels_per_point);

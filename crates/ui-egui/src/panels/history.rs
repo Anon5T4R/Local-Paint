@@ -1,7 +1,7 @@
 use super::layer_drag::dropped_on;
-use super::{Align2, Color32, HistorySource, LocalPaintApp, Rect, Sense, Stroke, StrokeKind, Tokens, Tool, Value, empty, icons, json, pos2, vec2, widgets};
+use super::{Align2, Color32, HistorySource, LocalRasterApp, Rect, Sense, Stroke, StrokeKind, Tokens, Tool, Value, empty, icons, json, pos2, vec2, widgets};
 
-pub(super) fn history(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+pub(super) fn history(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
     let Some(st) = app.session.active() else {
         empty(ui, tl!("No document"));
@@ -12,7 +12,7 @@ pub(super) fn history(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
     let redo: Vec<String> = st.history.redo_labels().map(str::to_string).collect();
     let non_linear = st.history.non_linear;
     let doc_id = st.doc.id;
-    let source = localpaint_engine::history_source_cmds::source(st);
+    let source = localraster_engine::history_source_cmds::source(st);
     let selected_snap = selected_snapshot(ui.ctx(), st);
     let spot = (doc_id, history_spot(st));
     let ctx = ui.ctx().clone();
@@ -33,7 +33,7 @@ pub(super) fn history(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
     // layer click, a channel eye) and a selected snapshot leave the list where the user put it.
     let follow_id = egui::Id::unique("history-follow");
     let moved = ui.ctx().data_mut(|d| {
-        let moved = d.get_temp::<(localpaint_doc::DocId, HistorySpot)>(follow_id).as_ref() != Some(&spot);
+        let moved = d.get_temp::<(localraster_doc::DocId, HistorySpot)>(follow_id).as_ref() != Some(&spot);
         d.insert_temp(follow_id, spot);
         moved
     });
@@ -226,24 +226,24 @@ type SelectedSnapshot = (u64, HistorySpot);
 
 type HistorySpot = (usize, Option<String>, usize, Option<usize>);
 
-fn history_spot(st: &localpaint_engine::DocState) -> HistorySpot {
+fn history_spot(st: &localraster_engine::DocState) -> HistorySpot {
     let newest = st.history.past_len().checked_sub(1).and_then(|i| st.history.state(i)).map(|d| std::sync::Arc::as_ptr(&d) as usize);
     (st.history.past_len(), st.history.entries().pop(), st.history.redo_labels().count(), newest)
 }
 
-fn selected_snapshot_key(doc: localpaint_doc::DocId) -> egui::Id {
+fn selected_snapshot_key(doc: localraster_doc::DocId) -> egui::Id {
     egui::Id::unique(("history-snapshot-selected", doc))
 }
 
 /// Select snapshot `id` at the history's current state, as a click on its row does.
-pub(crate) fn select_snapshot(ctx: &egui::Context, st: &localpaint_engine::DocState, id: u64) {
+pub(crate) fn select_snapshot(ctx: &egui::Context, st: &localraster_engine::DocState, id: u64) {
     ctx.data_mut(|d| d.insert_temp::<SelectedSnapshot>(selected_snapshot_key(st.doc.id), (id, history_spot(st))));
 }
 
 /// The selected snapshot: the one last clicked, while it still exists and the history is still at
 /// the state that click made. Any other step (an edit, Undo, a state row) deselects it, as in
 /// Photoshop.
-pub(crate) fn selected_snapshot(ctx: &egui::Context, st: &localpaint_engine::DocState) -> Option<u64> {
+pub(crate) fn selected_snapshot(ctx: &egui::Context, st: &localraster_engine::DocState) -> Option<u64> {
     let key = selected_snapshot_key(st.doc.id);
     let (id, spot) = ctx.data(|d| d.get_temp::<SelectedSnapshot>(key))?;
     let live = spot == history_spot(st) && st.snapshots.iter().any(|s| s.id == id);
@@ -258,11 +258,11 @@ pub(crate) fn selected_snapshot(ctx: &egui::Context, st: &localpaint_engine::Doc
 /// right-click › Rename… edits the name in place (Enter or a click elsewhere keeps it, Escape
 /// cancels), right-click › Delete removes it, and a drag onto the trash too (#5324). Returns the
 /// command a row asks for.
-fn snapshot_rows(app: &mut LocalPaintApp, ui: &mut egui::Ui, selected: Option<u64>) -> Option<(&'static str, Value)> {
+fn snapshot_rows(app: &mut LocalRasterApp, ui: &mut egui::Ui, selected: Option<u64>) -> Option<(&'static str, Value)> {
     let t = Tokens::get(ui.ctx());
     let st = app.session.active()?;
     let (doc_id, snaps) = (st.doc.id, st.snapshots.clone());
-    let source = localpaint_engine::history_source_cmds::source(st);
+    let source = localraster_engine::history_source_cmds::source(st);
     let live: Vec<u64> = snaps.iter().map(|s| s.id).collect();
     // Per document: snapshot ids restart in each, and a tab switch must not carry the edit over.
     let rename_id = egui::Id::unique(("history-snapshot-rename", doc_id));

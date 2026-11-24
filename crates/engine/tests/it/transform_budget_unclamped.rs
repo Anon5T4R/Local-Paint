@@ -1,7 +1,7 @@
 //! #6430: integration tests use the production budget (Memory Usage), not the unit tests' reduced
 //! one.
-use localpaint_engine::Session;
-use localpaint_geom::Rect;
+use localraster_engine::Session;
+use localraster_geom::Rect;
 use serde_json::{Value, json};
 
 fn painted() -> Session {

@@ -14,10 +14,10 @@
 
 use std::time::Instant;
 
-use localpaint_color::{BlendMode, Color, ColorMode, SampleType};
-use localpaint_doc::{Document, Layer, Size};
-use localpaint_geom::Rect;
-use localpaint_gpu::{Compositor, DeviceHealth, GpuTiming, timing};
+use localraster_color::{BlendMode, Color, ColorMode, SampleType};
+use localraster_doc::{Document, Layer, Size};
+use localraster_geom::Rect;
+use localraster_gpu::{Compositor, DeviceHealth, GpuTiming, timing};
 
 /// Pixels in `r`, as the compositor counts them.
 fn area(r: Rect) -> u64 {

@@ -1,15 +1,15 @@
 //! Document canvas: display texture cache, view transform, tool input, extra document windows.
 //!
-//! Rendering is CPU (`localpaint-compose`) for now, uploaded into an egui texture. Brush strokes
+//! Rendering is CPU (`localraster-compose`) for now, uploaded into an egui texture. Brush strokes
 //! update only their damage rectangle (`set_partial`). The wgpu compositor (M5) will replace this
 //! with direct GPU rendering behind the same `CanvasCache` interface.
 
 use egui::{Color32, Mesh, PointerButton, Pos2, Rect, Sense, Stroke, TextureOptions, Vec2, pos2, vec2};
-use localpaint_doc::{Document, LayerContent};
-use localpaint_geom::Rect as DRect;
+use localraster_doc::{Document, LayerContent};
+use localraster_geom::Rect as DRect;
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::state::{Tool, View};
 
 pub(super) mod ants;
@@ -192,14 +192,14 @@ pub fn fmt_zoom(pct: f32) -> String {
 
 pub fn mode_label(doc: &Document) -> &'static str {
     match doc.mode {
-        localpaint_doc::ColorMode::Rgb => "RGB",
-        localpaint_doc::ColorMode::Grayscale => "Gray",
-        localpaint_doc::ColorMode::Cmyk => "CMYK",
-        localpaint_doc::ColorMode::Lab => "Lab",
-        localpaint_doc::ColorMode::Indexed => "Indexed",
-        localpaint_doc::ColorMode::Bitmap => "Bitmap",
-        localpaint_doc::ColorMode::Duotone => "Duotone",
-        localpaint_doc::ColorMode::Multichannel => "Multichannel",
+        localraster_doc::ColorMode::Rgb => "RGB",
+        localraster_doc::ColorMode::Grayscale => "Gray",
+        localraster_doc::ColorMode::Cmyk => "CMYK",
+        localraster_doc::ColorMode::Lab => "Lab",
+        localraster_doc::ColorMode::Indexed => "Indexed",
+        localraster_doc::ColorMode::Bitmap => "Bitmap",
+        localraster_doc::ColorMode::Duotone => "Duotone",
+        localraster_doc::ColorMode::Multichannel => "Multichannel",
     }
 }
 
@@ -209,7 +209,7 @@ struct CanvasPaintInput<'a> {
     rect: Rect,
     painter: &'a egui::Painter,
     ppp: f32,
-    border: localpaint_engine::prefs::CanvasBorder,
+    border: localraster_engine::prefs::CanvasBorder,
     doc: &'a std::sync::Arc<Document>,
     idx: usize,
     output: Option<u32>,
@@ -236,7 +236,7 @@ struct SelectionPaintInput<'a> {
 /// The marching ants of the selection, traced from this frame's snapshot like the image under
 /// them, returned to be painted over the grid and guides (#10671): a guide on the same device
 /// pixel as an edge used to hide it, at some zoom levels and not others.
-fn paint_selection_outline(app: &mut LocalPaintApp, input: SelectionPaintInput<'_>) -> Vec<egui::Shape> {
+fn paint_selection_outline(app: &mut LocalRasterApp, input: SelectionPaintInput<'_>) -> Vec<egui::Shape> {
     let mut ants = Vec::new();
     // Select and Mask outlines its refined selection (on its preview proxy, reduced by `k`) in
     // the Marching Ants view and hides the ants in the others.
@@ -276,9 +276,9 @@ fn paint_selection_outline(app: &mut LocalPaintApp, input: SelectionPaintInput<'
         // it is outlined: the part now in view may have started out of it.
         let carried = app.session.active_index() == Some(input.idx) && crate::transform_tool::carries_selection_of(app, input.doc.id);
         let vis = if carried {
-            localpaint_geom::Rect::new(-(1 << 30), -(1 << 30), 1 << 30, 1 << 30)
+            localraster_geom::Rect::new(-(1 << 30), -(1 << 30), 1 << 30, 1 << 30)
         } else {
-            localpaint_geom::Rect::new(
+            localraster_geom::Rect::new(
                 px(x0.floor()).div_euclid(q) * q - q,
                 px(y0.floor()).div_euclid(q) * q - q,
                 (px(x1.ceil()).div_euclid(q) + 2) * q,
@@ -332,7 +332,7 @@ fn paint_selection_outline(app: &mut LocalPaintApp, input: SelectionPaintInput<'
 /// Paints the document, and returns whether the pixels past the canvas show, the Layer Edges slot,
 /// the canvas edge on screen, and the selection's ants still to be painted ([`paint_selection_outline`]).
 fn paint_canvas(
-    app: &mut LocalPaintApp,
+    app: &mut LocalRasterApp,
     ui: &egui::Ui,
     view: &View,
     xf: ViewXform,
@@ -355,7 +355,7 @@ fn paint_canvas(
     let pixel_grid = input.pixel_grid;
 
     let point_zoom = view.zoom / ppp;
-    let drop_shadow = border == localpaint_engine::prefs::CanvasBorder::DropShadow;
+    let drop_shadow = border == localraster_engine::prefs::CanvasBorder::DropShadow;
     // Drop shadow, checkerboard, document image.
     let img_rect = xf.doc_rect(doc.bounds());
     // The canvas edge the Line border outlines: a size-changing preview's own (CPU canvas).
@@ -574,7 +574,7 @@ struct CanvasNavigationInput<'a> {
     idx: usize,
 }
 
-fn update_canvas_navigation(app: &mut LocalPaintApp, view: &mut View, input: CanvasNavigationInput<'_>) {
+fn update_canvas_navigation(app: &mut LocalRasterApp, view: &mut View, input: CanvasNavigationInput<'_>) {
     // Navigation (wheel_nav.rs): scroll pans (⇧ or ⌘/Ctrl sideways); pinch and ⌥-scroll zoom around the pointer.
     // The wheel also scrolls over the scrollbars drawn on top of the canvas (last frame's hover).
     let bars_id = egui::Id::unique(("pc-canvas-bars-hover", input.idx));
@@ -655,7 +655,7 @@ struct DialogCanvasInput<'a> {
     img_rect: Rect,
 }
 
-fn handle_dialog_canvas_input(app: &mut LocalPaintApp, input: DialogCanvasInput<'_>) {
+fn handle_dialog_canvas_input(app: &mut LocalRasterApp, input: DialogCanvasInput<'_>) {
     let sticky_alt = app.ui.shell.sticky_alt;
     let zoom_out = |alt: bool| match input.temporary {
         Some(crate::hold_keys::Temporary::ZoomOut) => true,
@@ -731,7 +731,7 @@ fn handle_dialog_canvas_input(app: &mut LocalPaintApp, input: DialogCanvasInput<
             }
         }
     } else if picking && let Some(p) = crate::dialogs::free_pointer_over(input.ctx, input.rect) {
-        if app.session.prefs().cursors.other == localpaint_engine::prefs::OtherCursor::Precise {
+        if app.session.prefs().cursors.other == localraster_engine::prefs::OtherCursor::Precise {
             input.ctx.set_cursor_icon(egui::CursorIcon::Crosshair);
         } else {
             input.ctx.set_cursor_icon(pipette_cursor(input.ctx, p));
@@ -792,7 +792,7 @@ struct CanvasToolInput<'a> {
     display_zoom: f32,
 }
 
-fn handle_primary_canvas_input(app: &mut LocalPaintApp, ui: &mut egui::Ui, view: &mut View, input: &CanvasToolInput<'_>) {
+fn handle_primary_canvas_input(app: &mut LocalRasterApp, ui: &mut egui::Ui, view: &mut View, input: &CanvasToolInput<'_>) {
     let ctx = input.ctx;
     let response = input.response;
     let xf = input.xf;
@@ -839,7 +839,7 @@ fn handle_primary_canvas_input(app: &mut LocalPaintApp, ui: &mut egui::Ui, view:
     handle_canvas_tool_clicks(app, ui, view, input, mods, tool_press, &buttons);
 }
 
-fn handle_canvas_tool_menus(app: &mut LocalPaintApp, input: &CanvasToolInput<'_>, mods: egui::Modifiers, buttons: &mut crate::paint_mouse::Buttons) {
+fn handle_canvas_tool_menus(app: &mut LocalRasterApp, input: &CanvasToolInput<'_>, mods: egui::Modifiers, buttons: &mut crate::paint_mouse::Buttons) {
     let ctx = input.ctx;
     let response = input.response;
     let xf = input.xf;
@@ -919,7 +919,7 @@ fn handle_canvas_tool_menus(app: &mut LocalPaintApp, input: &CanvasToolInput<'_>
 }
 
 fn handle_canvas_tool_navigation(
-    app: &mut LocalPaintApp,
+    app: &mut LocalRasterApp,
     ui: &mut egui::Ui,
     view: &mut View,
     input: &CanvasToolInput<'_>,
@@ -964,7 +964,7 @@ fn handle_canvas_tool_navigation(
 }
 
 fn handle_canvas_tool_stroke(
-    app: &mut LocalPaintApp,
+    app: &mut LocalRasterApp,
     ui: &mut egui::Ui,
     input: &CanvasToolInput<'_>,
     mods: egui::Modifiers,
@@ -1123,7 +1123,7 @@ fn handle_canvas_tool_stroke(
 }
 
 fn handle_canvas_tool_clicks(
-    app: &mut LocalPaintApp,
+    app: &mut LocalRasterApp,
     ui: &mut egui::Ui,
     view: &mut View,
     input: &CanvasToolInput<'_>,
@@ -1252,14 +1252,14 @@ struct CanvasOverlayInput<'a> {
     tool: Tool,
     idx: usize,
     output: Option<u32>,
-    border: localpaint_engine::prefs::CanvasBorder,
+    border: localraster_engine::prefs::CanvasBorder,
     beyond: bool,
     edge_rect: Rect,
     panning: bool,
     zoom_out: &'a dyn Fn(bool) -> bool,
 }
 
-fn paint_primary_overlays(app: &mut LocalPaintApp, ui: &mut egui::Ui, view: &mut View, input: &CanvasOverlayInput<'_>, ants: Vec<egui::Shape>) {
+fn paint_primary_overlays(app: &mut LocalRasterApp, ui: &mut egui::Ui, view: &mut View, input: &CanvasOverlayInput<'_>, ants: Vec<egui::Shape>) {
     let ctx = input.ctx;
     let painter = input.painter;
     let xf = input.xf;
@@ -1311,7 +1311,7 @@ fn paint_primary_overlays(app: &mut LocalPaintApp, ui: &mut egui::Ui, view: &mut
     crate::move_distance::draw(app, painter, xf, idx, response.hover_pos());
     // The canvas edge isn't outlined while the pixels past it show (Photoshop's crop preview),
     // nor while the Crop tool hides everything outside its box (Show Cropped Area off).
-    if border == localpaint_engine::prefs::CanvasBorder::Line && !beyond && !crate::crop_shield::hides_outside(app) {
+    if border == localraster_engine::prefs::CanvasBorder::Line && !beyond && !crate::crop_shield::hides_outside(app) {
         painter.rect_stroke(edge_rect, 0.0, Stroke::new(1.0, Color32::from_gray(20)), egui::StrokeKind::Outside);
     }
     crate::type_tool::draw_overlay(app, painter, xf);
@@ -1332,7 +1332,7 @@ fn paint_primary_overlays(app: &mut LocalPaintApp, ui: &mut egui::Ui, view: &mut
     draw_canvas_tool_cursor(app, ui, input, resizing);
 }
 
-fn draw_canvas_tool_cursor(app: &mut LocalPaintApp, ui: &mut egui::Ui, input: &CanvasOverlayInput<'_>, resizing: bool) {
+fn draw_canvas_tool_cursor(app: &mut LocalRasterApp, ui: &mut egui::Ui, input: &CanvasOverlayInput<'_>, resizing: bool) {
     let ctx = input.ctx;
     let xf = input.xf;
     let response = input.response;
@@ -1431,7 +1431,7 @@ fn draw_canvas_tool_cursor(app: &mut LocalPaintApp, ui: &mut egui::Ui, input: &C
     }
 }
 
-fn draw_default_tool_cursor(app: &mut LocalPaintApp, ui: &mut egui::Ui, input: &CanvasOverlayInput<'_>, resizing: bool, p: Pos2) {
+fn draw_default_tool_cursor(app: &mut LocalRasterApp, ui: &mut egui::Ui, input: &CanvasOverlayInput<'_>, resizing: bool, p: Pos2) {
     let painter = input.painter;
     let xf = input.xf;
     let response = input.response;
@@ -1466,7 +1466,7 @@ fn draw_default_tool_cursor(app: &mut LocalPaintApp, ui: &mut egui::Ui, input: &
             // While it samples (button held), the comparison ring replaces the cursor (#213).
             if let Some(icon) = eyedropper_ring(app, painter, xf, p, response.is_pointer_button_down_on()) {
                 icon
-            } else if app.session.prefs().cursors.other == localpaint_engine::prefs::OtherCursor::Precise {
+            } else if app.session.prefs().cursors.other == localraster_engine::prefs::OtherCursor::Precise {
                 egui::CursorIcon::Crosshair
             } else {
                 pipette_cursor(ui.ctx(), p)
@@ -1475,7 +1475,7 @@ fn draw_default_tool_cursor(app: &mut LocalPaintApp, ui: &mut egui::Ui, input: &
         t if t.is_brushlike() || t == Tool::QuickSelection => {
             // Preferences › Cursors: brush tip outline (normal = the 50% contour, or
             // full size), precise crosshair, or the standard pointer.
-            use localpaint_engine::prefs::PaintingCursor;
+            use localraster_engine::prefs::PaintingCursor;
             let cur = app.session.prefs().cursors.clone();
             // ⇪ forces the precise crosshair, whatever the cursor preference (#1758).
             if app.caps_lock {
@@ -1568,7 +1568,7 @@ fn draw_default_tool_cursor(app: &mut LocalPaintApp, ui: &mut egui::Ui, input: &
         // Preferences › Cursors › Other Cursors: Precise shows a crosshair for every tool.
         Tool::Move if crate::move_mods::copying(app, alt) => egui::CursorIcon::Copy,
         Tool::Move | Tool::Type | Tool::VerticalType | Tool::HorizontalTypeMask | Tool::VerticalTypeMask
-            if app.session.prefs().cursors.other == localpaint_engine::prefs::OtherCursor::Precise =>
+            if app.session.prefs().cursors.other == localraster_engine::prefs::OtherCursor::Precise =>
         {
             egui::CursorIcon::Crosshair
         }
@@ -1587,7 +1587,7 @@ fn draw_default_tool_cursor(app: &mut LocalPaintApp, ui: &mut egui::Ui, input: &
         Tool::MagneticLasso => crate::magnetic_lasso_ui::cursor(app, painter, p, xf.zoom),
         Tool::RedEye => {
             let pupil = app.ui.tool_options.red_eye_pupil_size.clamp(1.0, 100.0);
-            let r_doc = localpaint_algo::redeye::search_radius(pupil);
+            let r_doc = localraster_algo::redeye::search_radius(pupil);
             let r = (r_doc * xf.zoom).max(2.0);
             painter.circle_stroke(p, r + 0.5, Stroke::new(1.0, Color32::from_black_alpha(140)));
             painter.circle_stroke(p, r, Stroke::new(1.0, Color32::from_white_alpha(220)));
@@ -1631,7 +1631,7 @@ struct CanvasTailInput<'a> {
     camera: Option<([f32; 2], f32)>,
 }
 
-fn finish_canvas_view(app: &mut LocalPaintApp, ui: &mut egui::Ui, view: &mut View, input: &CanvasTailInput<'_>) {
+fn finish_canvas_view(app: &mut LocalRasterApp, ui: &mut egui::Ui, view: &mut View, input: &CanvasTailInput<'_>) {
     let ctx = input.ctx;
     let painter = input.painter;
     let response = input.response;
@@ -1713,11 +1713,11 @@ fn finish_canvas_view(app: &mut LocalPaintApp, ui: &mut egui::Ui, view: &mut Vie
 
 /// A Properties Levels/Curves eyedropper (layer_picker.rs) owns the image until Esc or another
 /// tool; Space and the middle button still pan. It samples on the press.
-fn layer_picker_eyedropper(app: &mut LocalPaintApp, ui: &egui::Ui, ctx: &egui::Context, response: &egui::Response, xf: &ViewXform) {
+fn layer_picker_eyedropper(app: &mut LocalRasterApp, ui: &egui::Ui, ctx: &egui::Context, response: &egui::Response, xf: &ViewXform) {
     if response.hovered()
         && let Some(p) = ui.input(|i| i.pointer.hover_pos())
     {
-        if app.session.prefs().cursors.other == localpaint_engine::prefs::OtherCursor::Precise {
+        if app.session.prefs().cursors.other == localraster_engine::prefs::OtherCursor::Precise {
             ctx.set_cursor_icon(egui::CursorIcon::Crosshair);
         } else {
             ctx.set_cursor_icon(pipette_cursor(ctx, p));
@@ -1734,7 +1734,7 @@ fn layer_picker_eyedropper(app: &mut LocalPaintApp, ui: &egui::Ui, ctx: &egui::C
 
 /// Per-frame reconciliation of the camera with its document: resize re-centre, pending fit/fill,
 /// and the overscroll clamp. Returns the pixel aspect the view is drawn with.
-fn sync_view_to_document(app: &LocalPaintApp, ctx: &egui::Context, view: &mut View, doc: &Document, rect: Rect, ppp: f32) -> f32 {
+fn sync_view_to_document(app: &LocalRasterApp, ctx: &egui::Context, view: &mut View, doc: &Document, rect: Rect, ppp: f32) -> f32 {
     let size = [doc.size.width, doc.size.height];
     if view.doc_size != size {
         // Like Photoshop: keep the zoom level, re-centre the resized document.
@@ -1759,7 +1759,7 @@ fn sync_view_to_document(app: &LocalPaintApp, ctx: &egui::Context, view: &mut Vi
     aspect
 }
 
-fn update_polygon_camera(app: &mut LocalPaintApp, ctx: &egui::Context, (idx, primary): (usize, bool), rect: Rect, view: &mut View, ppp: f32, aspect: f32) {
+fn update_polygon_camera(app: &mut LocalRasterApp, ctx: &egui::Context, (idx, primary): (usize, bool), rect: Rect, view: &mut View, ppp: f32, aspect: f32) {
     let previous_center = view.center;
     if primary {
         polygon_cancel_stale(app);
@@ -1774,7 +1774,7 @@ fn update_polygon_camera(app: &mut LocalPaintApp, ctx: &egui::Context, (idx, pri
     }
 }
 
-pub fn canvas_view(app: &mut LocalPaintApp, ui: &mut egui::Ui, idx: usize, rect: Rect, mut view: View, primary: bool) -> View {
+pub fn canvas_view(app: &mut LocalRasterApp, ui: &mut egui::Ui, idx: usize, rect: Rect, mut view: View, primary: bool) -> View {
     let ctx = ui.ctx().clone();
     // The camera as the app holds it before this frame's input. The canvas works on its own copy
     // (`view`) and writes it back at the end; a tool that moves the camera itself meanwhile (the
@@ -1928,7 +1928,7 @@ pub fn canvas_view(app: &mut LocalPaintApp, ui: &mut egui::Ui, idx: usize, rect:
         None if middle => Tool::Hand,
         None => app.ui.tool,
     };
-    // ⌘ held: this frame's gestures go to the Move tool (`LocalPaintApp::active_tool`). The Hand
+    // ⌘ held: this frame's gestures go to the Move tool (`LocalRasterApp::active_tool`). The Hand
     // and Zoom never reach `tool_event`, so only the Move needs the state machine to know.
     app.tool_override = (temporary == Some(crate::hold_keys::Temporary::Move)).then_some(Tool::Move);
     // `~` held: a Brush or Pencil stroke that starts now erases (`tool_event`'s `Down`).
@@ -2131,7 +2131,7 @@ mod rotation_preview_isolation_tests {
 
     #[test]
     fn channel_overlay_shows_filter_preview_and_restores_on_cancel() {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.background_jobs = false;
         app.run("file.new", json!({"width":16,"height":16})).unwrap();
         app.run("channel.new", json!({"name":"Alpha","fill":"black"})).unwrap();
@@ -2179,15 +2179,15 @@ mod rotation_preview_isolation_tests {
         assert!(std::sync::Arc::ptr_eq(&before, &app.session.active().unwrap().doc));
     }
 
-    fn assert_filter_preview_target(target: localpaint_engine::channel_cmds::ChannelTarget) {
+    fn assert_filter_preview_target(target: localraster_engine::channel_cmds::ChannelTarget) {
         for depth in [8, 16, 32] {
-            let mut session = localpaint_engine::Session::new();
+            let mut session = localraster_engine::Session::new();
             session.execute("file.new", json!({"width":16,"height":16,"depth":depth})).unwrap();
             session.execute("channel.new", json!({"name":"Alpha","fill":"black"})).unwrap();
             session
                 .edit("Fixture", |doc, active| {
                     let layer = doc.layer_mut(active.unwrap()).unwrap();
-                    layer.mask = Some(localpaint_doc::LayerMask::hide_all());
+                    layer.mask = Some(localraster_doc::LayerMask::hide_all());
                     for y in 0..16 {
                         for x in 0..8 {
                             layer.surface_mut().unwrap().write_pixel(x, y, &[0.0, 0.25, 0.5, 1.0]);
@@ -2203,7 +2203,7 @@ mod rotation_preview_isolation_tests {
                 })
                 .unwrap();
             session.active_mut().unwrap().channel_view.target = target;
-            let mut app = LocalPaintApp::new(session, crate::Services::default());
+            let mut app = LocalRasterApp::new(session, crate::Services::default());
             app.background_jobs = false;
             let dialog = crate::filter_dialog::open(&mut app, "filter.blur.gaussianBlur").unwrap();
             app.ui.dialogs.last_mut().unwrap().fields.insert("radius".into(), json!(2.0));
@@ -2228,23 +2228,23 @@ mod rotation_preview_isolation_tests {
 
     #[test]
     fn filter_preview_matches_applied_alpha_target() {
-        assert_filter_preview_target(localpaint_engine::channel_cmds::ChannelTarget::Alpha(0));
+        assert_filter_preview_target(localraster_engine::channel_cmds::ChannelTarget::Alpha(0));
     }
 
     #[test]
     fn filter_preview_matches_applied_color_target() {
-        assert_filter_preview_target(localpaint_engine::channel_cmds::ChannelTarget::Color(0));
+        assert_filter_preview_target(localraster_engine::channel_cmds::ChannelTarget::Color(0));
     }
 
     #[test]
     fn filter_preview_matches_applied_layer_mask_target() {
-        assert_filter_preview_target(localpaint_engine::channel_cmds::ChannelTarget::LayerMask);
+        assert_filter_preview_target(localraster_engine::channel_cmds::ChannelTarget::LayerMask);
     }
 
     #[test]
     fn filter_preview_refreshes_when_channel_target_changes() {
-        use localpaint_engine::channel_cmds::ChannelTarget;
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        use localraster_engine::channel_cmds::ChannelTarget;
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.background_jobs = false;
         app.run("file.new", json!({"width":16,"height":16})).unwrap();
         for name in ["First", "Second"] {
@@ -2282,14 +2282,14 @@ mod rotation_preview_isolation_tests {
     #[test]
     fn filter_preview_overlay_matches_quick_mask_and_mixed_color_views() {
         for quick_mask in [false, true] {
-            let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+            let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
             app.background_jobs = false;
             app.run("file.new", json!({"width":16,"height":16})).unwrap();
             app.session
                 .edit("Fixture", |doc, active| {
                     if quick_mask {
                         doc.quick_mask =
-                            Some(localpaint_doc::AlphaChannel::new("Quick Mask", localpaint_raster::Surface::new(localpaint_color::PixelFormat::GRAY8)));
+                            Some(localraster_doc::AlphaChannel::new("Quick Mask", localraster_raster::Surface::new(localraster_color::PixelFormat::GRAY8)));
                     }
                     for y in 0..16 {
                         for x in 0..8 {
@@ -2305,7 +2305,7 @@ mod rotation_preview_isolation_tests {
                 .unwrap();
             if !quick_mask {
                 let view = &mut app.session.active_mut().unwrap().channel_view;
-                view.target = localpaint_engine::channel_cmds::ChannelTarget::Color(0);
+                view.target = localraster_engine::channel_cmds::ChannelTarget::Color(0);
                 view.set_color_visible(2, false);
             }
             let ctx = egui::Context::default();
@@ -2331,7 +2331,7 @@ mod rotation_preview_isolation_tests {
     /// working space from Color Settings, not the built-in default.
     #[test]
     fn profile_dialogs_preview_through_the_profile_they_choose() {
-        let mut session = localpaint_engine::Session::new();
+        let mut session = localraster_engine::Session::new();
         session.color.settings.monitor_profile = "srgb".into();
         session.color.settings.working_rgb = "display-p3".into();
         session.execute("file.new", json!({"width": 4, "height": 4})).unwrap();
@@ -2347,14 +2347,14 @@ mod rotation_preview_isolation_tests {
                 Ok(())
             })
             .unwrap();
-        let mut app = LocalPaintApp::new(session, crate::Services::default());
-        let shown_pixels = |app: &LocalPaintApp, doc: &Document| {
+        let mut app = LocalRasterApp::new(session, crate::Services::default());
+        let shown_pixels = |app: &LocalRasterApp, doc: &Document| {
             let (display, _) = canvas_display(app, doc, None);
-            display_image(display.as_deref(), &localpaint_compose::flatten(doc)).pixels[0]
+            display_image(display.as_deref(), &localraster_compose::flatten(doc)).pixels[0]
         };
         let original = app.session.active().unwrap().doc.clone();
         let before = shown_pixels(&app, &original);
-        let preview = |app: &mut LocalPaintApp, command: &str, profile: &str| {
+        let preview = |app: &mut LocalRasterApp, command: &str, profile: &str| {
             crate::filter_dialog::open(app, command).unwrap();
             let fields = &mut app.ui.dialogs.last_mut().unwrap().fields;
             assert_eq!(fields.get("__preview"), Some(&json!(true)), "{command} has a Preview checkbox, on");
@@ -2368,15 +2368,15 @@ mod rotation_preview_isolation_tests {
             app.filter_preview = None;
             result
         };
-        let description = |doc: &Document| localpaint_engine::color_cmds::profile_from_bytes(doc.icc_profile.as_ref().unwrap()).unwrap().description.clone();
+        let description = |doc: &Document| localraster_engine::color_cmds::profile_from_bytes(doc.icc_profile.as_ref().unwrap()).unwrap().description.clone();
 
         let assigned = preview(&mut app, "edit.assignProfile", "prophoto-compat");
-        assert_eq!(description(&assigned), localpaint_cms::Builtin::ProPhotoCompat.description());
+        assert_eq!(description(&assigned), localraster_cms::Builtin::ProPhotoCompat.description());
         let shown = shown_pixels(&app, &assigned);
         assert!(shown.r().abs_diff(before.r()) > 10 || shown.b().abs_diff(before.b()) > 10, "the assigned profile shows: {before:?} → {shown:?}");
 
         let converted = preview(&mut app, "edit.convertToProfile", "working");
-        assert_eq!(description(&converted), localpaint_cms::Builtin::DisplayP3.description(), "`working` is Color Settings' working space");
+        assert_eq!(description(&converted), localraster_cms::Builtin::DisplayP3.description(), "`working` is Color Settings' working space");
         let shown = shown_pixels(&app, &converted);
         for (a, b) in [(shown.r(), before.r()), (shown.g(), before.g()), (shown.b(), before.b())] {
             assert!(a.abs_diff(b) <= 2, "converting keeps the look: {before:?} → {shown:?}");
@@ -2387,9 +2387,9 @@ mod rotation_preview_isolation_tests {
     /// GPU adapter; checking the result also verifies Preview off and document integrity.
     #[test]
     fn rotation_preview_is_computed_headlessly_without_mutating_document() {
-        let mut session = localpaint_engine::Session::new();
+        let mut session = localraster_engine::Session::new();
         session.execute("file.new", json!({"width": 96, "height": 48})).unwrap();
-        let mut app = LocalPaintApp::new(session, crate::Services::default());
+        let mut app = LocalRasterApp::new(session, crate::Services::default());
         assert!(app.gpu.is_none());
         crate::filter_dialog::open(&mut app, "image.rotation.arbitrary").unwrap();
         let dialog = app.ui.dialogs.last_mut().unwrap();
@@ -2411,9 +2411,9 @@ mod rotation_preview_isolation_tests {
     /// background tab, even if that tab has a valid canvas index.
     #[test]
     fn filter_preview_is_not_returned_for_inactive_document() {
-        let mut session = localpaint_engine::Session::new();
+        let mut session = localraster_engine::Session::new();
         session.execute("file.new", json!({"width": 96, "height": 48})).unwrap();
-        let mut app = LocalPaintApp::new(session, crate::Services::default());
+        let mut app = LocalRasterApp::new(session, crate::Services::default());
         crate::filter_dialog::open(&mut app, "image.rotation.arbitrary").unwrap();
         app.ui.dialogs.last_mut().unwrap().fields.insert("angle".into(), json!(90.0));
         assert!(ensure_filter_preview(&mut app, 0, &egui::Context::default()).is_some());
@@ -2469,12 +2469,12 @@ mod zoom_animation_tests {
     #[test]
     fn disabling_animated_zoom_snaps_a_secondary_canvas_on_its_next_frame() {
         let ctx = egui::Context::default();
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
         app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
         app.sync_views();
         let rect = Rect::from_min_size(Pos2::ZERO, vec2(400.0, 300.0));
         let mut secondary = view();
-        let frame = |app: &mut LocalPaintApp, view: View, time: f64| {
+        let frame = |app: &mut LocalRasterApp, view: View, time: f64| {
             let input = egui::RawInput { screen_rect: Some(rect), time: Some(time), ..Default::default() };
             let mut shown = view.clone();
             let mut out = ctx.run_ui(input, |ui| {
@@ -2594,7 +2594,7 @@ mod lasso_preview_tests {
     }
 
     /// What `draw` paints: (black dashes, black solid paths).
-    fn painted(app: &mut LocalPaintApp, draw: impl Fn(&mut LocalPaintApp, &egui::Painter)) -> (usize, usize) {
+    fn painted(app: &mut LocalRasterApp, draw: impl Fn(&mut LocalRasterApp, &egui::Painter)) -> (usize, usize) {
         let ctx = egui::Context::default();
         let mut output = ctx.run_ui(egui::RawInput::default(), |ui| draw(app, ui.painter()));
         output.textures_delta.clear();
@@ -2613,8 +2613,8 @@ mod lasso_preview_tests {
         (dashes, solid)
     }
 
-    fn document() -> LocalPaintApp {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    fn document() -> LocalRasterApp {
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.session.execute("file.new", json!({"width": 200, "height": 200})).unwrap();
         app.sync_views();
         app
@@ -2656,8 +2656,8 @@ mod lasso_preview_tests {
 #[cfg(test)]
 mod multi_channel_ui_tests {
     use super::*;
-    fn app() -> LocalPaintApp {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    fn app() -> LocalRasterApp {
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.session.execute("file.new", json!({"width":64,"height":64})).unwrap();
         app.sync_views();
         app.run("channel.target", json!({"colors":[0,2]})).unwrap();
@@ -2676,7 +2676,7 @@ mod multi_channel_ui_tests {
         for depth in [8, 16, 32] {
             for view in ["gray", "overlay"] {
                 for colors in [vec![0], vec![0, 2]] {
-                    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+                    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
                     app.run("file.new", json!({"width":64,"height":64,"depth":depth})).unwrap();
                     app.run("layer.layerMask.revealAll", json!({})).unwrap();
                     app.run("channel.target", json!({"colors":colors})).unwrap();
@@ -2714,7 +2714,7 @@ mod multi_channel_ui_tests {
     #[test]
     fn colour_rows_left_selected_still_paint_an_adjustment_layers_mask() {
         for colors in [vec![0], vec![0, 2]] {
-            let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+            let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
             app.run("file.new", json!({"width":64,"height":64})).unwrap();
             app.run("channel.target", json!({"colors":colors})).unwrap();
             app.run("layer.newAdjustmentLayer.levels", json!({})).unwrap();
@@ -2742,7 +2742,7 @@ mod multi_channel_ui_tests {
     #[test]
     fn targeting_a_mask_over_colour_rows_edits_the_mask_everywhere() {
         let ctx = egui::Context::default();
-        let set = |app: &mut LocalPaintApp, p: serde_json::Value| {
+        let set = |app: &mut LocalRasterApp, p: serde_json::Value| {
             let (req, _) = crate::control::ControlRequest::new("ui.set", p);
             assert!(matches!(crate::control::handle(app, &ctx, &req), crate::control::Outcome::Done(v) if v["ok"] != false));
         };
@@ -2790,7 +2790,7 @@ mod multi_channel_ui_tests {
         app.run("channel.target", json!({"colors":[0,2]})).unwrap();
         set(&mut app, json!({"maskTarget": true}));
         app.sync_views();
-        assert!(matches!(app.session.active().unwrap().channel_view.target, localpaint_engine::channel_cmds::ChannelTarget::Color(_)), "a fill layer");
+        assert!(matches!(app.session.active().unwrap().channel_view.target, localraster_engine::channel_cmds::ChannelTarget::Color(_)), "a fill layer");
         let mut app = self::app();
         app.run("layer.smartObjects.convertToSmartObject", json!({})).unwrap();
         app.run("channel.target", json!({"colors":[0,2]})).unwrap();
@@ -2829,7 +2829,7 @@ mod pen_path_visual_tests;
 
 /// Between Polygonal Lasso clicks, reveal more of the image near or beyond the viewport edge.
 /// Only the view moves: fixed vertices stay in document coordinates, including while button-up.
-fn polygon_edge_scroll(app: &LocalPaintApp, ctx: &egui::Context, idx: usize, rect: Rect, view: &mut View, ppp: f32) {
+fn polygon_edge_scroll(app: &LocalRasterApp, ctx: &egui::Context, idx: usize, rect: Rect, view: &mut View, ppp: f32) {
     if app.ui.polygon.is_empty()
         || app.ui.tool != Tool::PolygonLasso
         || app.session.active_index() != Some(idx)

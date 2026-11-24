@@ -89,7 +89,7 @@ pub(crate) fn delete_state(s: &mut Session, i: usize, current: usize) -> Result<
         if clean {
             st.saved_revision = st.revision;
         }
-        st.last_damage = Some(localpaint_geom::Rect::EMPTY);
+        st.last_damage = Some(localraster_geom::Rect::EMPTY);
         return Ok(());
     }
     // The step that made the current state: the layers whose visibility it changed get it back.
@@ -195,7 +195,7 @@ mod tests {
         s.execute("layer.setProps", json!({"layer": id, "visible": false})).unwrap();
         assert_eq!(entries(&s).last().map(String::as_str), Some("Layer Visibility"));
         s.execute("edit.undo", json!({})).unwrap();
-        assert!(s.active().unwrap().doc.layer(localpaint_doc::LayerId(id)).unwrap().visible);
+        assert!(s.active().unwrap().doc.layer(localraster_doc::LayerId(id)).unwrap().visible);
 
         // Off: the document changes (and is modified) but History doesn't.
         let (mut s, id) = doc();
@@ -212,7 +212,7 @@ mod tests {
         s.execute("layer.hideLayers", json!({"layer": id})).unwrap();
         assert_eq!(entries(&s), before, "no visibility state was recorded");
         let st = s.active().unwrap();
-        assert!(!st.doc.layer(localpaint_doc::LayerId(id)).unwrap().visible, "the change still applies");
+        assert!(!st.doc.layer(localraster_doc::LayerId(id)).unwrap().visible, "the change still applies");
         assert!(st.revision > rev && st.is_dirty());
         // Other properties still record a state.
         s.execute("layer.setProps", json!({"layer": id, "opacity": 0.5})).unwrap();
@@ -224,12 +224,12 @@ mod tests {
     }
 
     fn visible(s: &Session, id: u64) -> bool {
-        s.active().unwrap().doc.layer(localpaint_doc::LayerId(id)).unwrap().visible
+        s.active().unwrap().doc.layer(localraster_doc::LayerId(id)).unwrap().visible
     }
 
     fn red(s: &Session, id: u64) -> bool {
         let st = s.active().unwrap();
-        st.doc.layer(localpaint_doc::LayerId(id)).unwrap().surface().unwrap().pixel(1, 1)[0] > 0.5
+        st.doc.layer(localraster_doc::LayerId(id)).unwrap().surface().unwrap().pixel(1, 1)[0] > 0.5
     }
 
     /// Off, showing or hiding a layer is not a state, so stepping through history (Undo, Redo, a
@@ -426,7 +426,7 @@ mod tests {
         let n = entries(&s).len();
         s.execute("layer.setProps", json!({"layer": id, "visible": false, "opacity": 0.5})).unwrap();
         assert_eq!(entries(&s).len(), n + 1, "the mixed change is a state");
-        let opacity = |s: &Session| s.active().unwrap().doc.layer(localpaint_doc::LayerId(id)).unwrap().opacity;
+        let opacity = |s: &Session| s.active().unwrap().doc.layer(localraster_doc::LayerId(id)).unwrap().opacity;
         s.execute("edit.undo", json!({})).unwrap();
         assert!(visible(&s, id) && (opacity(&s) - 1.0).abs() < 1e-6, "undo shows the layer again and restores its opacity");
         s.execute("edit.redo", json!({})).unwrap();

@@ -1,8 +1,8 @@
 //! Liquify source reads must depend on the mapping, not the output tile phase.
-use localpaint_algo::liquify::{LiquifyField, LiquifyStroke, LiquifyTool, apply_liquify};
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_algo::liquify::{LiquifyField, LiquifyStroke, LiquifyTool, apply_liquify};
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 
 /// Keeps the document size fixed while moving its edges relative to global tiles.
 fn bounds(shift: i32) -> Rect {

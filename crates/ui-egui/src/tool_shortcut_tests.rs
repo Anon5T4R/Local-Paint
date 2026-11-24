@@ -3,10 +3,10 @@
 use egui::{Key, Modifiers};
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
-fn app() -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn app() -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 20, "height": 10})).unwrap();
     app
 }
@@ -15,16 +15,16 @@ fn app() -> LocalPaintApp {
 /// still Cycle Screen Mode.
 #[test]
 fn space_f_cycles_the_canvas_colour() {
-    use localpaint_engine::prefs::CanvasColor;
+    use localraster_engine::prefs::CanvasColor;
     let mut app = app();
     let ctx = egui::Context::default();
-    let frame = |app: &mut LocalPaintApp, events: Vec<egui::Event>| {
+    let frame = |app: &mut LocalRasterApp, events: Vec<egui::Event>| {
         ctx.begin_pass(egui::RawInput { events, ..Default::default() });
         crate::shortcuts::handle(app, &ctx);
         ctx.end_pass().textures_delta.clear();
     };
     let key = |key, pressed, modifiers| egui::Event::Key { key, physical_key: None, pressed, repeat: false, modifiers };
-    let color = |app: &LocalPaintApp| app.session.prefs().interface.canvas_color;
+    let color = |app: &LocalRasterApp| app.session.prefs().interface.canvas_color;
     frame(&mut app, vec![key(Key::Space, true, Modifiers::NONE)]);
     frame(&mut app, vec![key(Key::F, true, Modifiers::NONE), key(Key::F, false, Modifiers::NONE)]);
     assert_eq!(color(&app), CanvasColor::Black);

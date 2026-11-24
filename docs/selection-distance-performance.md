@@ -67,8 +67,8 @@ multiplication, element-size limits and input length are checked before allocati
 ## Reproduce
 
 ```sh
-cargo test --release -p localpaint-algo distance_transform_release_comparison -- --ignored --nocapture
-EDT_WORKERS=1 cargo test --release -p localpaint-algo distance_transform_release_comparison -- --ignored --nocapture
+cargo test --release -p localraster-algo distance_transform_release_comparison -- --ignored --nocapture
+EDT_WORKERS=1 cargo test --release -p localraster-algo distance_transform_release_comparison -- --ignored --nocapture
 ```
 
 The previous scalar implementation is retained only in the test module as the reference
@@ -106,7 +106,7 @@ distances are compared with the general EDT. Invalid dimensions and nonfinite/ne
 radii return empty buffers.
 
 Reproduce on the fork through the CI workflow's optional `selection_morphology` input.
-It runs `cargo run --release -p localpaint-algo --example bench_selection_morphology`
+It runs `cargo run --release -p localraster-algo --example bench_selection_morphology`
 on Linux, and `cargo xtask perf --quick` on the project’s macOS performance runner class. The comparison uses a 6000×6000 mask with either
 a centred 50×50 square or a centred 4000×4000 square, radii 3 and 50, and four Rayon
 workers. It checks every output sample against the previous formulas before timing;
@@ -114,7 +114,7 @@ reported medians include output allocation and exclude output destruction, with 
 runs per implementation. These measurements are separate from the historical EDT-only
 measurements above and do not change the scorecard baseline.
 
-Measurements from [scratch CI job 121583341033](https://github.com/wanikhawar/localpaint/actions/runs/40326176434/job/121583341033),
+Measurements from [scratch CI job 121583341033](https://github.com/wanikhawar/localraster/actions/runs/40326176434/job/121583341033),
 2026-10-26, commit `5afd231138368f9be856e8c21c2946f2e386797c`, GitHub-hosted Ubuntu 26.04,
 stable Rust, normal release profile. The benchmark step completed successfully; the
 superseded run was cancelled during the later quick performance build. The full validation
@@ -157,7 +157,7 @@ only 62×62 samples and executes all three commands without full-canvas mask all
 The optional CI benchmark also runs:
 
 ```sh
-cargo test --release -p localpaint-engine --lib sparse_modify_release_comparison -- --ignored --nocapture
+cargo test --release -p localraster-engine --lib sparse_modify_release_comparison -- --ignored --nocapture
 ```
 
 This isolates command-window savings: both paths use the optimized algorithm kernels,

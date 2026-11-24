@@ -22,12 +22,12 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, SyncSender, TryRecvError};
 use std::sync::{Arc, Weak};
 
-use localpaint_doc::{DocId, Document};
-use localpaint_engine::display_color::CanvasDisplay;
-use localpaint_geom::Rect;
+use localraster_doc::{DocId, Document};
+use localraster_engine::display_color::CanvasDisplay;
+use localraster_geom::Rect;
 use rayon::prelude::*;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::gpu_canvas::GpuCanvas;
 
 /// Side of a block in document pixels: whole render tiles, and a power of two so each block's
@@ -66,7 +66,7 @@ pub(crate) fn hold_redraws() -> HoldRedraws {
 /// [`HOLD`]. A replacement worker has another generation, so an edit only lands while the worker
 /// the test watched still has its blocks to draw. Returns `false` after `timeout`.
 #[cfg(test)]
-pub(crate) fn wait_for_held_redraw(app: &LocalPaintApp, doc: DocId, generation: u64, timeout: std::time::Duration) -> bool {
+pub(crate) fn wait_for_held_redraw(app: &LocalRasterApp, doc: DocId, generation: u64, timeout: std::time::Duration) -> bool {
     let deadline = std::time::Instant::now() + timeout;
     loop {
         if let Some(r) = app.redraws.get(&doc)
@@ -227,20 +227,20 @@ impl KeptComposites {
 /// Color Settings › "Blend Text Colors Using Gamma": type layers composite with it, but it is an
 /// application setting, not part of the document. Read from the session's settings, which the
 /// engine keeps in step with the process-wide value compose reads (`psblend::set_text_gamma`).
-fn text_gamma(app: &LocalPaintApp) -> u32 {
+fn text_gamma(app: &LocalRasterApp) -> u32 {
     app.session.color.settings.blend_text_gamma.to_bits()
 }
 
 /// Bytes kept composites of document `doc` may hold: what Memory Usage leaves beside its pixels
 /// and History. It shrinks as the document grows, which drops them under memory pressure.
-fn keep_cap(app: &LocalPaintApp, doc: DocId) -> u64 {
+fn keep_cap(app: &LocalRasterApp, doc: DocId) -> u64 {
     let budget = app.session.prefs().performance.history_budget_bytes() as u64;
     let used = app.session.documents().iter().find(|st| st.doc.id == doc).map_or(u64::MAX, |st| st.memory_bytes() as u64);
     budget.saturating_sub(used)
 }
 
 /// Whether full CPU refreshes run in the background here.
-pub(crate) fn enabled(app: &LocalPaintApp) -> bool {
+pub(crate) fn enabled(app: &LocalRasterApp) -> bool {
     app.background_jobs
 }
 
@@ -277,7 +277,7 @@ fn order(blocks: &[Rect], wanted: impl Iterator<Item = usize>, visible: Rect) ->
 /// `doc` with `region`'s blocks added.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn start(
-    app: &mut LocalPaintApp,
+    app: &mut LocalRasterApp,
     ctx: &egui::Context,
     gpu: &GpuCanvas,
     doc: Arc<Document>,
@@ -332,7 +332,7 @@ pub(crate) fn start(
 
 /// After an edit drew its own damage: continue document `doc.id`'s redraw, if one is running, on
 /// the edited document, so blocks still to come don't bring back what was there before it.
-pub(crate) fn restart(app: &mut LocalPaintApp, ctx: &egui::Context, gpu: &GpuCanvas, doc: Arc<Document>, display: Option<Arc<CanvasDisplay>>, visible: Rect) {
+pub(crate) fn restart(app: &mut LocalRasterApp, ctx: &egui::Context, gpu: &GpuCanvas, doc: Arc<Document>, display: Option<Arc<CanvasDisplay>>, visible: Rect) {
     if app.redraws.contains_key(&doc.id) {
         start(app, ctx, gpu, doc, display, visible, Rect::EMPTY, None);
     }
@@ -341,7 +341,7 @@ pub(crate) fn restart(app: &mut LocalPaintApp, ctx: &egui::Context, gpu: &GpuCan
 /// Upload the blocks document `doc`'s redraw has finished since the last frame. When the last one
 /// lands, the redraw is recorded like the synchronous refresh it replaces (and explained once if
 /// it was slow).
-pub(crate) fn poll(app: &mut LocalPaintApp, gpu: &GpuCanvas, doc: DocId) {
+pub(crate) fn poll(app: &mut LocalRasterApp, gpu: &GpuCanvas, doc: DocId) {
     let gamma = text_gamma(app);
     let Some(r) = app.redraws.get_mut(&doc) else { return };
     r.forget_if_gamma_changed(gamma);
@@ -402,7 +402,7 @@ fn collect(r: &mut Redraw, p: Piece) {
 }
 
 /// The active document's redraw in the status bar: "Redrawing" and how much is done.
-pub(crate) fn status(app: &LocalPaintApp, ui: &mut egui::Ui) {
+pub(crate) fn status(app: &LocalRasterApp, ui: &mut egui::Ui) {
     let Some(r) = app.session.active().and_then(|st| app.redraws.get(&st.doc.id)) else { return };
     let t = crate::theme::Tokens::get(ui.ctx());
     ui.label(egui::RichText::new(format!("{:.0}%", r.fraction() * 100.0)).color(t.text_dim).size(11.5).monospace());
@@ -410,12 +410,12 @@ pub(crate) fn status(app: &LocalPaintApp, ui: &mut egui::Ui) {
 }
 
 /// Stop document `doc`'s redraw (its canvas was redrawn some other way, or is gone).
-pub(crate) fn cancel(app: &mut LocalPaintApp, doc: DocId) {
+pub(crate) fn cancel(app: &mut LocalRasterApp, doc: DocId) {
     app.redraws.remove(&doc);
 }
 
 /// Stop redraws of documents that are no longer open.
-pub(crate) fn retain(app: &mut LocalPaintApp) {
+pub(crate) fn retain(app: &mut LocalRasterApp) {
     let docs = app.session.documents();
     app.redraws.retain(|id, _| docs.iter().any(|st| st.doc.id == *id));
     app.kept.retain(|id| docs.iter().any(|st| st.doc.id == id));
@@ -458,7 +458,7 @@ struct Spawn {
     keep: (Vec<Option<Vec<u8>>>, u64, u64),
 }
 
-fn spawn(app: &mut LocalPaintApp, ctx: &egui::Context, s: Spawn) {
+fn spawn(app: &mut LocalRasterApp, ctx: &egui::Context, s: Spawn) {
     let Spawn {
         doc,
         display,
@@ -555,7 +555,7 @@ fn draw(
         // Never reached in the browser ([`enabled`]); it only has to build there, without rayon.
         let batch = batch.par_iter();
         let pieces: Vec<Piece> = batch
-            .map(|&block| Piece { block, texels: crate::gpu_canvas::display_texels(format, display, &localpaint_compose::render(doc, blocks[block])) })
+            .map(|&block| Piece { block, texels: crate::gpu_canvas::display_texels(format, display, &localraster_compose::render(doc, blocks[block])) })
             .collect();
         for p in pieces {
             if stop.load(Ordering::Relaxed) || tx.send(p).is_err() {

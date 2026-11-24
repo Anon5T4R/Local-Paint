@@ -1,9 +1,9 @@
 //! Shared helpers for the second filter batch: colour-model access, window
 //! buffers, single-channel box/Gaussian blurs and jittered cell points.
 
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_geom::Rect;
-use localpaint_raster::{from_rgba_into, to_rgba};
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_geom::Rect;
+use localraster_raster::{from_rgba_into, to_rgba};
 
 use crate::Ctx;
 use crate::image::Image;

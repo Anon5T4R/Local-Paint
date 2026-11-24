@@ -2,8 +2,8 @@
 
 use crate::common;
 use common::*;
-use localpaint_color::{ColorMode, SampleType};
-use localpaint_format::*;
+use localraster_color::{ColorMode, SampleType};
+use localraster_format::*;
 use proptest::prelude::*;
 use std::io::Read;
 
@@ -195,9 +195,9 @@ fn total_size_limit() {
 /// distinct bytes (#3315).
 #[test]
 fn many_references_to_one_tile_load_within_the_budget() {
-    let mut doc = localpaint_doc::Document::new("d", localpaint_doc::Size::new(256, 256), ColorMode::Rgb, SampleType::U8);
-    let mut l = localpaint_doc::Layer::raster("solid", doc.pixel_format());
-    l.surface_mut().unwrap().fill_rect(localpaint_geom::Rect::new(0, 0, 256, 256), &[1.0, 0.0, 0.0, 1.0]);
+    let mut doc = localraster_doc::Document::new("d", localraster_doc::Size::new(256, 256), ColorMode::Rgb, SampleType::U8);
+    let mut l = localraster_doc::Layer::raster("solid", doc.pixel_format());
+    l.surface_mut().unwrap().fill_rect(localraster_geom::Rect::new(0, 0, 256, 256), &[1.0, 0.0, 0.0, 1.0]);
     doc.layers.push(l);
     let bytes = save_to_bytes(&doc, &SaveOptions::default()).unwrap();
     let hostile = rebuild(&bytes, |name, data| {
@@ -377,7 +377,7 @@ fn deflated_zip_entries_are_readable() {
     assert_eq!(load_from_bytes(&out).unwrap(), rich_doc_ids_from(&b));
 }
 
-fn rich_doc_ids_from(b: &[u8]) -> localpaint_doc::Document {
+fn rich_doc_ids_from(b: &[u8]) -> localraster_doc::Document {
     load_from_bytes(b).unwrap()
 }
 
@@ -514,8 +514,8 @@ fn declared_canvas_outside_the_budget_is_refused() {
     let edge = with_size(300_000, 300_000);
     let small = load_from_bytes(&sample()).unwrap();
     let big = load_from_bytes(&edge).unwrap();
-    assert_eq!(big.size, localpaint_geom::Size::new(300_000, 300_000));
-    let tiles = |d: &localpaint_doc::Document| d.layers.iter().filter_map(|l| l.surface()).map(|s| s.tile_count()).sum::<usize>();
+    assert_eq!(big.size, localraster_geom::Size::new(300_000, 300_000));
+    let tiles = |d: &localraster_doc::Document| d.layers.iter().filter_map(|l| l.surface()).map(|s| s.tile_count()).sum::<usize>();
     assert_eq!(tiles(&big), tiles(&small));
     // A caller may lower the budget.
     let opts = LoadOptions { max_canvas_pixels: 1 << 20, ..Default::default() };

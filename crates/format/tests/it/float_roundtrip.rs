@@ -1,7 +1,7 @@
 //! `.pcraft` is lossless for f64: every coordinate reloads bit-for-bit.
 
-use localpaint_color::{ColorMode, SampleType};
-use localpaint_doc::{Document, Layer, LayerContent, Size};
+use localraster_color::{ColorMode, SampleType};
+use localraster_doc::{Document, Layer, LayerContent, Size};
 
 #[test]
 fn f64_coordinates_reload_bit_exact() {
@@ -10,16 +10,16 @@ fn f64_coordinates_reload_bit_exact() {
     let mut doc = Document::new("Floats", Size::new(2, 2), ColorMode::Rgb, SampleType::U8);
     doc.layers.push(Layer::new(
         "Shape",
-        LayerContent::Shape(localpaint_doc::ShapeLayer {
-            path: localpaint_doc::Path::new(vec![localpaint_doc::Subpath::polygon(&[(x, y), (40.0, 10.0), (25.0, 40.0)])]),
+        LayerContent::Shape(localraster_doc::ShapeLayer {
+            path: localraster_doc::Path::new(vec![localraster_doc::Subpath::polygon(&[(x, y), (40.0, 10.0), (25.0, 40.0)])]),
             ..Default::default()
         }),
     ));
     doc.guides.horizontal.push(x);
     doc.guides.vertical.push(y);
     doc.ruler_origin = [x, y];
-    let bytes = localpaint_format::save_to_bytes(&doc, &Default::default()).unwrap();
-    let back = localpaint_format::load_from_bytes(&bytes).unwrap();
+    let bytes = localraster_format::save_to_bytes(&doc, &Default::default()).unwrap();
+    let back = localraster_format::load_from_bytes(&bytes).unwrap();
     assert_eq!(back.guides.horizontal[0].to_bits(), x.to_bits());
     assert_eq!(back.guides.vertical[0].to_bits(), y.to_bits());
     assert_eq!(back.ruler_origin.map(f64::to_bits), [x, y].map(f64::to_bits));

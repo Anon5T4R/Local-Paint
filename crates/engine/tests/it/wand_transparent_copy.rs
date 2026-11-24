@@ -1,9 +1,9 @@
 //! #2260: copying an irregular selection retains RGB under zero alpha. The Magic Wand
 //! must select the visible transparent area, independently of those hidden colours.
 
-use localpaint_doc::LayerId;
-use localpaint_engine::Session;
-use localpaint_geom::Rect;
+use localraster_doc::LayerId;
+use localraster_engine::Session;
+use localraster_geom::Rect;
 use serde_json::json;
 
 #[test]

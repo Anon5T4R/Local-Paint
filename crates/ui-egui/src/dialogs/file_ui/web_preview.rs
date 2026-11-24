@@ -1,8 +1,8 @@
 //! Save for Web navigation and indexed palette UI. Draft state is serialized in dialog fields.
-use super::{Arc, LocalPaintApp, Map, Optimized, Tokens, Value, WebSettings, json, n, params, s, web_cmds};
+use super::{Arc, LocalRasterApp, Map, Optimized, Tokens, Value, WebSettings, json, n, params, s, web_cmds};
 
 /// Export dimensions, using the same percent/width/height precedence as web_document.
-pub fn dimensions(doc: &localpaint_doc::Document, p: &Value) -> Result<(f64, f64), String> {
+pub fn dimensions(doc: &localraster_doc::Document, p: &Value) -> Result<(f64, f64), String> {
     let (w0, h0) = (f64::from(doc.size.width).max(1.0), f64::from(doc.size.height).max(1.0));
     let positive = |k: &str| p.get(k).and_then(Value::as_f64).filter(|v| v.is_finite() && *v > 0.0);
     let (w, h) = match (positive("percent"), positive("width"), positive("height")) {
@@ -24,7 +24,7 @@ pub fn proxy_resample(p: &Value, scale: f64) -> &str {
     if scale >= 1.0 { p.get("resample").and_then(Value::as_str).unwrap_or("bicubic") } else { "bilinear" }
 }
 
-pub fn prepare_table(app: &LocalPaintApp, f: &mut Map<String, Value>) -> Result<(), String> {
+pub fn prepare_table(app: &LocalRasterApp, f: &mut Map<String, Value>) -> Result<(), String> {
     if !matches!(s(f, "format", "jpeg").as_str(), "gif" | "png8") {
         return Ok(());
     }
@@ -65,7 +65,7 @@ pub fn prepare_table(app: &LocalPaintApp, f: &mut Map<String, Value>) -> Result<
         }
         let (doc, _, _) = web_cmds::web_document(&st.doc, &proxy, &settings).map_err(|e| e.to_string())?;
         f.insert("__paletteApproximate".into(), json!(scale < 1.0));
-        let buf = localpaint_compose::flatten(&doc);
+        let buf = localraster_compose::flatten(&doc);
         let mut optimized = web_cmds::optimize(&buf.px, doc.size.width as usize, doc.bounds(), &settings, None, None, None, doc.resolution_dpi, false)
             .map_err(|e| e.to_string())?;
         // Tiny transparent features may disappear in the proxy; keep room for their index.
@@ -143,7 +143,7 @@ pub fn optimized(ui: &mut egui::Ui, key: egui::Id, signature: &str, p: &Value, p
     } else {
         let settings = WebSettings::from_params(&base, "preview").map_err(|e| e.to_string())?;
         let encoded = Arc::new(
-            web_cmds::optimize(px, w as usize, localpaint_geom::Rect::new(0, 0, w as i32, h as i32), &settings, None, None, None, 72.0, true)
+            web_cmds::optimize(px, w as usize, localraster_geom::Rect::new(0, 0, w as i32, h as i32), &settings, None, None, None, 72.0, true)
                 .map_err(|e| e.to_string())?,
         );
         ui.data_mut(|d| d.insert_temp(key, (signature, encoded.clone())));
@@ -311,8 +311,12 @@ mod tests {
 
     #[test]
     fn absurd_dimensions_and_navigation_fields_are_safe() {
-        let doc =
-            localpaint_doc::Document::new("fixture", localpaint_geom::Size::new(100, 50), localpaint_color::ColorMode::Rgb, localpaint_color::SampleType::U8);
+        let doc = localraster_doc::Document::new(
+            "fixture",
+            localraster_geom::Size::new(100, 50),
+            localraster_color::ColorMode::Rgb,
+            localraster_color::SampleType::U8,
+        );
         assert!(dimensions(&doc, &json!({"percent": 1e308})).is_err());
         assert!(dimensions(&doc, &json!({"width": 1e300})).is_err());
         let f = serde_json::from_value::<Map<String, Value>>(json!({"__zoom": 1e300, "__center": [1e300, -1e300]})).unwrap();

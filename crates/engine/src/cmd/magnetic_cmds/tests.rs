@@ -1,4 +1,4 @@
-use localpaint_geom::Rect;
+use localraster_geom::Rect;
 use serde_json::json;
 
 use super::*;

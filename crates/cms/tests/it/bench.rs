@@ -1,6 +1,6 @@
-//! Throughput check: `cargo test -p localpaint-cms --release --test it -- bench:: --ignored --nocapture`.
+//! Throughput check: `cargo test -p localraster-cms --release --test it -- bench:: --ignored --nocapture`.
 
-use localpaint_cms::{Builtin, Intent, Transform};
+use localraster_cms::{Builtin, Intent, Transform};
 
 #[test]
 #[ignore]

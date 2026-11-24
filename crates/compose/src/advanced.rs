@@ -29,8 +29,8 @@
 
 use std::borrow::Cow;
 
-use localpaint_doc::{Knockout, Layer, LayerContent};
-use localpaint_geom::Rect;
+use localraster_doc::{Knockout, Layer, LayerContent};
+use localraster_geom::Rect;
 
 use crate::{Buffer, Ctx, composite_atop, composite_layer, effects, mask_vals, render_content};
 
@@ -93,7 +93,7 @@ pub fn shapeless(layer: &Layer) -> bool {
 }
 
 /// Whether `l`, the bottom layer of a stack, is the Background: identified by its locks and kind,
-/// never by its (localized) name ([`localpaint_doc::Document::background`]).
+/// never by its (localized) name ([`localraster_doc::Document::background`]).
 pub fn is_background(l: &Layer) -> bool {
     l.has_background_traits()
 }
@@ -269,7 +269,7 @@ pub(crate) fn hiding_mask(layer: &Layer, rect: Rect, cx: &Ctx) -> Option<Vec<f32
         return None;
     }
     let a = &layer.advanced;
-    let mut only = Layer::new(layer.name.clone(), LayerContent::Raster(localpaint_raster::Surface::new(localpaint_color::PixelFormat::RGBA32F)));
+    let mut only = Layer::new(layer.name.clone(), LayerContent::Raster(localraster_raster::Surface::new(localraster_color::PixelFormat::RGBA32F)));
     only.id = layer.id;
     only.mask = layer.mask.clone().filter(|_| a.layer_mask_hides_effects);
     only.vector_mask = layer.vector_mask.clone().filter(|_| a.vector_mask_hides_effects);

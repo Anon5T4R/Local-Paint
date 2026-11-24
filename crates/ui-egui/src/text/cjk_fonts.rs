@@ -8,12 +8,12 @@
 //! appended at the lowest priority to every family, so Latin text keeps Inter.
 //!
 //! Other scripts the bundled fonts lack (Thai, Arabic, Hebrew, Devanagari and the other Indic
-//! scripts, ...: [`localpaint_text::scripts`]) work the same way, each with its own attempt state,
+//! scripts, ...: [`localraster_text::scripts`]) work the same way, each with its own attempt state,
 //! independent of the CJK order: the first installed candidate file whose character map really
 //! has the missing character is registered, once per script. egui shapes each font run with
 //! HarfRust, so Thai marks and Arabic joining come from the font; it has no bidi reordering yet.
 //!
-//! Script order follows the effective UI locale ([`localpaint_text::cjk::script_order`]): Kana
+//! Script order follows the effective UI locale ([`localraster_text::cjk::script_order`]): Kana
 //! prefers a Japanese font, Hangul a Korean one, Bopomofo a Traditional Chinese one, and Han the
 //! locale's script. The effective locale is the translated UI language when it names
 //! ja/ko/zh-Hans/zh-Hant; otherwise it is the OS locale. An English UI on a Japanese, Korean or
@@ -28,7 +28,7 @@
 //! script has been tried the scan stops.
 //!
 //! Builds made with the optional craft-fonts input (`CRAFT_FONTS_DIR`,
-//! [`localpaint_text::craft_fonts`]) carry Japanese, Chinese, Korean and other faces. A
+//! [`localraster_text::craft_fonts`]) carry Japanese, Chinese, Korean and other faces. A
 //! per-character [`FontProvider`] serves them, and the system font a locale defers to, in the
 //! first frame; the lazy loader remains the later fallback. The provider has no lifetime read
 //! cap. It retains at most [`MAX_SYSTEM_CACHE_BYTES`] of unique font-file blobs, charging a
@@ -39,9 +39,9 @@
 
 use egui::epaint::text::{FontInsert, FontPriority, InsertFontFamily};
 use egui::{FallbackRequest, FontData, FontFamily, FontId, FontProvider, Shape};
-use localpaint_text::cjk::{self, CjkChar, CjkScript, FontFile};
-use localpaint_text::craft_fonts::{self, CraftFont};
-use localpaint_text::scripts::{self, Script};
+use localraster_text::cjk::{self, CjkChar, CjkScript, FontFile};
+use localraster_text::craft_fonts::{self, CraftFont};
+use localraster_text::scripts::{self, Script};
 use std::path::PathBuf;
 
 /// Skip absurdly large files (a corrupt or non-font path must not eat memory).
@@ -523,7 +523,7 @@ fn craft_faces(iso: &str) -> Vec<(usize, &'static CraftFont)> {
 /// Baseline and variable-weight tweaks shared by craft and system fallbacks.
 fn apply_font_tweaks(data: &mut FontData) {
     let offset = vertical_metrics(data.bytes(), data.index)
-        .zip(vertical_metrics(localpaint_text::fonts::INTER_REGULAR.as_slice(), 0))
+        .zip(vertical_metrics(localraster_text::fonts::INTER_REGULAR.as_slice(), 0))
         .map(|(face, primary)| baseline_offset(face, primary));
     let weight = regular_weight(data.bytes(), data.index);
     if let Some(offset) = offset {
@@ -929,7 +929,7 @@ pub struct CjkFontPlugin(pub CjkFallback);
 
 impl egui::Plugin for CjkFontPlugin {
     fn debug_name(&self) -> &'static str {
-        "localpaint-cjk-fonts"
+        "localraster-cjk-fonts"
     }
 
     fn output_hook(&mut self, ctx: &egui::Context, output: &mut egui::FullOutput) {

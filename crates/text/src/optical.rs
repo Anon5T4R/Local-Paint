@@ -290,7 +290,7 @@ mod tests {
     }
 
     /// Writes glyph profiles of macOS system fonts as JSON for fitting [`PARAMS`]
-    /// (`OPTICAL_DUMP=<file> cargo test -p localpaint-text optical_dump -- --ignored`).
+    /// (`OPTICAL_DUMP=<file> cargo test -p localraster-text optical_dump -- --ignored`).
     #[test]
     #[ignore]
     fn optical_dump() {

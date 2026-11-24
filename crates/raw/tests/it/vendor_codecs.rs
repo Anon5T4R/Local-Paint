@@ -2,8 +2,8 @@
 //! Sony compressed ARW (cRAW), Panasonic RW2 (RawFormat 5) and uncompressed
 //! Olympus ORF (with its maker-note preview).
 
-use localpaint_raw::testgen::{craw_block, mosaic, orf, rw2, rw2_format4, scene, sony_craw};
-use localpaint_raw::*;
+use localraster_raw::testgen::{craw_block, mosaic, orf, rw2, rw2_format4, scene, sony_craw};
+use localraster_raw::*;
 
 const CURVE: [u16; 4] = [8000, 10400, 12900, 14100];
 

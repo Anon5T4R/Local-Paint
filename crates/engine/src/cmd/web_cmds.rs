@@ -12,10 +12,10 @@
 //! `?x100 thumb.gif` is exported into `<document>-assets/` whenever the document is saved while
 //! the feature is on; a `default` layer (`default 50% low/ + 200% @2x`) adds variants.
 
-use localpaint_algo::quantize::{self, Dither, Forced, PaletteKind};
-use localpaint_doc::slices::{self, ResolvedSlice, SliceKind};
-use localpaint_doc::{DocId, Document, LayerContent, LayerId};
-use localpaint_geom::Rect;
+use localraster_algo::quantize::{self, Dither, Forced, PaletteKind};
+use localraster_doc::slices::{self, ResolvedSlice, SliceKind};
+use localraster_doc::{DocId, Document, LayerContent, LayerId};
+use localraster_geom::Rect;
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;

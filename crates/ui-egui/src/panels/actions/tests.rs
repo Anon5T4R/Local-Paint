@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn panel_menu_lists_load_save_and_existing_action_commands() {
     use egui_kittest::{Harness, kittest::Queryable};
-    let mut empty_app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut empty_app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     empty_app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
     let mut empty = Harness::builder().with_size(vec2(240.0, 280.0)).build_ui_state(|ui, app| panel_menu(app, ui), empty_app);
     empty.run_steps(2);
@@ -14,7 +14,7 @@ fn panel_menu_lists_load_save_and_existing_action_commands() {
     empty.run_steps(2);
     assert_eq!(empty.state().session.actions.list.len(), 1);
 
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
     app.session.actions.list.push(Action::new("Make Layer", vec![("layer.new.layer".into(), json!({}))]));
     app.ui.actions.selected = Some(0);
@@ -32,7 +32,7 @@ fn panel_menu_lists_load_save_and_existing_action_commands() {
 #[test]
 fn selected_layer_name_is_visible_during_recording_and_after_stop() {
     use egui_kittest::{Harness, kittest::Queryable};
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width":4,"height":4})).unwrap();
     app.run("layer.setProps", json!({"name":"Background"})).unwrap();
     let layer = app.session.active().unwrap().active_layer.unwrap();
@@ -53,7 +53,7 @@ fn selected_layer_name_is_visible_during_recording_and_after_stop() {
 fn actions_list_grows_with_panel_and_keeps_footer_visible() {
     use egui_kittest::{Harness, kittest::Queryable};
     let bottom = |height: f32| {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         for i in 0..50 {
             app.session.actions.list.push(Action { name: format!("Action {i}"), steps: vec![], disabled: Default::default(), ..Default::default() });
         }
@@ -72,7 +72,7 @@ fn actions_list_grows_with_panel_and_keeps_footer_visible() {
 #[test]
 fn a_function_key_with_shift_and_command_plays_its_action() {
     use egui::{Event, Key, Modifiers};
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 32, "height": 32})).unwrap();
     app.session.actions.list.push(Action {
         name: "Action 1".into(),
@@ -80,11 +80,11 @@ fn a_function_key_with_shift_and_command_plays_its_action() {
         disabled: Default::default(),
         ..Default::default()
     });
-    let key = localpaint_engine::atn_cmds::function_key_name(2, true, true);
+    let key = localraster_engine::atn_cmds::function_key_name(2, true, true);
     assert_eq!(key, "Cmd+Shift+F2");
     assign_shortcut(&mut app, "Action 1", &key).unwrap();
     let ctx = egui::Context::default();
-    let press = |app: &mut LocalPaintApp, modifiers| {
+    let press = |app: &mut LocalRasterApp, modifiers| {
         ctx.begin_pass(egui::RawInput {
             events: vec![
                 Event::ModifiersChanged(modifiers),
@@ -96,7 +96,7 @@ fn a_function_key_with_shift_and_command_plays_its_action() {
         crate::shortcuts::handle(app, &ctx);
         ctx.end_pass().textures_delta.clear();
     };
-    let layers = |app: &LocalPaintApp| app.session.active().unwrap().doc.layers.len();
+    let layers = |app: &LocalRasterApp| app.session.active().unwrap().doc.layers.len();
     let before = layers(&app);
     press(&mut app, Modifiers::NONE);
     press(&mut app, Modifiers::SHIFT);
@@ -107,7 +107,7 @@ fn a_function_key_with_shift_and_command_plays_its_action() {
 
 #[test]
 fn shell_playback_resolves_recorded_eye_target_on_new_document() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
     app.run("layer.new.layer", json!({"name": "Target"})).unwrap();
     app.run("actions.record", json!({"name": "Hide"})).unwrap();
@@ -125,7 +125,7 @@ fn shell_playback_resolves_recorded_eye_target_on_new_document() {
 #[test]
 fn double_clicking_an_action_name_renames_it_in_place() {
     use egui_kittest::{Harness, kittest::Queryable};
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 32, "height": 32})).unwrap();
     app.session.actions.list.push(Action {
         name: "Action 1".into(),
@@ -137,7 +137,7 @@ fn double_clicking_an_action_name_renames_it_in_place() {
     // 60 fps steps, so two clicks a frame apart count as a double-click.
     let mut h = Harness::builder().with_size(vec2(320.0, 260.0)).with_step_dt(1.0 / 60.0).build_ui_state(|ui, app| panel(app, ui), app);
     h.run_steps(3);
-    let rename = |h: &mut Harness<'_, LocalPaintApp>, text: &str| {
+    let rename = |h: &mut Harness<'_, LocalRasterApp>, text: &str| {
         let name = h.get_by_label("Action 1").rect().left_center() + vec2(52.0, 0.0);
         h.event(egui::Event::PointerMoved(name));
         // Wait out the double-click window of the previous attempt.
@@ -163,7 +163,7 @@ fn double_clicking_an_action_name_renames_it_in_place() {
 
 #[test]
 fn play_button_targets_first_action_if_nothing_is_selected() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 32, "height": 32})).unwrap();
     assert_eq!(playback_selection(&app), None);
     app.session.actions.list.push(Action {
@@ -198,7 +198,7 @@ fn play_button_targets_first_action_if_nothing_is_selected() {
 #[test]
 fn step_check_box_excludes_the_step_from_playback_and_batch() {
     use egui_kittest::{Harness, kittest::Queryable};
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 16, "height": 16})).unwrap();
     let steps = ["A", "B", "C"].map(|n| ("layer.new.layer".to_string(), json!({"name": n})));
     app.session.actions.list.push(Action::new("Three", steps.to_vec()));
@@ -222,7 +222,7 @@ fn step_check_box_excludes_the_step_from_playback_and_batch() {
 #[test]
 fn playback_errors_are_visible_in_status_bar() {
     use egui_kittest::{Harness, kittest::Queryable};
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 32, "height": 32})).unwrap();
     app.session.actions.list.push(Action {
         name: "Bad action".into(),
@@ -241,7 +241,7 @@ fn playback_errors_are_visible_in_status_bar() {
 #[test]
 fn recording_reveals_new_action_and_latest_step_in_a_long_panel() {
     use egui_kittest::{Harness, kittest::Queryable};
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width":4,"height":4})).unwrap();
     for i in 0..30 {
         app.session.actions.list.push(Action { name: format!("Existing {i}"), steps: vec![], disabled: Default::default(), ..Default::default() });
@@ -264,7 +264,7 @@ fn recording_reveals_new_action_and_latest_step_in_a_long_panel() {
 #[test]
 fn drag_steps_and_action_headers_reorders_and_keeps_selection() {
     use egui_kittest::{Harness, kittest::Queryable};
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.actions.list.push(Action {
         name: "First".into(),
         steps: vec![("view.zoomOut".into(), json!({})), ("view.fitOnScreen".into(), json!({})), ("view.actualPixels".into(), json!({}))],
@@ -275,7 +275,7 @@ fn drag_steps_and_action_headers_reorders_and_keeps_selection() {
     app.ui.actions.expanded = vec![true, false];
     let mut h = Harness::builder().with_size(vec2(320.0, 400.0)).build_ui_state(|ui, app| panel(app, ui), app);
     h.run_steps(4);
-    fn drag(h: &mut Harness<'_, LocalPaintApp>, from: egui::Pos2, to: egui::Pos2) {
+    fn drag(h: &mut Harness<'_, LocalRasterApp>, from: egui::Pos2, to: egui::Pos2) {
         h.event(egui::Event::PointerMoved(from));
         h.run_steps(1);
         h.event(egui::Event::PointerButton { pos: from, button: egui::PointerButton::Primary, pressed: true, modifiers: egui::Modifiers::NONE });
@@ -305,7 +305,7 @@ fn drag_steps_and_action_headers_reorders_and_keeps_selection() {
 
 #[test]
 fn nested_shell_actions_include_view_steps_and_propagate_failures() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width":40,"height":40})).unwrap();
     app.session.actions.list.push(Action {
         name: "Child".into(),
@@ -323,7 +323,7 @@ fn nested_shell_actions_include_view_steps_and_propagate_failures() {
     assert!(r.get("failed").is_none(), "{r}");
     assert!(app.ui.views[0].fit_pending);
     app.session.authorize =
-        Some(|id, _| if id == "view.fitOnScreen" { Err(localpaint_engine::EngineError::Other("denied nested view".into())) } else { Ok(()) });
+        Some(|id, _| if id == "view.fitOnScreen" { Err(localraster_engine::EngineError::Other("denied nested view".into())) } else { Ok(()) });
     let r = app.run("actions.play", json!({"action":"Parent"})).unwrap();
     assert!(r["failed"]["error"].as_str().unwrap().contains("denied nested view"));
     assert!(app.session.actions.playback_stack.is_empty());
@@ -333,7 +333,7 @@ fn nested_shell_actions_include_view_steps_and_propagate_failures() {
 #[test]
 fn panel_shows_pending_steps_and_trash_deletes_only_the_clicked_step() {
     use egui_kittest::{Harness, kittest::Queryable};
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 40, "height": 40})).unwrap();
     begin_recording(&mut app, false);
     app.run("view.fitOnScreen", json!({})).unwrap();
@@ -368,7 +368,7 @@ fn panel_shows_pending_steps_and_trash_deletes_only_the_clicked_step() {
 
 #[test]
 fn view_menu_commands_record_append_and_replay_after_resize() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
     app.run("file.new", json!({"width": 160, "height": 100})).unwrap();
     begin_recording(&mut app, false);
@@ -399,7 +399,7 @@ fn view_menu_commands_record_append_and_replay_after_resize() {
 
 #[test]
 fn view_action_failure_resume_and_authorization() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.actions.list.push(Action {
         name: "Fit".into(),
         steps: vec![("view.fitOnScreen".into(), json!({})), ("view.actualPixels".into(), json!({}))],
@@ -414,7 +414,7 @@ fn view_action_failure_resume_and_authorization() {
     app.session.authorize =
         Some(
             |id, _| {
-                if id == "view.fitOnScreen" { Err(localpaint_engine::EngineError::BadParams { cmd: id.into(), msg: "denied view".into() }) } else { Ok(()) }
+                if id == "view.fitOnScreen" { Err(localraster_engine::EngineError::BadParams { cmd: id.into(), msg: "denied view".into() }) } else { Ok(()) }
             },
         );
     let result = app.run("actions.play", json!({"action": 0})).unwrap();
@@ -430,7 +430,7 @@ fn view_action_failure_resume_and_authorization() {
 
 #[test]
 fn record_and_replay_on_another_document() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 40, "height": 40})).unwrap();
     app.sync_views();
     app.run("actions.record", json!({})).unwrap();
@@ -456,14 +456,14 @@ fn recorded_save_as_and_save_replay_and_write_the_file() {
     let written = std::rc::Rc::new(std::cell::RefCell::new(Vec::<String>::new()));
     let log = written.clone();
     let services = crate::Services {
-        export: Some(Box::new(|doc, path, _| localpaint_io::export(doc, path, &Default::default()).map(|r| (r.bytes, r.warnings)).map_err(|e| e.to_string()))),
+        export: Some(Box::new(|doc, path, _| localraster_io::export(doc, path, &Default::default()).map(|r| (r.bytes, r.warnings)).map_err(|e| e.to_string()))),
         write: Some(Box::new(move |path, _| {
             log.borrow_mut().push(path.to_string());
             Ok(())
         })),
         ..Default::default()
     };
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), services);
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), services);
     let ctx = egui::Context::default();
     app.run("file.new", json!({"width": 16, "height": 16})).unwrap();
     app.run("actions.record", json!({})).unwrap();
@@ -482,17 +482,17 @@ fn recorded_save_as_and_save_replay_and_write_the_file() {
 }
 
 /// An app with the real importer/exporter and writer whose Save dialogs answer `answers`.
-fn disk_app(answers: Vec<Option<crate::file_dialog::FileDialogAnswer>>) -> LocalPaintApp {
+fn disk_app(answers: Vec<Option<crate::file_dialog::FileDialogAnswer>>) -> LocalRasterApp {
     let services = crate::Services {
         import: Some(Box::new(|name, bytes, opts| {
-            localpaint_io::import_with_options(name, bytes, opts).map(|r| (r.document, r.warnings)).map_err(|e| e.to_string())
+            localraster_io::import_with_options(name, bytes, opts).map(|r| (r.document, r.warnings)).map_err(|e| e.to_string())
         })),
-        export: Some(Box::new(|doc, path, _| localpaint_io::export(doc, path, &Default::default()).map(|r| (r.bytes, r.warnings)).map_err(|e| e.to_string()))),
+        export: Some(Box::new(|doc, path, _| localraster_io::export(doc, path, &Default::default()).map(|r| (r.bytes, r.warnings)).map_err(|e| e.to_string()))),
         write: Some(Box::new(|path, bytes| std::fs::write(path, bytes).map_err(|e| e.to_string()))),
         file_dialog: Some(crate::file_dialog::fake(answers).0),
         ..Default::default()
     };
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), services);
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), services);
     app.background_jobs = false;
     app
 }
@@ -502,7 +502,7 @@ fn disk_app(answers: Vec<Option<crate::file_dialog::FileDialogAnswer>>) -> Local
 /// changed on disk.
 fn record_save_on_a_play_on_b(ext: &str, layered: bool) -> (Value, bool, bool) {
     use crate::file_dialog::FileDialogAnswer::SaveTo;
-    let dir = std::env::temp_dir().join(format!("localpaint-rec-save-{ext}-{layered}-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("localraster-rec-save-{ext}-{layered}-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let path = |n: &str| dir.join(format!("{n}.{ext}")).to_string_lossy().into_owned();
     let (a, b) = (path("a"), path("b"));
@@ -557,9 +557,9 @@ fn recorded_save_never_flattens_layers_over_a_flat_file() {
 /// Loads a Photoshop set holding Invert + a Save As into `dest` and plays it on a PSD.
 /// Returns the played result, whether the PSD changed on disk and the files in `out`.
 fn play_imported_save_as(dest: &str) -> (Value, bool, Vec<String>) {
-    use localpaint_psd::atn::{AtnAction, AtnEvent, AtnFile, AtnItem};
-    use localpaint_psd::descriptor::{Descriptor, UnicodeString, Value as D};
-    let dir = std::env::temp_dir().join(format!("localpaint-atn-save-as-{}-{}", dest.len(), std::process::id()));
+    use localraster_psd::atn::{AtnAction, AtnEvent, AtnFile, AtnItem};
+    use localraster_psd::descriptor::{Descriptor, UnicodeString, Value as D};
+    let dir = std::env::temp_dir().join(format!("localraster-atn-save-as-{}-{}", dest.len(), std::process::id()));
     let out = dir.join("out");
     std::fs::create_dir_all(&out).unwrap();
     let src = dir.join("src.psd").to_string_lossy().into_owned();
@@ -594,7 +594,7 @@ fn play_imported_save_as(dest: &str) -> (Value, bool, Vec<String>) {
     app.run("file.new", json!({"width": 16, "height": 16})).unwrap();
     app.save_as(Some(src.clone())).unwrap();
     let before = std::fs::read(&src).unwrap();
-    app.run("actions.load", json!({"data": localpaint_engine::paint::tile::b64_encode(&localpaint_psd::atn::write(&set).unwrap())})).unwrap();
+    app.run("actions.load", json!({"data": localraster_engine::paint::tile::b64_encode(&localraster_psd::atn::write(&set).unwrap())})).unwrap();
     app.open_path(&src).unwrap();
     let played = app.run("actions.play", json!({"action": 0})).unwrap();
     let mut written: Vec<String> = std::fs::read_dir(&out).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
@@ -625,7 +625,7 @@ fn imported_save_as_into_a_folder_stops_before_writing() {
 #[test]
 fn set_folders_group_actions_and_collapse() {
     use egui_kittest::{Harness, kittest::Queryable};
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     let mut sharpen = Action::new("Sharpen", vec![("filter.sharpen.sharpen".into(), json!({}))]);
     sharpen.set = Some("Retouch".into());
     let mut soften = Action::new("Soften", vec![("filter.blur.blur".into(), json!({}))]);
@@ -655,8 +655,8 @@ fn set_folders_group_actions_and_collapse() {
 
 /// Two sets, Web listed first: "Resize" (Web) adds a layer "w", "Sharpen" and "Soften" (Retouch)
 /// add "r1" and "r2".
-fn two_set_panel() -> egui_kittest::Harness<'static, LocalPaintApp> {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn two_set_panel() -> egui_kittest::Harness<'static, LocalRasterApp> {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
     for (name, set, layer) in [("Resize", "Web", "w"), ("Sharpen", "Retouch", "r1"), ("Soften", "Retouch", "r2")] {
         let mut a = Action::new(name, vec![("layer.new.layer".into(), json!({"name": layer}))]);
@@ -668,13 +668,13 @@ fn two_set_panel() -> egui_kittest::Harness<'static, LocalPaintApp> {
     h
 }
 
-fn layer_names(app: &LocalPaintApp) -> Vec<String> {
+fn layer_names(app: &LocalRasterApp) -> Vec<String> {
     app.session.active().unwrap().doc.walk().iter().map(|(_, _, l)| l.name.clone()).filter(|n| n != "Background").collect()
 }
 
 /// Click a set folder row's disclosure triangle (a plain `click()` lands on the row's middle,
 /// which selects the set).
-fn click_set_triangle(h: &mut egui_kittest::Harness<'_, LocalPaintApp>, set: &str) {
+fn click_set_triangle(h: &mut egui_kittest::Harness<'_, LocalRasterApp>, set: &str) {
     use egui_kittest::kittest::Queryable;
     let pos = h.get_by_label(set).rect().left_center() + vec2(12.0, 0.0);
     h.event(egui::Event::PointerMoved(pos));
@@ -804,7 +804,7 @@ fn a_selected_step_replaces_the_selected_set() {
 fn a_set_paused_at_a_step_dialog_plays_its_other_actions_after_ok() {
     use egui_kittest::kittest::Queryable;
     for ok in [true, false] {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
         let mut a = Action::new(
             "A",
@@ -855,7 +855,7 @@ fn a_set_paused_at_a_step_dialog_plays_its_other_actions_after_ok() {
 #[test]
 fn a_set_paused_at_a_dialog_plays_its_own_actions_after_a_move() {
     use egui_kittest::kittest::Queryable;
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
     for (name, set, layer) in [("A", "S", "a"), ("B", "S", "b"), ("C", "S", "c"), ("X", "Other", "x")] {
         let mut a = Action::new(name, vec![("layer.new.layer".into(), json!({"name": layer}))]);
@@ -885,7 +885,7 @@ fn a_set_paused_at_a_dialog_plays_its_own_actions_after_a_move() {
 #[test]
 fn a_set_paused_at_a_dialog_ends_at_an_action_replaced_under_its_name() {
     use egui_kittest::kittest::Queryable;
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
     for (name, layer) in [("A", "a"), ("B", "b"), ("C", "c")] {
         let mut a = Action::new(name, vec![("layer.new.layer".into(), json!({"name": layer}))]);
@@ -917,7 +917,7 @@ fn a_set_paused_at_a_dialog_ends_at_an_action_replaced_under_its_name() {
 #[test]
 fn a_set_paused_inside_a_called_action_stops_there() {
     use egui_kittest::kittest::Queryable;
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
     let mut a = Action::new("A", vec![("actions.play".into(), json!({"action": "C"})), ("layer.new.layer".into(), json!({"name": "a-tail"}))]);
     a.set = Some("S".into());
@@ -946,7 +946,7 @@ fn a_set_folder_toggles_without_a_pointer() {
     let mut h = two_set_panel();
     use egui::accesskit::Toggled;
     use egui_kittest::kittest::NodeT;
-    let selected = |h: &egui_kittest::Harness<'_, LocalPaintApp>| h.get_by_label("Retouch").accesskit_node().toggled();
+    let selected = |h: &egui_kittest::Harness<'_, LocalRasterApp>| h.get_by_label("Retouch").accesskit_node().toggled();
     assert_eq!(selected(&h), Some(Toggled::False));
     h.get_by_label("Retouch").click_accesskit();
     h.run_steps(2);
@@ -963,7 +963,7 @@ fn a_set_folder_toggles_without_a_pointer() {
 #[test]
 fn new_set_makes_an_empty_folder_that_new_action_records_into() {
     use egui_kittest::{Harness, kittest::Queryable};
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
     let mut retouch = Action::new("Sharpen", vec![]);
     retouch.set = Some("Retouch".into());
@@ -1001,7 +1001,7 @@ fn new_set_makes_an_empty_folder_that_new_action_records_into() {
 #[test]
 fn new_action_with_no_set_selected_is_in_no_set() {
     use egui_kittest::{Harness, kittest::Queryable};
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
     let mut retouch = Action::new("Sharpen", vec![]);
     retouch.set = Some("Retouch".into());
@@ -1022,7 +1022,7 @@ fn new_action_with_no_set_selected_is_in_no_set() {
 #[test]
 fn reopening_the_actions_panel_keeps_the_selected_set_and_empty_sets() {
     use egui_kittest::{Harness, kittest::Queryable};
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
     let mut retouch = Action::new("Sharpen", vec![]);
     retouch.set = Some("Retouch".into());
@@ -1039,7 +1039,7 @@ fn reopening_the_actions_panel_keeps_the_selected_set_and_empty_sets() {
         app,
     );
     let ctx = h.ctx.clone();
-    let toggle = |h: &mut Harness<'_, LocalPaintApp>| {
+    let toggle = |h: &mut Harness<'_, LocalRasterApp>| {
         crate::menus::invoke(h.state_mut(), &ctx, "window.panel.actions", json!({})).unwrap();
         h.run_steps(2);
     };
@@ -1069,7 +1069,7 @@ fn reopening_the_actions_panel_keeps_the_selected_set_and_empty_sets() {
 #[test]
 fn start_recording_with_a_set_selected_records_a_new_action_into_it() {
     use egui_kittest::{Harness, kittest::Queryable};
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
     let mut retouch = Action::new("Sharpen", vec![]);
     retouch.set = Some("Retouch".into());
@@ -1100,7 +1100,7 @@ fn start_recording_with_a_set_selected_records_a_new_action_into_it() {
 fn recording_into_a_collapsed_set_expands_it() {
     use egui_kittest::{Harness, kittest::Queryable};
     for label in ["Create new action", "Start Recording"] {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
         let mut retouch = Action::new("Sharpen", vec![]);
         retouch.set = Some("Retouch".into());
@@ -1133,7 +1133,7 @@ fn save_actions_with_a_set_selected_saves_that_set() {
     use egui_kittest::{Harness, kittest::Queryable};
     let (file_dialog, asked) = crate::file_dialog::fake(vec![None]);
     let services = crate::Services { file_dialog: Some(file_dialog), ..Default::default() };
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), services);
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), services);
     app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
     for (name, set) in [("Sharpen", "Retouch"), ("Resize", "Web")] {
         let mut action = Action::new(name, vec![("layer.new.layer".into(), json!({}))]);
@@ -1165,7 +1165,7 @@ fn save_actions_suggests_a_file_name_without_path_characters() {
     use egui_kittest::{Harness, kittest::Queryable};
     let (file_dialog, asked) = crate::file_dialog::fake(vec![None]);
     let services = crate::Services { file_dialog: Some(file_dialog), ..Default::default() };
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), services);
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), services);
     app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
     app.session.actions.list.push(Action::new("Loose", vec![]));
     let set = "Web/Print\\Mail: v2";
@@ -1196,10 +1196,10 @@ fn save_actions_suggests_a_file_name_without_path_characters() {
 /// menu, and a fake Save dialog whose requests the test reads.
 fn empty_set_save_harness(
     set: &str,
-) -> (egui_kittest::Harness<'static, LocalPaintApp>, std::rc::Rc<std::cell::RefCell<Vec<crate::file_dialog::FileDialogRequest>>>) {
+) -> (egui_kittest::Harness<'static, LocalRasterApp>, std::rc::Rc<std::cell::RefCell<Vec<crate::file_dialog::FileDialogRequest>>>) {
     let (file_dialog, asked) = crate::file_dialog::fake(vec![None]);
     let services = crate::Services { file_dialog: Some(file_dialog), ..Default::default() };
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), services);
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), services);
     app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
     app.run("actions.newSet", json!({"name": set})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(vec2(360.0, 600.0)).build_ui_state(
@@ -1294,7 +1294,7 @@ fn save_actions_suggests_a_file_name_of_at_most_255_bytes() {
 
 #[test]
 fn moving_an_action_next_to_another_set_joins_it() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     let mut a = Action::new("A", vec![]);
     a.set = Some("One".into());
     let mut b = Action::new("B", vec![]);
@@ -1315,7 +1315,7 @@ fn moving_an_action_next_to_another_set_joins_it() {
 
 #[test]
 fn insert_stop_dialog_adds_a_stop_after_the_selected_step() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
     app.session.actions.list.push(Action::new("A", vec![("select.all".into(), json!({})), ("select.inverse".into(), json!({}))]));
     assert!(insert_stop_dialog(&mut app).is_err(), "needs a selected action");
@@ -1329,7 +1329,7 @@ fn insert_stop_dialog_adds_a_stop_after_the_selected_step() {
     d.fields.insert("allowContinue".into(), json!(true));
     crate::dialogs::confirm(&mut app, id).unwrap();
     let steps = &app.session.actions.list[0].steps;
-    assert_eq!(steps[1], (localpaint_engine::atn_cmds::STOP_MESSAGE.to_string(), json!({"message": "Check the mask", "allowContinue": true})));
+    assert_eq!(steps[1], (localraster_engine::atn_cmds::STOP_MESSAGE.to_string(), json!({"message": "Check the mask", "allowContinue": true})));
     assert_eq!((app.ui.actions.selected, app.ui.actions.selected_step), (Some(0), Some(1)));
     assert_eq!(step_label(&steps[1].0, &steps[1].1), "Stop: Check the mask");
     // Without a selected step the stop goes last; the panel's menu wiring is exercised by name.
@@ -1343,7 +1343,7 @@ fn insert_stop_dialog_adds_a_stop_after_the_selected_step() {
 #[test]
 fn dialog_worker_failure_stops_action_before_following_steps() {
     for (background, locked) in [(true, true), (false, true), (true, false)] {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 8, "height": 6, "background": "#203040"})).unwrap();
         let mut action = Action::new(
             "Worker Result",
@@ -1379,7 +1379,7 @@ fn dialog_worker_failure_stops_action_before_following_steps() {
 
 #[test]
 fn a_dialog_toggled_step_pauses_playback_and_resumes_on_ok() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 16, "height": 16})).unwrap();
     let mut a = Action::new(
         "Blur",
@@ -1428,8 +1428,8 @@ fn a_dialog_toggled_step_pauses_playback_and_resumes_on_ok() {
 
 /// An 8×6 document, a Child action whose first step (a blur) shows its dialog and whose
 /// second step adds a "Suffix" layer, and recording into Owner started.
-fn recording_with_dialog_child() -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn recording_with_dialog_child() -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 8, "height": 6, "background": "#203040"})).unwrap();
     let mut child =
         Action::new("Child", vec![("filter.blur.gaussianBlur".into(), json!({"radius": 1.5})), ("layer.new.layer".into(), json!({"name": "Suffix"}))]);
@@ -1439,7 +1439,7 @@ fn recording_with_dialog_child() -> LocalPaintApp {
     app
 }
 
-fn suffixes(app: &LocalPaintApp) -> usize {
+fn suffixes(app: &LocalRasterApp) -> usize {
     app.session.active().unwrap().doc.walk().iter().filter(|(_, _, l)| l.name == "Suffix").count()
 }
 
@@ -1448,7 +1448,7 @@ fn child_call() -> Vec<(String, Value)> {
 }
 
 /// Play Child and return the id of its step dialog.
-fn pause_child(app: &mut LocalPaintApp) -> u64 {
+fn pause_child(app: &mut LocalRasterApp) -> u64 {
     let v = play(app, &json!({"action": "Child"})).unwrap();
     v["paused"]["dialog"].as_u64().unwrap()
 }
@@ -1462,7 +1462,7 @@ fn a_recorded_call_paused_by_a_dialog_records_one_call_and_replays_once() {
     let live = app.session.journal.len();
     let id = pause_child(&mut app);
     assert!(app.session.actions.recording.is_none(), "recording stays suspended while the step dialog is open");
-    let names = |app: &LocalPaintApp| app.session.actions.list.iter().map(|a| a.name.clone()).collect::<Vec<_>>();
+    let names = |app: &LocalRasterApp| app.session.actions.list.iter().map(|a| a.name.clone()).collect::<Vec<_>>();
     let before = names(&app);
     assert_eq!(app.run("actions.record", json!({"name": "Intruder"})), Err(refusal.clone()), "no second recording while the call is suspended");
     assert_eq!(app.run("actions.delete", json!({"action": "Owner"})), Err(refusal.clone()), "the suspended owner can't be deleted");
@@ -1552,7 +1552,7 @@ fn a_suspended_call_is_recorded_into_its_action_after_the_list_changes() {
 fn escape_on_a_step_dialog_ends_the_recorded_call_once() {
     let app = recording_with_dialog_child();
     let mut h = egui_kittest::Harness::builder().with_size(vec2(900.0, 700.0)).build_ui_state(|ui, app| crate::dialogs::show(app, ui.ctx()), app);
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
     h.run_steps(2);
     pause_child(h.state_mut());
     h.run_steps(4);
@@ -1568,7 +1568,7 @@ fn escape_on_a_step_dialog_ends_the_recorded_call_once() {
 
 #[test]
 fn a_step_dialog_keeps_its_continuation_token() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.background_jobs = false;
     app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
     for (name, steps) in [
@@ -1598,14 +1598,14 @@ fn a_step_dialog_keeps_its_continuation_token() {
     assert!(app.paused_playbacks.paused.is_empty());
 }
 
-fn recording_with_displace_child() -> LocalPaintApp {
+fn recording_with_displace_child() -> LocalRasterApp {
     let mut app = recording_with_dialog_child();
     app.background_jobs = false;
     app.session.actions.list[0].steps[0] = ("filter.distort.displace".into(), json!({}));
     app
 }
 
-fn assert_displace_call_finished(app: &mut LocalPaintApp, suffix_count: usize) {
+fn assert_displace_call_finished(app: &mut LocalRasterApp, suffix_count: usize) {
     assert!(!app.file_dialog_open());
     assert!(app.ui.dialogs.is_empty());
     assert!(app.paused_playbacks.paused.is_empty());
@@ -1653,7 +1653,7 @@ fn a_displace_step_resumes_and_records_its_call_once_after_choosing_a_map() {
     let mut app = recording_with_displace_child();
     let dir = tempfile::tempdir().unwrap();
     let map = dir.path().join("map.png");
-    let bytes = localpaint_io::export(&app.session.active().unwrap().doc, "png", &Default::default()).unwrap().bytes;
+    let bytes = localraster_io::export(&app.session.active().unwrap().doc, "png", &Default::default()).unwrap().bytes;
     std::fs::write(&map, bytes).unwrap();
     let (show, _) = crate::file_dialog::fake(vec![Some(crate::file_dialog::FileDialogAnswer::Paths(vec![map.to_string_lossy().into_owned()]))]);
     app.services.file_dialog = Some(show);
@@ -1665,7 +1665,7 @@ fn a_displace_step_resumes_and_records_its_call_once_after_choosing_a_map() {
 
 #[test]
 fn a_step_dialog_takes_only_the_steps_values() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 16, "height": 16})).unwrap();
     let mut a = Action::new("Blur", vec![("filter.blur.gaussianBlur".into(), json!({"radius": 2, "__command": "select.all", "__label": "Other"}))]);
     a.dialogs.insert(0);
@@ -1677,13 +1677,13 @@ fn a_step_dialog_takes_only_the_steps_values() {
     assert_ne!(d.fields["__label"], "Other");
 }
 
-fn deny_blur(id: &str, _: &Value) -> localpaint_engine::Result<()> {
-    if id == "filter.blur.gaussianBlur" { Err(localpaint_engine::EngineError::Other("blur denied".into())) } else { Ok(()) }
+fn deny_blur(id: &str, _: &Value) -> localraster_engine::Result<()> {
+    if id == "filter.blur.gaussianBlur" { Err(localraster_engine::EngineError::Other("blur denied".into())) } else { Ok(()) }
 }
 
 #[test]
 fn a_step_the_gate_denies_opens_no_dialog() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 16, "height": 16})).unwrap();
     let mut a = Action::new("Blur", vec![("filter.blur.gaussianBlur".into(), json!({"radius": 1}))]);
     a.dialogs.insert(0);
@@ -1696,8 +1696,8 @@ fn a_step_the_gate_denies_opens_no_dialog() {
     assert!(app.paused_playbacks.paused.is_empty());
 }
 
-fn deny_select_all(id: &str, _: &Value) -> localpaint_engine::Result<()> {
-    if id == "select.all" { Err(localpaint_engine::EngineError::Other("select.all denied".into())) } else { Ok(()) }
+fn deny_select_all(id: &str, _: &Value) -> localraster_engine::Result<()> {
+    if id == "select.all" { Err(localraster_engine::EngineError::Other("select.all denied".into())) } else { Ok(()) }
 }
 
 /// An action an automation client plays (`control::handle` installs the gate, then removes
@@ -1705,7 +1705,7 @@ fn deny_select_all(id: &str, _: &Value) -> localpaint_engine::Result<()> {
 /// OK, runs the remaining steps under the same gate.
 #[test]
 fn a_paused_playback_keeps_its_automation_gate_when_the_dialog_is_confirmed() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 16, "height": 16})).unwrap();
     let mut a = Action::new("Seeded", vec![("filter.blur.gaussianBlur".into(), json!({"radius": 1})), ("select.all".into(), json!({}))]);
     a.dialogs.insert(0);
@@ -1724,7 +1724,7 @@ fn a_paused_playback_keeps_its_automation_gate_when_the_dialog_is_confirmed() {
 /// The dialog names only its pause: changing its fields can't resume another action.
 #[test]
 fn a_step_dialog_resumes_only_the_playback_that_paused_it() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 16, "height": 16})).unwrap();
     let mut a = Action::new("Blur", vec![("filter.blur.gaussianBlur".into(), json!({"radius": 1}))]);
     a.dialogs.insert(0);
@@ -1741,7 +1741,7 @@ fn a_step_dialog_resumes_only_the_playback_that_paused_it() {
 #[test]
 fn button_mode_plays_the_clicked_action_and_hides_its_steps() {
     use egui_kittest::{Harness, kittest::Queryable};
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 16, "height": 16})).unwrap();
     app.session.actions.list.push(Action::new("Print", vec![("layer.new.layer".into(), json!({}))]));
     app.session.actions.list[0].color = "blue".into();
@@ -1766,12 +1766,12 @@ fn button_mode_plays_the_clicked_action_and_hides_its_steps() {
 /// document (#7367).
 #[test]
 fn save_hook_closing_the_target_stops_an_imported_close_with_save() {
-    use localpaint_psd::atn::{self, AtnEvent, AtnItem};
-    use localpaint_psd::descriptor::{Descriptor, Id, Value as D};
+    use localraster_psd::atn::{self, AtnEvent, AtnItem};
+    use localraster_psd::descriptor::{Descriptor, Id, Value as D};
     use std::{cell::RefCell, rc::Rc};
     // A one-step .atn: Close (`Cls `) with Save: Yes.
     let seed = Action::new("Seed", vec![("layer.new.layer".into(), json!({}))]);
-    let (bytes, _) = localpaint_engine::atn_cmds::export("Set", &[&seed], &[], false).unwrap();
+    let (bytes, _) = localraster_engine::atn_cmds::export("Set", &[&seed], &[], false).unwrap();
     let mut f = atn::parse(&bytes).unwrap();
     f.actions[0].items = vec![AtnItem {
         event: AtnEvent::Code(*b"Cls "),
@@ -1779,7 +1779,7 @@ fn save_hook_closing_the_target_stops_an_imported_close_with_save() {
         descriptor: Some(Descriptor::new("null").with("Svng", D::Enumerated { type_id: Id::new("YsN "), value: Id::new("Ys  ") })),
         ..Default::default()
     }];
-    let imported = localpaint_engine::atn_cmds::import(&atn::write(&f).unwrap()).unwrap();
+    let imported = localraster_engine::atn_cmds::import(&atn::write(&f).unwrap()).unwrap();
     let close_with_save = imported.actions[0].clone();
     assert_eq!(close_with_save.steps, [("file.save".into(), json!({})), ("file.close".into(), json!({}))]);
     for hook in ["none", "activate", "close"] {
@@ -1793,7 +1793,7 @@ fn save_hook_closing_the_target_stops_an_imported_close_with_save() {
             })),
             ..Default::default()
         };
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), services);
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), services);
         // B is dirty with an unsaved KeepB layer; A is active and has its own file.
         for name in ["B", "A"] {
             app.run("file.new", json!({"name": name, "width": 2, "height": 2})).unwrap();

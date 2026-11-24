@@ -1,9 +1,9 @@
 use super::open::{Coverage, Target};
-use super::{CameraRaw, CameraRawDialog, LayerId, LocalPaintApp, MAX_SAMPLERS, PROXY_SIDE, Rect, RgbHistogram, Value, json};
+use super::{CameraRaw, CameraRawDialog, LayerId, LocalRasterApp, MAX_SAMPLERS, PROXY_SIDE, Rect, RgbHistogram, Value, json};
 
 /// Camera Raw Defaults › Sharpen For: output sharpening, folded into the Camera Raw step `rest`
 /// as the workflow's Sharpen For is. Returns what it applied.
-pub(super) fn output_sharpening(d: &localpaint_engine::prefs::RawDefaults, rest: &mut CameraRaw) -> Vec<&'static str> {
+pub(super) fn output_sharpening(d: &localraster_engine::prefs::RawDefaults, rest: &mut CameraRaw) -> Vec<&'static str> {
     match d.sharpen_for.preset() {
         Some((amount, radius)) if rest.sharpen_amount == 0.0 => {
             rest.sharpen_amount = amount;
@@ -16,10 +16,10 @@ pub(super) fn output_sharpening(d: &localpaint_engine::prefs::RawDefaults, rest:
 
 /// The Camera Raw Defaults [`apply_raw_conversions`] applies. Resolution is not among them: the
 /// open itself sets it (`file_cmds::raw_defaults`), and a re-develop keeps it.
-pub(super) fn raw_conversions(d: &localpaint_engine::prefs::RawDefaults) -> Vec<&'static str> {
-    use localpaint_engine::prefs::{RawColorSpace, RawDepth};
+pub(super) fn raw_conversions(d: &localraster_engine::prefs::RawDefaults) -> Vec<&'static str> {
+    use localraster_engine::prefs::{RawColorSpace, RawDepth};
     let mut out = Vec::new();
-    // Raws develop into ProPhoto-compatible RGB (`localpaint_io::raw`); the other spaces are a
+    // Raws develop into ProPhoto-compatible RGB (`localraster_io::raw`); the other spaces are a
     // conversion.
     if d.color_space != RawColorSpace::ProPhoto {
         out.push("colorSpace");
@@ -35,7 +35,7 @@ pub(super) fn raw_conversions(d: &localpaint_engine::prefs::RawDefaults) -> Vec<
 
 /// Camera Raw Defaults (Preferences) after the Camera Raw step: the colour space and bit depth
 /// the developed document opens in, and Open as Smart Object.
-pub(super) fn apply_raw_conversions(app: &mut LocalPaintApp, index: usize, d: &localpaint_engine::prefs::RawDefaults) -> Result<(), String> {
+pub(super) fn apply_raw_conversions(app: &mut LocalRasterApp, index: usize, d: &localraster_engine::prefs::RawDefaults) -> Result<(), String> {
     app.session.set_active(index);
     for step in raw_conversions(d) {
         let (id, params) = match step {
@@ -49,10 +49,10 @@ pub(super) fn apply_raw_conversions(app: &mut LocalPaintApp, index: usize, d: &l
 }
 
 pub(super) fn open_pixels(
-    app: &mut LocalPaintApp,
+    app: &mut LocalRasterApp,
     ctx: &egui::Context,
     layer: LayerId,
-    surf: localpaint_raster::Surface,
+    surf: localraster_raster::Surface,
     params: CameraRaw,
     coverage: Coverage,
     target: Target,
@@ -62,7 +62,7 @@ pub(super) fn open_pixels(
     let name = st.doc.layer(layer).map(|l| l.name.clone()).unwrap_or_default();
     let mut params = params;
     if params.encoding_gamma == 0.0 {
-        params.encoding_gamma = localpaint_engine::lens_cmds::encoding_gamma(&st.doc);
+        params.encoding_gamma = localraster_engine::lens_cmds::encoding_gamma(&st.doc);
     }
     // Use the engine filter domain, including pixels outside the canvas: spatial Camera Raw
     // stages (vignette, grain, local contrast) must agree with the committed result.
@@ -110,10 +110,10 @@ pub(super) fn open_pixels(
         Coverage::Mask(mask) => Some(sample(&|x, y| mask.value(x, y))),
         Coverage::None => None,
     };
-    let source = localpaint_engine::color_cmds::composite_profile(&st.doc);
+    let source = localraster_engine::color_cmds::composite_profile(&st.doc);
     let display = app.session.color.canvas_display(&st.doc).map_err(|e| e.to_string())?;
-    let lab_transform = localpaint_cms::cached(&source, localpaint_cms::Builtin::LabD50.profile(), Default::default()).map_err(|e| e.to_string())?;
-    let scope_transform = localpaint_cms::cached(&source, localpaint_cms::Builtin::Srgb.profile(), Default::default()).map_err(|e| e.to_string())?;
+    let lab_transform = localraster_cms::cached(&source, localraster_cms::Builtin::LabD50.profile(), Default::default()).map_err(|e| e.to_string())?;
+    let scope_transform = localraster_cms::cached(&source, localraster_cms::Builtin::Srgb.profile(), Default::default()).map_err(|e| e.to_string())?;
     if let Some(saved) = app.session.prefs().dialogs.get("filter.cameraRaw.scope")
         && saved.get("samplers").and_then(Value::as_array).is_none_or(|a| a.len() <= MAX_SAMPLERS)
         && let Ok(view) = serde_json::from_value(saved.clone())
@@ -127,7 +127,7 @@ pub(super) fn open_pixels(
     if selection.is_none() {
         app.ui.camera_raw_scope.selected_region = false;
     }
-    let float = surf.format().sample == localpaint_color::SampleType::F32;
+    let float = surf.format().sample == localraster_color::SampleType::F32;
     // Builds the GPU pass the first time any Camera Raw dialog opens.
     let gpu = crate::camera_raw_gpu::for_app(app);
     let mut d = CameraRawDialog {

@@ -10,7 +10,7 @@
 
 use serde_json::{Map, Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::adjust_editors::{self, EditorCx};
 use crate::tone::{self, HistSource};
 
@@ -18,8 +18,8 @@ const PREFIX: &str = "image.adjustments.";
 const CURVE_PICKER: &str = "__curvePicker";
 const CURVE_PICKER_BASE: &str = "__curvePickerBase";
 
-fn picker(value: Option<&Value>) -> Option<localpaint_engine::adjust_params::CurvesEyedropper> {
-    use localpaint_engine::adjust_params::CurvesEyedropper;
+fn picker(value: Option<&Value>) -> Option<localraster_engine::adjust_params::CurvesEyedropper> {
+    use localraster_engine::adjust_params::CurvesEyedropper;
     match value.and_then(Value::as_str) {
         Some("black") => Some(CurvesEyedropper::Black),
         Some("gray") => Some(CurvesEyedropper::NeutralGray),
@@ -28,9 +28,9 @@ fn picker(value: Option<&Value>) -> Option<localpaint_engine::adjust_params::Cur
     }
 }
 
-pub(crate) fn picker_supported(mode: localpaint_doc::ColorMode, eyedropper: localpaint_engine::adjust_params::CurvesEyedropper) -> bool {
-    use localpaint_engine::adjust_params::CurvesEyedropper;
-    mode == localpaint_doc::ColorMode::Rgb || (mode == localpaint_doc::ColorMode::Grayscale && eyedropper != CurvesEyedropper::NeutralGray)
+pub(crate) fn picker_supported(mode: localraster_doc::ColorMode, eyedropper: localraster_engine::adjust_params::CurvesEyedropper) -> bool {
+    use localraster_engine::adjust_params::CurvesEyedropper;
+    mode == localraster_doc::ColorMode::Rgb || (mode == localraster_doc::ColorMode::Grayscale && eyedropper != CurvesEyedropper::NeutralGray)
 }
 
 /// The kind of an adjustment dialog with Set Black/Neutral Gray/White Point eyedroppers (Levels,
@@ -40,7 +40,7 @@ fn picker_kind(fields: &Map<String, Value>) -> Option<&str> {
 }
 
 /// Whether the top modal has a supported Levels or Curves eyedropper armed.
-pub fn picker_armed(app: &LocalPaintApp) -> bool {
+pub fn picker_armed(app: &LocalRasterApp) -> bool {
     let Some(dialog) = app.ui.dialogs.last().filter(|d| picker_kind(&d.fields).is_some()) else { return false };
     let Some(eyedropper) = picker(dialog.fields.get(CURVE_PICKER)) else { return false };
     app.session.active().is_some_and(|s| picker_supported(s.doc.mode, eyedropper))
@@ -49,7 +49,7 @@ pub fn picker_armed(app: &LocalPaintApp) -> bool {
 /// Sample the committed merged document through the regular canvas sampler and update only the
 /// open Levels or Curves dialog. Returns true when an armed picker consumed the pointer event,
 /// even if the point was outside the image or transparent.
-pub fn sample_at(app: &mut LocalPaintApp, x: f64, y: f64) -> bool {
+pub fn sample_at(app: &mut LocalRasterApp, x: f64, y: f64) -> bool {
     let Some((id, kind, eyedropper, base)) = app.ui.dialogs.last().and_then(|dialog| {
         let kind = picker_kind(&dialog.fields)?.to_string();
         let eyedropper = picker(dialog.fields.get(CURVE_PICKER))?;
@@ -63,8 +63,8 @@ pub fn sample_at(app: &mut LocalPaintApp, x: f64, y: f64) -> bool {
         return true;
     }
     let Some(sample) = crate::canvas::composite_color(app, x, y) else { return true };
-    let params = match localpaint_engine::adjust_params::adjustment_eyedropper(&kind, &base, eyedropper, sample, mode) {
-        Ok(adjustment) => localpaint_engine::adjust_params::to_params(&adjustment),
+    let params = match localraster_engine::adjust_params::adjustment_eyedropper(&kind, &base, eyedropper, sample, mode) {
+        Ok(adjustment) => localraster_engine::adjust_params::to_params(&adjustment),
         Err(error) => {
             app.ui.status = error.to_string();
             return true;
@@ -80,7 +80,7 @@ pub fn sample_at(app: &mut LocalPaintApp, x: f64, y: f64) -> bool {
 }
 
 /// Whether the top modal is the Curves dialog.
-pub fn curves_on_top(app: &LocalPaintApp) -> bool {
+pub fn curves_on_top(app: &LocalRasterApp) -> bool {
     app.ui.dialogs.last().is_some_and(|d| d.fields.get("__adjust").and_then(Value::as_str) == Some("curves"))
 }
 
@@ -92,7 +92,7 @@ pub fn curves_on_top(app: &LocalPaintApp) -> bool {
 /// The pixel comes from the same merged composite as the eyedroppers. Returns true when Curves is
 /// on top: the click is the dialog's even when nothing is added (pencil curve, Lab or CMYK, a mask
 /// or saved channel target, outside the image, a full curve).
-pub fn add_point_at(app: &mut LocalPaintApp, ctx: &egui::Context, x: f64, y: f64, every_channel: bool) -> bool {
+pub fn add_point_at(app: &mut LocalRasterApp, ctx: &egui::Context, x: f64, y: f64, every_channel: bool) -> bool {
     if !curves_on_top(app) {
         return false;
     }
@@ -104,7 +104,7 @@ pub fn add_point_at(app: &mut LocalPaintApp, ctx: &egui::Context, x: f64, y: f64
         return true;
     }
     let Some(mode) = app.session.active().map(|s| s.doc.mode) else { return true };
-    if !matches!(mode, localpaint_doc::ColorMode::Rgb | localpaint_doc::ColorMode::Grayscale) {
+    if !matches!(mode, localraster_doc::ColorMode::Rgb | localraster_doc::ColorMode::Grayscale) {
         app.ui.status = tl!("Unavailable in this color mode").into();
         return true;
     }
@@ -113,10 +113,10 @@ pub fn add_point_at(app: &mut LocalPaintApp, ctx: &egui::Context, x: f64, y: f64
         app.session
             .active()
             .and_then(|st| {
-                localpaint_engine::color_channels::explicit(&values, localpaint_engine::channel_cmds::color_count(&st.doc))
+                localraster_engine::color_channels::explicit(&values, localraster_engine::channel_cmds::color_count(&st.doc))
                     .ok()
                     .flatten()
-                    .and_then(|colors| localpaint_engine::channel_cmds::curve_channel_for_colors(&st.doc, colors))
+                    .and_then(|colors| localraster_engine::channel_cmds::curve_channel_for_colors(&st.doc, colors))
             })
             .or_else(|| isolated(app))
     } else {
@@ -130,7 +130,7 @@ pub fn add_point_at(app: &mut LocalPaintApp, ctx: &egui::Context, x: f64, y: f64
     let (shown, shown_key) = match &isolated {
         Some(c) if c.components.is_some() => {
             let ch: usize = ctx.data(|d| d.get_temp(dialog_mem("curves").with("curves-ch"))).unwrap_or(0);
-            let keys = localpaint_engine::adjust_params::channel_keys(adjust_editors::space_of(&values));
+            let keys = localraster_engine::adjust_params::channel_keys(adjust_editors::space_of(&values));
             let key = ch.checked_sub(1).and_then(|i| c.components.and_then(|colors| colors.indices().nth(i))).and_then(|i| keys.get(i)).copied().unwrap_or("");
             (ch, key)
         }
@@ -157,8 +157,8 @@ pub fn add_point_at(app: &mut LocalPaintApp, ctx: &egui::Context, x: f64, y: f64
         let input = (level.clamp(0.0, 1.0) * 255.0).round();
         let field = if key.is_empty() { "points" } else { key };
         let mut pts = adjust_editors::read_curve(&values, field);
-        let curve: Vec<_> = pts.iter().map(|q| localpaint_doc::adjust::CurvePoint { input: q[0] / 255.0, output: q[1] / 255.0 }).collect();
-        let lut = localpaint_compose::adjust::curve_lut(&curve);
+        let curve: Vec<_> = pts.iter().map(|q| localraster_doc::adjust::CurvePoint { input: q[0] / 255.0, output: q[1] / 255.0 }).collect();
+        let lut = localraster_compose::adjust::curve_lut(&curve);
         let at = (input / 255.0 * lut.len().saturating_sub(1) as f32).round() as usize;
         let Some(output) = lut.get(at).map(|o| (o * 255.0).round()) else { continue };
         let before = pts.len();
@@ -204,8 +204,8 @@ pub(crate) fn picker_button(ui: &mut egui::Ui, selected: bool, enabled: bool, to
     response
 }
 
-fn picker_controls(ui: &mut egui::Ui, fields: &mut Map<String, Value>, mode: localpaint_doc::ColorMode) {
-    use localpaint_engine::adjust_params::CurvesEyedropper;
+fn picker_controls(ui: &mut egui::Ui, fields: &mut Map<String, Value>, mode: localraster_doc::ColorMode) {
+    use localraster_engine::adjust_params::CurvesEyedropper;
     let current = picker(fields.get(CURVE_PICKER));
     let mut chosen = None;
     ui.horizontal(|ui| {
@@ -223,7 +223,7 @@ fn picker_controls(ui: &mut egui::Ui, fields: &mut Map<String, Value>, mode: loc
                 chosen = Some((id, eyedropper));
             }
         }
-        if !matches!(mode, localpaint_doc::ColorMode::Rgb | localpaint_doc::ColorMode::Grayscale) {
+        if !matches!(mode, localraster_doc::ColorMode::Rgb | localraster_doc::ColorMode::Grayscale) {
             ui.label(egui::RichText::new(tl!("Unavailable in this color mode")).color(tokens.text_faint).size(11.0));
         }
     });
@@ -257,7 +257,7 @@ pub fn resets(fields: &Map<String, Value>) -> bool {
 
 /// Alt+Cancel (Reset): engine defaults for the kind; Color Balance keeps Preserve Luminosity and
 /// shows Midtones (Photoshop 25.4). Dialog stays open.
-pub fn reset(app: &LocalPaintApp, ctx: &egui::Context, fields: &mut Map<String, Value>) {
+pub fn reset(app: &LocalRasterApp, ctx: &egui::Context, fields: &mut Map<String, Value>) {
     if !owns(fields) {
         return;
     }
@@ -265,8 +265,8 @@ pub fn reset(app: &LocalPaintApp, ctx: &egui::Context, fields: &mut Map<String, 
     let mode = curve_mode_for_fields(app, &kind, fields);
     // Color Balance: Photoshop keeps the user's Preserve Luminosity across Reset.
     let preserve = if kind == "colorBalance" { fields.get("preserveLuminosity").cloned() } else { None };
-    let Ok(defaults) = localpaint_engine::adjust_params::default_for(&kind, mode) else { return };
-    let values = localpaint_engine::adjust_params::to_params(&defaults);
+    let Ok(defaults) = localraster_engine::adjust_params::default_for(&kind, mode) else { return };
+    let values = localraster_engine::adjust_params::to_params(&defaults);
     // Replace parameter keys; keep private `__` chrome (preview, command, …).
     fields.retain(|k, _| k.starts_with("__") || k == "target");
     if let Value::Object(v) = values {
@@ -283,25 +283,25 @@ pub fn reset(app: &LocalPaintApp, ctx: &egui::Context, fields: &mut Map<String, 
 }
 
 /// Opens the dialog for `command` with the kind's neutral settings.
-pub fn open(app: &mut LocalPaintApp, command: &str) -> Option<u64> {
+pub fn open(app: &mut LocalRasterApp, command: &str) -> Option<u64> {
     let kind = command.strip_prefix(PREFIX).filter(|k| adjust_editors::has_editor(k))?;
-    let spec = localpaint_engine::commands::find(command)?;
+    let spec = localraster_engine::commands::find(command)?;
     let mode = curve_mode(app, kind);
-    let defaults = localpaint_engine::adjust_params::default_for(kind, mode).ok()?;
+    let defaults = localraster_engine::adjust_params::default_for(kind, mode).ok()?;
     let mut fields = Map::new();
     fields.insert("__command".into(), json!(command));
     fields.insert("__label".into(), json!(spec.label));
     fields.insert("__adjust".into(), json!(kind));
     fields.insert("__filter".into(), json!(true));
     fields.insert("__preview".into(), json!(true));
-    if let Value::Object(p) = localpaint_engine::adjust_params::to_params(&defaults) {
+    if let Value::Object(p) = localraster_engine::adjust_params::to_params(&defaults) {
         fields.extend(p);
     }
-    if app.filter_mask_targeted() && localpaint_engine::channel_cmds::follows_filter_mask(command) {
+    if app.filter_mask_targeted() && localraster_engine::channel_cmds::follows_filter_mask(command) {
         fields.insert("target".into(), json!("filterMask"));
     } else if app.layer_mask_targeted() {
         fields.insert("target".into(), json!("mask"));
-    } else if let Some(colors) = localpaint_engine::color_channels::selected(&app.session) {
+    } else if let Some(colors) = localraster_engine::color_channels::selected(&app.session) {
         fields.insert("target".into(), colors.params());
     }
     Some(app.ui.open_dialog(crate::state::DialogKind::Command, fields))
@@ -310,28 +310,28 @@ pub fn open(app: &mut LocalPaintApp, command: &str) -> Option<u64> {
 /// Whether the dialog's captured target is a set of several Lab components, whose Levels and
 /// Curves settings are kept as a separate combined record.
 fn combined_lab_target(fields: &Map<String, Value>) -> bool {
-    localpaint_engine::color_channels::explicit(&crate::filter_dialog::params_of(fields), 3).ok().flatten().is_some_and(|c| c.len() > 1)
+    localraster_engine::color_channels::explicit(&crate::filter_dialog::params_of(fields), 3).ok().flatten().is_some_and(|c| c.len() > 1)
 }
 
 /// Opens the dialog for `command` at the settings last confirmed in it (Photoshop's ⌥ plus the
 /// adjustment's shortcut, ⌥⌘L / ⌥⌘M, #8900), or at the neutral ones when there are none or they
 /// don't fit the current colour mode.
-pub fn open_last(app: &mut LocalPaintApp, command: &str) -> Option<u64> {
+pub fn open_last(app: &mut LocalRasterApp, command: &str) -> Option<u64> {
     let id = open(app, command)?;
     let kind = command.strip_prefix(PREFIX).unwrap_or_default();
     let mode = curve_mode(app, kind);
     let Some(last) = app.session.prefs().dialogs.get(command).cloned() else { return Some(id) };
-    let Ok(adjustment) = localpaint_engine::adjust_params::from_params(kind, &last, None, mode) else { return Some(id) };
-    let mut restored = localpaint_engine::adjust_params::to_params(&adjustment);
+    let Ok(adjustment) = localraster_engine::adjust_params::from_params(kind, &last, None, mode) else { return Some(id) };
+    let mut restored = localraster_engine::adjust_params::to_params(&adjustment);
     // The target `open` captured, as `remember` reads it: a viewed layer mask wins over the
     // Channels panel's colour set, so its settings are restored as saved.
     let captured_set = app.ui.dialog_mut(id).is_some_and(|d| combined_lab_target(&d.fields));
-    if mode == localpaint_doc::ColorMode::Lab && matches!(kind, "levels" | "curves") && captured_set {
+    if mode == localraster_doc::ColorMode::Lab && matches!(kind, "levels" | "curves") && captured_set {
         // The parser validates all records, but ordinary Lab serialization aliases the master
         // to Lightness. A partial set keeps the separately saved combined record.
-        let neutral = localpaint_engine::adjust_params::default_for(kind, localpaint_doc::ColorMode::Grayscale)
+        let neutral = localraster_engine::adjust_params::default_for(kind, localraster_doc::ColorMode::Grayscale)
             .ok()
-            .map(|a| localpaint_engine::adjust_params::to_params(&a))
+            .map(|a| localraster_engine::adjust_params::to_params(&a))
             .unwrap_or(Value::Null);
         let combined = if last.get("__combinedLab").and_then(Value::as_bool) == Some(true) { &last } else { &neutral };
         for key in ["points", "inBlack", "inWhite", "gamma", "outBlack", "outWhite"] {
@@ -349,7 +349,7 @@ pub fn open_last(app: &mut LocalPaintApp, command: &str) -> Option<u64> {
 
 /// Remember an adjustment dialog's settings after a successful OK, for [`open_last`]. Editing a
 /// smart filter's settings is not a use of the dialog's own (as `filter_dialog::remember`).
-pub(crate) fn remember(app: &mut LocalPaintApp, fields: &Map<String, Value>) {
+pub(crate) fn remember(app: &mut LocalRasterApp, fields: &Map<String, Value>) {
     if fields.contains_key("__smartFilter") {
         return;
     }
@@ -358,7 +358,7 @@ pub(crate) fn remember(app: &mut LocalPaintApp, fields: &Map<String, Value>) {
     if let Some(o) = values.as_object_mut() {
         o.remove("target");
     }
-    if app.session.active().is_some_and(|st| st.doc.mode == localpaint_doc::ColorMode::Lab)
+    if app.session.active().is_some_and(|st| st.doc.mode == localraster_doc::ColorMode::Lab)
         && combined_lab_target(fields)
         && matches!(command.strip_prefix(PREFIX), Some("levels" | "curves"))
     {
@@ -370,37 +370,37 @@ pub(crate) fn remember(app: &mut LocalPaintApp, fields: &Map<String, Value>) {
 /// The Curves dialog's single-channel target: the Channels panel's, plus the Layers panel's mask
 /// selection — both ways of selecting a mask must give the same dropdown (#5335). A targeted
 /// filter mask is a gray plane too (FILE-215-3).
-fn isolated(app: &LocalPaintApp) -> Option<localpaint_engine::channel_cmds::IsolatedCurveChannel> {
+fn isolated(app: &LocalRasterApp) -> Option<localraster_engine::channel_cmds::IsolatedCurveChannel> {
     let st = app.session.active()?;
     if app.filter_mask_targeted() {
-        return localpaint_engine::channel_cmds::filter_mask_curve_channel(st);
+        return localraster_engine::channel_cmds::filter_mask_curve_channel(st);
     }
-    localpaint_engine::channel_cmds::isolated_curve_channel_for(st, app.layer_mask_targeted())
+    localraster_engine::channel_cmds::isolated_curve_channel_for(st, app.layer_mask_targeted())
 }
 
 /// The colour mode the Levels/Curves dialog seeds and parses in: a mask, saved channel or
 /// Quick Mask holds gray levels whatever the document's mode, so its curve is a neutral one
 /// and the fields carry no Lab or CMYK records (#5335).
-fn curve_mode(app: &LocalPaintApp, kind: &str) -> localpaint_doc::ColorMode {
-    let mode = app.session.active().map_or(localpaint_doc::ColorMode::Rgb, |s| s.doc.mode);
-    if kind == "curves" && isolated(app).is_some_and(|c| c.gray.is_some()) { localpaint_doc::ColorMode::Grayscale } else { mode }
+fn curve_mode(app: &LocalRasterApp, kind: &str) -> localraster_doc::ColorMode {
+    let mode = app.session.active().map_or(localraster_doc::ColorMode::Rgb, |s| s.doc.mode);
+    if kind == "curves" && isolated(app).is_some_and(|c| c.gray.is_some()) { localraster_doc::ColorMode::Grayscale } else { mode }
 }
 
 /// A dialog keeps its captured space even if the Channels panel changes before Reset or repaint.
-fn curve_mode_for_fields(app: &LocalPaintApp, kind: &str, fields: &Map<String, Value>) -> localpaint_doc::ColorMode {
+fn curve_mode_for_fields(app: &LocalRasterApp, kind: &str, fields: &Map<String, Value>) -> localraster_doc::ColorMode {
     if kind == "curves"
         && let Some(target) = fields.get("target")
     {
         if matches!(target.as_str(), Some("mask" | "filterMask" | "quickMask")) || target.get("channel").is_some() {
-            return localpaint_doc::ColorMode::Grayscale;
+            return localraster_doc::ColorMode::Grayscale;
         }
-        return app.session.active().map_or(localpaint_doc::ColorMode::Rgb, |st| st.doc.mode);
+        return app.session.active().map_or(localraster_doc::ColorMode::Rgb, |st| st.doc.mode);
     }
     curve_mode(app, kind)
 }
 
 /// Dialog body: the kind's editor over the fields, then the Preview checkbox.
-pub fn body(app: &mut LocalPaintApp, ui: &mut egui::Ui, fields: &mut Map<String, Value>) {
+pub fn body(app: &mut LocalRasterApp, ui: &mut egui::Ui, fields: &mut Map<String, Value>) {
     let kind = fields.get("__adjust").and_then(Value::as_str).unwrap_or_default().to_string();
     // Curves and Levels size their editor to the window themselves; the other editors' controls
     // can outgrow a short window, so they scroll, with the dialog's buttons always in view
@@ -412,7 +412,7 @@ pub fn body(app: &mut LocalPaintApp, ui: &mut egui::Ui, fields: &mut Map<String,
     }
 }
 
-fn body_in_window(app: &mut LocalPaintApp, ui: &mut egui::Ui, fields: &mut Map<String, Value>) {
+fn body_in_window(app: &mut LocalRasterApp, ui: &mut egui::Ui, fields: &mut Map<String, Value>) {
     let kind = fields.get("__adjust").and_then(Value::as_str).unwrap_or_default().to_string();
     let mask = fields.get("target").and_then(Value::as_str) == Some("mask");
     let filter_mask = fields.get("target").and_then(Value::as_str) == Some("filterMask");
@@ -426,20 +426,20 @@ fn body_in_window(app: &mut LocalPaintApp, ui: &mut egui::Ui, fields: &mut Map<S
         .get("__smartFilter")
         .and_then(|f| f.get("layer"))
         .and_then(Value::as_u64)
-        .map(localpaint_doc::LayerId)
+        .map(localraster_doc::LayerId)
         .or_else(|| app.session.active().and_then(|s| s.active_layer));
     let isolated_curve = if fields.contains_key("__smartFilter") {
         None
     } else if filter_mask {
-        app.session.active().and_then(localpaint_engine::channel_cmds::filter_mask_curve_channel)
+        app.session.active().and_then(localraster_engine::channel_cmds::filter_mask_curve_channel)
     } else if mask {
-        app.session.active().and_then(localpaint_engine::channel_cmds::layer_mask_curve_channel)
+        app.session.active().and_then(localraster_engine::channel_cmds::layer_mask_curve_channel)
     } else if fields.contains_key("target") {
         app.session.active().and_then(|st| {
-            localpaint_engine::color_channels::explicit(&crate::filter_dialog::params_of(fields), localpaint_engine::channel_cmds::color_count(&st.doc))
+            localraster_engine::color_channels::explicit(&crate::filter_dialog::params_of(fields), localraster_engine::channel_cmds::color_count(&st.doc))
                 .ok()
                 .flatten()
-                .and_then(|colors| localpaint_engine::channel_cmds::curve_channel_for_colors(&st.doc, colors))
+                .and_then(|colors| localraster_engine::channel_cmds::curve_channel_for_colors(&st.doc, colors))
                 .or_else(|| isolated(app))
         })
     } else {

@@ -3,18 +3,18 @@
 //!
 //! The three filters act on the active pixel layer (inside the selection) or, on a smart
 //! object, record a smart filter whose params are fully resolved (EXIF-derived values are
-//! written into them), so re-rendering is deterministic. Algorithms: [`localpaint_algo::lens`],
-//! [`localpaint_algo::wideangle`], [`localpaint_algo::camera_raw`].
+//! written into them), so re-rendering is deterministic. Algorithms: [`localraster_algo::lens`],
+//! [`localraster_algo::wideangle`], [`localraster_algo::camera_raw`].
 
-use localpaint_algo::camera_raw::{self, CameraRaw};
-use localpaint_algo::exif;
-use localpaint_algo::lens::{self, EdgeMode, LensCorrection};
-use localpaint_algo::transform::Interp;
-use localpaint_algo::wideangle::{self, WideAngle};
-use localpaint_color::{ColorMode, SampleType};
-use localpaint_doc::{Document, Layer, LayerContent, LayerId, SmartFilter};
-use localpaint_geom::Rect;
-use localpaint_raster::{Surface, from_rgba_into};
+use localraster_algo::camera_raw::{self, CameraRaw};
+use localraster_algo::exif;
+use localraster_algo::lens::{self, EdgeMode, LensCorrection};
+use localraster_algo::transform::Interp;
+use localraster_algo::wideangle::{self, WideAngle};
+use localraster_color::{ColorMode, SampleType};
+use localraster_doc::{Document, Layer, LayerContent, LayerId, SmartFilter};
+use localraster_geom::Rect;
+use localraster_raster::{Surface, from_rgba_into};
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;
@@ -300,7 +300,7 @@ fn run_filter(s: &mut Session, cmd: &str, label: &str, p: &Value, stored: Value,
             return Err(EngineError::Other(format!("layer \"{}\" is locked", l.name)));
         }
         if let LayerContent::Smart(_) = l.content {
-            let sf = SmartFilter { command: cmd.to_string(), params: stored.clone(), blend: localpaint_color::BlendMode::Normal, opacity: 1.0, visible: true };
+            let sf = SmartFilter { command: cmd.to_string(), params: stored.clone(), blend: localraster_color::BlendMode::Normal, opacity: 1.0, visible: true };
             return crate::smart_cmds::add_smart_filter(doc, id, sf, selection.as_ref());
         }
         // A Background layer gains transparency when the edge mode exposes it (as in Photoshop).
@@ -350,7 +350,7 @@ fn adaptive_wide_angle(s: &mut Session, p: &Value) -> Result<Value> {
     let id = run_filter(s, WIDE, "Adaptive Wide Angle", p, stored.clone(), true, &|surf, canvas| {
         let tris = mesh.triangles();
         if canvas == frame {
-            localpaint_algo::warp::warp_triangles(surf, canvas, &mesh.verts, &tris, interp)
+            localraster_algo::warp::warp_triangles(surf, canvas, &mesh.verts, &tris, interp)
         } else {
             wideangle::apply(surf, canvas, &wa, interp)
         }
@@ -380,7 +380,7 @@ fn adaptive_wide_angle(s: &mut Session, p: &Value) -> Result<Value> {
 /// ProPhoto's gamma 1.8 (raws open in it), Adobe RGB's 563/256, 1 for linear sRGB, else 0 for
 /// the sRGB curve.
 pub fn encoding_gamma(doc: &Document) -> f32 {
-    use localpaint_cms::Builtin;
+    use localraster_cms::Builtin;
     let profile = crate::color_cmds::document_profile(doc);
     [(Builtin::ProPhotoCompat, 1.8), (Builtin::AdobeRgbCompat, 563.0 / 256.0), (Builtin::LinearSrgb, 1.0)]
         .into_iter()
@@ -502,7 +502,7 @@ mod tests {
             for y in 0..80 {
                 for x in 0..120 {
                     let v = if x % 12 < 2 || y % 12 < 2 { 0.9 } else { 0.35 };
-                    surf.write_pixel(x, y, &localpaint_raster::from_rgba(&fmt, [v, v * 0.9, v * 0.7, 1.0]));
+                    surf.write_pixel(x, y, &localraster_raster::from_rgba(&fmt, [v, v * 0.9, v * 0.7, 1.0]));
                 }
             }
             Ok(())

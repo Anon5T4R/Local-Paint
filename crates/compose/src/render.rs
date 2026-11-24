@@ -41,8 +41,8 @@ pub(crate) fn render_tiled_with(doc: &Document, rect: Rect, tile: i32, cx: &Ctx)
     let tile = tile.max(1);
     // Lab documents mix Normal blending in CIELAB, as Photoshop does (psblend::LAB_MIX); 32-bit
     // documents don't clip Add / Divide or Hue / Saturation / Color / Luminosity at 1 (psblend::HDR).
-    let lab = doc.mode == localpaint_color::ColorMode::Lab;
-    let hdr = doc.depth == localpaint_color::SampleType::F32;
+    let lab = doc.mode == localraster_color::ColorMode::Lab;
+    let hdr = doc.depth == localraster_color::SampleType::F32;
     // CMYK layers are read through the document's own CMYK profile (thread-local scope).
     let cmyk = cmyk_space(doc);
     let cmyk = cmyk.as_ref();
@@ -63,7 +63,7 @@ pub(crate) fn render_tiled_with(doc: &Document, rect: Rect, tile: i32, cx: &Ctx)
     }
     cx.set_fx_clip(rect);
     if i64::from(rect.width()) <= i64::from(tile) && i64::from(rect.height()) <= i64::from(tile) {
-        return localpaint_color::convert::with_cmyk_space(cmyk, || {
+        return localraster_color::convert::with_cmyk_space(cmyk, || {
             let mut buf = multichannel::backdrop(doc, rect);
             in_blend_space(lab, hdr, || composite_stack_at(&doc.layers, &mut buf, cx, advanced::Scope::ROOT));
             buf
@@ -71,10 +71,10 @@ pub(crate) fn render_tiled_with(doc: &Document, rect: Rect, tile: i32, cx: &Ctx)
     }
     // Effect maps are built once, here, before any tile needs them (#276).
     prepare_effects(&doc.layers, rect, cx, |f| {
-        localpaint_color::convert::with_cmyk_space(cmyk, || in_blend_space(lab, hdr, f));
+        localraster_color::convert::with_cmyk_space(cmyk, || in_blend_space(lab, hdr, f));
     });
     let run = |t: Rect| {
-        localpaint_color::convert::with_cmyk_space(cmyk, || {
+        localraster_color::convert::with_cmyk_space(cmyk, || {
             let mut b = multichannel::backdrop(doc, t);
             in_blend_space(lab, hdr, || composite_stack_at(&doc.layers, &mut b, cx, advanced::Scope::ROOT));
             b
@@ -140,13 +140,13 @@ pub(crate) fn in_blend_space<R>(lab: bool, hdr: bool, f: impl FnOnce() -> R) -> 
 }
 
 /// The document's own CMYK profile for reading its CMYK pixels (`None`: not a CMYK document,
-/// untagged, or the built-in coated CMYK). Enter it with `localpaint_color::convert::with_cmyk_space`
+/// untagged, or the built-in coated CMYK). Enter it with `localraster_color::convert::with_cmyk_space`
 /// around code that converts the document's CMYK pixels or colours to RGB.
-pub fn cmyk_space(doc: &Document) -> Option<std::sync::Arc<localpaint_color::convert::CmykSpace>> {
-    if doc.mode != localpaint_color::ColorMode::Cmyk {
+pub fn cmyk_space(doc: &Document) -> Option<std::sync::Arc<localraster_color::convert::CmykSpace>> {
+    if doc.mode != localraster_color::ColorMode::Cmyk {
         return None;
     }
-    localpaint_color::convert::CmykSpace::for_profile(doc.icc_profile.as_ref())
+    localraster_color::convert::CmykSpace::for_profile(doc.icc_profile.as_ref())
 }
 
 /// Pixels per band of [`render_bands`] (a 14000 px wide band is ~600 rows, ~130 MB of f32).
@@ -194,12 +194,12 @@ pub fn band_rows_for(width: u32, requested: i32) -> i32 {
 /// where its layers mix on their inks (#2220). Otherwise the composite goes back to CMYK through
 /// the document's own profile, the one its layers were read through. A Lab document of plain
 /// layers is composited in its L, a and b ([`native_lab::flatten_lab`]).
-pub fn flatten_to_surface(doc: &Document, fmt: localpaint_color::PixelFormat, background: Option<[f32; 3]>) -> Surface {
+pub fn flatten_to_surface(doc: &Document, fmt: localraster_color::PixelFormat, background: Option<[f32; 3]>) -> Surface {
     composite_to_surface(doc, doc.bounds(), fmt, background)
 }
 
 /// [`flatten_to_surface`] over `rect` only (the rest of the surface stays empty).
-pub fn composite_to_surface(doc: &Document, rect: Rect, fmt: localpaint_color::PixelFormat, background: Option<[f32; 3]>) -> Surface {
+pub fn composite_to_surface(doc: &Document, rect: Rect, fmt: localraster_color::PixelFormat, background: Option<[f32; 3]>) -> Surface {
     let paper = background.is_some_and(|bg| bg == [1.0; 3]);
     if (background.is_none() || paper)
         && let Some(s) = native::flatten_cmyk(doc, rect, fmt, paper)
@@ -212,7 +212,7 @@ pub fn composite_to_surface(doc: &Document, rect: Rect, fmt: localpaint_color::P
         return s;
     }
     let space = cmyk_space(doc);
-    let to_cmyk = fmt.mode == localpaint_color::ColorMode::Cmyk && doc.mode == localpaint_color::ColorMode::Cmyk;
+    let to_cmyk = fmt.mode == localraster_color::ColorMode::Cmyk && doc.mode == localraster_color::ColorMode::Cmyk;
     if to_cmyk && cmyk::renders_inks(doc) {
         return composite_inks_to_surface(doc, rect, fmt, background, space.as_ref());
     }
@@ -229,12 +229,12 @@ pub fn composite_to_surface(doc: &Document, rect: Rect, fmt: localpaint_color::P
         };
         data.clear();
         data.resize(band.px.len() * n, 0.0);
-        localpaint_color::convert::with_cmyk_space(space.as_ref(), || {
+        localraster_color::convert::with_cmyk_space(space.as_ref(), || {
             for (p, out) in band.px.iter().zip(data.chunks_exact_mut(n)) {
                 if fmt.alpha && (p[3] <= 0.0 || p[3].is_nan()) && empty.len() == n {
                     out.copy_from_slice(&empty);
                 } else {
-                    localpaint_raster::from_rgba_into(&fmt, *p, out);
+                    localraster_raster::from_rgba_into(&fmt, *p, out);
                 }
             }
         });
@@ -246,7 +246,7 @@ pub fn composite_to_surface(doc: &Document, rect: Rect, fmt: localpaint_color::P
 }
 
 /// One CMYK pixel's output channels into `data`: its inks (over `paper` when given) and alpha.
-fn push_ink_pixel(data: &mut Vec<f32>, p: &[f32; 5], paper: Option<[f32; 4]>, fmt: localpaint_color::PixelFormat, empty: &[f32]) {
+fn push_ink_pixel(data: &mut Vec<f32>, p: &[f32; 5], paper: Option<[f32; 4]>, fmt: localraster_color::PixelFormat, empty: &[f32]) {
     if paper.is_none() && fmt.alpha && (p[4] <= 0.0 || p[4].is_nan()) && empty.len() == fmt.channels() {
         data.extend_from_slice(empty);
         return;
@@ -266,9 +266,9 @@ fn push_ink_pixel(data: &mut Vec<f32>, p: &[f32; 5], paper: Option<[f32; 4]>, fm
 fn composite_inks_to_surface(
     doc: &Document,
     rect: Rect,
-    fmt: localpaint_color::PixelFormat,
+    fmt: localraster_color::PixelFormat,
     background: Option<[f32; 3]>,
-    space: Option<&std::sync::Arc<localpaint_color::convert::CmykSpace>>,
+    space: Option<&std::sync::Arc<localraster_color::convert::CmykSpace>>,
 ) -> Surface {
     let mut s = Surface::new(fmt);
     let n = fmt.channels();
@@ -276,7 +276,7 @@ fn composite_inks_to_surface(
     let mut data = Vec::new();
     // White paper is no ink; another background colour goes through the profile.
     let paper = background
-        .map(|bg| if bg == [1.0; 3] { [0.0; 4] } else { localpaint_color::convert::with_cmyk_space(space, || localpaint_color::convert::rgb_to_cmyk(bg)) });
+        .map(|bg| if bg == [1.0; 3] { [0.0; 4] } else { localraster_color::convert::with_cmyk_space(space, || localraster_color::convert::rgb_to_cmyk(bg)) });
     let _ = cmyk::render_cmyk_bands(doc, rect, 0, |band| -> Result<(), ()> {
         data.clear();
         data.reserve(band.px.len() * n);
@@ -309,10 +309,10 @@ pub fn render_layer(layer: &Layer, rect: Rect) -> Buffer {
         &Ctx {
             canvas: rect,
             transfer: adjust::Transfer::Srgb,
-            light: localpaint_doc::GlobalLight::default(),
+            light: localraster_doc::GlobalLight::default(),
             patterns: &patterns,
-            mode: localpaint_color::ColorMode::Rgb,
-            depth: localpaint_color::SampleType::F32,
+            mode: localraster_color::ColorMode::Rgb,
+            depth: localraster_color::SampleType::F32,
             vector_masks: RenderVectorMasks::default(),
             fx_maps: Default::default(),
             fx_clip: Default::default(),
@@ -341,10 +341,10 @@ pub fn render_layer_in(doc: &Document, layer: &Layer, rect: Rect) -> Buffer {
     let patterns = pattern::PreparedPatterns::new(&doc.patterns, pattern::PREPARED_PATTERN_BYTES).in_mode(doc.pixel_format().mode);
     // A lone layer: a deep knockout reveals transparency, not the document's Background.
     let cx = Ctx { doc: None, ..Ctx::for_doc(doc, &patterns) };
-    let lab = doc.mode == localpaint_color::ColorMode::Lab;
-    let hdr = doc.depth == localpaint_color::SampleType::F32;
+    let lab = doc.mode == localraster_color::ColorMode::Lab;
+    let hdr = doc.depth == localraster_color::SampleType::F32;
     let cmyk = cmyk_space(doc);
-    localpaint_color::convert::with_cmyk_space(cmyk.as_ref(), || {
+    localraster_color::convert::with_cmyk_space(cmyk.as_ref(), || {
         let mut buf = Buffer::transparent(rect);
         in_blend_space(lab, hdr, || composite_stack_at(std::slice::from_ref(layer), &mut buf, &cx, advanced::Scope::ROOT));
         buf

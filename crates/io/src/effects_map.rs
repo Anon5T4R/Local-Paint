@@ -3,13 +3,13 @@
 //! Key names follow the descriptors Photoshop writes (documented by
 //! reverse-engineering in MIT-licensed psd-tools / ag-psd).
 
-use localpaint_color::{BlendMode, Color};
-use localpaint_doc::adjust::CurvePoint;
-use localpaint_doc::{
+use localraster_color::{BlendMode, Color};
+use localraster_doc::adjust::CurvePoint;
+use localraster_doc::{
     Bevel, BevelContour, BevelStyle, BevelTechnique, BevelTexture, Contour, Effect, FxCommon, FxPaint, Glow, GlowSource, GlowTechnique, Gradient, Satin,
     Shadow, StrokeFx, StrokePosition,
 };
-use localpaint_psd::descriptor::{Descriptor, Id, UnicodeString, Value, VersionedDescriptor};
+use localraster_psd::descriptor::{Descriptor, Id, UnicodeString, Value, VersionedDescriptor};
 
 use crate::blocks::{
     bool_of, color_from_desc, color_to_desc, enum_of, get_desc, gradient_desc, gradient_style, gradient_style_value, num, pattern_placement, pattern_ref,
@@ -605,7 +605,7 @@ pub fn parse_lrfx(data: &[u8]) -> Option<(bool, Vec<Effect>)> {
         Some(Color::rgb(c(0)?, c(1)?, c(2)?))
     };
     let blend_at = |at: usize| -> BlendMode {
-        data.get(at + 4..at + 8).and_then(|k| localpaint_color::BlendMode::from_psd_key([k[0], k[1], k[2], k[3]])).unwrap_or(BlendMode::Normal)
+        data.get(at + 4..at + 8).and_then(|k| localraster_color::BlendMode::from_psd_key([k[0], k[1], k[2], k[3]])).unwrap_or(BlendMode::Normal)
     };
     let count = be16(2)?;
     let mut at = 4;

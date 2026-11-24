@@ -1,9 +1,9 @@
 //! 24 MP timing of Art History Brush on a representative stroke.
-//! `cargo run --release -p localpaint-engine --example bench_art_history`
+//! `cargo run --release -p localraster-engine --example bench_art_history`
 use std::time::Instant;
 
-use localpaint_engine::Session;
-use localpaint_geom::Rect;
+use localraster_engine::Session;
+use localraster_geom::Rect;
 use serde_json::json;
 
 fn main() {
@@ -16,7 +16,7 @@ fn main() {
         let row: Vec<f32> = (0..w)
             .flat_map(|x| {
                 let t = (x % 256) as f32 / 255.0;
-                localpaint_raster::from_rgba(&fmt, [t, 0.35, 1.0 - t, 1.0])
+                localraster_raster::from_rgba(&fmt, [t, 0.35, 1.0 - t, 1.0])
             })
             .collect();
         for y in 0..h as i32 {

@@ -1,17 +1,17 @@
 //! Free Transform with several layers selected (#6501): ⌘T frames them all and the box moves
 //! every one of them, type and pixels alike, in one history step.
 
-use localpaint_doc::{LayerContent, LayerId};
-use localpaint_geom::Rect;
+use localraster_doc::{LayerContent, LayerId};
+use localraster_geom::Rect;
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
 /// A 200 × 200 document: "Paint" with a red block at x 10..50, y 10..30, and a type layer over it.
 /// Both are selected with Paint active, as after ⌘-clicking Paint in the Layers panel (the
 /// reporter's steps).
-fn app() -> (LocalPaintApp, LayerId, LayerId) {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn app() -> (LocalRasterApp, LayerId, LayerId) {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 200, "height": 200, "background": "white"})).unwrap();
     app.sync_views();
     let paint = LayerId(app.run("layer.new.layer", json!({"name": "Paint"})).unwrap()["layer"].as_u64().unwrap());
@@ -25,12 +25,12 @@ fn app() -> (LocalPaintApp, LayerId, LayerId) {
     (app, paint, text)
 }
 
-fn bounds(app: &LocalPaintApp, id: LayerId) -> Rect {
+fn bounds(app: &LocalRasterApp, id: LayerId) -> Rect {
     let st = app.session.active().unwrap();
-    localpaint_engine::transform_cmds::transform_bounds(&st.doc, st.doc.layer(id).unwrap())
+    localraster_engine::transform_cmds::transform_bounds(&st.doc, st.doc.layer(id).unwrap())
 }
 
-fn free_transform(app: &mut LocalPaintApp) {
+fn free_transform(app: &mut LocalRasterApp) {
     crate::menus::invoke(app, &egui::Context::default(), "edit.freeTransform", json!({})).unwrap();
 }
 
@@ -192,7 +192,7 @@ fn picking_another_layer_applies_the_box_to_all_of_them() {
 }
 
 /// Paint with a 6 px outside stroke, then both layers selected again (Paint active).
-fn stroked() -> (LocalPaintApp, LayerId, LayerId) {
+fn stroked() -> (LocalRasterApp, LayerId, LayerId) {
     let (mut app, paint, text) = app();
     app.run("layer.select", json!({"layer": paint.0})).unwrap();
     app.run("layer.layerStyle.stroke", json!({"size": 6, "color": "#00ff00", "position": "outside"})).unwrap();
@@ -230,7 +230,7 @@ fn styles_past_the_frame_move_with_the_box() {
 }
 
 /// A texel of the type's glyphs in the moving pixels as the box opened.
-fn glyph_texel(app: &LocalPaintApp, text: LayerId) -> [i32; 2] {
+fn glyph_texel(app: &LocalRasterApp, text: LayerId) -> [i32; 2] {
     let b = bounds(app, text);
     (b.y0..b.y1)
         .flat_map(|y| (b.x0..b.x1).map(move |x| [x, y]))
@@ -274,7 +274,7 @@ fn a_style_added_while_the_box_is_open_grows_the_moving_pixels() {
     assert!(stroke.is_some_and(|c| c.a() > 200), "{stroke:?}");
 }
 
-fn group(app: &mut LocalPaintApp, ids: &[LayerId]) -> LayerId {
+fn group(app: &mut LocalRasterApp, ids: &[LayerId]) -> LayerId {
     app.run("layer.select", json!({"layer": ids[0].0})).unwrap();
     for id in &ids[1..] {
         app.run("layer.select", json!({"layer": id.0, "mode": "add"})).unwrap();
@@ -290,7 +290,7 @@ fn edits_to_the_children_of_a_moving_group_show_in_the_preview() {
     app.run("layer.select", json!({"layer": text.0, "mode": "add"})).unwrap();
     free_transform(&mut app);
     assert_eq!(app.ui.transform.as_ref().unwrap().layers, [g.0, text.0]);
-    let red = |app: &LocalPaintApp| crate::transform_tool::moving_texel(app, [20, 20]).0.map(|c| c.a());
+    let red = |app: &LocalRasterApp| crate::transform_tool::moving_texel(app, [20, 20]).0.map(|c| c.a());
     assert_eq!(red(&app), Some(255), "the group's child is in the moving pixels");
     app.run("layer.setProps", json!({"layer": paint.0, "opacity": 0.5})).unwrap();
     crate::transform_tool::follow_edits(&mut app);

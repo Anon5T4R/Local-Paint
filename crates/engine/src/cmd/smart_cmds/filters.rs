@@ -60,7 +60,7 @@ fn mask_from_selection(sel: &Surface) -> LayerMask {
 /// Appends a smart filter (from a `filter.*` command) and re-renders. A selection becomes the
 /// filter mask, as in Photoshop. Without a renderable source the filter is applied to the cached
 /// pixels (and still recorded).
-pub(crate) fn add_smart_filter(doc: &mut Document, id: LayerId, sf: localpaint_doc::SmartFilter, selection: Option<&Surface>) -> Result<()> {
+pub(crate) fn add_smart_filter(doc: &mut Document, id: LayerId, sf: localraster_doc::SmartFilter, selection: Option<&Surface>) -> Result<()> {
     let canvas = doc.bounds();
     let renderable = source_bytes(&doc.metadata, &smart(doc, id)?.source).is_some();
     let sm = smart_mut(doc, id)?;
@@ -152,7 +152,7 @@ pub(super) fn set_filter_params(s: &mut Session, p: &Value) -> Result<Value> {
         let mut fp = crate::filters::params_for(DISPLACE, &request).ok_or_else(|| bad(CMD, "unreadable Displace settings"))?;
         crate::filters_ext::resolve(s, &mut fp, &request)?;
         match fp {
-            localpaint_algo::FilterParams::Displace { map, .. } => map,
+            localraster_algo::FilterParams::Displace { map, .. } => map,
             _ => None,
         }
     } else {
@@ -161,8 +161,8 @@ pub(super) fn set_filter_params(s: &mut Session, p: &Value) -> Result<Value> {
     edit_filters(s, p, "Edit Smart Filter", |sm| {
         let i = filter_index(CMD, p, sm)?;
         let f = &mut sm.smart_filters[i];
-        if f.command == localpaint_io::smart_map::UNSUPPORTED_FILTER {
-            return Err(bad(CMD, "this smart filter isn't implemented in Local Paint: it is kept as is (it can be hidden, moved or deleted)"));
+        if f.command == localraster_io::smart_map::UNSUPPORTED_FILTER {
+            return Err(bad(CMD, "this smart filter isn't implemented in Local Raster: it is kept as is (it can be hidden, moved or deleted)"));
         }
         match (&mut f.params, new) {
             (Value::Object(old), Value::Object(n)) => old.extend(n),
@@ -170,10 +170,10 @@ pub(super) fn set_filter_params(s: &mut Session, p: &Value) -> Result<Value> {
         }
         if f.command == DISPLACE {
             if let Some(map) = &new_map {
-                f.params = localpaint_io::smart_map::displace_embed_map(&f.params, map)
+                f.params = localraster_io::smart_map::displace_embed_map(&f.params, map)
                     .ok_or_else(|| bad(CMD, "the displacement map is too large to keep in a Smart Object's filter"))?;
             } else if new_path {
-                f.params = localpaint_io::smart_map::displace_without_map(&f.params);
+                f.params = localraster_io::smart_map::displace_without_map(&f.params);
             }
         }
         // Authorize the underlying command with the complete merged params, including paths

@@ -1,6 +1,6 @@
-use localpaint_doc::{LayerContent, LayerId};
-use localpaint_engine::{Session, smart_cmds};
-use localpaint_raster::Surface;
+use localraster_doc::{LayerContent, LayerId};
+use localraster_engine::{Session, smart_cmds};
+use localraster_raster::Surface;
 use serde_json::json;
 
 fn mean_difference(a: &Surface, b: &Surface) -> f64 {

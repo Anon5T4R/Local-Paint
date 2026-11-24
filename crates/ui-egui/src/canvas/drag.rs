@@ -1,5 +1,5 @@
 use super::view_xform::ViewXform;
-use super::{LocalPaintApp, Pos2, Rect, Stroke, Tool, vec2};
+use super::{LocalRasterApp, Pos2, Rect, Stroke, Tool, vec2};
 
 /// An in-progress pointer gesture on the canvas.
 #[derive(Clone, Debug)]
@@ -59,7 +59,7 @@ impl Drag {
 
     /// Vector drags capture their owner at the press, the Freeform Pen also its destination, before
     /// later ⌥-clicks or a temporary Direct Selection can finish them.
-    pub(crate) fn capture_vector_owners(&mut self, app: &LocalPaintApp) {
+    pub(crate) fn capture_vector_owners(&mut self, app: &LocalRasterApp) {
         if matches!(self.tool, Tool::FreeformPen | Tool::PathSelection) {
             self.vector_owner = VectorGestureOwner::capture(app);
         }
@@ -211,7 +211,7 @@ pub(crate) fn single_line_px(tool: Tool, size: [u32; 2], p: [f64; 2]) -> Option<
 
 /// The line a Single Row / Single Column Marquee gesture `d` selects so far: it follows the
 /// pointer until the release.
-pub(super) fn single_line_drag_px(app: &LocalPaintApp, d: &Drag) -> Option<[f64; 4]> {
+pub(super) fn single_line_drag_px(app: &LocalRasterApp, d: &Drag) -> Option<[f64; 4]> {
     let st = app.session.active()?;
     let last = d.points.last().map_or(d.start, |p| [p[0], p[1]]);
     single_line_px(d.tool, [st.doc.size.width, st.doc.size.height], last)
@@ -271,21 +271,21 @@ pub fn marquee_readout(r: [f64; 4]) -> [String; 2] {
 
 /// [`marquee_readout`] in the Units & Rulers unit, as Photoshop shows it (cm when the rulers are in
 /// centimeters), from the active document's resolution; pixels without a document.
-pub fn size_readout(app: &LocalPaintApp, r: [f64; 4]) -> [String; 2] {
+pub fn size_readout(app: &LocalRasterApp, r: [f64; 4]) -> [String; 2] {
     let Some(d) = app.session.active() else { return marquee_readout(r) };
     let (dpi, size) = (f64::from(d.doc.resolution_dpi), d.doc.size);
     readout_in(&app.session.prefs().units_and_rulers, dpi, [size.width as f64, size.height as f64], r)
 }
 
 /// `r`'s width and height formatted in `ur`'s ruler unit at `dpi` (percent of `extent`).
-pub fn readout_in(ur: &localpaint_engine::prefs::UnitsAndRulers, dpi: f64, extent: [f64; 2], r: [f64; 4]) -> [String; 2] {
+pub fn readout_in(ur: &localraster_engine::prefs::UnitsAndRulers, dpi: f64, extent: [f64; 2], r: [f64; 4]) -> [String; 2] {
     let s = ur.rulers.suffix();
     [format!("{} {s}", ur.format(r[2] - r[0], dpi, extent[0])), format!("{} {s}", ur.format(r[3] - r[1], dpi, extent[1]))]
 }
 
 /// Draw the marquee size readout below-right of the cursor (kept on screen), like Photoshop's:
 /// two rows, `W:` / `H:` labels on the left and the values right-aligned.
-pub(super) fn draw_marquee_readout(app: &LocalPaintApp, ctx: &egui::Context, cursor: Pos2, values: [String; 2]) {
+pub(super) fn draw_marquee_readout(app: &LocalRasterApp, ctx: &egui::Context, cursor: Pos2, values: [String; 2]) {
     draw_value_readout(app, ctx, "marquee-readout", cursor, ["W:", "H:"], values);
 }
 
@@ -306,7 +306,7 @@ pub(crate) fn angle_readout(deg: f64) -> String {
 /// A transformation-values readout beside the pointer (a marquee's or the crop frame's size, an
 /// angle), unless Preferences › Tools › Show Transformation Values is off, as in Photoshop (#204).
 /// The brush HUD isn't one: Show Transformation Values doesn't hide it, so it calls [`draw_readout`].
-pub(crate) fn draw_value_readout<const N: usize>(app: &LocalPaintApp, ctx: &egui::Context, id: &str, cursor: Pos2, labels: [&str; N], values: [String; N]) {
+pub(crate) fn draw_value_readout<const N: usize>(app: &LocalRasterApp, ctx: &egui::Context, id: &str, cursor: Pos2, labels: [&str; N], values: [String; N]) {
     if app.session.prefs().tools.show_transformation_values {
         draw_readout(ctx, id, cursor, labels, values);
     }
@@ -346,10 +346,10 @@ pub(crate) fn draw_readout<const N: usize>(ctx: &egui::Context, id: &str, cursor
 /// The document, revision and target a vector drag started on.
 #[derive(Clone, Debug)]
 pub(super) struct VectorGestureOwner {
-    doc: localpaint_doc::DocId,
+    doc: localraster_doc::DocId,
     document: std::sync::Weak<Document>,
     revision: u64,
-    layer: Option<localpaint_doc::LayerId>,
+    layer: Option<localraster_doc::LayerId>,
     selected_path: Option<String>,
     vector_mask: bool,
     mode: String,
@@ -358,7 +358,7 @@ pub(super) struct VectorGestureOwner {
 
 /// Cancel a vector drag before it can preview or finish on another document or target; the rest of
 /// its pointer events go nowhere. True when one was cancelled.
-pub(crate) fn cancel_stale_vector_drag(app: &mut LocalPaintApp) -> bool {
+pub(crate) fn cancel_stale_vector_drag(app: &mut LocalRasterApp) -> bool {
     let stale = app.drag.as_ref().and_then(|d| d.vector_owner.as_ref()).is_some_and(|owner| !owner.valid(app));
     if stale {
         app.drag = None;
@@ -368,7 +368,7 @@ pub(crate) fn cancel_stale_vector_drag(app: &mut LocalPaintApp) -> bool {
 }
 
 impl VectorGestureOwner {
-    fn capture(app: &LocalPaintApp) -> Option<Self> {
+    fn capture(app: &LocalRasterApp) -> Option<Self> {
         let st = app.session.active()?;
         Some(Self {
             doc: st.doc.id,
@@ -382,7 +382,7 @@ impl VectorGestureOwner {
         })
     }
 
-    pub(super) fn valid(&self, app: &LocalPaintApp) -> bool {
+    pub(super) fn valid(&self, app: &LocalRasterApp) -> bool {
         Self::capture(app).is_some_and(|now| {
             self.doc == now.doc
                 && self.document.ptr_eq(&now.document)
@@ -396,4 +396,4 @@ impl VectorGestureOwner {
     }
 }
 
-use localpaint_doc::Document;
+use localraster_doc::Document;

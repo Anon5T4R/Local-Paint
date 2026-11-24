@@ -1,7 +1,7 @@
 //! Malformed input handling: every error path must return `Err`, never panic.
 
-use localpaint_psd::testgen;
-use localpaint_psd::*;
+use localraster_psd::testgen;
+use localraster_psd::*;
 use proptest::prelude::*;
 
 fn truncation_sweep(bytes: &[u8], name: &str) {

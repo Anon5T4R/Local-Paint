@@ -16,7 +16,7 @@
 use std::sync::{Arc, Mutex, PoisonError};
 
 use egui::{Color32, ColorImage, TextureHandle, TextureId, TextureOptions};
-use localpaint_engine::display_color::CanvasDisplay;
+use localraster_engine::display_color::CanvasDisplay;
 
 /// One uploaded texture: its mip level, filter and the uv extent covering the source.
 struct Level {
@@ -141,7 +141,7 @@ fn display_image(image: &ColorImage, display: &CanvasDisplay) -> ColorImage {
     let mut out = image.clone();
     let convert = |pixels: &mut [Color32]| {
         let px = pixels.iter().map(|p| p.to_srgba_unmultiplied().map(|c| f32::from(c) / 255.0)).collect();
-        let buffer = localpaint_compose::Buffer { rect: localpaint_geom::Rect::new(0, 0, pixels.len() as i32, 1), px };
+        let buffer = localraster_compose::Buffer { rect: localraster_geom::Rect::new(0, 0, pixels.len() as i32, 1), px };
         let converted = display.to_rgba8(&buffer);
         for (p, rgba) in pixels.iter_mut().zip(converted.pixels.as_chunks::<4>().0) {
             *p = Color32::from_rgba_unmultiplied(rgba[0], rgba[1], rgba[2], rgba[3]);
@@ -176,11 +176,11 @@ fn halve(img: &ColorImage) -> ColorImage {
 /// A layer mask applied to the preview texels: the texel's alpha is scaled by
 /// `1 − density × (1 − value)`, as the compositor applies a pixel mask.
 pub struct PreviewMask {
-    pub surface: localpaint_raster::Surface,
+    pub surface: localraster_raster::Surface,
     pub density: f32,
 }
 
-pub fn read_surface(surf: &localpaint_raster::Surface, mask: Option<&PreviewMask>, b: localpaint_geom::Rect, max_side: usize) -> (ColorImage, [f32; 2]) {
+pub fn read_surface(surf: &localraster_raster::Surface, mask: Option<&PreviewMask>, b: localraster_geom::Rect, max_side: usize) -> (ColorImage, [f32; 2]) {
     let (w, h) = (b.width() as usize, b.height() as usize);
     if w == 0 || h == 0 {
         return (ColorImage::new([1, 1], vec![Color32::TRANSPARENT]), [1.0, 1.0]);
@@ -194,9 +194,9 @@ pub fn read_surface(surf: &localpaint_raster::Surface, mask: Option<&PreviewMask
         let y1 = (y0 + k as i32).min(b.y1);
         let rows = (y1 - y0).max(0) as usize;
         let mut buf = vec![[0u8; 4]; w * rows];
-        surf.read_rgba8_into(localpaint_geom::Rect::new(b.x0, y0, b.x1, y1), &mut buf);
+        surf.read_rgba8_into(localraster_geom::Rect::new(b.x0, y0, b.x1, y1), &mut buf);
         if let Some(m) = mask {
-            let v = m.surface.read_region(localpaint_geom::Rect::new(b.x0, y0, b.x1, y1));
+            let v = m.surface.read_region(localraster_geom::Rect::new(b.x0, y0, b.x1, y1));
             let ch = m.surface.channels().max(1);
             for (p, mv) in buf.iter_mut().zip(v.chunks_exact(ch)) {
                 let k = (1.0 - m.density * (1.0 - mv.first().copied().unwrap_or(1.0))).clamp(0.0, 1.0);
@@ -240,7 +240,7 @@ mod tests {
     #[test]
     #[ignore = "reports CPU preparation cost; run explicitly for profile-preview changes"]
     fn transform_profile_upload_cost() {
-        let mut session = localpaint_engine::Session::new();
+        let mut session = localraster_engine::Session::new();
         session.execute("file.new", serde_json::json!({"width": 6000, "height": 4000})).unwrap();
         let doc = session.active().unwrap().doc.clone();
         for monitor in ["raw", "srgb", "display-p3"] {
@@ -272,7 +272,7 @@ mod tests {
 
     #[test]
     fn display_upload_changes_with_monitor_but_keeps_raw_alpha_and_mips() {
-        let mut session = localpaint_engine::Session::new();
+        let mut session = localraster_engine::Session::new();
         session.execute("file.new", serde_json::json!({"width": 2, "height": 1})).unwrap();
         let doc = session.active().unwrap().doc.clone();
         session.color.settings.monitor_profile = "srgb".into();
@@ -318,16 +318,16 @@ mod tests {
 
     #[test]
     fn full_resolution_unless_over_the_texture_limit() {
-        let mut s = localpaint_raster::Surface::new(localpaint_color::PixelFormat::RGBA8);
+        let mut s = localraster_raster::Surface::new(localraster_color::PixelFormat::RGBA8);
         // A one-pixel checkerboard: any downsampling would turn it grey.
         for y in 0..300 {
             for x in 0..500 {
                 if (x + y) % 2 == 0 {
-                    s.fill_rect(localpaint_geom::Rect::new(x, y, x + 1, y + 1), &[1.0, 1.0, 1.0, 1.0]);
+                    s.fill_rect(localraster_geom::Rect::new(x, y, x + 1, y + 1), &[1.0, 1.0, 1.0, 1.0]);
                 }
             }
         }
-        let r = localpaint_geom::Rect::new(0, 0, 500, 300);
+        let r = localraster_geom::Rect::new(0, 0, 500, 300);
         let (img, uv) = read_surface(&s, None, r, 8192);
         assert_eq!(img.size, [500, 300]);
         assert_eq!(uv, [1.0, 1.0]);
@@ -338,11 +338,11 @@ mod tests {
         assert_eq!(small.size, [250, 150]);
         assert!((100..=155).contains(&small.pixels[0].a()), "{:?}", small.pixels[0]);
         assert_eq!(uv, [1.0, 1.0]);
-        let (odd, uv) = read_surface(&s, None, localpaint_geom::Rect::new(0, 0, 301, 3), 256);
+        let (odd, uv) = read_surface(&s, None, localraster_geom::Rect::new(0, 0, 301, 3), 256);
         assert_eq!(odd.size, [151, 2]);
         assert!(uv[0] < 1.0 && uv[1] < 1.0);
         // Empty rect: a placeholder, no panic.
-        assert_eq!(read_surface(&s, None, localpaint_geom::Rect::new(5, 5, 5, 9), 256).0.size, [1, 1]);
+        assert_eq!(read_surface(&s, None, localraster_geom::Rect::new(5, 5, 5, 9), 256).0.size, [1, 1]);
     }
 
     #[test]

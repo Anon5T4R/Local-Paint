@@ -22,9 +22,9 @@
 //! (which is proprietary): [`generic_profile`] interpolates typical distortion and vignetting
 //! over the 35 mm-equivalent focal length.
 
-use localpaint_color::{ColorMode, PixelFormat};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_color::{ColorMode, PixelFormat};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 use serde::{Deserialize, Serialize};
 
 use crate::photo_util::{catmull_rom, par_map};
@@ -287,7 +287,7 @@ fn remap_impl(src: &Surface, frame: Rect, out_area: Rect, edge: EdgeMode, map: &
     let subtractive = sfmt.mode == ColorMode::Cmyk;
     let lab = sfmt.mode == ColorMode::Lab;
     let edge_px: Vec<f32> = match edge {
-        EdgeMode::Color(c) => localpaint_raster::from_rgba(&ofmt, c),
+        EdgeMode::Color(c) => localraster_raster::from_rgba(&ofmt, c),
         _ => vec![0.0; n_out],
     };
     let mut tiles = Vec::new();
@@ -394,7 +394,7 @@ fn remap_impl(src: &Surface, frame: Rect, out_area: Rect, edge: EdgeMode, map: &
                 } else {
                     straight * g
                 };
-                if sfmt.sample != localpaint_color::SampleType::F32 {
+                if sfmt.sample != localraster_color::SampleType::F32 {
                     *v = v.clamp(0.0, 1.0);
                 }
             }
@@ -473,7 +473,7 @@ pub fn correct(src: &Surface, frame: Rect, lc: &LensCorrection) -> Surface {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_color::SampleType;
+    use localraster_color::SampleType;
 
     fn grid_surface(fmt: PixelFormat, w: i32, h: i32) -> Surface {
         let mut s = Surface::new(fmt);
@@ -482,7 +482,7 @@ mod tests {
         for y in 0..h {
             for x in 0..w {
                 let v = if x % 16 < 2 || y % 16 < 2 { 0.9 } else { 0.3 };
-                let px = localpaint_raster::from_rgba(&fmt, [v, v * 0.8, v * 0.6, 1.0]);
+                let px = localraster_raster::from_rgba(&fmt, [v, v * 0.8, v * 0.6, 1.0]);
                 row[x as usize * n..(x as usize + 1) * n].copy_from_slice(&px);
             }
             s.write_region(Rect::new(0, y, w, y + 1), &row);

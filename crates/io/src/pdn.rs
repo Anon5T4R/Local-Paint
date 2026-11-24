@@ -8,10 +8,10 @@ mod tests;
 use std::collections::HashMap;
 use std::io::Read;
 
-use localpaint_color::{BlendMode, ColorMode, PixelFormat, SampleType};
-use localpaint_doc::{Document, Layer, LayerContent};
-use localpaint_geom::{Rect, Size};
-use localpaint_raster::{Interrupt, Surface};
+use localraster_color::{BlendMode, ColorMode, PixelFormat, SampleType};
+use localraster_doc::{Document, Layer, LayerContent};
+use localraster_geom::{Rect, Size};
+use localraster_raster::{Interrupt, Surface};
 
 use crate::{ImportResult, IoError};
 use nrbf::{Graph, Reader, Value};

@@ -6,11 +6,11 @@ From the repository root, with the [source-build prerequisites](development.md#p
 installed, install the CLI independently of the build directory:
 
 ```sh
-cargo install --path apps/localpaint-cli --locked
+cargo install --path apps/localraster-cli --locked
 # POSIX shells, for Cargo's default install location:
 export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
-localpaint-cli --help
-localpaint-cli mcp --help
+localraster-cli --help
+localraster-cli mcp --help
 ```
 
 Cargo installs a binary, not a symlink into `target/`, so it survives `cargo clean`.
@@ -24,22 +24,22 @@ the client after changing its environment.
 Register the installed command explicitly (replace `/work/project` with an existing folder):
 
 ```sh
-claude mcp add localpaint -- localpaint-cli mcp --automation-read-root /work/project --automation-write-root /work/project
+claude mcp add localraster -- localraster-cli mcp --automation-read-root /work/project --automation-write-root /work/project
 ```
 
 Other MCP clients can use this bare-name configuration:
 
 ```json
-{"mcpServers":{"localpaint":{"command":"localpaint-cli","args":["mcp","--automation-read-root","/work/project","--automation-write-root","/work/project"]}}}
+{"mcpServers":{"localraster":{"command":"localraster-cli","args":["mcp","--automation-read-root","/work/project","--automation-write-root","/work/project"]}}}
 ```
 
-Linux `.deb` and `.rpm` packages already install `/usr/bin/localpaint-cli`; those users
+Linux `.deb` and `.rpm` packages already install `/usr/bin/localraster-cli`; those users
 can skip the source install. Other release locations are listed in the
 [installed-release guide](../book/src/automation/mcp.md#from-an-installed-release).
 Installing the CLI does not start or register an MCP server automatically.
 
 If a client reports `ENOENT` or "Executable not found in $PATH", verify the install with
-`command -v localpaint-cli` (PowerShell: `Get-Command localpaint-cli`) in the client's
+`command -v localraster-cli` (PowerShell: `Get-Command localraster-cli`) in the client's
 environment. If that environment cannot be changed, set JSON `command` to the absolute
 installed binary path, not a literal `~` or `$HOME` expression. Avoid symlinks into
 `target/release`: cleaning the build directory breaks them. A source build alone does
@@ -47,10 +47,10 @@ not put the CLI on `PATH`.
 
 ## Start a session
 
-Local Paint follows the same conventions as FilmCraft #28. Start a headless session:
+Local Raster follows the same conventions as FilmCraft #28. Start a headless session:
 
 ```sh
-localpaint-cli mcp --automation-read-root /work/project --automation-write-root /work/project
+localraster-cli mcp --automation-read-root /work/project --automation-write-root /work/project
 ```
 
 Paths are relative to the corresponding root, or absolute paths beneath it; without a root that
@@ -60,7 +60,7 @@ described in [development.md](development.md). UI tools require a running deskto
 A client has the full rights of the roots it is given: it can read any file below the read
 root, and `doc_save`, `doc_export` and the export tools can create files anywhere below the
 write root. `doc_save` and `doc_export` replace an existing file only when its extension is an
-image or document format Local Paint writes (PNG, JPEG, TIFF, PSD, PSB, .pcraft, OpenRaster,
+image or document format Local Raster writes (PNG, JPEG, TIFF, PSD, PSB, .pcraft, OpenRaster,
 PDF, …) or its bytes are an image; anything else (`src/main.rs`, `.env`) is refused and left
 untouched. The multi-file exports (layers, data sets) never replace a file. An agent reads
 text from documents (layer names, metadata) that may try to steer it, so prefer a dedicated
@@ -68,15 +68,15 @@ output folder as the write root over a whole project.
 
 Use absolute root paths in MCP client configurations, since a relative root is resolved from
 the client's launch directory. In bridge mode, configure roots on the **desktop app**; root
-flags on `localpaint-cli mcp --bridge` are rejected. Explicit `--control-token` and
-`--control-token-file` flags require `--bridge` (or `LOCALPAINT_CONTROL_PORT`) and are mutually
-exclusive. Bridge credentials can also come from `LOCALPAINT_CONTROL_TOKEN` or `LOCALPAINT_CONTROL_TOKEN_FILE`.
+flags on `localraster-cli mcp --bridge` are rejected. Explicit `--control-token` and
+`--control-token-file` flags require `--bridge` (or `LOCALRASTER_CONTROL_PORT`) and are mutually
+exclusive. Bridge credentials can also come from `LOCALRASTER_CONTROL_TOKEN` or `LOCALRASTER_CONTROL_TOKEN_FILE`.
 
 MCP and `serve` launch options (all but `--help`/`-h`) take one non-empty value each and cannot
 be repeated. Missing values, stray positional arguments and options for the wrong mode are
 usage errors (exit 2), reported on stderr before the server starts; stdout stays available for
 protocol messages. For `serve`, explicit credential flags require `--port` (or
-`LOCALPAINT_CONTROL_PORT`); stdio needs no control token.
+`LOCALRASTER_CONTROL_PORT`); stdio needs no control token.
 
 ## Tools and resources
 
@@ -127,7 +127,7 @@ No filesystem root is needed for the in-memory commands. External linked sources
 a file read remain refused. See the [control policy](control-protocol.md#engine-commands)
 for the shared restrictions.
 
-`localpaint://document` and `localpaint://commands` return live JSON matching `doc_inspect`
+`localraster://document` and `localraster://commands` return live JSON matching `doc_inspect`
 and `command_list`. Resource reads are uncached; tool/resource catalogs are private and cached
 for ten minutes. List/read responses include the MCP 2026-07-28 result/cache fields.
 

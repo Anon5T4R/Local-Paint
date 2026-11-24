@@ -1,5 +1,5 @@
 //! Vector data: paths (Pen tool), shape layers, saved/work paths and vector masks. Pure data;
-//! rasterization lives in `localpaint-vector`, PSD mapping in `localpaint-io`.
+//! rasterization lives in `localraster-vector`, PSD mapping in `localraster-io`.
 //!
 //! Coordinates are **document pixels** (f64, y down), cubic Bézier. A subpath is a list of knots;
 //! segment `i` runs from `knots[i].anchor` via `knots[i].out_ctrl` and `knots[i+1].in_ctrl` to
@@ -15,8 +15,8 @@
 
 use std::sync::Arc;
 
-use localpaint_color::Color;
-use localpaint_geom::{Affine, Point};
+use localraster_color::Color;
+use localraster_geom::{Affine, Point};
 use serde::{Deserialize, Serialize};
 
 use crate::{Fill, Surface};
@@ -193,7 +193,7 @@ pub struct VectorMask {
     /// Density `0..=1` (Properties panel), like [`crate::LayerMask::density`].
     pub density: f32,
     /// Feather radius in px (Properties panel); the compositor blurs the rasterised path by it
-    /// (`localpaint_compose::masks::feather_sigma`), as it does a pixel mask's feather.
+    /// (`localraster_compose::masks::feather_sigma`), as it does a pixel mask's feather.
     pub feather: f32,
 }
 
@@ -339,7 +339,7 @@ pub struct ShapeLayer {
     pub fill: Option<Fill>,
     pub stroke: Option<ShapeStroke>,
     pub live: Option<LiveShape>,
-    /// Rasterized appearance (from PSD or `localpaint-vector`).
+    /// Rasterized appearance (from PSD or `localraster-vector`).
     pub cache: Option<Surface>,
     /// Data of the PSD vector mask block (`vsms`, else `vmsk`). On export it replaces that entry
     /// in [`crate::Layer::psd_blocks`] while it still decodes to `path`.

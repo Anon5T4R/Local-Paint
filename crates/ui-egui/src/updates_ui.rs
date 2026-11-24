@@ -1,9 +1,9 @@
 //! One background check at startup and a non-modal window for release information.
 
-use localpaint_engine::updates_cmds::Status;
+use localraster_engine::updates_cmds::Status;
 use serde_json::Value;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
 pub(crate) struct Runtime {
     startup_checked: bool,
@@ -17,23 +17,23 @@ impl Default for Runtime {
         Self {
             startup_checked: false,
             notified_version: None,
-            updater: craft_update::updater::Updater::new(&crate::UPDATE_APP, localpaint_engine::build_info::VERSION),
+            updater: craft_update::updater::Updater::new(&crate::UPDATE_APP, localraster_engine::build_info::VERSION),
         }
     }
 }
 
 /// The release the engine found, as `craft-update` knows it.
-fn release_of(found: &localpaint_engine::updates_cmds::Release) -> craft_update::Release {
+fn release_of(found: &localraster_engine::updates_cmds::Release) -> craft_update::Release {
     craft_update::Release {
         tag: format!("v{}", found.version),
         version: craft_update::parse_version(&found.version),
-        name: format!("Local Paint {}", found.version),
+        name: format!("Local Raster {}", found.version),
         html_url: found.url.clone(),
         ..Default::default()
     }
 }
 
-pub(crate) fn check(app: &mut LocalPaintApp, _ctx: &egui::Context, params: Value) -> Result<Value, String> {
+pub(crate) fn check(app: &mut LocalRasterApp, _ctx: &egui::Context, params: Value) -> Result<Value, String> {
     let before = app.session.updates.status.clone();
     let result = app.run("help.checkForUpdates", params);
     // A check that fails to start still shows its failure and Check Again; the command error
@@ -52,7 +52,7 @@ pub(crate) fn check(app: &mut LocalPaintApp, _ctx: &egui::Context, params: Value
     result
 }
 
-pub(crate) fn tick(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub(crate) fn tick(app: &mut LocalRasterApp, ctx: &egui::Context) {
     // `updates.status` also polls (automation may consume the result before this frame).
     app.session.updates.poll();
     if let Status::Available { release } = &app.session.updates.status
@@ -76,7 +76,7 @@ pub(crate) fn tick(app: &mut LocalPaintApp, ctx: &egui::Context) {
     }
 }
 
-pub(crate) fn show(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub(crate) fn show(app: &mut LocalRasterApp, ctx: &egui::Context) {
     let mut download: Option<String> = None;
     {
         let was_open = app.updates_rt.updater.prompt_open();
@@ -101,7 +101,7 @@ pub(crate) fn show(app: &mut LocalPaintApp, ctx: &egui::Context) {
         return;
     }
     if app.ui.updates_open {
-        let dialog = craft_update::CheckResultDialog::new(&crate::UPDATE_APP, localpaint_engine::build_info::VERSION);
+        let dialog = craft_update::CheckResultDialog::new(&crate::UPDATE_APP, localraster_engine::build_info::VERSION);
         match dialog.show(ctx, &check_status(&app.session.updates.status)) {
             craft_update::CheckResultResponse::None => {}
             craft_update::CheckResultResponse::Close => app.ui.updates_open = false,
@@ -128,17 +128,17 @@ fn check_status(status: &Status) -> craft_update::updater::Status {
 mod tests {
     use super::*;
     use crate::{Services, menus};
-    use localpaint_engine::{Session, updates_cmds::Release};
+    use localraster_engine::{Session, updates_cmds::Release};
     use std::sync::{Arc, Mutex, mpsc};
 
-    type Sender = Arc<Mutex<Option<mpsc::Sender<localpaint_engine::updates_cmds::CheckResult>>>>;
+    type Sender = Arc<Mutex<Option<mpsc::Sender<localraster_engine::updates_cmds::CheckResult>>>>;
 
-    fn app() -> (LocalPaintApp, Arc<Mutex<u32>>, Sender) {
+    fn app() -> (LocalRasterApp, Arc<Mutex<u32>>, Sender) {
         let calls = Arc::new(Mutex::new(0));
         let count = calls.clone();
         let sender = Arc::new(Mutex::new(None));
         let tx = sender.clone();
-        let app = LocalPaintApp::new(
+        let app = LocalRasterApp::new(
             Session::new(),
             Services {
                 check_updates: Some(Box::new(move || {
@@ -153,7 +153,7 @@ mod tests {
         (app, calls, sender)
     }
 
-    fn at(app: &mut LocalPaintApp, ctx: &egui::Context, time: f64) {
+    fn at(app: &mut LocalRasterApp, ctx: &egui::Context, time: f64) {
         let mut output = ctx.run_ui(egui::RawInput { time: Some(time), ..Default::default() }, |ui| tick(app, ui.ctx()));
         output.textures_delta.clear();
     }
@@ -211,7 +211,7 @@ mod tests {
         sender.lock().unwrap().as_ref().unwrap().send(Err("offline".into())).unwrap();
         at(&mut app, &ctx, 1.0);
         assert!(matches!(app.session.updates.status, Status::Failed { .. }));
-        let mut web = LocalPaintApp::new(Session::new(), Services::default());
+        let mut web = LocalRasterApp::new(Session::new(), Services::default());
         assert!(!menus::is_enabled(&web, "help.checkForUpdates"));
         at(&mut web, &ctx, 2.0);
         assert_eq!(web.session.updates.status, Status::Idle);
@@ -227,7 +227,7 @@ mod tests {
             .unwrap()
             .as_ref()
             .unwrap()
-            .send(Ok(Some(Release { version: "99.0.0".into(), url: "https://github.com/Anon5T4R/Local-Paint/releases/tag/v99.0.0".into() })))
+            .send(Ok(Some(Release { version: "99.0.0".into(), url: "https://github.com/Anon5T4R/Local-Raster/releases/tag/v99.0.0".into() })))
             .unwrap();
         app.run("updates.status", serde_json::json!({})).unwrap();
         at(&mut app, &ctx, 1.0);
@@ -247,7 +247,7 @@ mod tests {
             .unwrap()
             .as_ref()
             .unwrap()
-            .send(Ok(Some(Release { version: "99.0.0".into(), url: "https://github.com/Anon5T4R/Local-Paint/releases/tag/v99.0.0".into() })))
+            .send(Ok(Some(Release { version: "99.0.0".into(), url: "https://github.com/Anon5T4R/Local-Raster/releases/tag/v99.0.0".into() })))
             .unwrap();
         at(&mut app, &ctx, 1.0);
         assert!(app.updates_rt.updater.prompt_open(), "startup prompt initialized on available release");
@@ -263,7 +263,7 @@ mod tests {
     #[test]
     fn a_manual_check_that_fails_to_start_opens_the_status_window() {
         let mut app =
-            LocalPaintApp::new(Session::new(), Services { check_updates: Some(Box::new(|| Err("Could not start worker".into()))), ..Default::default() });
+            LocalRasterApp::new(Session::new(), Services { check_updates: Some(Box::new(|| Err("Could not start worker".into()))), ..Default::default() });
         let ctx = egui::Context::default();
         let error = menus::invoke(&mut app, &ctx, "help.checkForUpdates", serde_json::json!({})).unwrap_err();
         assert!(error.contains("Could not start worker"), "{error}");
@@ -288,7 +288,7 @@ mod tests {
     fn update_window_is_drivable_and_bad_state_changes_are_atomic() {
         let (mut app, _, _) = app();
         let ctx = egui::Context::default();
-        let call = |app: &mut LocalPaintApp, method: &str, params: Value| {
+        let call = |app: &mut LocalRasterApp, method: &str, params: Value| {
             let (req, _) = crate::control::ControlRequest::new(method, params);
             match crate::control::handle(app, &ctx, &req) {
                 crate::control::Outcome::Done(value) => value,

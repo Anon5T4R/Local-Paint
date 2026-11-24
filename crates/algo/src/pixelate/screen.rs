@@ -1,6 +1,6 @@
 //! Tile-local memoization in rotated screen coordinates. Each cell's radius
 //! is independent of the output pixel, including the five-tap edge clamping.
-use localpaint_geom::Rect;
+use localraster_geom::Rect;
 
 pub(super) struct Screen {
     x0: i32,

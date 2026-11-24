@@ -1,13 +1,13 @@
 //! Times the example Invert plug-in on a large image:
-//! `cargo run -p localpaint-plugins --release --example bench_invert -- [width] [height]`
+//! `cargo run -p localraster-plugins --release --example bench_invert -- [width] [height]`
 //! (default 6000 × 4000 = 24 MP, RGBA 8-bit).
 
 use std::time::Instant;
 
-use localpaint_color::PixelFormat;
-use localpaint_geom::Rect;
-use localpaint_plugins::{Limits, Plugin};
-use localpaint_raster::Surface;
+use localraster_color::PixelFormat;
+use localraster_geom::Rect;
+use localraster_plugins::{Limits, Plugin};
+use localraster_raster::Surface;
 
 fn main() {
     let mut args = std::env::args().skip(1).map(|a| a.parse::<i32>().unwrap_or(0));

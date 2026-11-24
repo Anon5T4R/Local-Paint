@@ -1,12 +1,12 @@
 //! Full filter timing, including tile reads, filtering, writeback and pruning.
-//! RAYON_NUM_THREADS=16 cargo run --release -p localpaint-algo --example bench_pixelate -- facet 6000 4000 u8 3 output.bin
+//! RAYON_NUM_THREADS=16 cargo run --release -p localraster-algo --example bench_pixelate -- facet 6000 4000 u8 3 output.bin
 //! Also: crystallize, crystallize-large, pointillize, pointillize-large.
 //! Optional final argument after output.bin: rgb (default), gray, cmyk or lab.
 //! Run the same example at the base commit and the PR commit, then compare output.bin with cmp.
-use localpaint_algo::{FilterParams, apply_in};
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_algo::{FilterParams, apply_in};
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 use std::io::Write;
 use std::time::Instant;
 

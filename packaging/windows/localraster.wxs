@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Local Raster MSI (WiX Toolset v5: `dotnet tool install -g wix`, plus its UI and Util extensions:
+  `wix extension add -g WixToolset.UI.wixext/5.0.2` and the same for WixToolset.Util.wixext).
+  Built by package.ps1:
+
+    wix build localraster.wxs -arch x64 -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext
+      -d Version=1.2.3 -d DisplayVersion=1.2.3 -d BinDir=... -d IconPath=... -d LicenseRtf=...
+      -d BannerBmp=... -d DialogBmp=... -d DocsDir=... -d HasCraftFontLicences=... -o out.msi
+
+  Per-machine install into Program Files\Local Raster, with a Start Menu shortcut and a desktop
+  shortcut, an App Paths entry, and Local Raster's own file types offered under "Open with" (never
+  forced as the default). Files opened with Local Raster arrive on its command line.
+
+  UpgradeCode and the component GUIDs below belong to Local Raster alone. Never copy them from (or
+  into) a sibling app of the suite: Windows Installer treats every package sharing an UpgradeCode
+  as one product, so a shared code makes one app's installer refuse to install ("a newer version
+  is already installed") or silently uninstall the other.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <?ifndef HasCraftFontLicences ?>
+  <?define HasCraftFontLicences=0 ?>
+  <?endif?>
+  <Package
+      Name="Local Raster"
+      Manufacturer="Local Raster contributors"
+      Version="$(var.Version)"
+      UpgradeCode="5D654232-F0D3-448A-AA92-6AAA765777B0"
+      Scope="perMachine"
+      Compressed="yes"
+      Language="1033">
+    <SummaryInformation Description="Local Raster image editor" Manufacturer="Local Raster contributors" />
+    <!-- HKLM registrations must never point into a per-user installation: allow removing an
+         existing installation even if an older MSI let it install per-user. -->
+    <Launch Condition="ALLUSERS = 1 OR (Installed AND REMOVE = &quot;ALL&quot;)"
+        Message="Local Raster must be installed for all users. Run setup with administrator privileges and ALLUSERS=1; per-user installation is not supported." />
+    <!-- Same-version upgrades let successive pre-releases of one X.Y.Z replace each other
+         (MSI versions are numeric, so 1.2.3-rc.1 and 1.2.3-rc.2 are both 1.2.3). -->
+    <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of Local Raster is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!-- Windows Installer caches this icon under its Id's filename, and an icon whose Id carries
+         the target's .exe extension is what the shell expects (ICE50 for advertised shortcuts,
+         and the taskbar cache) even when the source is an ICO. -->
+    <Icon Id="LocalRasterIcon.exe" SourceFile="$(var.IconPath)" />
+    <Property Id="ARPPRODUCTICON" Value="LocalRasterIcon.exe" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/Anon5T4R/Local-Raster" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/Anon5T4R/Local-Raster" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/Anon5T4R/Local-Raster/discussions" />
+
+    <!-- The setup wizard: WixUI_Minimal is welcome + licence, progress, then a finish page with
+         "Launch Local Raster" (ticked by default). Its art is ours, drawn from the app icon by
+         package.ps1, not WiX's stock bitmaps. -->
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.LicenseRtf)" />
+    <WixVariable Id="WixUIBannerBmp" Value="$(var.BannerBmp)" />
+    <WixVariable Id="WixUIDialogBmp" Value="$(var.DialogBmp)" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT" Value="Local Raster $(var.DisplayVersion) is installed. You can start it any time from the Start menu." />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch Local Raster" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <!-- Runs in the wizard's own (elevated) process, so the app starts in the chosen session. -->
+    <Property Id="WixShellExecTarget" Value="[#LocalRasterExe]" />
+    <CustomAction Id="LaunchLocalRaster" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixShellExec" Impersonate="yes" Return="ignore" />
+    <!-- The full version (Version is numeric, so it drops a pre-release tag), shown on the wizard's
+         pages through localraster.en-us.wxl. -->
+    <Property Id="LocalRasterVersion" Value="$(var.DisplayVersion)" />
+    <UI>
+      <ui:WixUI Id="WixUI_Minimal" />
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchLocalRaster"
+          Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed" />
+    </UI>
+
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="Local Raster" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+    <StandardDirectory Id="DesktopFolder" />
+
+    <Feature Id="Main" Title="Local Raster" Level="1">
+      <?if $(var.HasCraftFontLicences) = 1 ?>
+      <ComponentGroupRef Id="CraftFontLicences" />
+      <?endif?>
+      <ComponentGroupRef Id="LocalRasterFiles" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <?if $(var.HasCraftFontLicences) = 1 ?>
+    <ComponentGroup Id="CraftFontLicences" Directory="INSTALLFOLDER">
+      <Files Include="$(var.DocsDir)\**" />
+    </ComponentGroup>
+    <?endif?>
+    <ComponentGroup Id="LocalRasterFiles" Directory="INSTALLFOLDER">
+      <Component Id="LocalRasterApp" Guid="A6DE41B7-A80F-4C59-A17E-BB68065BF67E">
+        <File Id="LocalRasterExe" Source="$(var.BinDir)\localraster.exe" KeyPath="yes" />
+
+        <!-- .pcraft: Local Raster's own format; Local Raster is its default app. -->
+        <ProgId Id="LocalRaster.Document" Description="Local Raster Document" Icon="LocalRasterExe" IconIndex="0">
+          <Extension Id="pcraft" ContentType="application/x-localraster">
+            <Verb Id="open" Command="Open" TargetFile="LocalRasterExe" Argument="&quot;%1&quot;" />
+          </Extension>
+        </ProgId>
+        <!-- PSD/PSB and images: offered under "Open with", never forced as the default. -->
+        <ProgId Id="LocalRaster.PhotoshopDocument" Description="PSD Document" Icon="LocalRasterExe" IconIndex="0" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\LocalRaster.PhotoshopDocument\shell\open\command" Value="&quot;[#LocalRasterExe]&quot; &quot;%1&quot;" Type="string" />
+        <ProgId Id="LocalRaster.Image" Description="Image" Icon="LocalRasterExe" IconIndex="0" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\LocalRaster.Image\shell\open\command" Value="&quot;[#LocalRasterExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.psd\OpenWithProgids" Name="LocalRaster.PhotoshopDocument" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.psb\OpenWithProgids" Name="LocalRaster.PhotoshopDocument" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.pdn\OpenWithProgids" Name="LocalRaster.Image" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.ora\OpenWithProgids" Name="LocalRaster.Image" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.kra\OpenWithProgids" Name="LocalRaster.Image" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.krz\OpenWithProgids" Name="LocalRaster.Image" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.png\OpenWithProgids" Name="LocalRaster.Image" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.jpg\OpenWithProgids" Name="LocalRaster.Image" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.jpeg\OpenWithProgids" Name="LocalRaster.Image" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.tif\OpenWithProgids" Name="LocalRaster.Image" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.tiff\OpenWithProgids" Name="LocalRaster.Image" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.webp\OpenWithProgids" Name="LocalRaster.Image" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.gif\OpenWithProgids" Name="LocalRaster.Image" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.bmp\OpenWithProgids" Name="LocalRaster.Image" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.tga\OpenWithProgids" Name="LocalRaster.Image" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.exr\OpenWithProgids" Name="LocalRaster.Image" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.hdr\OpenWithProgids" Name="LocalRaster.Image" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.avif\OpenWithProgids" Name="LocalRaster.Image" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.qoi\OpenWithProgids" Name="LocalRaster.Image" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.ico\OpenWithProgids" Name="LocalRaster.Image" Value="" Type="string" />
+
+        <RegistryValue Root="HKMU" Key="Software\Classes\.pnm\OpenWithProgids" Name="LocalRaster.Image" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.pbm\OpenWithProgids" Name="LocalRaster.Image" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.pgm\OpenWithProgids" Name="LocalRaster.Image" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.ppm\OpenWithProgids" Name="LocalRaster.Image" Value="" Type="string" />
+
+        <!-- "Open with" app list and the Run dialog (Win+R "localraster"). -->
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe" Name="FriendlyAppName" Value="Local Raster" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\shell\open\command" Value="&quot;[#LocalRasterExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".pcraft" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".psd" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".psb" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".pdn" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".ora" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".kra" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".krz" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".png" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".jpg" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".jpeg" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".tif" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".tiff" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".webp" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".gif" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".bmp" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".tga" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".exr" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".hdr" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".avif" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".qoi" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".ico" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".pnm" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".pbm" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".pgm" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\localraster.exe\SupportedTypes" Name=".ppm" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\localraster.exe" Value="[#LocalRasterExe]" Type="string" />
+        <!-- Default Programs registration (Settings > Default apps): Capabilities + RegisteredApplications,
+             the same extensions as OpenWithProgids above. Only lists the app; never sets a default. -->
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities" Name="ApplicationName" Value="Local Raster" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities" Name="ApplicationDescription" Value="Open-source image editor" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities" Name="ApplicationIcon" Value="[#LocalRasterExe],0" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".pcraft" Value="LocalRaster.Document" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".psd" Value="LocalRaster.PhotoshopDocument" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".psb" Value="LocalRaster.PhotoshopDocument" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".pdn" Value="LocalRaster.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".ora" Value="LocalRaster.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".kra" Value="LocalRaster.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".krz" Value="LocalRaster.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".png" Value="LocalRaster.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".jpg" Value="LocalRaster.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".jpeg" Value="LocalRaster.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".tif" Value="LocalRaster.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".tiff" Value="LocalRaster.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".webp" Value="LocalRaster.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".gif" Value="LocalRaster.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".bmp" Value="LocalRaster.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".tga" Value="LocalRaster.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".exr" Value="LocalRaster.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".hdr" Value="LocalRaster.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".avif" Value="LocalRaster.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".qoi" Value="LocalRaster.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".ico" Value="LocalRaster.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".pnm" Value="LocalRaster.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".pbm" Value="LocalRaster.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".pgm" Value="LocalRaster.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\LocalRaster\Capabilities\FileAssociations" Name=".ppm" Value="LocalRaster.Image" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\RegisteredApplications" Name="LocalRaster" Value="Software\LocalRaster\Capabilities" Type="string" />
+        <!-- Where this MSI installed the app. The app's own updater reads it (HKLM here) under the
+             suite's key to know this is an MSI install, so it updates with the new MSI rather than
+             the portable zip. -->
+        <RegistryValue Root="HKLM" Key="Software\Anon5T4R\LocalRaster" Name="InstallDir" Value="[INSTALLFOLDER]" Type="string" />
+      </Component>
+
+      <!-- Shortcuts are plain links to localraster.exe, not advertised MSI shortcuts: advertised
+           ones point at a Windows Installer descriptor rather than the program, which Windows
+           can't use as a file handler, and Windows Installer caches their icon under its <Icon Id>.
+           Each has its own component with an HKLM key path, so Windows Installer removes it on
+           uninstall; in this per-machine package both folders are the all-users ones (a desktop
+           shortcut for every account, as the suite's installers do). -->
+      <Component Id="LocalRasterStartMenuShortcut" Directory="ProgramMenuFolder" Guid="2F2A89DC-8A53-4C3A-AA93-036DA7E2F80A">
+        <Shortcut Id="StartMenuShortcut" Name="Local Raster" Description="Local Raster image editor"
+            Target="[#LocalRasterExe]" WorkingDirectory="INSTALLFOLDER" Icon="LocalRasterIcon.exe" IconIndex="0" />
+        <RegistryValue Root="HKLM" Key="Software\LocalRaster\Shortcuts" Name="StartMenu" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+
+      <!-- Search alias: Start Menu search matches the shortcut's name, and every suite name
+           starts with Local — a plain "photo" finds nothing. Same exe, same icon, own
+           component so uninstall removes it. -->
+      <Component Id="LocalRasterAliasShortcut" Directory="ProgramMenuFolder" Guid="6671DC8F-A0C8-4982-8EF8-62AFE0E453D1">
+        <Shortcut Id="AliasShortcut" Name="Photo" Description="Local Raster image editor"
+            Target="[#LocalRasterExe]" WorkingDirectory="INSTALLFOLDER" Icon="LocalRasterIcon.exe" IconIndex="0" />
+        <RegistryValue Root="HKLM" Key="Software\LocalRaster\Shortcuts" Name="Alias" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+
+      <Component Id="LocalRasterDesktopShortcut" Directory="DesktopFolder" Guid="77CDAC6E-8F92-4C6E-A384-358A8E5A42F5">
+        <Shortcut Id="DesktopShortcut" Name="Local Raster" Description="Local Raster image editor"
+            Target="[#LocalRasterExe]" WorkingDirectory="INSTALLFOLDER" Icon="LocalRasterIcon.exe" IconIndex="0" />
+        <RegistryValue Root="HKLM" Key="Software\LocalRaster\Shortcuts" Name="Desktop" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+
+      <Component Id="LocalRasterCli">
+        <File Id="LocalRasterCliExe" Source="$(var.BinDir)\localraster-cli.exe" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>

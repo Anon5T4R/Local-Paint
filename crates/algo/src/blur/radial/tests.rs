@@ -1,6 +1,6 @@
 use super::*;
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_raster::Surface;
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_raster::Surface;
 
 fn fixture(format: PixelFormat, rect: Rect, hdr: bool) -> Surface {
     let mut surface = Surface::new(format);

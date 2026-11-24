@@ -30,7 +30,7 @@ commands:
   corpus [--all | --pngsuite | --psd | --psd-tools | --pixls | --atn | --photoshop | --gimp] [--local] [--update-manifest]
                   show where test corpora live and their pins (xtask/src/corpus_pins.rs), or fetch
                   them into corpus/ (pinned commits, sha256-verified; --all = every corpus but pixls,
-                  --photoshop/--gimp --local copy from ../photocraft-corpus or $LOCALPAINT_CORPUS_REPO)
+                  --photoshop/--gimp --local copy from ../photocraft-corpus or $LOCALRASTER_CORPUS_REPO)
   test-corpus [-p <crate>]... [--changed] [--pixls] [--local] [-- <test args>]
                   fetch every corpus, then cargo test --release --features corpus on the corpus
                   crates; --changed runs only if psd/io/codecs/compose/gpu/text/format/raw changed;
@@ -163,7 +163,7 @@ fn cmd_test() -> Result<(), String> {
     run(c, &format!("cargo {tool} {}", TEST_TARGETS.join(" ")))
 }
 
-/// What the CI gate adds to every build: `--locked`, and the optional localpaint-heif crate that
+/// What the CI gate adds to every build: `--locked`, and the optional localraster-heif crate that
 /// official builds open HEIC photos with.
 const GATE_ARGS: [&str; 4] = ["--workspace", "--locked", "--features", "heif"];
 
@@ -175,12 +175,12 @@ fn cmd_gate_tests(panic_hunt: bool) -> Result<(), String> {
     if nextest_available() {
         c.args(["nextest", "run", "--profile", "ci"]).args(GATE_ARGS).args(&TEST_TARGETS[1..]);
         if panic_hunt {
-            c.args(["--run-ignored", "only", "-E", "binary_id(localpaint-engine::panic_hunt)"]);
+            c.args(["--run-ignored", "only", "-E", "binary_id(localraster-engine::panic_hunt)"]);
         }
     } else if panic_hunt {
         // `-- --ignored` across the workspace would run every ignored test, not only the hunt. The
-        // engine has no `heif` feature of its own; it reaches the decoder through localpaint-io.
-        c.args(["test", "-p", "localpaint-engine", "--locked", "--features", "localpaint-io/heif", "--test", "panic_hunt", "--", "--ignored"]);
+        // engine has no `heif` feature of its own; it reaches the decoder through localraster-io.
+        c.args(["test", "-p", "localraster-engine", "--locked", "--features", "localraster-io/heif", "--test", "panic_hunt", "--", "--ignored"]);
     } else {
         eprintln!("note: cargo-nextest is not installed, running cargo test (cargo install cargo-nextest --locked)");
         c.arg("test").args(GATE_ARGS).args(&TEST_TARGETS[1..]);
@@ -198,8 +198,8 @@ fn cmd_doctest() -> Result<(), String> {
 
 fn cmd_parity() -> Result<(), String> {
     let mut c = cargo();
-    c.args(["run", "-q", "-p", "localpaint-ui-egui", "--example", "parity", "--", "--write", "docs/parity-checklist.md"]);
-    run(c, "cargo run -p localpaint-ui-egui --example parity")
+    c.args(["run", "-q", "-p", "localraster-ui-egui", "--example", "parity", "--", "--write", "docs/parity-checklist.md"]);
+    run(c, "cargo run -p localraster-ui-egui --example parity")
 }
 
 /// The workspace's own package names, for the `fmt` gate: the vendored trees under `libs/` and

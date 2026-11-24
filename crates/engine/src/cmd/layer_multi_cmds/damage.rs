@@ -1,4 +1,4 @@
-use localpaint_color::{PixelFormat, SampleType};
+use localraster_color::{PixelFormat, SampleType};
 
 use super::{Document, Layer, LayerContent, Rect, Session, VideoData};
 
@@ -7,7 +7,7 @@ use super::{Document, Layer, LayerContent, Rect, Session, VideoData};
 /// coordinate. A merge walk of the two sorted tile maps: pointer compares, no pixel reads. Both
 /// documents stay alive during the comparison, so tile addresses cannot be reused under it.
 /// `false` (and no calls) when the format or default pixel differs: every pixel may have changed.
-fn each_changed_tile(a: &localpaint_raster::Surface, b: &localpaint_raster::Surface, mut f: impl FnMut(Rect)) -> bool {
+fn each_changed_tile(a: &localraster_raster::Surface, b: &localraster_raster::Surface, mut f: impl FnMut(Rect)) -> bool {
     if a.format() != b.format() || a.default_bytes() != b.default_bytes() {
         return false;
     }
@@ -41,19 +41,19 @@ fn each_changed_tile(a: &localpaint_raster::Surface, b: &localpaint_raster::Surf
 /// The pixels that differ between two surfaces, to tile precision: the bounding box of the tiles
 /// [`each_changed_tile`] finds (empty when the pixels are identical), or `None` when the format
 /// or default pixel differs.
-fn surface_damage(a: &localpaint_raster::Surface, b: &localpaint_raster::Surface) -> Option<Rect> {
+fn surface_damage(a: &localraster_raster::Surface, b: &localraster_raster::Surface) -> Option<Rect> {
     let mut out = Rect::EMPTY;
     each_changed_tile(a, b, |r| out = out.union(&r)).then_some(out)
 }
 
 /// Whether two surfaces hold identical pixels (see [`surface_damage`]).
-fn surfaces_equal(a: &localpaint_raster::Surface, b: &localpaint_raster::Surface) -> bool {
+fn surfaces_equal(a: &localraster_raster::Surface, b: &localraster_raster::Surface) -> bool {
     surface_damage(a, b) == Some(Rect::EMPTY)
 }
 
 /// How [`layer_pixels_cmp`] compares a pair of surfaces a layer draws from, given the feather (in
 /// pixels) the compositor blurs it by: `true` when the pair counts as equal for the caller.
-type SurfaceCmp<'f> = &'f mut dyn FnMut(&localpaint_raster::Surface, &localpaint_raster::Surface, f32) -> bool;
+type SurfaceCmp<'f> = &'f mut dyn FnMut(&localraster_raster::Surface, &localraster_raster::Surface, f32) -> bool;
 
 /// Byte blobs kept in `Arc`s (PSD raw blocks, embedded smart-object sources): pointer-identical
 /// or content-equal (they are small compared to pixels, and undo steps rarely re-parse them).
@@ -70,7 +70,7 @@ fn blobs_equal(a: &Option<std::sync::Arc<Vec<u8>>>, b: &Option<std::sync::Arc<Ve
 }
 
 /// Layer masks (also the smart-filter mask): scalars plus the surface, compared by `surf`.
-fn masks_cmp(a: &Option<localpaint_doc::LayerMask>, b: &Option<localpaint_doc::LayerMask>, surf: SurfaceCmp) -> bool {
+fn masks_cmp(a: &Option<localraster_doc::LayerMask>, b: &Option<localraster_doc::LayerMask>, surf: SurfaceCmp) -> bool {
     match (a, b) {
         (None, None) => true,
         (Some(x), Some(y)) => {
@@ -80,7 +80,7 @@ fn masks_cmp(a: &Option<localpaint_doc::LayerMask>, b: &Option<localpaint_doc::L
     }
 }
 
-fn texts_cmp(a: &localpaint_doc::TextLayer, b: &localpaint_doc::TextLayer, surf: SurfaceCmp) -> bool {
+fn texts_cmp(a: &localraster_doc::TextLayer, b: &localraster_doc::TextLayer, surf: SurfaceCmp) -> bool {
     a.text == b.text
         && a.font_family == b.font_family
         && a.size_pt == b.size_pt
@@ -100,7 +100,7 @@ fn texts_cmp(a: &localpaint_doc::TextLayer, b: &localpaint_doc::TextLayer, surf:
         }
 }
 
-fn smarts_cmp(a: &localpaint_doc::SmartObject, b: &localpaint_doc::SmartObject, surf: SurfaceCmp) -> bool {
+fn smarts_cmp(a: &localraster_doc::SmartObject, b: &localraster_doc::SmartObject, surf: SurfaceCmp) -> bool {
     a.filters_enabled == b.filters_enabled
         && a.transform == b.transform
         && a.smart_filters == b.smart_filters
@@ -108,10 +108,10 @@ fn smarts_cmp(a: &localpaint_doc::SmartObject, b: &localpaint_doc::SmartObject, 
         && a.perspective == b.perspective
         && a.warp == b.warp
         && match (&a.source, &b.source) {
-            (localpaint_doc::SmartSource::Embedded { file_name: x, bytes: xb }, localpaint_doc::SmartSource::Embedded { file_name: y, bytes: yb }) => {
+            (localraster_doc::SmartSource::Embedded { file_name: x, bytes: xb }, localraster_doc::SmartSource::Embedded { file_name: y, bytes: yb }) => {
                 x == y && blob_equal(xb, yb)
             }
-            (localpaint_doc::SmartSource::Linked { path: x }, localpaint_doc::SmartSource::Linked { path: y }) => x == y,
+            (localraster_doc::SmartSource::Linked { path: x }, localraster_doc::SmartSource::Linked { path: y }) => x == y,
             _ => false,
         }
         && blobs_equal(&a.psd_raw, &b.psd_raw)
@@ -125,7 +125,7 @@ fn smarts_cmp(a: &localpaint_doc::SmartObject, b: &localpaint_doc::SmartObject, 
 }
 
 /// Extra alpha/spot channels (the image itself in Multichannel mode).
-fn alpha_channels_equal(a: &localpaint_doc::AlphaChannel, b: &localpaint_doc::AlphaChannel) -> bool {
+fn alpha_channels_equal(a: &localraster_doc::AlphaChannel, b: &localraster_doc::AlphaChannel) -> bool {
     a.name == b.name && a.spot == b.spot && a.color == b.color && a.opacity == b.opacity && a.indicates == b.indicates && surfaces_equal(&a.surface, &b.surface)
 }
 
@@ -301,7 +301,8 @@ fn pixels_equal_with(a: &Document, b: &Document, video_equal: fn(&VideoData, &Vi
 /// (`VideoData`'s own, shallow equality) and the same tile pointers in every frame, painted and
 /// original. Pointer compares only, like [`surfaces_equal`].
 fn video_frames_equal(a: &VideoData, b: &VideoData) -> bool {
-    let frames = |x: &[localpaint_raster::Surface], y: &[localpaint_raster::Surface]| x.len() == y.len() && x.iter().zip(y).all(|(f, g)| surfaces_equal(f, g));
+    let frames =
+        |x: &[localraster_raster::Surface], y: &[localraster_raster::Surface]| x.len() == y.len() && x.iter().zip(y).all(|(f, g)| surfaces_equal(f, g));
     *a == *b
         && frames(&a.frames, &b.frames)
         && match (&a.original_frames, &b.original_frames) {
@@ -460,7 +461,7 @@ pub fn step_damage(a: &Document, b: &Document) -> Option<Rect> {
                 // Both sides' extents: a move changes pixels where it left and where it landed.
                 // A clipped adjustment reaches as far as its base (#6535).
                 let (Some(bx), Some(by)) =
-                    (localpaint_compose::change_bounds_in(xs, xk, ox, a.bounds()), localpaint_compose::change_bounds_in(ys, yk, oy, b.bounds()))
+                    (localraster_compose::change_bounds_in(xs, xk, ox, a.bounds()), localraster_compose::change_bounds_in(ys, yk, oy, b.bounds()))
                 else {
                     return false;
                 };
@@ -469,8 +470,8 @@ pub fn step_damage(a: &Document, b: &Document) -> Option<Rect> {
                 // never more than the whole extents. Effects laid out over a frame repaint it
                 // everywhere when it moves (#4053), so then the whole extents.
                 let frame_moved = around.spans_frame
-                    || (localpaint_compose::effects::spans_frame(y)
-                        && localpaint_compose::effects_frame(x, a.bounds()) != localpaint_compose::effects_frame(y, b.bounds()));
+                    || (localraster_compose::effects::spans_frame(y)
+                        && localraster_compose::effects_frame(x, a.bounds()) != localraster_compose::effects_frame(y, b.bounds()));
                 let d = match tiles {
                     Some(t) if !frame_moved => t.inflate(around.reach).intersect(&whole.inflate(around.reach)).intersect(&b.bounds()),
                     _ => whole,
@@ -479,10 +480,10 @@ pub fn step_damage(a: &Document, b: &Document) -> Option<Rect> {
             }
             match (x.children(), y.children()) {
                 (Some(xc), Some(yc)) => {
-                    let reach = |l: &Layer| if localpaint_compose::effects::has_effects(l) { localpaint_compose::effects::margin(l) } else { 0 };
+                    let reach = |l: &Layer| if localraster_compose::effects::has_effects(l) { localraster_compose::effects::margin(l) } else { 0 };
                     let inner = Around {
                         reach: around.reach.saturating_add(reach(x).max(reach(y))),
-                        spans_frame: around.spans_frame || localpaint_compose::effects::spans_frame(x) || localpaint_compose::effects::spans_frame(y),
+                        spans_frame: around.spans_frame || localraster_compose::effects::spans_frame(x) || localraster_compose::effects::spans_frame(y),
                     };
                     if !walk(xc, yc, (Some((xs, xk)), Some((ys, yk))), inner, a, b, out) {
                         return false;
@@ -522,7 +523,7 @@ fn tile_damage(a: &Layer, b: &Layer) -> Option<Rect> {
     let mut tiles = Rect::EMPTY;
     let only_pixels = layer_pixels_cmp(a, b, &mut |x, y, feather| {
         let Some(r) = surface_damage(x, y) else { return false };
-        let r = if feather > 0.0 { localpaint_vector::feather::grow(r, localpaint_vector::feather::feather_sigma(feather)) } else { r };
+        let r = if feather > 0.0 { localraster_vector::feather::grow(r, localraster_vector::feather::feather_sigma(feather)) } else { r };
         tiles = tiles.union(&r);
         true
     });
@@ -530,12 +531,12 @@ fn tile_damage(a: &Layer, b: &Layer) -> Option<Rect> {
         return None;
     }
     // Effects are equal on both sides here (they are compared before any surface).
-    let margin = if localpaint_compose::effects::has_effects(b) { localpaint_compose::effects::margin(b) } else { 0 };
+    let margin = if localraster_compose::effects::has_effects(b) { localraster_compose::effects::margin(b) } else { 0 };
     Some(if tiles.is_empty() || margin == 0 { tiles } else { tiles.inflate(margin) })
 }
 
 /// The pixels adding or removing `layers[k]` can change, when that is bounded: its change bounds
-/// (`localpaint_compose::change_bounds_in`: not for an unclipped adjustment, or a pass-through
+/// (`localraster_compose::change_bounds_in`: not for an unclipped adjustment, or a pass-through
 /// group holding one; a clipped adjustment's are its base's), provided it isn't the clipping base
 /// of clipped layers above it (they would change base), and neither it nor anything inside it is
 /// a video layer or excludes channels (both reach outside the layer's bounds, see
@@ -549,7 +550,7 @@ fn one_sided_bounds(layers: &[Layer], k: usize, outer: Option<(&[Layer], usize)>
     if new_base || !contained(l, 0) {
         return None;
     }
-    localpaint_compose::change_bounds_in(layers, k, outer, canvas)
+    localraster_compose::change_bounds_in(layers, k, outer, canvas)
 }
 
 /// Whether `layers[k]` draws nothing wherever it sits, so adding or removing it leaves the
@@ -564,13 +565,13 @@ fn inert_at(layers: &[Layer], k: usize) -> bool {
         _ => false,
     };
     empty
-        && matches!(l.blend, localpaint_doc::BlendMode::Normal | localpaint_doc::BlendMode::PassThrough)
+        && matches!(l.blend, localraster_doc::BlendMode::Normal | localraster_doc::BlendMode::PassThrough)
         && l.mask.is_none()
         && l.vector_mask.is_none()
-        && !localpaint_compose::effects::has_effects(l)
+        && !localraster_compose::effects::has_effects(l)
         && l.fill_cache.is_none()
         && l.video.is_none()
-        && l.advanced == localpaint_doc::AdvancedBlending::default()
+        && l.advanced == localraster_doc::AdvancedBlending::default()
         && (l.clipped || layers.get(k + 1).is_none_or(|above| !above.clipped))
 }
 
@@ -614,7 +615,7 @@ pub(crate) fn align_bounds(l: &Layer, canvas: Rect, sample: SampleType) -> Optio
 
 /// Whether the shape's fill shows everywhere (an inverted path, or below 100 % density), so it has
 /// no extent of its own.
-fn unbounded_fill(sh: &localpaint_doc::ShapeLayer) -> bool {
+fn unbounded_fill(sh: &localraster_doc::ShapeLayer) -> bool {
     sh.fill.is_some() && (sh.path.inverted || (sh.density.is_finite() && sh.density < 1.0))
 }
 
@@ -631,22 +632,22 @@ const SHAPE_BOUNDS_BAND_PX: u64 = 1 << 20;
 /// everything it can draw (its path, stroke and feather), unclipped, and measured from that. A fill
 /// that shows everywhere (an inverted path, or below 100 % density) has no extent of its own and
 /// keeps the canvas-clipped measure (`None`).
-pub(super) fn shape_pixel_bounds(sh: &localpaint_doc::ShapeLayer, canvas: Rect, sample: SampleType) -> Option<Rect> {
+pub(super) fn shape_pixel_bounds(sh: &localraster_doc::ShapeLayer, canvas: Rect, sample: SampleType) -> Option<Rect> {
     if unbounded_fill(sh) {
         return None;
     }
-    let reach = localpaint_compose::shape_bounds(sh)?.inflate(1);
+    let reach = localraster_compose::shape_bounds(sh)?.inflate(1);
     if u64::from(reach.width()) * u64::from(reach.height()) > SHAPE_BOUNDS_MAX_PX {
-        return localpaint_compose::hard_shape_bounds(sh);
+        return localraster_compose::hard_shape_bounds(sh);
     }
     // Gradients lay out in the document's frame (as the cached render does); the feather and the
     // clip cover the shape's whole reach, beyond the canvas too.
-    let shape = localpaint_vector::CompiledShape::with_frames(sh, localpaint_vector::DEFAULT_TOLERANCE, reach, canvas);
+    let shape = localraster_vector::CompiledShape::with_frames(sh, localraster_vector::DEFAULT_TOLERANCE, reach, canvas);
     // Alpha at the document's own precision, as the document stores it: an 8-bit render drops the
     // faint stroke of a 16-bit or float document (the opaque body then aligns by a different
     // extent than the document draws), and a float one would find alpha an 8-bit document never
     // stores. A band of rows at a time keeps the working copy a few MB however large the shape.
-    let format = PixelFormat::new(localpaint_color::ColorMode::Grayscale, sample, true);
+    let format = PixelFormat::new(localraster_color::ColorMode::Grayscale, sample, true);
     let band_rows = i32::try_from((SHAPE_BOUNDS_BAND_PX / u64::from(reach.width().max(1))).max(1)).unwrap_or(i32::MAX);
     let mut bounds = Rect::EMPTY;
     let mut top = reach.y0;

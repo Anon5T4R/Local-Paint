@@ -2,13 +2,13 @@ use super::*;
 use egui::{Modifiers, PointerButton, Pos2, vec2};
 use egui_kittest::{Harness, kittest::Queryable};
 
-fn app() -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn app() -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 32, "height": 32})).unwrap();
     app
 }
 
-fn work_path(app: &mut LocalPaintApp) {
+fn work_path(app: &mut LocalRasterApp) {
     app.run(
         "path.set",
         json!({"name": "work", "path": {"subpaths": [{"closed": true, "knots": [
@@ -20,15 +20,15 @@ fn work_path(app: &mut LocalPaintApp) {
     .unwrap();
 }
 
-fn choose_open(app: &mut LocalPaintApp, command: &str) {
+fn choose_open(app: &mut LocalRasterApp, command: &str) {
     assert!(open(app, &Context::default(), Tool::Pen, [10.0, 10.0]));
     choose(app, &Context::default(), command);
 }
 
-fn harness(mut app: LocalPaintApp) -> Harness<'static, LocalPaintApp> {
+fn harness(mut app: LocalRasterApp) -> Harness<'static, LocalRasterApp> {
     app.sync_views();
     let mut h = Harness::builder().with_size(vec2(1000.0, 700.0)).build_ui_state(
-        |ui, app: &mut LocalPaintApp| {
+        |ui, app: &mut LocalRasterApp| {
             let ctx = ui.ctx().clone();
             if !ctx.fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                 return;
@@ -37,12 +37,12 @@ fn harness(mut app: LocalPaintApp) -> Harness<'static, LocalPaintApp> {
         },
         app,
     );
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::default());
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::default());
     h.run_steps(4);
     h
 }
 
-fn right_click(h: &mut Harness<'static, LocalPaintApp>, p: Pos2, modifiers: Modifiers) {
+fn right_click(h: &mut Harness<'static, LocalRasterApp>, p: Pos2, modifiers: Modifiers) {
     h.event(egui::Event::ModifiersChanged(modifiers));
     h.event(egui::Event::PointerMoved(p));
     h.run_steps(1);
@@ -72,15 +72,15 @@ fn canvas_gesture_preserves_selection_and_command_override() {
 }
 
 /// A type layer reading "Hello", being edited with every character selected.
-fn editing_type(app: &mut LocalPaintApp) -> u64 {
+fn editing_type(app: &mut LocalRasterApp) -> u64 {
     app.ui.tool = Tool::Type;
     let id = app.run("type.create", json!({"text": "Hello", "size": 12, "x": 4, "y": 20})).unwrap()["layer"].as_u64().unwrap();
     crate::menus::invoke(app, &Context::default(), "type.editText", json!({})).unwrap();
     id
 }
 
-fn text_of(app: &LocalPaintApp, id: u64) -> Option<localpaint_doc::TextLayer> {
-    match &app.session.active().unwrap().doc.layer(localpaint_doc::LayerId(id)).unwrap().content {
+fn text_of(app: &LocalRasterApp, id: u64) -> Option<localraster_doc::TextLayer> {
+    match &app.session.active().unwrap().doc.layer(localraster_doc::LayerId(id)).unwrap().content {
         LayerContent::Text(t) => Some(t.clone()),
         _ => None,
     }
@@ -92,7 +92,7 @@ fn right_click_while_typing_opens_the_type_edit_menu_and_esc_keeps_the_edit() {
     editing_type(&mut app);
     app.sync_views();
     let mut h = Harness::builder().with_size(vec2(1000.0, 700.0)).build_ui_state(
-        |ui, app: &mut LocalPaintApp| {
+        |ui, app: &mut LocalRasterApp| {
             let ctx = ui.ctx().clone();
             if !ctx.fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                 return;
@@ -103,7 +103,7 @@ fn right_click_while_typing_opens_the_type_edit_menu_and_esc_keeps_the_edit() {
         },
         app,
     );
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::default());
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::default());
     h.run_steps(4);
     let center = h.state().last_canvas_rect.center();
     right_click(&mut h, center, Modifiers::NONE);
@@ -123,7 +123,7 @@ fn type_edit_menu_rows_act_on_the_text_and_the_layer() {
     let mut app = app();
     let id = editing_type(&mut app);
     let ctx = Context::default();
-    let reopen = |app: &mut LocalPaintApp| assert!(open(app, &Context::default(), Tool::Type, [10.0, 10.0]));
+    let reopen = |app: &mut LocalRasterApp| assert!(open(app, &Context::default(), Tool::Type, [10.0, 10.0]));
     // Faux Bold toggles the style of the selected characters, and shows checked.
     reopen(&mut app);
     let menu = app.ui.canvas_tool_menu.clone().unwrap();
@@ -158,7 +158,7 @@ fn type_edit_menu_rows_act_on_the_text_and_the_layer() {
 }
 
 /// A committed type layer reading "Hello" over the middle of the canvas, no edit running.
-fn committed_type(app: &mut LocalPaintApp) -> u64 {
+fn committed_type(app: &mut LocalRasterApp) -> u64 {
     app.ui.tool = Tool::Type;
     let id = app.run("type.create", json!({"text": "Hello", "size": 14, "x": 1, "y": 22})).unwrap()["layer"].as_u64().unwrap();
     assert!(app.ui.text_edit.is_none());
@@ -167,7 +167,7 @@ fn committed_type(app: &mut LocalPaintApp) -> u64 {
 
 #[test]
 fn right_click_on_committed_type_opens_the_type_layer_menu() {
-    use localpaint_doc::text::Orientation;
+    use localraster_doc::text::Orientation;
     let mut app = app();
     let id = committed_type(&mut app);
     assert_eq!(crate::type_tool::hit_layer(&mut app, 16.0, 16.0).map(|l| l.0), Some(id), "the canvas centre is on the type");
@@ -199,7 +199,7 @@ fn type_layer_menu_targets_the_type_under_the_pointer() {
     let id = committed_type(&mut app);
     app.run("layer.new.layer", json!({})).unwrap();
     let ctx = Context::default();
-    let active = |app: &LocalPaintApp| app.session.active().unwrap().active_layer.map(|l| l.0);
+    let active = |app: &LocalRasterApp| app.session.active().unwrap().active_layer.map(|l| l.0);
     assert_ne!(active(&app), Some(id));
     // Away from the type, or with a Type Mask tool, nothing opens and nothing is selected.
     assert!(!open_at(&mut app, &ctx, Tool::Type, [10.0, 10.0], Some([30.0, 2.0])));
@@ -222,7 +222,7 @@ fn type_layer_menu_targets_the_type_under_the_pointer() {
 /// Two selected type layers: the one right-clicked becomes active, and the selection stays.
 #[test]
 fn type_layer_menu_in_a_multiselection_acts_on_the_clicked_type() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 200, "height": 100})).unwrap();
     app.ui.tool = Tool::Type;
     let top = app.run("type.create", json!({"text": "Top", "size": 30, "x": 10, "y": 40})).unwrap()["layer"].as_u64().unwrap();
@@ -423,7 +423,7 @@ fn selection_menus_follow_photoshop_order() {
     let app = app();
     let items = crate::menus::menu_items(&app);
     for (label, id) in [SELECTION_MENU, NO_SELECTION_MENU, PEN_MENU, TRANSFORM_MENU].into_iter().flatten().flatten() {
-        assert!(items.iter().any(|i| i.id == *id) || localpaint_engine::commands::find(id).is_some(), "{label}: unknown command {id}");
+        assert!(items.iter().any(|i| i.id == *id) || localraster_engine::commands::find(id).is_some(), "{label}: unknown command {id}");
     }
 }
 
@@ -515,13 +515,13 @@ fn view_menu_follows_photoshop_order() {
     }
 }
 
-fn zoom_app(w: u32, h: u32) -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn zoom_app(w: u32, h: u32) -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": w, "height": h})).unwrap();
     app
 }
 
-fn screen_of(app: &LocalPaintApp, doc: [f32; 2]) -> Pos2 {
+fn screen_of(app: &LocalRasterApp, doc: [f32; 2]) -> Pos2 {
     crate::canvas::ViewXform::active(app).unwrap().to_screen(doc[0], doc[1])
 }
 
@@ -641,7 +641,7 @@ fn view_menu_fits_fills_and_sets_fixed_zooms() {
     let p = screen_of(h.state(), [200.0, 150.0]);
     let area = crate::rulers::content_rect(h.state(), h.state().last_canvas_rect).size();
     let ppp = h.state().canvas_ppp();
-    let pick = |h: &mut Harness<'static, LocalPaintApp>, label: &str| {
+    let pick = |h: &mut Harness<'static, LocalRasterApp>, label: &str| {
         right_click(h, p, Modifiers::NONE);
         h.get_by_label(label).click();
         h.run_steps(3);
@@ -670,7 +670,7 @@ fn view_menu_needs_finite_points_and_a_view_tool() {
     choose(&mut app, &Context::default(), "select.all");
     assert_eq!(app.session.journal.len(), before, "the view menu cannot run another menu's row");
     // With no document every row is greyed out and choosing one does nothing.
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     assert!(open_view(&mut app, &Context::default(), Tool::Hand, [1.0, 1.0], [1.0, 1.0]));
     let menu = app.ui.canvas_tool_menu.clone().unwrap();
     for (_, id) in VIEW_MENU.iter().flatten() {
@@ -948,7 +948,7 @@ fn unfinished_shape_path_disables_actions_that_would_target_the_previous_layer()
 
 /// A 32 × 32 document with the Crop tool picked (Classic Mode, so the view stays put) and its
 /// untouched default frame.
-fn crop_app() -> LocalPaintApp {
+fn crop_app() -> LocalRasterApp {
     let mut app = app();
     app.ui.tool = Tool::Crop;
     app.ui.tool_options.crop_shield.classic_mode = true;
@@ -958,7 +958,7 @@ fn crop_app() -> LocalPaintApp {
 }
 
 /// Draws a crop frame from (4, 4) to (28, 28): a pending crop. Returns the frame.
-fn draw_crop(app: &mut LocalPaintApp) -> [f64; 4] {
+fn draw_crop(app: &mut LocalRasterApp) -> [f64; 4] {
     use crate::canvas::{ToolEvent, tool_event};
     tool_event(app, ToolEvent::Down { x: 4.0, y: 4.0, pressure: 1.0 }, Modifiers::NONE);
     tool_event(app, ToolEvent::Move { x: 16.0, y: 16.0, pressure: 1.0 }, Modifiers::NONE);
@@ -1011,10 +1011,10 @@ fn untouched_crop_frame_has_no_menu_and_a_pending_one_wins_over_the_pasteboard()
 }
 
 /// A harness in the app's order: shortcuts (the crop's Esc and ↵ among them), then the canvas.
-fn shortcut_harness(mut app: LocalPaintApp) -> Harness<'static, LocalPaintApp> {
+fn shortcut_harness(mut app: LocalRasterApp) -> Harness<'static, LocalRasterApp> {
     app.sync_views();
     let mut h = Harness::builder().with_size(vec2(1000.0, 700.0)).build_ui_state(
-        |ui, app: &mut LocalPaintApp| {
+        |ui, app: &mut LocalRasterApp| {
             let ctx = ui.ctx().clone();
             if !ctx.fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                 return;
@@ -1024,7 +1024,7 @@ fn shortcut_harness(mut app: LocalPaintApp) -> Harness<'static, LocalPaintApp> {
         },
         app,
     );
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::default());
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::default());
     h.run_steps(4);
     h
 }
@@ -1166,7 +1166,7 @@ fn crop_menu_rows_act_like_the_options_bar() {
     draw_crop(&mut app);
     // Space's Hand held over the Crop tool keeps its own right-click.
     assert!(!open_crop(&mut app, &ctx, Tool::Hand, [10.0, 10.0]));
-    let reopen = |app: &mut LocalPaintApp| {
+    let reopen = |app: &mut LocalRasterApp| {
         assert!(open_crop(app, &Context::default(), Tool::Crop, [10.0, 10.0]));
         app.ui.canvas_tool_menu.clone().unwrap()
     };

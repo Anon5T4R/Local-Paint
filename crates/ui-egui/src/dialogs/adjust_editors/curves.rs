@@ -146,9 +146,9 @@ impl CurvePolyline {
         if self.points == points && self.graph == Some(graph) {
             return false;
         }
-        let cp: Vec<localpaint_doc::adjust::CurvePoint> =
-            points.iter().map(|q| localpaint_doc::adjust::CurvePoint { input: q[0] / 255.0, output: q[1] / 255.0 }).collect();
-        self.line = localpaint_compose::adjust::curve_samples::<CURVE_SAMPLES>(&cp)
+        let cp: Vec<localraster_doc::adjust::CurvePoint> =
+            points.iter().map(|q| localraster_doc::adjust::CurvePoint { input: q[0] / 255.0, output: q[1] / 255.0 }).collect();
+        self.line = localraster_compose::adjust::curve_samples::<CURVE_SAMPLES>(&cp)
             .into_iter()
             .enumerate()
             .map(|(i, y)| pos2(graph.left() + i as f32 / (CURVE_SAMPLES - 1) as f32 * graph.width(), graph.bottom() - y * graph.height()))
@@ -222,9 +222,9 @@ fn read_map(v: &Value, key: &str) -> Vec<f32> {
     let map: Option<Vec<f32>> = v
         .get(key)
         .and_then(Value::as_array)
-        .filter(|a| a.len() == localpaint_doc::adjust::CURVE_MAP_LEN)
+        .filter(|a| a.len() == localraster_doc::adjust::CURVE_MAP_LEN)
         .and_then(|a| a.iter().map(|o| o.as_f64().map(|o| o as f32)).collect());
-    map.unwrap_or_else(|| (0..localpaint_doc::adjust::CURVE_MAP_LEN).map(|k| k as f32).collect())
+    map.unwrap_or_else(|| (0..localraster_doc::adjust::CURVE_MAP_LEN).map(|k| k as f32).collect())
 }
 
 fn write_map(v: &mut Value, key: &str, map: &[f32]) {
@@ -236,7 +236,7 @@ fn write_map(v: &mut Value, key: &str, map: &[f32]) {
 fn set_pencil(v: &mut Value, pencil: bool, gray: bool) -> bool {
     let mut p = v.clone();
     p["pencil"] = json!(pencil);
-    let mode = if gray { localpaint_doc::ColorMode::Grayscale } else { localpaint_doc::ColorMode::Rgb };
+    let mode = if gray { localraster_doc::ColorMode::Grayscale } else { localraster_doc::ColorMode::Rgb };
     let Ok(a) = adjust_params::from_params("curves", &p, None, mode) else { return false };
     *v = adjust_params::to_params(&a);
     // Explicit, so an update over a pencil-drawn layer leaves the pencil.
@@ -471,8 +471,8 @@ mod multi_channel_tests {
     use super::super::levels::read_levels;
     use super::super::{auto_levels, editor};
     use super::*;
-    use crate::{LocalPaintApp, tone::HistSource};
-    use localpaint_engine::{Session, channel_cmds};
+    use crate::{LocalRasterApp, tone::HistSource};
+    use localraster_engine::{Session, channel_cmds};
     use std::sync::Arc;
 
     fn context(mode: &str) -> EditorCx {
@@ -509,14 +509,14 @@ mod multi_channel_tests {
         for kind in ["levels", "curves"] {
             let cx = context("rgb");
             let base =
-                localpaint_engine::adjust_params::to_params(&localpaint_engine::adjust_params::default_for(kind, localpaint_doc::ColorMode::Rgb).unwrap());
+                localraster_engine::adjust_params::to_params(&localraster_engine::adjust_params::default_for(kind, localraster_doc::ColorMode::Rgb).unwrap());
             let mut values = base.clone();
             let mut harness = egui_kittest::Harness::new_ui(|ui| {
                 if ui.ctx().fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                     editor(ui, kind, &mut values, &cx);
                 }
             });
-            LocalPaintApp::setup_context(&harness.ctx, Default::default());
+            LocalRasterApp::setup_context(&harness.ctx, Default::default());
             harness.run();
             drop(harness);
             assert_eq!(values, base);
@@ -525,7 +525,7 @@ mod multi_channel_tests {
     #[test]
     fn subset_histograms_match_both_editors_in_all_native_spaces_and_depths() {
         use egui_kittest::kittest::Queryable;
-        use localpaint_geom::Rect as PixelRect;
+        use localraster_geom::Rect as PixelRect;
 
         for mode in ["rgb", "cmyk", "lab"] {
             for depth in [8, 16, 32] {
@@ -570,7 +570,7 @@ mod multi_channel_tests {
                                 editor(ui, kind, &mut values, &cx);
                             }
                         });
-                        LocalPaintApp::setup_context(&harness.ctx, Default::default());
+                        LocalRasterApp::setup_context(&harness.ctx, Default::default());
                         harness.ctx.data_mut(|d| d.insert_temp(cx.mem.with(format!("{kind}-ch")), choice));
                         harness.run_steps(4);
                         if kind == "levels" {
@@ -595,7 +595,7 @@ mod multi_channel_tests {
         for pencil in [false, true] {
             for channel in [0usize, 2] {
                 let cx = context("lab");
-                let mut values = adjust_params::to_params(&adjust_params::default_for("curves", localpaint_doc::ColorMode::Lab).unwrap());
+                let mut values = adjust_params::to_params(&adjust_params::default_for("curves", localraster_doc::ColorMode::Lab).unwrap());
                 values["points"] = json!([[0, 0], [100, 150], [255, 255]]);
                 if pencil {
                     assert!(set_editor_pencil(&mut values, true, &cx));
@@ -607,7 +607,7 @@ mod multi_channel_tests {
                         editor(ui, "curves", &mut values, &cx);
                     }
                 });
-                LocalPaintApp::setup_context(&harness.ctx, Default::default());
+                LocalRasterApp::setup_context(&harness.ctx, Default::default());
                 harness.ctx.data_mut(|d| d.insert_temp(cx.mem.with("curves-ch"), channel));
                 harness.run_steps(4);
                 let graph = harness.ctx.data(|d| d.get_temp::<Rect>(cx.mem.with("curves-graph"))).unwrap();
@@ -700,8 +700,8 @@ mod polyline_tests {
         let iterations = 10_000;
         let start = Instant::now();
         for _ in 0..iterations {
-            let cp: Vec<_> = black_box(&points).iter().map(|q| localpaint_doc::adjust::CurvePoint { input: q[0] / 255.0, output: q[1] / 255.0 }).collect();
-            let lut = localpaint_compose::adjust::curve_lut(&cp);
+            let cp: Vec<_> = black_box(&points).iter().map(|q| localraster_doc::adjust::CurvePoint { input: q[0] / 255.0, output: q[1] / 255.0 }).collect();
+            let lut = localraster_compose::adjust::curve_lut(&cp);
             let line: Vec<_> = lut
                 .iter()
                 .enumerate()

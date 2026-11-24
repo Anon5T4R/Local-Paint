@@ -1,19 +1,19 @@
 //! Liquify / Puppet / Perspective timings on a 24 MP image.
 //!
 //! ```sh
-//! cargo run --release -p localpaint-algo --example bench_liquify
+//! cargo run --release -p localraster-algo --example bench_liquify
 //! ```
 
 use std::time::Instant;
 
-use localpaint_algo::liquify::{LiquifyField, LiquifyStroke, LiquifyTool, ProxyImage, apply_liquify, auto_cell};
-use localpaint_algo::perspective::{PerspectiveMap, Plane};
-use localpaint_algo::puppet::{PuppetDensity, PuppetMode, PuppetPin, PuppetWarp, deform, render};
-use localpaint_algo::transform::Interp;
-use localpaint_algo::warp::warp_mesh_surface;
-use localpaint_color::PixelFormat;
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_algo::liquify::{LiquifyField, LiquifyStroke, LiquifyTool, ProxyImage, apply_liquify, auto_cell};
+use localraster_algo::perspective::{PerspectiveMap, Plane};
+use localraster_algo::puppet::{PuppetDensity, PuppetMode, PuppetPin, PuppetWarp, deform, render};
+use localraster_algo::transform::Interp;
+use localraster_algo::warp::warp_mesh_surface;
+use localraster_color::PixelFormat;
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 
 fn main() {
     let (w, h) = (6000, 4000);
@@ -119,17 +119,17 @@ fn main() {
         expansion: 2.0,
     };
     let t = Instant::now();
-    let (solver, v, order) = deform(&s, b, &pw, localpaint_algo::puppet::ITERATIONS);
+    let (solver, v, order) = deform(&s, b, &pw, localraster_algo::puppet::ITERATIONS);
     println!(
         "puppet mesh {} verts / {} tris + ARAP ({} rounds): {:.1} ms",
         solver.mesh.verts.len(),
         solver.mesh.tris.len(),
-        localpaint_algo::puppet::ITERATIONS,
+        localraster_algo::puppet::ITERATIONS,
         t.elapsed().as_secs_f64() * 1e3
     );
     // Compare the old path-dependent preview with the command-equivalent drag solve, using
     // changing destinations and the same cached factorization (no remeshing per event).
-    for (label, rounds, warm) in [("6 warm rounds", 6, true), ("canonical cold solve", localpaint_algo::puppet::ITERATIONS, false)] {
+    for (label, rounds, warm) in [("6 warm rounds", 6, true), ("canonical cold solve", localraster_algo::puppet::ITERATIONS, false)] {
         let mut previous = v.clone();
         let mut times = Vec::new();
         for step in 1..=60 {

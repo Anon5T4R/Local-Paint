@@ -12,9 +12,9 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use localpaint_color::PixelFormat;
-use localpaint_geom::{Rect, TILE_SIZE, TileCoord};
-use localpaint_raster::Surface;
+use localraster_color::PixelFormat;
+use localraster_geom::{Rect, TILE_SIZE, TileCoord};
+use localraster_raster::Surface;
 
 use super::box_mean;
 use crate::segment::RgbImage;

@@ -7,10 +7,10 @@
 
 use std::sync::Arc;
 
-use localpaint_engine::web_cmds::{self, Optimized, WebSettings};
+use localraster_engine::web_cmds::{self, Optimized, WebSettings};
 use serde_json::{Map, Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::state::DialogKind;
 use crate::theme::Tokens;
 
@@ -31,13 +31,13 @@ fn no_params(p: &Value) -> bool {
     p.as_object().is_none_or(|o| o.is_empty())
 }
 
-fn default_dir(app: &LocalPaintApp) -> String {
+fn default_dir(app: &LocalRasterApp) -> String {
     app.session.active().and_then(|d| d.path.as_deref()).and_then(|p| p.rfind(['/', '\\']).map(|i| p[..i].to_string())).unwrap_or_else(|| ".".into())
 }
 
 /// A packaged macOS app does not start in a useful writable working directory. A saved
 /// document keeps its own folder; otherwise prefer the user's Documents folder.
-fn droplet_default_dir(app: &LocalPaintApp) -> String {
+fn droplet_default_dir(app: &LocalRasterApp) -> String {
     let dir = default_dir(app);
     if dir != "." {
         return dir;
@@ -51,12 +51,12 @@ fn droplet_default_dir(app: &LocalPaintApp) -> String {
     dir
 }
 
-fn doc_stem(app: &LocalPaintApp) -> String {
+fn doc_stem(app: &LocalRasterApp) -> String {
     app.session.active().map(|d| d.doc.name.rsplit_once('.').map_or(d.doc.name.clone(), |(a, _)| a.to_string())).unwrap_or_else(|| tl!("Untitled").into())
 }
 
 /// A generic form dialog for `command` (rendered by `view_cmds::form_body`).
-fn form(app: &mut LocalPaintApp, command: &str, label: &str, fields: Value, choices: Value) -> Value {
+fn form(app: &mut LocalRasterApp, command: &str, label: &str, fields: Value, choices: Value) -> Value {
     let mut f = Map::new();
     f.insert("__command".into(), json!(command));
     f.insert("__label".into(), json!(label));
@@ -74,7 +74,7 @@ fn form(app: &mut LocalPaintApp, command: &str, label: &str, fields: Value, choi
 const SCRIPT_EXTENSIONS: &[&str] = &["psjs", "ccjs", "jsx", "js", "jsxbin", "json", "txt", "pcdroplet"];
 
 /// Menu items fronted here (dialogs before the engine command). `None` when not ours.
-pub fn invoke(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, params: &Value) -> Option<Result<Value, String>> {
+pub fn invoke(app: &mut LocalRasterApp, ctx: &egui::Context, id: &str, params: &Value) -> Option<Result<Value, String>> {
     if !no_params(params) {
         return None;
     }
@@ -89,7 +89,7 @@ pub fn invoke(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, params: &V
             app.session.active()?;
             json!({"dialog": open_print(app)})
         }
-        "file.printOneCopy" if localpaint_engine::print_cmds::last_print(&app.session).is_none() => {
+        "file.printOneCopy" if localraster_engine::print_cmds::last_print(&app.session).is_none() => {
             app.session.active()?;
             json!({"dialog": open_print(app)})
         }
@@ -98,7 +98,7 @@ pub fn invoke(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, params: &V
             app,
             id,
             tl!("Contact Sheet II"),
-            json!({"input": dir, "units": "inches", "width": 8.0, "height": 10.0, "resolution": 300.0, "mode": "rgb", "depth": 8, "columns": 5, "rows": 6, "placeAcrossFirst": true, "autoSpacing": true, "rotateForBestFit": false, "caption": true, "font": localpaint_text::fonts::DEFAULT_FAMILY, "fontSize": 12.0, "flatten": false}),
+            json!({"input": dir, "units": "inches", "width": 8.0, "height": 10.0, "resolution": 300.0, "mode": "rgb", "depth": 8, "columns": 5, "rows": 6, "placeAcrossFirst": true, "autoSpacing": true, "rotateForBestFit": false, "caption": true, "font": localraster_text::fonts::DEFAULT_FAMILY, "fontSize": 12.0, "flatten": false}),
             json!({"units": ["inches", "cm", "pixels"], "mode": ["rgb", "gray", "cmyk", "lab"]}),
         ),
         "file.automate.createDroplet" => {
@@ -129,7 +129,7 @@ pub fn invoke(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, params: &V
         }
         "file.scripts.scriptEventsManager" => {
             let enabled = app.session.prefs().script_events.enabled;
-            let events: Vec<&str> = localpaint_engine::automate_cmds::EVENTS.iter().map(|e| e.0).collect();
+            let events: Vec<&str> = localraster_engine::automate_cmds::EVENTS.iter().map(|e| e.0).collect();
             form(app, id, "Script Events Manager", json!({"enabled": enabled, "event": "openDocument", "script": "", "name": ""}), json!({"event": events}))
         }
         "file.package" => form(app, id, "Package", json!({"dir": dir}), json!({})),
@@ -148,7 +148,7 @@ pub fn invoke(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, params: &V
 }
 
 /// Checked state of toggle items owned here.
-pub fn checked(app: &LocalPaintApp, id: &str) -> Option<bool> {
+pub fn checked(app: &LocalRasterApp, id: &str) -> Option<bool> {
     match id {
         "view.lockSlices" => Some(app.session.file_menu.slices_locked),
         "file.generate.imageAssets" => Some(app.session.active().is_some_and(|d| app.session.file_menu.image_assets.contains(&d.doc.id))),
@@ -182,7 +182,7 @@ pub fn ok_label(f: &Map<String, Value>) -> Option<&'static str> {
 }
 
 /// The body of Save for Web or Print (dialog `id`).
-pub fn body(app: &mut LocalPaintApp, ui: &mut egui::Ui, f: &mut Map<String, Value>, id: u64) {
+pub fn body(app: &mut LocalRasterApp, ui: &mut egui::Ui, f: &mut Map<String, Value>, id: u64) {
     if f.contains_key("__web") {
         web_body(app, ui, f);
     } else {
@@ -190,7 +190,7 @@ pub fn body(app: &mut LocalPaintApp, ui: &mut egui::Ui, f: &mut Map<String, Valu
     }
 }
 
-pub fn confirm(app: &mut LocalPaintApp, f: &Map<String, Value>) -> Result<Value, String> {
+pub fn confirm(app: &mut LocalRasterApp, f: &Map<String, Value>) -> Result<Value, String> {
     if f.contains_key("__web") { web_confirm(app, f) } else { print_confirm(app, f) }
 }
 
@@ -245,8 +245,8 @@ mod web_playback_tests {
     use super::*;
     use egui_kittest::{Harness, kittest::Queryable};
 
-    fn animated_app(depth: u32) -> LocalPaintApp {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    fn animated_app(depth: u32) -> LocalRasterApp {
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 32, "height": 24, "depth": depth})).unwrap();
         app.run("timeline.create", json!({"duration": 3, "fps": 2})).unwrap();
         app.run("layer.videoLayers.newBlankVideoLayer", json!({})).unwrap();
@@ -258,9 +258,9 @@ mod web_playback_tests {
         app
     }
 
-    fn harness(app: LocalPaintApp, fields: Map<String, Value>) -> Harness<'static, (LocalPaintApp, Map<String, Value>)> {
+    fn harness(app: LocalRasterApp, fields: Map<String, Value>) -> Harness<'static, (LocalRasterApp, Map<String, Value>)> {
         let mut h = Harness::builder().with_size(egui::vec2(1000.0, 800.0)).with_step_dt(0.1).build_ui_state(
-            |ui, state: &mut (LocalPaintApp, Map<String, Value>)| {
+            |ui, state: &mut (LocalRasterApp, Map<String, Value>)| {
                 if !ui.ctx().fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                     return;
                 }
@@ -268,7 +268,7 @@ mod web_playback_tests {
             },
             (app, fields),
         );
-        LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
+        LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
         h.run_steps(3);
         h
     }
@@ -276,7 +276,7 @@ mod web_playback_tests {
     /// WebP (#6391): Quality until Lossless is ticked; 4-Up halves a lossy quality like JPEG's.
     #[test]
     fn webp_settings_show_quality_until_lossless() {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 32, "height": 24})).unwrap();
         let id = open_web(&mut app);
         let mut fields = app.ui.dialog_mut(id).unwrap().fields.clone();
@@ -299,7 +299,7 @@ mod web_playback_tests {
     /// first, and for a remembered value it doesn't know.
     #[test]
     fn save_for_web_reopens_on_the_last_preview_tab() {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 40, "height": 30})).unwrap();
         let id = open_web(&mut app);
         let fields = app.ui.dialog_mut(id).unwrap().fields.clone();
@@ -366,13 +366,13 @@ mod web_playback_tests {
             for (frame, expected) in [[1.0, 0.0, 0.0, 1.0], [0.0, 1.0, 0.0, 1.0], [0.0, 0.0, 1.0, 1.0]].iter().enumerate() {
                 let preview = web_frame_document(&source, Some(frame)).unwrap();
                 let (proxy, _, _) = web_cmds::web_document(&preview, &json!({"width":16,"height":12}), &WebSettings::default()).unwrap();
-                let pixels = localpaint_compose::flatten(&proxy);
+                let pixels = localraster_compose::flatten(&proxy);
                 for (actual, expected) in pixels.px[0].iter().zip(expected) {
                     assert!((actual - expected).abs() < 0.002, "depth={depth} frame={frame}");
                 }
             }
             assert_eq!(source.timeline.as_ref().unwrap().current, 0);
-            assert_eq!(localpaint_compose::flatten(&source).px[0], [1.0, 0.0, 0.0, 1.0]);
+            assert_eq!(localraster_compose::flatten(&source).px[0], [1.0, 0.0, 0.0, 1.0]);
         }
     }
 
@@ -438,7 +438,7 @@ mod web_playback_tests {
     #[test]
     fn still_documents_have_no_playback_controls() {
         for duration in [None, Some(1)] {
-            let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+            let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
             app.run("file.new", json!({"width":32,"height":24})).unwrap();
             if let Some(duration) = duration {
                 app.run("timeline.create", json!({"duration":duration,"fps":2})).unwrap();
@@ -458,8 +458,8 @@ mod web_playback_tests {
         let source = app.session.active().unwrap().doc.clone();
         let edited = web_frame_document(&source, Some(0)).unwrap();
         let other = web_frame_document(&source, Some(1)).unwrap();
-        assert_eq!(localpaint_compose::flatten(&edited).px[0], [1.0, 1.0, 0.0, 1.0]);
-        assert_eq!(localpaint_compose::flatten(&other).px[0], [0.0, 1.0, 0.0, 1.0]);
+        assert_eq!(localraster_compose::flatten(&edited).px[0], [1.0, 1.0, 0.0, 1.0]);
+        assert_eq!(localraster_compose::flatten(&other).px[0], [0.0, 1.0, 0.0, 1.0]);
         assert!(Arc::ptr_eq(&source, &app.session.active().unwrap().doc));
         assert_eq!(source.timeline.as_ref().unwrap().current, 0);
     }
@@ -472,8 +472,8 @@ mod web_playback_tests {
             for (frame, expected) in [[255, 0, 0, 255], [0, 255, 0, 255], [0, 0, 255, 255]].iter().enumerate() {
                 let doc = web_frame_document(&app.session.active().unwrap().doc, Some(frame)).unwrap();
                 let (proxy, _, _) = web_cmds::web_document(&doc, &json!({"width":16,"height":12}), &settings).unwrap();
-                let pixels = localpaint_compose::flatten(&proxy);
-                let optimized = web_cmds::optimize(&pixels.px, 16, localpaint_geom::Rect::new(0, 0, 16, 12), &settings, None, None, None, 72.0, true).unwrap();
+                let pixels = localraster_compose::flatten(&proxy);
+                let optimized = web_cmds::optimize(&pixels.px, 16, localraster_geom::Rect::new(0, 0, 16, 12), &settings, None, None, None, 72.0, true).unwrap();
                 assert_eq!(&optimized.preview[..4], expected, "depth={depth} frame={frame}");
             }
         }

@@ -1,14 +1,14 @@
 //! Timing: smart selection on a large synthetic RGBA8 layer (default 6016×6016): a textured
 //! disc (radius = 1/3 of the size) on a noisy background.
-//! `cargo run --release -p localpaint-algo --example bench_smartselect [size]`
+//! `cargo run --release -p localraster-algo --example bench_smartselect [size]`
 use std::time::Instant;
 
-use localpaint_algo::matting::{self, RefineParams};
-use localpaint_algo::segment::{Rng, SurfaceSampler, focus, grabcut, quick, subject};
-use localpaint_algo::selection::{Region, SelectionMode, combine_region};
-use localpaint_color::PixelFormat;
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_algo::matting::{self, RefineParams};
+use localraster_algo::segment::{Rng, SurfaceSampler, focus, grabcut, quick, subject};
+use localraster_algo::selection::{Region, SelectionMode, combine_region};
+use localraster_color::PixelFormat;
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 
 fn main() {
     let n: i32 = std::env::args().nth(1).and_then(|v| v.parse().ok()).unwrap_or(6016);

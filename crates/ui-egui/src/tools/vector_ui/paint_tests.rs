@@ -7,17 +7,17 @@ use egui_kittest::{
     Harness,
     kittest::{NodeT, Queryable},
 };
-use localpaint_doc::ShapeLayer;
+use localraster_doc::ShapeLayer;
 
-fn app(mode: &str, depth: u32) -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+fn app(mode: &str, depth: u32) -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 120, "height": 100, "mode": mode, "depth": depth})).unwrap();
     app.ui.tool = Tool::Rectangle;
     app.sync_views();
     app
 }
 
-fn shape(app: &LocalPaintApp) -> &ShapeLayer {
+fn shape(app: &LocalRasterApp) -> &ShapeLayer {
     let st = app.session.active().unwrap();
     let LayerContent::Shape(shape) = &st.doc.layer(st.active_layer.unwrap()).unwrap().content else { panic!("expected editable shape") };
     shape
@@ -39,16 +39,16 @@ fn assert_saved_path(saved: &Path, original: &Path) {
     }
 }
 
-fn harness(app: LocalPaintApp, properties: bool) -> Harness<'static, LocalPaintApp> {
+fn harness(app: LocalRasterApp, properties: bool) -> Harness<'static, LocalRasterApp> {
     // kittest's default step: 0.25 s a frame.
     harness_stepped(app, properties, 0.25)
 }
 
 /// [`harness`] advancing `step_dt` seconds a frame (1/60 lets two clicks fall within egui's
 /// 0.3 s double-click window, as they do in the app).
-fn harness_stepped(app: LocalPaintApp, properties: bool, step_dt: f32) -> Harness<'static, LocalPaintApp> {
+fn harness_stepped(app: LocalRasterApp, properties: bool, step_dt: f32) -> Harness<'static, LocalRasterApp> {
     let mut h = Harness::builder().with_size(vec2(1000.0, 700.0)).with_step_dt(step_dt).build_ui_state(
-        move |ui, app: &mut LocalPaintApp| {
+        move |ui, app: &mut LocalRasterApp| {
             crate::screen_picker::tick(app, ui.ctx());
             if !ui.ctx().fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                 return;
@@ -66,17 +66,17 @@ fn harness_stepped(app: LocalPaintApp, properties: bool, step_dt: f32) -> Harnes
         },
         app,
     );
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::Pro);
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::Pro);
     h.run_steps(3);
     h
 }
 
-fn pointer(h: &mut Harness<'_, LocalPaintApp>, pos: Pos2, pressed: bool) {
+fn pointer(h: &mut Harness<'_, LocalRasterApp>, pos: Pos2, pressed: bool) {
     h.event(Event::PointerButton { pos, button: PointerButton::Primary, pressed, modifiers: Modifiers::NONE });
     h.step();
 }
 
-fn stroke_width(h: &mut Harness<'_, LocalPaintApp>, width: &str) {
+fn stroke_width(h: &mut Harness<'_, LocalRasterApp>, width: &str) {
     h.get_all_by_role(egui::accesskit::Role::SpinButton).next().expect("the stroke width").click();
     h.run();
     h.key_press_modifiers(Modifiers::COMMAND, Key::A);
@@ -114,8 +114,8 @@ fn zero_width_preserves_selected_shape_stroke_and_restores_it() {
 
             // A save at zero must retain the dormant stroke too.
             let st = h.state().session.active().unwrap();
-            let bytes = localpaint_format::save_to_bytes(&st.doc, &Default::default()).unwrap();
-            let loaded = localpaint_format::load_from_bytes(&bytes).unwrap();
+            let bytes = localraster_format::save_to_bytes(&st.doc, &Default::default()).unwrap();
+            let loaded = localraster_format::load_from_bytes(&bytes).unwrap();
             let LayerContent::Shape(saved) = &loaded.layer(st.active_layer.unwrap()).unwrap().content else { panic!("saved shape") };
             assert_eq!(saved.stroke, zero.stroke);
 
@@ -204,7 +204,7 @@ fn fill_and_stroke_swatches_open_with_pointer_and_keyboard_without_changing_pain
 }
 
 /// Open the popover's swatch folder `folder` and click its swatch `name`.
-fn click_swatch(h: &mut Harness<'_, LocalPaintApp>, folder: &str, name: &str) {
+fn click_swatch(h: &mut Harness<'_, LocalRasterApp>, folder: &str, name: &str) {
     if h.query_by_label(name).is_none() {
         h.get_by_label(folder).click();
         h.run_steps(2);
@@ -214,7 +214,7 @@ fn click_swatch(h: &mut Harness<'_, LocalPaintApp>, folder: &str, name: &str) {
 }
 
 /// Click the open Color Picker's hex field (found by the colour it shows) and select its text.
-fn focus_hex(h: &mut Harness<'_, LocalPaintApp>) {
+fn focus_hex(h: &mut Harness<'_, LocalRasterApp>) {
     let shown = h.state().ui.dialogs.last().expect("the Color Picker dialog").fields["color"].as_str().unwrap().trim_start_matches('#').to_ascii_uppercase();
     h.get_all_by_role(egui::accesskit::Role::TextInput).find(|n| n.value().as_deref() == Some(shown.as_str())).expect("the hex field").click();
     h.run_steps(1);
@@ -450,7 +450,7 @@ fn float_paints_match_preview_creation_native_roundtrip_and_document_depth() {
             let mut app = app(mode, depth);
             set_tool_paint(&mut app, false, PaintChange::Color(foreground)).unwrap();
             set_tool_paint(&mut app, true, PaintChange::Color(background)).unwrap();
-            app.ui.tool_options.shape_stroke.cap = localpaint_doc::LineCap::Round;
+            app.ui.tool_options.shape_stroke.cap = localraster_doc::LineCap::Round;
             app.ui.tool_options.shape_stroke.dashes = vec![0.0, 2.0];
             let preview = shape_preview(&app, tool, [20.0, 20.0], [100.0, 80.0], Modifiers::NONE).unwrap();
             finish_shape(&mut app, tool, [20.0, 20.0], [100.0, 80.0], Modifiers::NONE);
@@ -461,10 +461,10 @@ fn float_paints_match_preview_creation_native_roundtrip_and_document_depth() {
             assert_eq!(committed.fill, Some(solid_paint(foreground)));
             assert_eq!(committed.stroke.as_ref().unwrap().paint, solid_paint(background));
             let doc = &app.session.active().unwrap().doc;
-            let rendered = localpaint_vector::render_shape(&preview, doc.pixel_format(), doc.bounds());
+            let rendered = localraster_vector::render_shape(&preview, doc.pixel_format(), doc.bounds());
             assert_eq!(committed.cache.as_ref().unwrap(), &rendered, "{tool:?} {mode}/{depth}");
-            let bytes = localpaint_format::save_to_bytes(doc, &Default::default()).unwrap();
-            let loaded = localpaint_format::load_from_bytes(&bytes).unwrap();
+            let bytes = localraster_format::save_to_bytes(doc, &Default::default()).unwrap();
+            let loaded = localraster_format::load_from_bytes(&bytes).unwrap();
             let id = app.session.active().unwrap().active_layer.unwrap();
             let LayerContent::Shape(saved) = &loaded.layer(id).unwrap().content else { panic!("saved editable shape") };
             assert_eq!((&saved.fill, &saved.stroke), (&committed.fill, &committed.stroke));
@@ -565,7 +565,7 @@ fn selected_shape_gradient_and_full_picker_edit_the_layer() {
     h.run_steps(3);
     h.get_by_label("Gradient").click();
     h.run_steps(2);
-    assert!(matches!(shape(h.state()).fill, Some(localpaint_doc::Fill::Gradient { .. })), "Gradient fills the shape");
+    assert!(matches!(shape(h.state()).fill, Some(localraster_doc::Fill::Gradient { .. })), "Gradient fills the shape");
     assert_eq!(h.state().session.active().unwrap().history.past_len(), history + 1);
     h.key_press(Key::Escape);
     h.run_steps(2);
@@ -617,12 +617,12 @@ fn options_bar_fill_swatch_recolours_the_shape_just_drawn() {
     assert_eq!(shape(h.state()).fill, original.fill);
 }
 
-fn test_gradient() -> localpaint_doc::Fill {
-    localpaint_doc::Fill::Gradient {
-        stops: vec![(0.0, localpaint_doc::Color::rgba(0.123456, 0.5, 0.75, 1.0)), (1.0, localpaint_doc::Color::rgba(0.9, 0.2, 0.1, 0.6))],
+fn test_gradient() -> localraster_doc::Fill {
+    localraster_doc::Fill::Gradient {
+        stops: vec![(0.0, localraster_doc::Color::rgba(0.123456, 0.5, 0.75, 1.0)), (1.0, localraster_doc::Color::rgba(0.9, 0.2, 0.1, 0.6))],
         angle: 30.0,
         scale: 0.5,
-        style: localpaint_doc::GradientStyle::Radial,
+        style: localraster_doc::GradientStyle::Radial,
         reverse: true,
         opacity_stops: vec![(0.0, 1.0), (1.0, 0.25)],
         midpoints: vec![0.3],
@@ -651,7 +651,7 @@ fn tool_gradient_paints_reach_the_preview_and_the_next_shape() {
         assert_eq!(committed.stroke.as_ref().unwrap().paint, test_gradient(), "{mode}/{depth}");
         assert_eq!(committed.fill, Some(test_gradient()));
         let doc = &app.session.active().unwrap().doc;
-        let rendered = localpaint_vector::render_shape(&preview, doc.pixel_format(), doc.bounds());
+        let rendered = localraster_vector::render_shape(&preview, doc.pixel_format(), doc.bounds());
         assert_eq!(committed.cache.as_ref().unwrap(), &rendered, "{mode}/{depth}");
         set_tool_paint(&mut app, true, PaintChange::Color([0.0, 1.0, 0.0, 1.0])).unwrap();
         assert!(app.ui.tool_options.shape_stroke_gradient.is_none());
@@ -670,12 +670,12 @@ fn stroke_swatch_gradient_tab_sets_the_next_shapes_stroke() {
     h.run_steps(3);
     h.get_by_label("Gradient").click();
     h.run_steps(3);
-    let stroke_gradient = |h: &Harness<'_, LocalPaintApp>| match h.state().ui.tool_options.shape_stroke_gradient.clone() {
-        Some(localpaint_doc::Fill::Gradient { stops, style, angle, .. }) => (stops, style, angle),
+    let stroke_gradient = |h: &Harness<'_, LocalRasterApp>| match h.state().ui.tool_options.shape_stroke_gradient.clone() {
+        Some(localraster_doc::Fill::Gradient { stops, style, angle, .. }) => (stops, style, angle),
         other => panic!("a stroke gradient, not {other:?}"),
     };
     let (_, style, angle) = stroke_gradient(&h);
-    assert_eq!((style, angle), (localpaint_doc::GradientStyle::Linear, 90.0));
+    assert_eq!((style, angle), (localraster_doc::GradientStyle::Linear, 90.0));
     assert_eq!(h.state().ui.tool_options.stroke_width, 3.0, "choosing a gradient enables the stroke");
     h.get_by_label("Blue 01").click();
     h.run_steps(2);
@@ -687,7 +687,7 @@ fn stroke_swatch_gradient_tab_sets_the_next_shapes_stroke() {
     h.get_by_label("Radial Gradient").click();
     h.run_steps(2);
     let (stops, style, _) = stroke_gradient(&h);
-    assert_eq!((stops, style), (blue_stops, localpaint_doc::GradientStyle::Radial), "the style keeps the colours");
+    assert_eq!((stops, style), (blue_stops, localraster_doc::GradientStyle::Radial), "the style keeps the colours");
     assert_eq!(h.state().session.active().unwrap().history.past_len(), 0, "tool defaults do not edit the document");
     h.get_by_label("Solid Color").click();
     h.run_steps(2);
@@ -707,32 +707,32 @@ fn properties_stroke_swatch_gives_the_selected_shape_a_gradient_stroke() {
     h.get_by_label("Gradient").click();
     h.run_steps(3);
     let stroke = shape(h.state()).stroke.clone().unwrap();
-    let localpaint_doc::Fill::Gradient { stops, .. } = &stroke.paint else { panic!("a gradient stroke, not {:?}", stroke.paint) };
+    let localraster_doc::Fill::Gradient { stops, .. } = &stroke.paint else { panic!("a gradient stroke, not {:?}", stroke.paint) };
     assert_eq!(stroke.width, 4.0);
     assert_eq!(h.state().session.active().unwrap().history.past_len(), history + 1);
     h.get_by_label("Reflected Gradient").click();
     h.run_steps(3);
-    let localpaint_doc::Fill::Gradient { stops: after, style, .. } = shape(h.state()).stroke.clone().unwrap().paint else { panic!("still a gradient stroke") };
-    assert_eq!((&after, style), (stops, localpaint_doc::GradientStyle::Reflected));
+    let localraster_doc::Fill::Gradient { stops: after, style, .. } = shape(h.state()).stroke.clone().unwrap().paint else { panic!("still a gradient stroke") };
+    assert_eq!((&after, style), (stops, localraster_doc::GradientStyle::Reflected));
     while h.state().session.active().unwrap().history.past_len() > history {
         h.state_mut().run("edit.undo", json!({})).unwrap();
     }
     assert_eq!(shape(h.state()).stroke.as_ref().unwrap().paint, solid_paint([1.0, 0.0, 0.0, 1.0]));
 }
 
-fn tool_stroke_gradient(h: &Harness<'_, LocalPaintApp>) -> localpaint_doc::Fill {
+fn tool_stroke_gradient(h: &Harness<'_, LocalRasterApp>) -> localraster_doc::Fill {
     h.state().ui.tool_options.shape_stroke_gradient.clone().expect("a stroke gradient")
 }
 
-fn gradient_stops(f: &localpaint_doc::Fill) -> localpaint_engine::presets::gradients::FillStops {
+fn gradient_stops(f: &localraster_doc::Fill) -> localraster_engine::presets::gradients::FillStops {
     match f {
-        localpaint_doc::Fill::Gradient { stops, opacity_stops, .. } => (stops.clone(), opacity_stops.clone()),
+        localraster_doc::Fill::Gradient { stops, opacity_stops, .. } => (stops.clone(), opacity_stops.clone()),
         other => panic!("a gradient, not {other:?}"),
     }
 }
 
 /// Opens Options bar › Stroke › Gradient and returns the stops strip's rect.
-fn open_stroke_gradient(h: &mut Harness<'_, LocalPaintApp>) -> Rect {
+fn open_stroke_gradient(h: &mut Harness<'_, LocalRasterApp>) -> Rect {
     h.get_by_label("Stroke color").click();
     h.run_steps(3);
     if h.state().ui.tool_options.shape_stroke_gradient.is_none() || h.state().ui.tool_options.stroke_width <= 0.0 {
@@ -742,7 +742,7 @@ fn open_stroke_gradient(h: &mut Harness<'_, LocalPaintApp>) -> Rect {
     h.get_by_label("Gradient stops").rect()
 }
 
-fn click(h: &mut Harness<'_, LocalPaintApp>, pos: Pos2) {
+fn click(h: &mut Harness<'_, LocalRasterApp>, pos: Pos2) {
     h.hover_at(pos);
     h.step();
     pointer(h, pos, true);
@@ -812,7 +812,7 @@ fn gradient_tab_strip_adds_moves_recolours_and_deletes_stops() {
 fn gradient_tab_align_with_layer_and_recent_row() {
     let mut h = harness(app("rgb", 8), false);
     open_stroke_gradient(&mut h);
-    let align = |h: &Harness<'_, LocalPaintApp>| matches!(tool_stroke_gradient(h), localpaint_doc::Fill::Gradient { align: true, .. });
+    let align = |h: &Harness<'_, LocalRasterApp>| matches!(tool_stroke_gradient(h), localraster_doc::Fill::Gradient { align: true, .. });
     assert!(align(&h));
     h.get_by_label("Align with layer").click();
     h.run_steps(2);
@@ -879,7 +879,7 @@ fn gradient_tab_keeps_the_stop_colour_after_a_preset_with_fewer_stops() {
 /// stops as they are: before, every stop went out as sRGB RGBA and came back in the RGB model.
 #[test]
 fn gradient_tab_edit_keeps_cmyk_stops_in_their_model() {
-    let cmyk = |c: [f32; 4]| localpaint_doc::Color { mode: localpaint_doc::ColorMode::Cmyk, c, alpha: 1.0 };
+    let cmyk = |c: [f32; 4]| localraster_doc::Color { mode: localraster_doc::ColorMode::Cmyk, c, alpha: 1.0 };
     let stops = vec![(0.0, cmyk([0.1, 0.2, 0.3, 0.9])), (1.0, cmyk([0.75, 0.0, 0.5, 0.0]))];
     for (properties, label) in [(true, "Set shape stroke type"), (false, "Stroke color")] {
         let mut app = app("cmyk", 8);
@@ -892,7 +892,7 @@ fn gradient_tab_edit_keeps_cmyk_stops_in_their_model() {
         h.get_by_label("Reverse").click();
         h.run_steps(3);
         let paint = shape(h.state()).stroke.clone().unwrap().paint;
-        assert!(matches!(paint, localpaint_doc::Fill::Gradient { reverse: true, .. }), "Properties={properties}: Reverse applied");
+        assert!(matches!(paint, localraster_doc::Fill::Gradient { reverse: true, .. }), "Properties={properties}: Reverse applied");
         assert_eq!(gradient_stops(&paint).0, stops, "Properties={properties}: the stops keep their CMYK model and values");
     }
 }
@@ -972,7 +972,7 @@ fn a_refused_popover_swatch_is_not_a_recently_used_colour() {
                 |_, ()| Ok(json!({})),
             )
             .unwrap();
-        let localpaint_engine::jobs::Started::Job(job) = started else { panic!("the job ran inline") };
+        let localraster_engine::jobs::Started::Job(job) = started else { panic!("the job ran inline") };
         let mut h = harness(app, properties);
         h.get_by_label(popover).click();
         h.run_steps(3);

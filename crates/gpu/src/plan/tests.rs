@@ -1,13 +1,13 @@
 use super::*;
-use localpaint_color::{Color, ColorMode, SampleType};
-use localpaint_geom::Size;
+use localraster_color::{Color, ColorMode, SampleType};
+use localraster_geom::Size;
 
 #[test]
 fn nested_pass_through_groups_with_clipped_layers_are_not_planned_exponentially() {
-    let mut layers = vec![Layer::raster("leaf", localpaint_color::PixelFormat::RGBA8)];
+    let mut layers = vec![Layer::raster("leaf", localraster_color::PixelFormat::RGBA8)];
     for _ in 0..30 {
         let group = Layer::group("g", layers);
-        let mut clipped = Layer::raster("c", localpaint_color::PixelFormat::RGBA8);
+        let mut clipped = Layer::raster("c", localraster_color::PixelFormat::RGBA8);
         clipped.clipped = true;
         layers = vec![group, clipped];
     }
@@ -44,7 +44,7 @@ fn lab_channel_adjustments_defer_to_the_cpu_in_lab_documents() {
         assert_eq!(adjustment_on_gpu(adj, ColorMode::Cmyk), !inks, "{adj:?} in CMYK");
     }
     // CMYK Hue/Saturation works on the inks (on the CPU); Colorize stays on the screen colour.
-    let ranges = localpaint_doc::adjust::HueRange::defaults();
+    let ranges = localraster_doc::adjust::HueRange::defaults();
     let hue = |colorize| Adjustment::HueSaturation { hue: 30.0, saturation: 10.0, lightness: 0.0, colorize, ranges: ranges.clone() };
     assert!(!adjustment_on_gpu(&hue(false), ColorMode::Cmyk) && adjustment_on_gpu(&hue(true), ColorMode::Cmyk));
     assert!(adjustment_on_gpu(&hue(false), ColorMode::Rgb));
@@ -54,27 +54,27 @@ fn lab_channel_adjustments_defer_to_the_cpu_in_lab_documents() {
 
 #[test]
 fn native_cmyk_fills_fall_back_only_without_a_valid_cache() {
-    use localpaint_doc::{FillCache, GradientStyle};
-    for depth in localpaint_color::SampleType::ALL {
+    use localraster_doc::{FillCache, GradientStyle};
+    for depth in localraster_color::SampleType::ALL {
         for fill in [Fill::Solid(Color::WHITE), Fill::gradient(vec![(0.0, Color::BLACK), (1.0, Color::WHITE)], 0.0, 1.0, GradientStyle::Linear, false)] {
-            let mut doc = Document::new("CMYK", localpaint_geom::Size::new(3, 2), localpaint_color::ColorMode::Cmyk, depth);
+            let mut doc = Document::new("CMYK", localraster_geom::Size::new(3, 2), localraster_color::ColorMode::Cmyk, depth);
             doc.layers.push(Layer::new("Fill", LayerContent::Fill(fill.clone())));
             assert!(plan(&doc).unwrap_err().0.contains("native CMYK fill"));
             doc.layers[0].visible = false;
             assert!(plan(&doc).is_ok());
             doc.layers[0].visible = true;
-            doc.layers[0].fill_cache = Some(FillCache { fill, surface: localpaint_raster::Surface::new(doc.pixel_format()) });
+            doc.layers[0].fill_cache = Some(FillCache { fill, surface: localraster_raster::Surface::new(doc.pixel_format()) });
             assert!(plan(&doc).is_ok());
             doc.layers[0].fill_cache.as_mut().unwrap().fill = Fill::Solid(Color::TRANSPARENT);
             assert!(plan(&doc).is_err());
-            doc.mode = localpaint_color::ColorMode::Rgb;
+            doc.mode = localraster_color::ColorMode::Rgb;
             assert!(plan(&doc).is_ok());
         }
     }
 }
 #[test]
 fn outer_glow_plan_knocks_out_see_through_fill() {
-    use localpaint_doc::{Contour, FxCommon, GlowSource, GlowTechnique};
+    use localraster_doc::{Contour, FxCommon, GlowSource, GlowTechnique};
 
     for fill in [0.0, 0.4, 1.0] {
         let mut d = Document::with_background("glow", Size::new(64, 64), ColorMode::Rgb, SampleType::U8, Color::WHITE);
@@ -110,7 +110,7 @@ fn color_lookup_with_an_overflowing_stored_size_uploads_no_table() {
     for size in [1 << 22, u32::MAX] {
         let a =
             Adjustment::ColorLookup { name: "x".into(), lut: Some(std::sync::Arc::new(vec![0.5; 24])), size, tetrahedral: false, dither: false, source: None };
-        let (kind, _, rows) = adjustment_program(&a, Transfer::Srgb, SampleType::U8, localpaint_color::ColorMode::Rgb);
+        let (kind, _, rows) = adjustment_program(&a, Transfer::Srgb, SampleType::U8, localraster_color::ColorMode::Rgb);
         assert_eq!((kind, rows.is_none()), (0, true), "size {size}");
     }
 }
@@ -188,12 +188,12 @@ fn effects_are_planned_in_place() {
     let mut d = Document::with_background("t", Size::new(8, 8), ColorMode::Rgb, SampleType::U8, Color::WHITE);
     let mut l = Layer::raster("fx", d.pixel_format());
     l.surface_mut().unwrap().fill_rect(Rect::new(2, 2, 5, 5), &[1.0, 0.0, 0.0, 1.0]);
-    l.effects.items.push(localpaint_doc::Effect::ColorOverlay { common: localpaint_doc::FxCommon::new(BlendMode::Normal, 1.0), color: Color::WHITE });
-    l.effects.items.push(localpaint_doc::Effect::default_drop_shadow());
+    l.effects.items.push(localraster_doc::Effect::ColorOverlay { common: localraster_doc::FxCommon::new(BlendMode::Normal, 1.0), color: Color::WHITE });
+    l.effects.items.push(localraster_doc::Effect::default_drop_shadow());
     d.layers.push(l);
     let p = plan(&d).unwrap();
     assert_eq!(p.fx.len(), 1);
-    let m = localpaint_compose::effects::margin(&d.layers[1]);
+    let m = localraster_compose::effects::margin(&d.layers[1]);
     assert_eq!(p.fx[0].region, Rect::new(2, 2, 5, 5).inflate(m).intersect(&d.bounds().inflate(m)));
     // The effect region covers the whole canvas: the merged result is the backdrop, no copy.
     assert!(p.fx[0].region.contains_rect(&d.bounds()));
@@ -218,7 +218,7 @@ fn exterior_effects_merge_from_the_shape() {
     let mut l = Layer::raster("fx", d.pixel_format());
     l.surface_mut().unwrap().fill_rect(Rect::new(0, 0, 8, 8), &[1.0, 0.0, 0.0, 0.5]);
     l.fill_opacity = 0.7;
-    l.effects.items.push(localpaint_doc::Effect::default_drop_shadow());
+    l.effects.items.push(localraster_doc::Effect::default_drop_shadow());
     d.layers.push(l);
     let p = plan(&d).unwrap();
     let fx: Vec<Kernel> = p.passes.iter().skip(2).map(|p| p.kernel).collect();
@@ -226,7 +226,10 @@ fn exterior_effects_merge_from_the_shape() {
     let merge = p.passes.last().unwrap();
     assert!(merge.flags & F_LAYER_SHAPE != 0);
     assert_eq!(merge.params[0][0], 0.7);
-    d.layers[1].effects.items.push(localpaint_doc::Effect::ColorOverlay { common: localpaint_doc::FxCommon::new(BlendMode::Normal, 1.0), color: Color::WHITE });
+    d.layers[1]
+        .effects
+        .items
+        .push(localraster_doc::Effect::ColorOverlay { common: localraster_doc::FxCommon::new(BlendMode::Normal, 1.0), color: Color::WHITE });
     let p = plan(&d).unwrap();
     assert!(p.passes.iter().all(|p| p.flags & F_LAYER_SHAPE == 0));
     assert!(p.passes.iter().any(|p| p.kernel == Kernel::FxInit));
@@ -234,7 +237,7 @@ fn exterior_effects_merge_from_the_shape() {
 
 #[test]
 fn opaque_fill_layers_skip_what_they_cover() {
-    let opaque = || Fill::gradient(vec![(0.0, Color::BLACK), (1.0, Color::WHITE)], 30.0, 1.0, localpaint_doc::GradientStyle::Linear, false);
+    let opaque = || Fill::gradient(vec![(0.0, Color::BLACK), (1.0, Color::WHITE)], 30.0, 1.0, localraster_doc::GradientStyle::Linear, false);
     let mut d = Document::with_background("t", Size::new(8, 8), ColorMode::Rgb, SampleType::U8, Color::WHITE);
     for i in 0..4 {
         // Small painted layers (empty ones plan no passes at all).
@@ -268,20 +271,20 @@ fn opaque_fill_layers_skip_what_they_cover() {
         let mut d2 = d.clone();
         f(&mut d2.layers[5]);
         assert!(plan(&d2).unwrap().passes.len() > skipped, "case {k}: the layers below are planned");
-        assert!(!localpaint_compose::occludes_below(&d2.layers[5], ColorMode::Rgb), "case {k}");
+        assert!(!localraster_compose::occludes_below(&d2.layers[5], ColorMode::Rgb), "case {k}");
     }
     let mut translucent = d.clone();
     translucent.layers[5].content = LayerContent::Fill(Fill::Solid(Color::rgba(1.0, 0.0, 0.0, 0.5)));
-    assert!(!localpaint_compose::occludes_below(&translucent.layers[5], ColorMode::Rgb));
-    assert!(localpaint_compose::occludes_below(&d.layers[5], ColorMode::Rgb));
+    assert!(!localraster_compose::occludes_below(&translucent.layers[5], ColorMode::Rgb));
+    assert!(localraster_compose::occludes_below(&d.layers[5], ColorMode::Rgb));
 }
 
 #[test]
 fn blend_if_plans_on_the_gpu() {
     let mut d = Document::with_background("t", Size::new(8, 8), ColorMode::Rgb, SampleType::U8, Color::WHITE);
     let mut l = Layer::raster("bi", d.pixel_format());
-    l.surface_mut().unwrap().fill_rect(localpaint_geom::Rect::new(0, 0, 4, 4), &[1.0, 0.0, 0.0, 1.0]);
-    l.blend_if.set(0, [localpaint_doc::BlendRange { black: [40, 40], white: [255, 255] }, localpaint_doc::BlendRange::FULL]);
+    l.surface_mut().unwrap().fill_rect(localraster_geom::Rect::new(0, 0, 4, 4), &[1.0, 0.0, 0.0, 1.0]);
+    l.blend_if.set(0, [localraster_doc::BlendRange { black: [40, 40], white: [255, 255] }, localraster_doc::BlendRange::FULL]);
     d.layers.push(l.clone());
     let blend_if = |d: &Document| plan(d).unwrap().passes.iter().filter(|p| p.flags & F_BLEND_IF != 0).count();
     assert_eq!(blend_if(&d), 1);
@@ -297,8 +300,8 @@ fn blend_if_plans_on_the_gpu() {
 
 #[test]
 fn blend_if_params_pack_every_range_exactly() {
-    let mut bi = localpaint_doc::BlendIf::default();
-    bi.set(3, [localpaint_doc::BlendRange { black: [255, 255], white: [0, 1] }, localpaint_doc::BlendRange { black: [12, 200], white: [201, 254] }]);
+    let mut bi = localraster_doc::BlendIf::default();
+    bi.set(3, [localraster_doc::BlendRange { black: [255, 255], white: [0, 1] }, localraster_doc::BlendRange { black: [12, 200], white: [201, 254] }]);
     let f: Vec<f32> = blend_if_params(&bi).iter().flatten().copied().collect();
     // Entry 3 (B), this layer then underlying; unset entries are full ranges.
     assert_eq!(&f[12..16], &[255.0 * 256.0 + 255.0, 1.0, 12.0 * 256.0 + 200.0, 201.0 * 256.0 + 254.0]);
@@ -307,10 +310,10 @@ fn blend_if_params_pack_every_range_exactly() {
 
 #[test]
 fn advanced_blending_falls_back_to_the_cpu() {
-    use localpaint_doc::Knockout;
+    use localraster_doc::Knockout;
     let mut d = Document::with_background("t", Size::new(8, 8), ColorMode::Rgb, SampleType::U8, Color::WHITE);
     let mut l = Layer::raster("ko", d.pixel_format());
-    l.surface_mut().unwrap().fill_rect(localpaint_geom::Rect::new(0, 0, 4, 4), &[1.0, 0.0, 0.0, 1.0]);
+    l.surface_mut().unwrap().fill_rect(localraster_geom::Rect::new(0, 0, 4, 4), &[1.0, 0.0, 0.0, 1.0]);
     d.layers.push(l.clone());
     assert!(plan(&d).is_ok(), "defaults stay on the GPU");
     // Switches with nothing to act on (no effects, no clipped layers) stay on the GPU too.

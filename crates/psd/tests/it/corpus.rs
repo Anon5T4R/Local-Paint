@@ -5,7 +5,7 @@
 
 use std::path::{Path, PathBuf};
 
-use localpaint_psd::PsdFile;
+use localraster_psd::PsdFile;
 
 fn collect(dir: &Path, out: &mut Vec<PathBuf>) {
     let Ok(rd) = std::fs::read_dir(dir) else { return };

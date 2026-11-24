@@ -2,8 +2,8 @@
 //! the blurred output for the final arithmetic. Each sample retains its tap order.
 use crate::image::premultiply;
 use crate::{Ctx, Image};
-use localpaint_geom::Rect;
-use localpaint_raster::Interrupt;
+use localraster_geom::Rect;
+use localraster_raster::Interrupt;
 
 const MAX_SAMPLES: usize = 128 * 1024 * 1024;
 // The filter dialog caps radius at 1000. Preserve Details resampling can ask

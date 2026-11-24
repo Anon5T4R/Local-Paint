@@ -18,7 +18,7 @@ impl Session {
         if clean {
             st.saved_revision = st.revision;
         }
-        st.last_damage = Some(localpaint_geom::Rect::EMPTY);
+        st.last_damage = Some(localraster_geom::Rect::EMPTY);
         Ok(())
     }
 
@@ -43,18 +43,18 @@ impl Session {
         if clean {
             st.saved_revision = st.revision;
         }
-        st.last_damage = Some(localpaint_geom::Rect::EMPTY);
+        st.last_damage = Some(localraster_geom::Rect::EMPTY);
         Ok(())
     }
 
     /// Re-renders the pixels of type layers whose font arrived after they were drawn (the web
-    /// build fetches served fonts on demand, `localpaint_text::served`). The layers' model is
+    /// build fetches served fonts on demand, `localraster_text::served`). The layers' model is
     /// unchanged, so this is no history step and leaves a clean document clean. Unknown documents
     /// and layers are skipped. A document a background job is computing from must not move under
     /// it: its layers are returned, to try again later.
-    pub fn refresh_type_layers(&mut self, layers: &[(localpaint_doc::DocId, LayerId)]) -> Vec<(localpaint_doc::DocId, LayerId)> {
+    pub fn refresh_type_layers(&mut self, layers: &[(localraster_doc::DocId, LayerId)]) -> Vec<(localraster_doc::DocId, LayerId)> {
         let mut busy = Vec::new();
-        let mut docs: Vec<localpaint_doc::DocId> = Vec::new();
+        let mut docs: Vec<localraster_doc::DocId> = Vec::new();
         for (d, _) in layers {
             if !docs.contains(d) {
                 docs.push(*d);
@@ -71,7 +71,7 @@ impl Session {
             let mut doc = (*snapshot).clone();
             let mut changed = false;
             for (_, id) in mine {
-                if let Some(localpaint_doc::Layer { content: localpaint_doc::LayerContent::Text(t), .. }) = doc.layer_mut(*id) {
+                if let Some(localraster_doc::Layer { content: localraster_doc::LayerContent::Text(t), .. }) = doc.layer_mut(*id) {
                     type_cmds::refresh(&snapshot, t);
                     changed = true;
                 }

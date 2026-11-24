@@ -7,7 +7,7 @@ use egui::accesskit::Role;
 use egui::{Key, Modifiers, Rect, vec2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
-use localpaint_engine::prefs::FontPreview;
+use localraster_engine::prefs::FontPreview;
 
 struct State {
     current: String,
@@ -335,7 +335,7 @@ fn hovering_a_font_row_moves_no_other_row() {
     let mut h = harness();
     // The app's theme: its hovered and selected buttons draw a stroke (egui's default style
     // would hide the jump).
-    crate::LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
+    crate::LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
     h.run();
     open(&mut h);
     let rows = |h: &Harness<'static, State>| -> Vec<Rect> { (0..8).map(|i| h.get_by_label(&format!("Family {i:02}")).rect()).collect() };
@@ -512,14 +512,14 @@ fn opening_arrow_release_returns_focus_to_the_name_before_typing() {
 
 #[test]
 fn first_options_bar_open_searches_without_changing_the_tool_or_edited_text() {
-    use crate::{LocalPaintApp, Services};
-    use localpaint_doc::LayerContent;
+    use crate::{LocalRasterApp, Services};
+    use localraster_doc::LayerContent;
     use serde_json::json;
 
     for editing in [false, true] {
         let mut h = Harness::builder().with_size(vec2(1600.0, 1000.0)).with_max_steps(64).build_eframe(move |cc| {
-            LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-            let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Services::default());
+            LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+            let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Services::default());
             app.run("file.new", json!({"width": 200, "height": 100})).unwrap();
             app.run("type.create", json!({"text": "Sample", "font": "Inter", "size": 18})).unwrap();
             app.ui.tool = crate::state::Tool::Type;
@@ -700,9 +700,9 @@ fn empty_font_list_ignores_navigation() {
 
 #[test]
 fn font_cycle_in_options_bar_edits_the_layer_and_can_be_undone() {
-    use crate::{LocalPaintApp, Services};
+    use crate::{LocalRasterApp, Services};
     use serde_json::json;
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Services::default());
     app.run("file.new", json!({"width": 200, "height": 100})).unwrap();
     app.run("type.create", json!({"text": "Sample", "font": "Inter", "size": 18})).unwrap();
     let mut h = Harness::builder().with_size(vec2(900.0, 700.0)).with_max_steps(SETTLE_STEPS).build_ui_state(
@@ -713,17 +713,17 @@ fn font_cycle_in_options_bar_edits_the_layer_and_can_be_undone() {
         },
         app,
     );
-    crate::LocalPaintApp::setup_context(&h.ctx, Default::default());
+    crate::LocalRasterApp::setup_context(&h.ctx, Default::default());
     h.run_steps(4);
     h.query_all_by_role(Role::TextInput).next().unwrap().click();
     // The font search field's caret blinks every pass, so settle with bounded steps instead.
     h.run_steps(2);
     h.get_by_role(Role::TextInput).type_text("JetBrains");
     h.run();
-    let font = |app: &LocalPaintApp| {
+    let font = |app: &LocalRasterApp| {
         let doc = &app.session.active().unwrap().doc;
         match &doc.layer(app.session.active().unwrap().active_layer.unwrap()).unwrap().content {
-            localpaint_doc::LayerContent::Text(t) => t.font_family.clone(),
+            localraster_doc::LayerContent::Text(t) => t.font_family.clone(),
             _ => panic!("type layer"),
         }
     };
@@ -739,10 +739,10 @@ fn font_cycle_in_options_bar_edits_the_layer_and_can_be_undone() {
 
 #[test]
 fn hovering_a_font_does_not_pollute_history_and_clears_on_close() {
-    use crate::{LocalPaintApp, Services};
+    use crate::{LocalRasterApp, Services};
     use serde_json::json;
 
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Services::default());
     app.run("file.new", json!({"width": 200, "height": 100})).unwrap();
     app.run("type.create", json!({"text": "Sample", "font": "Inter", "size": 18})).unwrap();
 
@@ -766,7 +766,7 @@ fn hovering_a_font_does_not_pollute_history_and_clears_on_close() {
 
     // Verify the actual document layer still has the original font
     let original_font = match &app.session.active().unwrap().doc.layer(layer_id).unwrap().content {
-        localpaint_doc::LayerContent::Text(t) => t.font_family.clone(),
+        localraster_doc::LayerContent::Text(t) => t.font_family.clone(),
         _ => panic!("type layer"),
     };
     assert_eq!(original_font, "Inter", "Hovering does not commit the font to the document");
@@ -782,12 +782,12 @@ fn hovering_a_font_does_not_pollute_history_and_clears_on_close() {
 
 #[test]
 fn options_bar_hover_previews_on_canvas_without_committing() {
-    use crate::{LocalPaintApp, Services};
-    use localpaint_doc::LayerContent;
+    use crate::{LocalRasterApp, Services};
+    use localraster_doc::LayerContent;
     use serde_json::json;
 
     struct PreviewApp {
-        app: LocalPaintApp,
+        app: LocalRasterApp,
     }
 
     impl eframe::App for PreviewApp {
@@ -803,8 +803,8 @@ fn options_bar_hover_previews_on_canvas_without_committing() {
     // Opening the menu on the current family (#9197) paints rows that load their font samples
     // over a few frames, more than the default four steps.
     let mut h = Harness::builder().with_size(vec2(900.0, 700.0)).with_max_steps(64).build_eframe(|cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, crate::theme::ThemeKind::ALL[0]);
-        PreviewApp { app: LocalPaintApp::new(localpaint_engine::Session::new(), Services::default()) }
+        LocalRasterApp::setup_context(&cc.egui_ctx, crate::theme::ThemeKind::ALL[0]);
+        PreviewApp { app: LocalRasterApp::new(localraster_engine::Session::new(), Services::default()) }
     });
     h.state_mut().app.run("file.new", json!({"width": 200, "height": 100})).unwrap();
     h.state_mut().app.run("type.create", json!({"text": "Sample", "font": "Inter", "size": 18})).unwrap();
@@ -849,7 +849,7 @@ fn options_bar_hover_previews_on_canvas_without_committing() {
     assert_eq!(committed_text.char_runs()[0].style.font_family, "JetBrains Mono");
     assert_eq!(key, 0, "selection replaces the preview with committed content");
     assert_eq!(h.state().app.session.active().unwrap().history.entries().len(), 3, "selection adds one history step");
-    let committed_font = |app: &LocalPaintApp| {
+    let committed_font = |app: &LocalRasterApp| {
         let LayerContent::Text(text) = &app.session.active().unwrap().doc.layer(layer).unwrap().content else {
             panic!("type layer");
         };
@@ -863,10 +863,10 @@ fn options_bar_hover_previews_on_canvas_without_committing() {
 
 #[test]
 fn hovering_a_font_previews_only_the_selected_characters() {
-    use crate::{LocalPaintApp, Services};
+    use crate::{LocalRasterApp, Services};
     use serde_json::json;
 
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Services::default());
     app.run("file.new", json!({"width": 200, "height": 100})).unwrap();
     app.run("type.create", json!({"text": "abcdef", "font": "Inter", "size": 18})).unwrap();
     let layer = app.session.active().unwrap().active_layer.unwrap();
@@ -886,8 +886,8 @@ fn hovering_a_font_previews_only_the_selected_characters() {
 
     crate::type_font_preview::set(&mut app, "Inter".into());
     let (preview, _) = crate::type_font_preview::display_doc(&mut app, 0).expect("preview document");
-    let fonts = |doc: &localpaint_doc::Document| {
-        let localpaint_doc::LayerContent::Text(text) = &doc.layer(layer).unwrap().content else {
+    let fonts = |doc: &localraster_doc::Document| {
+        let localraster_doc::LayerContent::Text(text) = &doc.layer(layer).unwrap().content else {
             panic!("type layer");
         };
         text.char_runs().into_iter().flat_map(|run| std::iter::repeat_n(run.style.font_family, run.len)).collect::<Vec<_>>()
@@ -1208,9 +1208,9 @@ fn open_menu_without_the_current_family_never_jumps_later() {
 /// The same through the real options bar, where the pick itself records the recent family.
 #[test]
 fn options_bar_menu_arrows_walk_on_while_recording_recent_fonts() {
-    use crate::{LocalPaintApp, Services};
+    use crate::{LocalRasterApp, Services};
     use serde_json::json;
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Services::default());
     app.run("file.new", json!({"width": 200, "height": 100})).unwrap();
     app.run("type.create", json!({"text": "Sample", "font": "Inter", "size": 18})).unwrap();
     let mut h = Harness::builder().with_size(vec2(900.0, 700.0)).with_max_steps(SETTLE_STEPS).build_ui_state(
@@ -1221,7 +1221,7 @@ fn options_bar_menu_arrows_walk_on_while_recording_recent_fonts() {
         },
         app,
     );
-    crate::LocalPaintApp::setup_context(&h.ctx, Default::default());
+    crate::LocalRasterApp::setup_context(&h.ctx, Default::default());
     h.run_steps(4);
     h.query_all_by_role(Role::TextInput).next().unwrap().click();
     h.run();
@@ -1410,7 +1410,7 @@ fn the_favorites_filter_explains_an_empty_library() {
 
 #[test]
 fn a_clicked_star_is_saved_to_the_preferences_library() {
-    let mut app = crate::LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = crate::LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     let mut library = super::FontLibrary::of(&app);
     library.toggled = Some("Bebas Neue".into());
     library.finish(&mut app);
@@ -1420,14 +1420,14 @@ fn a_clicked_star_is_saved_to_the_preferences_library() {
     assert_eq!(super::FontLibrary::of(&app).recent, ["Arial"]);
 }
 
-fn traits(class: localpaint_text::FontClass, format: localpaint_text::FontFormat, panose: [u8; 10]) -> Option<localpaint_text::FamilyTraits> {
-    Some(localpaint_text::FamilyTraits { class: Some(class), format, panose, weight: 400 })
+fn traits(class: localraster_text::FontClass, format: localraster_text::FontFormat, panose: [u8; 10]) -> Option<localraster_text::FamilyTraits> {
+    Some(localraster_text::FamilyTraits { class: Some(class), format, panose, weight: 400 })
 }
 
 /// Family 00-02 serif, 03 a variable sans, 04 monospace, Zeta Sans a sans like 03; the rest
 /// unknown. Family 01 has three styles.
 fn filter_harness() -> Harness<'static, LibState> {
-    use localpaint_text::{FontClass, FontFormat};
+    use localraster_text::{FontClass, FontFormat};
     let serif = [2, 2, 6, 3, 5, 4, 5, 2, 3, 4];
     let sans = [2, 11, 6, 4, 2, 2, 2, 2, 2, 4];
     let map: crate::font_filters::TraitsMap = [
@@ -1587,7 +1587,7 @@ fn popup_width(h: &Harness<'static, LibState>) -> f32 {
 
 #[test]
 fn the_preview_sets_the_type_layers_text_or_the_selection_being_typed() {
-    let mut app = crate::LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = crate::LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     assert_eq!(super::preview_text(&app), None, "no document");
     app.run("file.new", serde_json::json!({"width": 64, "height": 64})).unwrap();
     let id = app.run("type.create", serde_json::json!({"text": "Hello\rworld  ", "size": 24})).unwrap()["layer"].as_u64().unwrap();
@@ -1670,14 +1670,14 @@ fn a_menu_opened_from_the_right_edge_stays_narrow_after_a_minimize() {
 /// after the options bar; hovering a font in the options bar still previews it on the canvas.
 #[test]
 fn options_bar_hover_previews_with_the_character_picker_also_shown() {
-    use crate::{LocalPaintApp, Services};
-    use localpaint_doc::LayerContent;
+    use crate::{LocalRasterApp, Services};
+    use localraster_doc::LayerContent;
     use serde_json::json;
 
     let theme = crate::theme::ThemeKind::Pro;
     let mut h = Harness::builder().with_size(vec2(1600.0, 1000.0)).with_max_steps(64).build_eframe(move |cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, theme);
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Services::default());
+        LocalRasterApp::setup_context(&cc.egui_ctx, theme);
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Services::default());
         app.ui.theme = theme;
         app.run("file.new", json!({"width": 200, "height": 100})).unwrap();
         app.run("type.create", json!({"text": "Sample", "font": "Inter", "size": 18})).unwrap();
@@ -1687,7 +1687,7 @@ fn options_bar_hover_previews_with_the_character_picker_also_shown() {
     });
     h.run_steps(8);
     let layer = h.state().session.active().unwrap().active_layer.unwrap();
-    let font = |h: &mut Harness<'static, LocalPaintApp>| {
+    let font = |h: &mut Harness<'static, LocalRasterApp>| {
         let (shown, _) = crate::canvas::display_doc(h.state_mut(), 0);
         let LayerContent::Text(t) = &shown.layer(layer).unwrap().content else { panic!("type layer") };
         t.char_runs()[0].style.font_family.clone()
@@ -1710,7 +1710,7 @@ fn options_bar_hover_previews_with_the_character_picker_also_shown() {
 #[test]
 fn capture_font_field_gpu_visual_fixtures() {
     let Some(directory) = std::env::var_os("CRAFT_FONT_FIELD_FIXTURES").map(std::path::PathBuf::from) else { return };
-    let _gpu = localpaint_testkit::gpu_lock();
+    let _gpu = localraster_testkit::gpu_lock();
     std::fs::create_dir_all(&directory).unwrap();
     let phase = std::env::var("FONT_FIELD_FIXTURE_PHASE").unwrap_or_else(|_| "after".into());
     for theme in crate::theme::ThemeKind::ALL {
@@ -1724,7 +1724,7 @@ fn capture_font_field_gpu_visual_fixtures() {
                     },
                     "Inter".to_string(),
                 );
-                crate::LocalPaintApp::setup_context(&h.ctx, theme);
+                crate::LocalRasterApp::setup_context(&h.ctx, theme);
                 h.run_steps(4);
                 let stem = format!("{phase}-{}-{width}-{scale}x", theme.id());
                 h.render().unwrap().save(directory.join(format!("{stem}-closed.png"))).unwrap();

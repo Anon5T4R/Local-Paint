@@ -5,10 +5,10 @@
 //! turns into an internal-error panic. The command must clamp like the scalar
 //! path does and blur normally.
 
-use localpaint_engine::Session;
+use localraster_engine::Session;
 use serde_json::json;
 
-fn path_blur(speed: f64) -> Result<serde_json::Value, localpaint_engine::EngineError> {
+fn path_blur(speed: f64) -> Result<serde_json::Value, localraster_engine::EngineError> {
     let mut s = Session::new();
     s.execute("file.new", json!({"width": 16, "height": 16, "background": "#808080"})).unwrap();
     s.execute("filter.blurGallery.pathBlur", json!({"paths": [{"points": [[0.2, 0.5], [0.8, 0.5]], "speed": speed}]}))

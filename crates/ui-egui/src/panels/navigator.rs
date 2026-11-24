@@ -1,6 +1,6 @@
-use super::{Color32, LocalPaintApp, Pos2, Rect, Sense, Stroke, StrokeKind, Tokens, empty, icons, pos2, vec2, widgets};
+use super::{Color32, LocalRasterApp, Pos2, Rect, Sense, Stroke, StrokeKind, Tokens, empty, icons, pos2, vec2, widgets};
 
-pub(super) fn navigator(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+pub(super) fn navigator(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
     let Some(idx) = app.session.active_index() else {
         empty(ui, tl!("No document"));
@@ -109,7 +109,7 @@ pub(super) fn navigator(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
         ui.add_space(4.0);
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = 4.0;
-            let set = |app: &mut LocalPaintApp, zoom: f32, animate: bool| {
+            let set = |app: &mut LocalRasterApp, zoom: f32, animate: bool| {
                 let target = crate::zoom_levels::clamp(zoom, v.doc_size);
                 if target != app.ui.views[idx].zoom {
                     app.ui.views[idx].zoom = target;

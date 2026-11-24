@@ -1,5 +1,5 @@
 //! Magnetic Lasso: a selection border that snaps to edges between fastening points, traced by
-//! `localpaint_algo::magnetic`.
+//! `localraster_algo::magnetic`.
 //!
 //! The tool is interactive (ui-egui `magnetic_lasso_ui`): it traces live through an
 //! [`EdgeSource`] and commits the outline it showed with `select.magneticLasso` and
@@ -8,10 +8,10 @@
 
 use std::sync::Arc;
 
-use localpaint_algo::magnetic::{self, Settings, Tracer};
-use localpaint_algo::selection as sel;
-use localpaint_doc::{DocId, Document, LayerId};
-use localpaint_geom::Rect;
+use localraster_algo::magnetic::{self, Settings, Tracer};
+use localraster_algo::selection as sel;
+use localraster_doc::{DocId, Document, LayerId};
+use localraster_geom::Rect;
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;
@@ -76,7 +76,7 @@ fn read(doc: &Document, layer: Option<LayerId>, r: Rect) -> Vec<[u8; 4]> {
         Some(surface) => sel::rgba8_image(surface, r),
         None => {
             let q = |v: f32| (v.clamp(0.0, 1.0) * 255.0 + 0.5) as u8;
-            localpaint_compose::render(doc, r).px.iter().map(|p| p.map(q)).collect()
+            localraster_compose::render(doc, r).px.iter().map(|p| p.map(q)).collect()
         }
     }
 }

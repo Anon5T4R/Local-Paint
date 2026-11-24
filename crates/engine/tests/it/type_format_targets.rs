@@ -1,8 +1,8 @@
 //! Direct formatting applies only the requested properties to every selected Type layer.
 
-use localpaint_doc::text::{AntiAlias, Caps, CharStyle, Kerning, Orientation, TextAlign};
-use localpaint_doc::{LayerContent, LayerId, TextLayer};
-use localpaint_engine::Session;
+use localraster_doc::text::{AntiAlias, Caps, CharStyle, Kerning, Orientation, TextAlign};
+use localraster_doc::{LayerContent, LayerId, TextLayer};
+use localraster_engine::Session;
 use serde_json::{Value, json};
 
 fn text(s: &Session, id: LayerId) -> TextLayer {
@@ -203,7 +203,7 @@ fn direct_type_formatting_menu_routes_batch_without_enabling_structural_commands
                     "type.orientation.vertical" => expected.orientation = Orientation::Vertical,
                     "type.openType.fractions" => {
                         for run in &mut expected.runs {
-                            run.style.features.push(localpaint_doc::text::FontFeature { tag: "frac".into(), value: 1 });
+                            run.style.features.push(localraster_doc::text::FontFeature { tag: "frac".into(), value: 1 });
                         }
                     }
                     "type.warpText" => {
@@ -211,7 +211,7 @@ fn direct_type_formatting_menu_routes_batch_without_enabling_structural_commands
                         expected.warp = actual.warp.clone();
                     }
                     _ => {
-                        expected.runs = vec![localpaint_doc::text::TextRun { len: expected.text.len(), style: defaults.runs[0].style.clone() }];
+                        expected.runs = vec![localraster_doc::text::TextRun { len: expected.text.len(), style: defaults.runs[0].style.clone() }];
                         expected.paragraphs = defaults.paragraphs.clone();
                     }
                 }

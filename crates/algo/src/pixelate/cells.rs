@@ -449,7 +449,7 @@ fn composite_row(pixels: &mut [f32], depths: &[f32], owners: &[u32], grid: &Grid
 /// use the dense path, whose row-order f32 averages are part of its result.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn tile(
-    surface: &localpaint_raster::Surface,
+    surface: &localraster_raster::Surface,
     out: Rect,
     ctx: &Ctx,
     cell: f32,
@@ -490,8 +490,8 @@ pub(crate) fn tile(
 /// Same rounding and native byte order as Surface::write_region, before the
 /// worker hands its result back. Bounds the allocation and retains float data
 /// if an optional encode buffer cannot be reserved.
-pub(crate) fn encode(format: localpaint_color::PixelFormat, samples: &[f32]) -> Option<Vec<u8>> {
-    use localpaint_color::SampleType;
+pub(crate) fn encode(format: localraster_color::PixelFormat, samples: &[f32]) -> Option<Vec<u8>> {
+    use localraster_color::SampleType;
     let mut bytes = Vec::new();
     let len = samples.len().checked_mul(format.sample.bytes())?;
     bytes.try_reserve_exact(len).ok()?;
@@ -519,8 +519,8 @@ pub(crate) fn encode(format: localpaint_color::PixelFormat, samples: &[f32]) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_color::{ColorMode, PixelFormat, SampleType};
-    use localpaint_raster::Surface;
+    use localraster_color::{ColorMode, PixelFormat, SampleType};
+    use localraster_raster::Surface;
 
     #[test]
     fn span_certificates_keep_discrete_winners_and_antialias_coverage() {

@@ -1,5 +1,5 @@
-use localpaint_doc::{LayerId, SliceOrigin};
-use localpaint_engine::Session;
+use localraster_doc::{LayerId, SliceOrigin};
+use localraster_engine::Session;
 use serde_json::json;
 
 fn art() -> (Session, LayerId) {

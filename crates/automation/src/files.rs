@@ -3,9 +3,9 @@
 
 use std::path::Path;
 
-use localpaint_doc::Document;
-use localpaint_format::{PcraftWriter, SaveOptions};
-use localpaint_io::ExportOptions;
+use localraster_doc::Document;
+use localraster_format::{PcraftWriter, SaveOptions};
+use localraster_io::ExportOptions;
 
 use crate::AutomationError;
 
@@ -18,20 +18,20 @@ pub struct Opened {
 
 /// Decode a document that was read through a filesystem capability.
 pub fn open_bytes(name: &str, bytes: &[u8]) -> Result<Opened, AutomationError> {
-    if Path::new(name).extension().is_some_and(|extension| extension.eq_ignore_ascii_case(localpaint_format::EXTENSION)) {
-        let document = localpaint_format::load_from_bytes(bytes)?;
-        return Ok(Opened { warnings: localpaint_io::open_warnings(&document), document, source_read_only: false });
+    if Path::new(name).extension().is_some_and(|extension| extension.eq_ignore_ascii_case(localraster_format::EXTENSION)) {
+        let document = localraster_format::load_from_bytes(bytes)?;
+        return Ok(Opened { warnings: localraster_io::open_warnings(&document), document, source_read_only: false });
     }
-    let r = localpaint_io::import(name, bytes)?;
+    let r = localraster_io::import(name, bytes)?;
     Ok(Opened { document: r.document, warnings: r.warnings, source_read_only: r.source_read_only })
 }
 
 /// Open a document from disk. Directory bundles and `.pcraft` ZIPs load
-/// natively; everything else goes through `localpaint-io` (PSD, PNG, …).
+/// natively; everything else goes through `localraster-io` (PSD, PNG, …).
 pub fn open(path: &Path) -> Result<Opened, AutomationError> {
     if path.is_dir() {
-        let document = localpaint_format::load_path(path)?;
-        return Ok(Opened { warnings: localpaint_io::open_warnings(&document), document, source_read_only: false });
+        let document = localraster_format::load_path(path)?;
+        return Ok(Opened { warnings: localraster_io::open_warnings(&document), document, source_read_only: false });
     }
     let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     // A PSD/PSB is parsed from the open file (channel data read as it is decoded), so a CLI
@@ -39,22 +39,22 @@ pub fn open(path: &Path) -> Result<Opened, AutomationError> {
     #[cfg(any(unix, windows))]
     {
         let r =
-            localpaint_io::import_file(&name, path, &localpaint_io::ImportOptions::default(), &localpaint_raster::Interrupt::NONE).map_err(|e| match e {
-                localpaint_io::IoError::Read(msg) => AutomationError::Io(msg),
+            localraster_io::import_file(&name, path, &localraster_io::ImportOptions::default(), &localraster_raster::Interrupt::NONE).map_err(|e| match e {
+                localraster_io::IoError::Read(msg) => AutomationError::Io(msg),
                 e => e.into(),
             })?;
         Ok(Opened { document: r.document, warnings: r.warnings, source_read_only: r.source_read_only })
     }
     #[cfg(not(any(unix, windows)))]
     {
-        let bytes = localpaint_format::read_file(path).map_err(|e| AutomationError::Io(format!("{}: {e}", path.display())))?;
+        let bytes = localraster_format::read_file(path).map_err(|e| AutomationError::Io(format!("{}: {e}", path.display())))?;
         open_bytes(&name, &bytes)
     }
 }
 
 /// Previews for a `.pcraft` bundle.
 pub fn previews(doc: &Document) -> SaveOptions {
-    SaveOptions { thumbnail: Some(localpaint_compose::thumbnail(doc, 256)), composite: Some(localpaint_compose::thumbnail(doc, 1024)) }
+    SaveOptions { thumbnail: Some(localraster_compose::thumbnail(doc, 256)), composite: Some(localraster_compose::thumbnail(doc, 1024)) }
 }
 
 /// Encode the name the saved native bundle will report on reopening. Save As updates
@@ -82,16 +82,16 @@ pub fn save(
         .map(|f| f.trim_start_matches('.').to_ascii_lowercase())
         .or_else(|| path.extension().map(|e| e.to_string_lossy().to_ascii_lowercase()))
         .ok_or_else(|| AutomationError::BadRequest(format!("cannot tell the format of `{}`; pass a format", path.display())))?;
-    if ext == localpaint_format::EXTENSION {
+    if ext == localraster_format::EXTENSION {
         let named = named_for_output(doc, &path.to_string_lossy());
         let mut local = PcraftWriter::new();
         let w = writer.unwrap_or(&mut local);
         w.save_path(&named, path, &previews(&named))?;
         return Ok(Vec::new());
     }
-    let r = localpaint_io::export(doc, &ext, opts)?;
+    let r = localraster_io::export(doc, &ext, opts)?;
     // Crash-safe: a failed write never destroys the previous file.
-    localpaint_format::atomic_write(path, &r.bytes).map_err(|e| AutomationError::Io(e.to_string()))?;
+    localraster_format::atomic_write(path, &r.bytes).map_err(|e| AutomationError::Io(e.to_string()))?;
     Ok(r.warnings)
 }
 
@@ -102,19 +102,19 @@ pub fn save_bytes(doc: &Document, name: &str, format_override: Option<&str>, opt
         .map(|format| format.trim_start_matches('.').to_ascii_lowercase())
         .or_else(|| Path::new(name).extension().map(|extension| extension.to_string_lossy().to_ascii_lowercase()))
         .ok_or_else(|| AutomationError::BadRequest(format!("cannot tell the format of `{name}`; pass a format")))?;
-    if ext == localpaint_format::EXTENSION {
+    if ext == localraster_format::EXTENSION {
         let named = named_for_output(doc, name);
-        return Ok((localpaint_format::save_to_bytes(&named, &previews(&named))?, Vec::new()));
+        return Ok((localraster_format::save_to_bytes(&named, &previews(&named))?, Vec::new()));
     }
-    let result = localpaint_io::export(doc, &ext, opts)?;
+    let result = localraster_io::export(doc, &ext, opts)?;
     Ok((result.bytes, result.warnings))
 }
 
 /// Flattened document as PNG, scaled to fit `max_side` (0 = full size).
 pub fn render_png(doc: &Document, max_side: u32) -> Result<Vec<u8>, AutomationError> {
     let side = if max_side == 0 { doc.size.width.max(doc.size.height) } else { max_side };
-    let img = localpaint_compose::thumbnail(doc, side.max(1));
-    let image = localpaint_codecs::Image::from_u8(img.width, img.height, localpaint_codecs::ChannelLayout::Rgba, img.pixels)
+    let img = localraster_compose::thumbnail(doc, side.max(1));
+    let image = localraster_codecs::Image::from_u8(img.width, img.height, localraster_codecs::ChannelLayout::Rgba, img.pixels)
         .map_err(|e| AutomationError::Other(e.to_string()))?;
-    localpaint_codecs::encode(&image, localpaint_codecs::Format::Png, &Default::default()).map_err(|e| AutomationError::Other(e.to_string()))
+    localraster_codecs::encode(&image, localraster_codecs::Format::Png, &Default::default()).map_err(|e| AutomationError::Other(e.to_string()))
 }

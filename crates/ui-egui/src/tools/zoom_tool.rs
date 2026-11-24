@@ -7,7 +7,7 @@
 
 use egui::{Pos2, Rect, vec2};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::canvas::ViewXform;
 use crate::paint_mouse::Buttons;
 use crate::state::View;
@@ -52,7 +52,7 @@ pub fn anchor_view(view: &mut View, xf: &ViewXform, screen: Pos2, doc: [f64; 2],
 
 /// Route the canvas buttons for the Zoom tool. Returns true when it consumed the drag (the
 /// canvas then handles only the click).
-pub fn drag(app: &LocalPaintApp, ctx: &egui::Context, view: &mut View, xf: &ViewXform, b: &Buttons, pointer: Option<Pos2>) -> bool {
+pub fn drag(app: &LocalRasterApp, ctx: &egui::Context, view: &mut View, xf: &ViewXform, b: &Buttons, pointer: Option<Pos2>) -> bool {
     let scrubby = app.ui.tool_options.zoom_scrubby;
     if b.started {
         let anchor = ctx.input(|i| i.pointer.press_origin()).filter(|p| xf.rect.contains(*p)).or(pointer);

@@ -4,7 +4,7 @@ use super::drag::Drag;
 use super::gesture::{finish_gesture, polygon_click, selection_mode};
 use super::selection::finish_selection_drag;
 use super::strokes::{HOLD_REPEAT_MS, begin_live_stroke, feed_live_stroke, paint_target, snap_aliased_tip, stroke_params, strokes_live};
-use super::{LocalPaintApp, Tool, json, multiple_color_target};
+use super::{LocalRasterApp, Tool, json, multiple_color_target};
 
 /// Abstract tool event, produced by the mouse or by automation (`ui.pointer`).
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -17,7 +17,7 @@ pub enum ToolEvent {
 /// The body of a `Move` for every tool: tracked position, ⇧ constraint, the moving layer, and so
 /// on. It does not feed the live stroke, so the canvas can push a whole frame's recovered samples
 /// and update the live stroke once (see `canvas_view`).
-fn tool_move(app: &mut LocalPaintApp, x: f64, y: f64, pressure: f32, mods: egui::Modifiers) {
+fn tool_move(app: &mut LocalRasterApp, x: f64, y: f64, pressure: f32, mods: egui::Modifiers) {
     let tool = app.active_tool();
     if tool.is_type() && app.drag.is_none() {
         crate::type_tool::pointer_move(app, x, y, mods);
@@ -53,7 +53,7 @@ fn tool_move(app: &mut LocalPaintApp, x: f64, y: f64, pressure: f32, mods: egui:
     }
 }
 
-fn preflight_tool_event(app: &mut LocalPaintApp, ev: ToolEvent, mods: egui::Modifiers) -> Option<(bool, egui::Modifiers)> {
+fn preflight_tool_event(app: &mut LocalRasterApp, ev: ToolEvent, mods: egui::Modifiers) -> Option<(bool, egui::Modifiers)> {
     // A press anywhere but on a guide deselects the selected guide (`guide_select`).
     if let ToolEvent::Down { x, y, .. } = ev
         && app.ui.selected_guide.is_some()
@@ -103,7 +103,7 @@ fn preflight_tool_event(app: &mut LocalPaintApp, ev: ToolEvent, mods: egui::Modi
     Some((armed, mods))
 }
 
-fn filter_event_before_tool(app: &mut LocalPaintApp, ev: ToolEvent, mods: egui::Modifiers, armed: bool) -> Option<(ToolEvent, ToolEvent, egui::Modifiers)> {
+fn filter_event_before_tool(app: &mut LocalRasterApp, ev: ToolEvent, mods: egui::Modifiers, armed: bool) -> Option<(ToolEvent, ToolEvent, egui::Modifiers)> {
     // View › Snap / Snap To and smart guides (snap_ui.rs).
     let raw = ev;
     // The Move tool's marquee selecting layers takes its moves and release unsnapped (move_box.rs).
@@ -113,7 +113,7 @@ fn filter_event_before_tool(app: &mut LocalPaintApp, ev: ToolEvent, mods: egui::
     // A press anywhere but on the floating piece (or with ⇧ / ⌥, to draw) drops it first; the
     // Move tool (⌘ with a painting tool too, `event_tool`) drags it from anywhere.
     if let ToolEvent::Down { x, y, .. } = raw
-        && app.session.active().is_some_and(|st| localpaint_engine::float_cmds::floating(st).is_some())
+        && app.session.active().is_some_and(|st| localraster_engine::float_cmds::floating(st).is_some())
         && !crate::move_ui::moves_selected_pixels_with(app, event_tool(app, mods))
         && selection_drag_kind(app, app.ui.tool, [x, y], mods) != Some(true)
     {
@@ -208,7 +208,7 @@ fn filter_event_before_tool(app: &mut LocalPaintApp, ev: ToolEvent, mods: egui::
     Some((raw, ev, mods))
 }
 
-fn handle_move_pointer(app: &mut LocalPaintApp, ev: ToolEvent, tool: Tool, mods: egui::Modifiers) -> bool {
+fn handle_move_pointer(app: &mut LocalRasterApp, ev: ToolEvent, tool: Tool, mods: egui::Modifiers) -> bool {
     match ev {
         ToolEvent::Down { x, y, pressure } if tool == Tool::Move => {
             if let Some((vertical, i)) = crate::rulers::guide_at(app, x, y) {
@@ -238,7 +238,7 @@ fn handle_move_pointer(app: &mut LocalPaintApp, ev: ToolEvent, tool: Tool, mods:
                 let probe = app.run("layer.pickAt", json!({"x": x, "y": y, "target": target, "select": false}));
                 let locked_hit = probe.as_ref().ok().and_then(|v| v["layer"].as_u64()).is_some_and(|id| {
                     app.session.active().is_some_and(|st| {
-                        let id = localpaint_doc::LayerId(id);
+                        let id = localraster_doc::LayerId(id);
                         let locks = st.doc.effective_locks(id);
                         locks.position || locks.all || st.doc.is_background(id)
                     })
@@ -299,7 +299,7 @@ fn handle_move_pointer(app: &mut LocalPaintApp, ev: ToolEvent, tool: Tool, mods:
     false
 }
 
-fn consumes_cancelled_vector_event(app: &mut LocalPaintApp, ev: ToolEvent) -> bool {
+fn consumes_cancelled_vector_event(app: &mut LocalRasterApp, ev: ToolEvent) -> bool {
     cancel_stale_vector_drag(app);
     if app.cancelled_vector_drag {
         match ev {
@@ -314,7 +314,7 @@ fn consumes_cancelled_vector_event(app: &mut LocalPaintApp, ev: ToolEvent) -> bo
     false
 }
 
-fn handle_eyedropper_event(app: &mut LocalPaintApp, tool: Tool, ev: ToolEvent, mods: egui::Modifiers) -> bool {
+fn handle_eyedropper_event(app: &mut LocalRasterApp, tool: Tool, ev: ToolEvent, mods: egui::Modifiers) -> bool {
     if tool != Tool::Eyedropper {
         return false;
     }
@@ -326,7 +326,7 @@ fn handle_eyedropper_event(app: &mut LocalPaintApp, tool: Tool, ev: ToolEvent, m
 }
 
 /// Tool state machine. Shared by mouse input and automation.
-pub fn tool_event(app: &mut LocalPaintApp, ev: ToolEvent, mods: egui::Modifiers) {
+pub fn tool_event(app: &mut LocalRasterApp, ev: ToolEvent, mods: egui::Modifiers) {
     if consumes_cancelled_vector_event(app, ev) {
         return;
     }
@@ -394,7 +394,7 @@ pub fn tool_event(app: &mut LocalPaintApp, ev: ToolEvent, mods: egui::Modifiers)
                 if cut
                     && mods.alt
                     && mods.command
-                    && app.session.active().is_some_and(|st| localpaint_engine::float_cmds::floating(st).is_some())
+                    && app.session.active().is_some_and(|st| localraster_engine::float_cmds::floating(st).is_some())
                     && let Err(e) = app.run("select.drop", json!({}))
                 {
                     app.ui.status = e;
@@ -402,7 +402,7 @@ pub fn tool_event(app: &mut LocalPaintApp, ev: ToolEvent, mods: egui::Modifiers)
                     return;
                 }
                 if cut
-                    && app.session.active().is_some_and(|st| localpaint_engine::float_cmds::floating(st).is_none())
+                    && app.session.active().is_some_and(|st| localraster_engine::float_cmds::floating(st).is_none())
                     && let Err(e) = app.run("select.float", json!({"dx": 0, "dy": 0, "copy": mods.alt}))
                 {
                     app.ui.status = e;
@@ -517,7 +517,7 @@ pub fn tool_event(app: &mut LocalPaintApp, ev: ToolEvent, mods: egui::Modifiers)
             }
             app.live_stroke = if strokes_live(tool) { begin_live_stroke(app) } else { None };
             if tool == Tool::MixerBrush && app.live_stroke.is_none() {
-                use localpaint_engine::brush_cmds::mixer_live::LiveMixer;
+                use localraster_engine::brush_cmds::mixer_live::LiveMixer;
                 let p = app.drag.as_ref().map(|d| stroke_params(app, d, &app.stylus.stroke_points(&d.points)));
                 // A tip above the preview size keeps the drag: `finish_gesture` renders it on release.
                 // Otherwise the first dab itself is invalid. Do not queue an unexpected release edit.
@@ -590,7 +590,7 @@ pub fn tool_event(app: &mut LocalPaintApp, ev: ToolEvent, mods: egui::Modifiers)
 
 /// Why a press with `tool` must not start: it would paint on or move a hidden target layer (the
 /// engine refuses the command; refusing the press keeps the live stroke from drawing first).
-fn hidden_target(app: &LocalPaintApp, tool: Tool) -> Option<&'static str> {
+fn hidden_target(app: &LocalRasterApp, tool: Tool) -> Option<&'static str> {
     let cmd = match tool {
         Tool::Move => "layer.translate",
         // The live Gradient makes a new Gradient Fill layer above the target, which Photoshop
@@ -600,16 +600,16 @@ fn hidden_target(app: &LocalPaintApp, tool: Tool) -> Option<&'static str> {
         t if t.is_brushlike() || matches!(t, Tool::Gradient | Tool::PaintBucket | Tool::MagicEraser) => "paint.stroke",
         _ => return None,
     };
-    localpaint_engine::hidden_target::refusal(&app.session, cmd, &json!({}))
+    localraster_engine::hidden_target::refusal(&app.session, cmd, &json!({}))
 }
 
 /// Is document point `p` inside the active document's selection?
-fn inside_selection(app: &LocalPaintApp, p: [f64; 2]) -> bool {
+fn inside_selection(app: &LocalRasterApp, p: [f64; 2]) -> bool {
     app.session.active().and_then(|st| st.doc.selection.as_ref()).is_some_and(|sel| covers(sel, p))
 }
 
 /// Does selection surface `sel` cover document point `p`?
-fn covers(sel: &localpaint_raster::Surface, p: [f64; 2]) -> bool {
+fn covers(sel: &localraster_raster::Surface, p: [f64; 2]) -> bool {
     let mut v = [0.0f32];
     sel.read_pixel(p[0].floor() as i32, p[1].floor() as i32, &mut v);
     v[0] > 0.0
@@ -620,7 +620,7 @@ fn covers(sel: &localpaint_raster::Surface, p: [f64; 2]) -> bool {
 /// drag; the Polygonal Lasso and Magic Wand need ⌘, as a plain press there places or samples),
 /// `Some(false)` just the outline (no ⇧ / ⌥ and the options bar on New Selection, so a combining
 /// drag still draws).
-pub fn selection_drag_kind(app: &LocalPaintApp, tool: Tool, p: [f64; 2], mods: egui::Modifiers) -> Option<bool> {
+pub fn selection_drag_kind(app: &LocalRasterApp, tool: Tool, p: [f64; 2], mods: egui::Modifiers) -> Option<bool> {
     // Click-driven selection tools (a press places a point or samples): only ⌘ drags the
     // selection, and not while a polygon is being drawn.
     let clicky = matches!(tool, Tool::PolygonLasso | Tool::MagicWand);
@@ -629,7 +629,7 @@ pub fn selection_drag_kind(app: &LocalPaintApp, tool: Tool, p: [f64; 2], mods: e
     }
     // ⌘ cuts, ⌘⌥ copies (`select.float`'s `copy`).
     let cut = mods.command && !mods.shift;
-    if let Some(f) = app.session.active().and_then(localpaint_engine::float_cmds::floating) {
+    if let Some(f) = app.session.active().and_then(localraster_engine::float_cmds::floating) {
         // A press on the piece's outline (where its ants are) drags it; one in the margin the cut
         // left of the selection starts a new selection (#7538).
         let at = [p[0] - f64::from(f.offset.0), p[1] - f64::from(f.offset.1)];
@@ -648,7 +648,7 @@ pub fn selection_drag_kind(app: &LocalPaintApp, tool: Tool, p: [f64; 2], mods: e
 /// The tool a pointer event with `mods` goes to: ⌘ held is the Move tool (`hold_keys::cmd_moves`).
 /// The canvas resolves the held key before the event (`tool_override`); automation and tests send
 /// the modifier with the event.
-pub(crate) fn event_tool(app: &LocalPaintApp, mods: egui::Modifiers) -> Tool {
+pub(crate) fn event_tool(app: &LocalRasterApp, mods: egui::Modifiers) -> Tool {
     match app.active_tool() {
         t if app.tool_override.is_none() && mods.command && crate::hold_keys::cmd_moves(t) && app.ui.transform.is_none() && app.ui.text_edit.is_none() => {
             Tool::Move
@@ -660,9 +660,9 @@ pub(crate) fn event_tool(app: &LocalPaintApp, mods: egui::Modifiers) -> Tool {
 /// Does a ⌘ (⌘⌥) press with selection tool `tool` at `p` move the whole layer (a duplicate with
 /// ⌥), as the Move tool would? Outside the selection or without one; inside it, ⌘ drags the
 /// selected pixels instead (`selection_drag_kind`).
-pub(crate) fn command_moves_layer(app: &LocalPaintApp, tool: Tool, p: [f64; 2], mods: egui::Modifiers) -> bool {
+pub(crate) fn command_moves_layer(app: &LocalRasterApp, tool: Tool, p: [f64; 2], mods: egui::Modifiers) -> bool {
     let selection_tool = matches!(tool, Tool::RectMarquee | Tool::EllipseMarquee | Tool::Lasso | Tool::PolygonLasso | Tool::MagicWand);
-    let floating = app.session.active().is_some_and(|st| localpaint_engine::float_cmds::floating(st).is_some());
+    let floating = app.session.active().is_some_and(|st| localraster_engine::float_cmds::floating(st).is_some());
     selection_tool && mods.command && !mods.shift && !floating && app.ui.polygon.is_empty() && !inside_selection(app, p)
 }
 
@@ -671,7 +671,7 @@ pub(crate) fn command_moves_layer(app: &LocalPaintApp, tool: Tool, p: [f64; 2], 
 /// selected pixels. The selection tools, and every tool on which ⌘ is the Move tool
 /// (`hold_keys::cmd_moves`, #6288); the canvas shows the guide cursor where this finds a guide.
 /// Not while a polygon or lasso outline, a stroke, Free Transform or type editing is under way.
-pub(crate) fn command_guide_at(app: &LocalPaintApp, tool: Tool, p: [f64; 2], mods: egui::Modifiers) -> Option<(bool, usize)> {
+pub(crate) fn command_guide_at(app: &LocalRasterApp, tool: Tool, p: [f64; 2], mods: egui::Modifiers) -> Option<(bool, usize)> {
     let selection_tool = matches!(tool, Tool::RectMarquee | Tool::EllipseMarquee | Tool::Lasso | Tool::PolygonLasso | Tool::MagicWand);
     let moves = selection_tool || crate::hold_keys::cmd_moves(tool);
     let idle = app.ui.polygon.is_empty() && !crate::lasso_ui::active(app) && app.ui.transform.is_none() && app.ui.text_edit.is_none() && app.drag.is_none();

@@ -13,7 +13,7 @@
 //!   Photoshop turns into a 4 × 1 patch mesh wrapping the contents round a cylinder; see
 //!   [`cylinder_mesh`].
 //!
-//! Pure geometry: resampling lives in `localpaint-algo::warp`.
+//! Pure geometry: resampling lives in `localraster-algo::warp`.
 
 use std::f64::consts::PI;
 

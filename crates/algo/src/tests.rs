@@ -1,5 +1,5 @@
 use super::*;
-use localpaint_color::{PixelFormat, SampleType};
+use localraster_color::{PixelFormat, SampleType};
 mod ext;
 mod mosaic;
 mod selection_mix;
@@ -103,10 +103,10 @@ fn nonpositive_tile_sizes_match_one_pixel_tiles() {
             for tile in [0, -64, i32::MIN] {
                 let actual = apply_tiled(&source, &params, area, area, None, tile, Some(area));
                 assert_eq!(actual.read_region(area), expected.read_region(area), "{}: {depth:?}, tile={tile}", params.label());
-                let cancellable = apply_tiled_with(&source, &params, area, area, None, tile, Some(area), &localpaint_raster::Interrupt::NONE)
+                let cancellable = apply_tiled_with(&source, &params, area, area, None, tile, Some(area), &localraster_raster::Interrupt::NONE)
                     .expect("a nonpositive tile size is normalized, not rejected");
                 assert_eq!(cancellable.read_region(area), expected.read_region(area), "{}: {depth:?}, tile={tile}", params.label());
-                let cancelled = localpaint_raster::Interrupt::cancel_only(&|| true);
+                let cancelled = localraster_raster::Interrupt::cancel_only(&|| true);
                 assert!(apply_tiled_with(&source, &params, area, area, None, tile, Some(area), &cancelled).is_none());
             }
         }

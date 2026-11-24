@@ -2,14 +2,14 @@ use super::ime::interrupt_incoming;
 use super::ime_edit::note_ime_application_change;
 use super::layout::{hit_layer, hit_offset, shows_own_layout};
 use super::{
-    Arc, FontFieldEdit, HashMap, LayerId, LocalPaintApp, TextEdit, TextLayer, accept_row, active_doc_id, apply, byte_range, current_text, families,
+    Arc, FontFieldEdit, HashMap, LayerId, LocalRasterApp, TextEdit, TextLayer, accept_row, active_doc_id, apply, byte_range, current_text, families,
     font_labels_id, font_menu_rows, insertion_style, json, selected_range, session_key, text_layer,
 };
 
 /// Start editing an existing type layer. Like Photoshop, editing shows the text as the type
 /// engine lays it out, so a PSD layer is re-rendered first (inside the edit session's history
 /// step, so Cancel brings Photoshop's pixels back).
-pub(super) fn begin_edit(app: &mut LocalPaintApp, id: LayerId, key: &str) -> Result<(), String> {
+pub(super) fn begin_edit(app: &mut LocalRasterApp, id: LayerId, key: &str) -> Result<(), String> {
     let st = app.session.active().ok_or("no document open")?;
     let doc = st.doc.clone();
     if let Some(t) = text_layer(&doc, id)
@@ -22,7 +22,7 @@ pub(super) fn begin_edit(app: &mut LocalPaintApp, id: LayerId, key: &str) -> Res
 
 /// Edit the active type layer from its thumbnail, selecting all text like Photoshop. Reuse the
 /// current session when already editing it, so Cancel and undo still cover the whole edit.
-pub fn edit_active(app: &mut LocalPaintApp) -> Result<(), String> {
+pub fn edit_active(app: &mut LocalRasterApp) -> Result<(), String> {
     app.ui.type_insertion_style = None;
     let st = app.session.active().ok_or("no document open")?;
     let id = st.active_layer.ok_or("no active layer")?;
@@ -58,7 +58,7 @@ pub fn edit_active(app: &mut LocalPaintApp) -> Result<(), String> {
             app.type_ime.request_interrupt();
         }
     }
-    let vertical = app.session.active().and_then(|st| text_layer(&st.doc, id)).is_some_and(|t| t.orientation == localpaint_doc::text::Orientation::Vertical);
+    let vertical = app.session.active().and_then(|st| text_layer(&st.doc, id)).is_some_and(|t| t.orientation == localraster_doc::text::Orientation::Vertical);
     app.ui.text_edit_return_tool = None;
     app.ui.tool = if vertical { crate::state::Tool::VerticalType } else { crate::state::Tool::Type };
     app.ui.mask_target = false;
@@ -69,7 +69,7 @@ pub fn edit_active(app: &mut LocalPaintApp) -> Result<(), String> {
 /// Double-click with the Move tool (Photoshop CC 2019+): edit the type layer under document
 /// point (`x`, `y`) with the caret on the glyph there, switching to the Type tool. False when no
 /// type is there.
-pub fn edit_at(app: &mut LocalPaintApp, x: f64, y: f64) -> bool {
+pub fn edit_at(app: &mut LocalRasterApp, x: f64, y: f64) -> bool {
     let Some(id) = hit_layer(app, x, y) else { return false };
     let previous_tool = app.ui.tool;
     commit(app);
@@ -93,7 +93,7 @@ pub fn edit_at(app: &mut LocalPaintApp, x: f64, y: f64) -> bool {
         resize: None,
         preedit: None,
     });
-    let vertical = app.session.active().and_then(|st| text_layer(&st.doc, id)).is_some_and(|t| t.orientation == localpaint_doc::text::Orientation::Vertical);
+    let vertical = app.session.active().and_then(|st| text_layer(&st.doc, id)).is_some_and(|t| t.orientation == localraster_doc::text::Orientation::Vertical);
     if !previous_tool.is_type() {
         app.ui.text_edit_return_tool = Some(previous_tool);
     }
@@ -105,7 +105,7 @@ pub fn edit_at(app: &mut LocalPaintApp, x: f64, y: f64) -> bool {
 
 /// Copy the selected characters to the system clipboard. Returns the copied range. Shared by the
 /// clipboard Copy event and Edit > Copy during a type edit.
-pub(crate) fn copy_selection(app: &LocalPaintApp, ctx: &egui::Context) -> Option<[usize; 2]> {
+pub(crate) fn copy_selection(app: &LocalRasterApp, ctx: &egui::Context) -> Option<[usize; 2]> {
     let [a, b] = selected_range(app)?;
     let ed = app.ui.text_edit.as_ref()?;
     let text = text_layer(&app.session.active()?.doc, LayerId(ed.layer))?;
@@ -120,7 +120,7 @@ pub(crate) fn request_paste(ctx: &egui::Context) {
 }
 
 /// Select > All during a type edit selects every character (like ⌘A).
-pub(crate) fn select_all(app: &mut LocalPaintApp) {
+pub(crate) fn select_all(app: &mut LocalRasterApp) {
     let Some(n) = app.ui.text_edit.as_ref().and_then(|ed| current_text(app, LayerId(ed.layer))).map(|t| t.chars().count()) else { return };
     if let Some(e) = app.ui.text_edit.as_mut() {
         (e.anchor, e.caret) = (0, n);
@@ -128,7 +128,7 @@ pub(crate) fn select_all(app: &mut LocalPaintApp) {
 }
 
 /// Shared by the clipboard Cut event and Edit > Cut during a type edit.
-pub(crate) fn cut_selection(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub(crate) fn cut_selection(app: &mut LocalRasterApp, ctx: &egui::Context) {
     let Some([a, b]) = copy_selection(app, ctx) else { return };
     if let Some(ed) = app.ui.text_edit.as_mut() {
         ed.anchor = a;
@@ -138,7 +138,7 @@ pub(crate) fn cut_selection(app: &mut LocalPaintApp, ctx: &egui::Context) {
 }
 
 /// Replace the selection with `s`.
-pub(super) fn insert(app: &mut LocalPaintApp, s: &str) {
+pub(super) fn insert(app: &mut LocalRasterApp, s: &str) {
     let Some(ed) = app.ui.text_edit.clone() else { return };
     let (a, b) = (ed.caret.min(ed.anchor), ed.caret.max(ed.anchor));
     let s = s.replace("\r\n", "\n").replace('\r', "\n");
@@ -168,7 +168,7 @@ pub(super) fn insert(app: &mut LocalPaintApp, s: &str) {
 
 /// Typed text (not a paste): with Preferences ▸ Type ▸ Use Smart Quotes, straight quotes become
 /// typographic (Photoshop does not rewrite pasted text).
-pub(super) fn insert_typed(app: &mut LocalPaintApp, s: &str) {
+pub(super) fn insert_typed(app: &mut LocalRasterApp, s: &str) {
     if !app.session.prefs().type_.smart_quotes {
         return insert(app, s);
     }
@@ -215,7 +215,7 @@ fn opens_quote(prev: Option<char>) -> bool {
 
 /// Alt+←/→: kern the pair before the caret by `by` (1/1000 em). No pair (caret at a text or line
 /// edge): nothing happens, like Photoshop. Not coalesced: one history step per press.
-pub(super) fn kern_pair(app: &mut LocalPaintApp, id: LayerId, caret: usize, by: f32) {
+pub(super) fn kern_pair(app: &mut LocalRasterApp, id: LayerId, caret: usize, by: f32) {
     let Some(text) = current_text(app, id) else { return };
     let before = caret.checked_sub(1).and_then(|i| text.chars().nth(i));
     let after = text.chars().nth(caret);
@@ -238,9 +238,9 @@ pub(crate) enum CharToggle {
 }
 
 impl CharToggle {
-    fn is_on(self, st: &localpaint_doc::text::CharStyle) -> bool {
+    fn is_on(self, st: &localraster_doc::text::CharStyle) -> bool {
         match self {
-            Self::AllCaps => st.caps == localpaint_doc::text::Caps::AllCaps,
+            Self::AllCaps => st.caps == localraster_doc::text::Caps::AllCaps,
             Self::Underline => st.underline,
             Self::FauxBold => st.faux_bold,
             Self::FauxItalic => st.faux_italic,
@@ -261,7 +261,7 @@ impl CharToggle {
 
 /// The character styles of the selection, or of the typing style when the text is empty. Empty
 /// when nothing is selected in non-empty text.
-pub(super) fn selected_styles(t: &TextLayer, a: usize, b: usize) -> Vec<localpaint_doc::text::CharStyle> {
+pub(super) fn selected_styles(t: &TextLayer, a: usize, b: usize) -> Vec<localraster_doc::text::CharStyle> {
     let runs = t.char_runs();
     if t.text.is_empty() {
         return runs.into_iter().take(1).map(|r| r.style).collect();
@@ -283,7 +283,7 @@ pub(super) fn selected_styles(t: &TextLayer, a: usize, b: usize) -> Vec<localpai
 /// text's typing style. `None` for a collapsed caret in non-empty text: Photoshop would style the
 /// next characters typed, which the document model can't hold apart from the text, so the keys
 /// do nothing there (rather than restyle a word the user didn't select).
-fn format_range(app: &LocalPaintApp, ed: &TextEdit) -> Option<(usize, usize)> {
+fn format_range(app: &LocalRasterApp, ed: &TextEdit) -> Option<(usize, usize)> {
     let t = text_layer(&app.session.active()?.doc, LayerId(ed.layer))?;
     let n = t.text.chars().count();
     let (a, b) = (ed.caret.min(ed.anchor).min(n), ed.caret.max(ed.anchor).min(n));
@@ -292,7 +292,7 @@ fn format_range(app: &LocalPaintApp, ed: &TextEdit) -> Option<(usize, usize)> {
 
 /// One `type.setStyle` step on the edited layer's `range`, kept apart from the typing session's
 /// coalesced edit so Undo takes back one key press at a time (as with kerning).
-fn set_style(app: &mut LocalPaintApp, ed: &TextEdit, range: (usize, usize), mut p: serde_json::Value) {
+fn set_style(app: &mut LocalRasterApp, ed: &TextEdit, range: (usize, usize), mut p: serde_json::Value) {
     crate::type_transform::finish(app);
     p["layer"] = json!(ed.layer);
     p["range"] = json!([range.0, range.1]);
@@ -304,7 +304,7 @@ fn set_style(app: &mut LocalPaintApp, ed: &TextEdit, range: (usize, usize), mut 
 
 /// ⇧⌘K/U/B/I/: flips a character style over the selection: off when every selected character
 /// already has it, else on.
-pub(crate) fn toggle_char_style(app: &mut LocalPaintApp, which: CharToggle) {
+pub(crate) fn toggle_char_style(app: &mut LocalRasterApp, which: CharToggle) {
     let Some(ed) = app.ui.text_edit.clone() else { return };
     let Some(range) = format_range(app, &ed) else { return };
     let Some(styles) = app.session.active().and_then(|s| text_layer(&s.doc, LayerId(ed.layer))).map(|t| selected_styles(t, range.0, range.1)) else {
@@ -317,7 +317,7 @@ pub(crate) fn toggle_char_style(app: &mut LocalPaintApp, which: CharToggle) {
 
 /// ⌥↑/↓ leading, ⇧⌥↑/↓ baseline shift and ⌥←/→ tracking: steps every selected character from its
 /// own value (`key` is `leadingBy`, `baselineShiftBy` or `trackingBy`).
-pub(crate) fn step_char_metric(app: &mut LocalPaintApp, key: &str, by: f32) {
+pub(crate) fn step_char_metric(app: &mut LocalRasterApp, key: &str, by: f32) {
     let Some(ed) = app.ui.text_edit.clone() else { return };
     let Some(range) = format_range(app, &ed) else { return };
     // Leading steps in the points the Character panel shows for a scaled layer.
@@ -326,7 +326,7 @@ pub(crate) fn step_char_metric(app: &mut LocalPaintApp, key: &str, by: f32) {
 
 /// ⌥⇧⌘H: flips Hyphenate for the paragraphs the selection (or the caret) is in: off when all of
 /// them hyphenate, else on.
-pub(crate) fn toggle_hyphenate(app: &mut LocalPaintApp) {
+pub(crate) fn toggle_hyphenate(app: &mut LocalRasterApp) {
     let Some(ed) = app.ui.text_edit.clone() else { return };
     let Some(t) = app.session.active().and_then(|s| text_layer(&s.doc, LayerId(ed.layer))) else { return };
     let n = t.text.chars().count();
@@ -350,13 +350,13 @@ pub(crate) fn toggle_hyphenate(app: &mut LocalPaintApp) {
 }
 
 /// End the editing session. A new layer left empty is deleted; a new layer is named after its text.
-pub fn commit(app: &mut LocalPaintApp) {
+pub fn commit(app: &mut LocalRasterApp) {
     commit_with(app, egui::Modifiers::NONE);
 }
 
 /// The document's commit shortcut also works while a Type field owns keyboard input.
 /// Resolve a pending font query before ending the edit; composition still owns its keys.
-pub(crate) fn commit_shortcut(app: &mut LocalPaintApp, ctx: &egui::Context) -> bool {
+pub(crate) fn commit_shortcut(app: &mut LocalRasterApp, ctx: &egui::Context) -> bool {
     let Some(ed) = app.ui.text_edit.as_ref() else { return false };
     let composing = ed.preedit.is_some();
     let mods = ctx.input(|i| {
@@ -385,7 +385,7 @@ pub(crate) fn commit_shortcut(app: &mut LocalPaintApp, ctx: &egui::Context) -> b
             edit.row.filter(|&i| rows.get(i).is_some_and(|(f, _)| **f == edit.current)).or_else(|| rows.iter().position(|(f, _)| **f == edit.current));
         let family = accept_row(&rows, &edit.text, selected).and_then(|i| rows.get(i)).map(|(f, _)| (*f).clone());
         if let Some(family) = family {
-            localpaint_text::served::request(&family);
+            localraster_text::served::request(&family);
             app.note_recent_font(&family);
             app.ui.tool_options.type_font = family.clone();
             apply(app, ctx, json!({"font": family}));
@@ -408,7 +408,7 @@ pub(crate) fn commit_shortcut(app: &mut LocalPaintApp, ctx: &egui::Context) -> b
 /// [`commit`] with the modifiers held while committing: a Type Mask adds its glyphs to the
 /// selection with ⇧, subtracts them with ⌥ and intersects with ⇧⌥ (Photoshop); with none it
 /// replaces the selection.
-pub fn commit_with(app: &mut LocalPaintApp, mods: egui::Modifiers) {
+pub fn commit_with(app: &mut LocalRasterApp, mods: egui::Modifiers) {
     app.ui.type_insertion_style = None;
     crate::type_font_preview::clear(app);
     let current = app.session.active_index();
@@ -437,7 +437,7 @@ pub fn commit_with(app: &mut LocalPaintApp, mods: egui::Modifiers) {
 }
 
 /// Index of the document an edit belongs to; `None` once it is closed.
-pub(super) fn edit_home(app: &LocalPaintApp, ed: &TextEdit) -> Option<usize> {
+pub(super) fn edit_home(app: &LocalRasterApp, ed: &TextEdit) -> Option<usize> {
     match ed.document {
         Some(d) => app.session.documents().iter().position(|st| st.doc.id.0 == d),
         None => app.session.active_index(),
@@ -445,7 +445,7 @@ pub(super) fn edit_home(app: &LocalPaintApp, ed: &TextEdit) -> Option<usize> {
 }
 
 /// [`commit_with`] in the active document, which is the edit's own.
-fn commit_here(app: &mut LocalPaintApp, mods: egui::Modifiers) {
+fn commit_here(app: &mut LocalRasterApp, mods: egui::Modifiers) {
     if app.ui.tool.is_type() {
         crate::type_transform::finish(app);
     }
@@ -476,7 +476,7 @@ fn commit_here(app: &mut LocalPaintApp, mods: egui::Modifiers) {
     if text.trim().is_empty() && ed.created {
         let _ = app.run("layer.delete", json!({"layer": ed.layer}));
     } else if ed.created {
-        let name = localpaint_engine::type_cmds::layer_name(&text);
+        let name = localraster_engine::type_cmds::layer_name(&text);
         let _ = app.run("type.edit", json!({"layer": ed.layer, "name": name, "coalesce": ed.session}));
     }
 }
@@ -485,7 +485,7 @@ fn commit_here(app: &mut LocalPaintApp, mods: egui::Modifiers) {
 /// active (a Layers panel menu, the canvas layer picker, automation) or another document did (a
 /// tab, File ▸ New/Open). Photoshop commits then; left open, the session took single-key
 /// shortcuts as typing and typed into whichever document was active.
-pub fn end_if_left(app: &mut LocalPaintApp) {
+pub fn end_if_left(app: &mut LocalRasterApp) {
     let Some(ed) = app.ui.text_edit.as_ref() else { return };
     let layer = LayerId(ed.layer);
     if edit_home(app, ed).is_none_or(|h| Some(h) != app.session.active_index()) {
@@ -506,7 +506,7 @@ pub fn end_if_left(app: &mut LocalPaintApp) {
 }
 
 /// Cancel the editing session: undo it back to where it started (removes a new layer).
-pub fn cancel(app: &mut LocalPaintApp) {
+pub fn cancel(app: &mut LocalRasterApp) {
     app.ui.type_insertion_style = None;
     crate::type_transform::reset(app);
     let Some(ed) = app.ui.text_edit.take() else { return };
@@ -520,7 +520,7 @@ pub fn cancel(app: &mut LocalPaintApp) {
 }
 
 /// Undo the session's history step, if it is still the latest.
-fn undo_session(app: &mut LocalPaintApp, ed: &TextEdit) {
+fn undo_session(app: &mut LocalRasterApp, ed: &TextEdit) {
     let coalesced = app.session.active().is_some_and(|s| s.coalesce.as_deref() == Some(ed.session.as_str()));
     if coalesced {
         let _ = app.run("edit.undo", json!({}));

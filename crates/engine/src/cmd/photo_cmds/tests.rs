@@ -33,7 +33,7 @@ fn doc_from(name: &str, px: &[[f32; 4]], w: usize, h: usize, depth: SampleType) 
     let n = fmt.channels();
     let mut data = vec![0.0f32; w * h * n];
     for (q, o) in px.iter().zip(data.chunks_exact_mut(n)) {
-        localpaint_raster::from_rgba_into(&fmt, *q, o);
+        localraster_raster::from_rgba_into(&fmt, *q, o);
     }
     let mut s = Surface::new(fmt);
     s.write_region(Rect::new(0, 0, w as i32, h as i32), &data);
@@ -73,7 +73,7 @@ fn photomerge_open_documents_reposition_and_perspective() {
             assert!((shown - 1.0).abs() < 0.01, "({x},{y}) {shown}");
         }
         // The composite matches the scene up to the global gain.
-        let comp = localpaint_compose::flatten(d);
+        let comp = localraster_compose::flatten(d);
         let at = |x: i32, y: i32| comp.px[(y * comp.rect.width() as i32 + x) as usize];
         let gains = r["photometric"]["gains"].as_array().unwrap();
         assert!(gains[1][0].as_f64().unwrap() > gains[0][0].as_f64().unwrap() * 1.05, "{r}");
@@ -140,7 +140,7 @@ fn hdr_merge_from_synthetic_exposures() {
         radiance
             .iter()
             .map(|r| {
-                let f = |v: f32| localpaint_algo_srgb((v * dt).min(1.0));
+                let f = |v: f32| localraster_algo_srgb((v * dt).min(1.0));
                 [f(r[0]), f(r[1]), f(r[2]), 1.0]
             })
             .collect()
@@ -185,7 +185,7 @@ fn hdr_merge_from_synthetic_exposures() {
     assert!(s.execute("file.automate.mergeToHdrPro", json!({"useOpenDocuments": true, "exposures": [0, 1]})).is_err());
 }
 
-fn localpaint_algo_srgb(v: f32) -> f32 {
+fn localraster_algo_srgb(v: f32) -> f32 {
     if v <= 0.003_130_8 { v * 12.92 } else { 1.055 * v.powf(1.0 / 2.4) - 0.055 }
 }
 
@@ -307,7 +307,7 @@ fn crop_and_straighten_refuses_a_selection_under_half_coverage() {
     }
     let mut s = Session::new();
     s.add_document(doc_from("scan", &px, w, h, SampleType::U8), None);
-    let mut m = Surface::new(localpaint_color::PixelFormat::GRAY8);
+    let mut m = Surface::new(localraster_color::PixelFormat::GRAY8);
     m.fill_rect(Rect::new(270, 160, 460, 320), &[0.3]);
     std::sync::Arc::make_mut(&mut s.active_mut().unwrap().doc).selection = Some(m);
     let e = s.execute("file.automate.cropAndStraightenPhotos", json!({})).unwrap_err();

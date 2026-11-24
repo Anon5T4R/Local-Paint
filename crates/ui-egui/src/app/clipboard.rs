@@ -1,4 +1,4 @@
-use super::LocalPaintApp;
+use super::LocalRasterApp;
 
 fn clip_signature(w: u32, h: u32, px: &[u8]) -> u64 {
     let mut sig = (w as u64) << 32 | h as u64;
@@ -8,7 +8,7 @@ fn clip_signature(w: u32, h: u32, px: &[u8]) -> u64 {
     sig
 }
 
-impl LocalPaintApp {
+impl LocalRasterApp {
     /// Mirror the session clipboard onto the OS clipboard (RGBA8).
     pub(super) fn export_os_clipboard(&mut self) {
         self.clip_unmirrored = true;
@@ -70,11 +70,11 @@ impl LocalPaintApp {
         if self.os_clip_sig == Some(sig) && self.session.clipboard.is_some() {
             return Ok(false);
         }
-        let r = localpaint_geom::Rect::new(0, 0, w as i32, h as i32);
-        let mut surface = localpaint_raster::Surface::from_interleaved(localpaint_color::PixelFormat::RGBA8, r, &bytes);
+        let r = localraster_geom::Rect::new(0, 0, w as i32, h as i32);
+        let mut surface = localraster_raster::Surface::from_interleaved(localraster_color::PixelFormat::RGBA8, r, &bytes);
         surface.prune();
         self.session.clipboard =
-            Some(localpaint_engine::edit_cmds::Clip { components: None, surface, bounds: r, layers: None, resolution: None, source: None });
+            Some(localraster_engine::edit_cmds::Clip { components: None, surface, bounds: r, layers: None, resolution: None, source: None });
         self.os_clip_sig = Some(sig);
         self.clip_external = true;
         self.clip_unmirrored = false;

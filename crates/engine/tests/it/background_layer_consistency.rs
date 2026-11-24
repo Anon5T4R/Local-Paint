@@ -1,8 +1,8 @@
 //! Background-layer invariants through merge, duplication and canvas extension.
 //! These three commands must agree with Layer From Background and ordinary layer locks.
 
-use localpaint_doc::{Layer, LayerId};
-use localpaint_engine::Session;
+use localraster_doc::{Layer, LayerId};
+use localraster_engine::Session;
 use serde_json::json;
 
 fn background(depth: u32) -> Session {

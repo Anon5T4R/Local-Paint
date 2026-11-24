@@ -3,8 +3,8 @@
 //! (verified by the corpus round-trip floors in `corpus.rs`; here the byte-equality of the
 //! codec layer itself is pinned).
 
-use localpaint_psd::compression::{Compression, PlaneLayout, decode_planes, encode_planes};
-use localpaint_psd::header::Version;
+use localraster_psd::compression::{Compression, PlaneLayout, decode_planes, encode_planes};
+use localraster_psd::header::Version;
 
 #[test]
 fn encode_decode_planes_round_trip_exactly() {

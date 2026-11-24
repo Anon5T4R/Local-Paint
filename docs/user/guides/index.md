@@ -1,6 +1,6 @@
 ---
 title: Guides
-description: Step-by-step guides for the everyday tasks in Local Paint.
+description: Step-by-step guides for the everyday tasks in Local Raster.
 order: 20
 verified: 0.8.2
 ---

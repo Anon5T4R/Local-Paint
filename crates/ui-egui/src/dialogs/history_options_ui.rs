@@ -6,13 +6,13 @@
 
 use serde_json::{Map, Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::state::DialogKind;
 
 pub const COMMAND: &str = "history.options";
 
 /// Opens the dialog for a parameterless `history.options`; anything else is not handled here.
-pub fn menu(app: &mut LocalPaintApp, id: &str, params: &Value) -> Option<Result<Value, String>> {
+pub fn menu(app: &mut LocalRasterApp, id: &str, params: &Value) -> Option<Result<Value, String>> {
     if id != COMMAND || params.as_object().is_some_and(|m| m.keys().any(|k| !k.starts_with("__"))) {
         return None;
     }
@@ -20,8 +20,8 @@ pub fn menu(app: &mut LocalPaintApp, id: &str, params: &Value) -> Option<Result<
 }
 
 /// Open the dialog on the current options; returns its id.
-pub fn open(app: &mut LocalPaintApp) -> u64 {
-    let current = localpaint_engine::history_options_cmds::current(&app.session);
+pub fn open(app: &mut LocalRasterApp) -> u64 {
+    let current = localraster_engine::history_options_cmds::current(&app.session);
     let mut f = Map::new();
     f.insert("__command".into(), json!(COMMAND));
     f.insert("__label".into(), json!("History Options…"));
@@ -35,7 +35,7 @@ pub fn open(app: &mut LocalPaintApp) -> u64 {
             "makeLayerVisibilityChangesUndoable": tl!("Make Layer Visibility Changes Undoable"),
         }),
     );
-    for key in localpaint_engine::history_options_cmds::OPTIONS {
+    for key in localraster_engine::history_options_cmds::OPTIONS {
         f.insert(key.into(), current.get(key).cloned().unwrap_or(Value::Bool(false)));
     }
     app.ui.open_dialog(DialogKind::Command, f)
@@ -45,8 +45,8 @@ pub fn open(app: &mut LocalPaintApp) -> u64 {
 mod tests {
     use super::*;
 
-    fn app() -> LocalPaintApp {
-        LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default())
+    fn app() -> LocalRasterApp {
+        LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default())
     }
 
     #[test]
@@ -86,7 +86,7 @@ mod tests {
     fn the_dialog_draws_both_checkboxes_with_photoshops_labels() {
         use egui_kittest::{Harness, kittest::Queryable};
         let mut h = Harness::builder().with_size(egui::vec2(700.0, 400.0)).build_ui_state(|ui, app| crate::dialogs::show(app, ui.ctx()), app());
-        LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
+        LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
         open(h.state_mut());
         h.run_steps(3);
         h.get_by_label("History Options");

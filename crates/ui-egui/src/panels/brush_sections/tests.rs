@@ -29,7 +29,7 @@ fn section_harness(section: usize, b: BrushSettings) -> Harness<'static, BrushSe
     let mut h = Harness::builder().with_size(vec2(340.0, 1100.0)).build_ui_state(
         move |ui, b: &mut BrushSettings| {
             if !ready {
-                crate::LocalPaintApp::setup_context(ui.ctx(), theme::ThemeKind::ProMedium);
+                crate::LocalRasterApp::setup_context(ui.ctx(), theme::ThemeKind::ProMedium);
                 ready = true;
                 return;
             }
@@ -52,7 +52,7 @@ fn pose_axes_controls_are_independent_and_below_each_tilt_in_all_themes() {
         }}))
         .unwrap();
         let mut h = section_harness(7, b.clone());
-        crate::LocalPaintApp::setup_context(&h.ctx, kind);
+        crate::LocalRasterApp::setup_context(&h.ctx, kind);
         h.run_steps(3);
         let x = h.get_by_role_and_label(Role::CheckBox, "Override Tilt X");
         let y = h.get_by_role_and_label(Role::CheckBox, "Override Tilt Y");
@@ -82,7 +82,7 @@ fn hue_jitter_paints_an_amount_track_in_every_theme() {
         let mut b = BrushSettings::default();
         b.color_dynamics.hue_jitter = 0.37;
         let mut h = section_harness(5, b.clone());
-        crate::LocalPaintApp::setup_context(&h.ctx, kind);
+        crate::LocalRasterApp::setup_context(&h.ctx, kind);
         h.run_steps(3);
         let label = caption_rect(&h, "Hue Jitter");
         let t = Tokens::get(&h.ctx);
@@ -122,7 +122,7 @@ fn transfer_mixer_harness(kind: theme::ThemeKind, tool: Tool) -> Harness<'static
     let mut h = Harness::builder().with_size(vec2(340.0, 1400.0)).build_ui_state(
         move |ui, state: &mut TransferState| {
             if !ready {
-                crate::LocalPaintApp::setup_context(ui.ctx(), kind);
+                crate::LocalRasterApp::setup_context(ui.ctx(), kind);
                 ready = true;
                 return;
             }

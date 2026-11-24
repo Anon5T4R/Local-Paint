@@ -14,7 +14,7 @@
 //! ```
 //!
 //! The list is in application order (first = bottom, applied first), like
-//! [`SmartObject::smart_filters`](localpaint_doc::SmartObject). Filters Local Paint implements map
+//! [`SmartObject::smart_filters`](localraster_doc::SmartObject). Filters Local Raster implements map
 //! to their command id and dialog parameters; any other filter becomes a
 //! [`UNSUPPORTED_FILTER`] entry that keeps its descriptor verbatim (hex in `params.psd`), so it is
 //! listed, can be hidden, reordered or deleted, and is written back unchanged.
@@ -24,15 +24,15 @@
 //! Warp (`perspective_warp_map.rs`), whose quads become the planes of its command. Hue/Saturation
 //! (`HStr`) maps to its adjustment command in `hue_sat_filter_map.rs`.
 
-use localpaint_color::{BlendMode, ColorMode, PixelFormat, SampleType};
-use localpaint_doc::{LayerMask, SmartFilter};
-use localpaint_geom::warp::{BezierMesh, Warp, WarpStyle};
-use localpaint_geom::{Affine, Rect as GeomRect};
-use localpaint_psd::Compression;
-use localpaint_psd::Rect as PsdRect;
-use localpaint_psd::descriptor::{Class, Descriptor, Id, ObjectArray, ReferenceItem, UnicodeString, Value, VersionedDescriptor};
-use localpaint_psd::filter_effects::{EffectsPlane, FilterEffectsItem};
-use localpaint_raster::Surface;
+use localraster_color::{BlendMode, ColorMode, PixelFormat, SampleType};
+use localraster_doc::{LayerMask, SmartFilter};
+use localraster_geom::warp::{BezierMesh, Warp, WarpStyle};
+use localraster_geom::{Affine, Rect as GeomRect};
+use localraster_psd::Compression;
+use localraster_psd::Rect as PsdRect;
+use localraster_psd::descriptor::{Class, Descriptor, Id, ObjectArray, ReferenceItem, UnicodeString, Value, VersionedDescriptor};
+use localraster_psd::filter_effects::{EffectsPlane, FilterEffectsItem};
+use localraster_raster::Surface;
 use serde_json::{Map, Value as J, json};
 
 use crate::blocks::{enum_of, get_desc, num};
@@ -67,7 +67,7 @@ pub use placed::{PlacedSpec, plld_bytes, sold_bytes, stored_size};
 #[cfg(test)]
 use placed::{quad_moved, warp_desc};
 
-/// Command id of a Photoshop smart filter Local Paint does not implement. Its params hold the
+/// Command id of a Photoshop smart filter Local Raster does not implement. Its params hold the
 /// filter's name, Photoshop filter id and descriptor (`psd`, hex); it renders as a pass-through.
 pub const UNSUPPORTED_FILTER: &str = "psd.unsupportedFilter";
 
@@ -247,7 +247,7 @@ pub fn feid_item(placed: &str, unfiltered: &Surface, mask: Option<&LayerMask>, b
     // Fully transparent pixels carry white, as in Photoshop's own cache: filters that look at
     // colour regardless of alpha (Shadows/Highlights) read it.
     let mut vals = px.read_region(r);
-    let white = localpaint_raster::from_rgba(&doc_fmt, [1.0, 1.0, 1.0, 1.0]);
+    let white = localraster_raster::from_rgba(&doc_fmt, [1.0, 1.0, 1.0, 1.0]);
     for p in vals.chunks_exact_mut(cc + 1) {
         if p[cc] <= 0.0 {
             p[..cc].copy_from_slice(&white[..cc]);

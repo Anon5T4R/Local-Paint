@@ -5,9 +5,9 @@
 
 use std::sync::Arc;
 
-use localpaint_color::PixelFormat;
-use localpaint_geom::{Rect, TILE_SIZE, TileCoord};
-use localpaint_raster::Surface;
+use localraster_color::PixelFormat;
+use localraster_geom::{Rect, TILE_SIZE, TileCoord};
+use localraster_raster::Surface;
 use serde::{Deserialize, Serialize};
 
 use crate::photo_util::{par_map, par_rows};

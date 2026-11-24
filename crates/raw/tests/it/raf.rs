@@ -1,8 +1,8 @@
 //! Synthetic Fujifilm RAF files: every sample storage, X-Trans and Bayer
 //! layouts, metadata, and the unsupported variants.
 
-use localpaint_raw::testgen::{RafPacking, RafSpec, XTRANS, mosaic_cfa, scene};
-use localpaint_raw::*;
+use localraster_raw::testgen::{RafPacking, RafSpec, XTRANS, mosaic_cfa, scene};
+use localraster_raw::*;
 
 const RGGB: [u8; 4] = [0, 1, 1, 2];
 

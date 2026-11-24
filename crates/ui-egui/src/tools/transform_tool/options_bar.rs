@@ -2,7 +2,7 @@ use super::begin::{enter_warp, interpolation_preference, leave_warp, warps_type}
 use super::commit::{cancel, commit};
 use super::pointer::point_on_quad;
 use super::warp::edit_session_warp;
-use super::{BezierMesh, Homography, LocalPaintApp, SplitTool, Stroke, TransformSession, Warp, WarpStyle, json, vec2};
+use super::{BezierMesh, Homography, LocalRasterApp, SplitTool, Stroke, TransformSession, Warp, WarpStyle, json, vec2};
 
 /// How much the box enlarges its pixels: the longest edge relative to the original (picks the
 /// preview's texture level and filter).
@@ -98,7 +98,7 @@ fn unturn(c: [f64; 2], angle: f64) -> (f64, f64) {
 
 /// Sets the box's H and V skew (degrees), keeping its scale, angle and reference point: the
 /// options bar's skew fields.
-fn skew_about_pivot(app: &mut LocalPaintApp, skew_h: f64, skew_v: f64) {
+fn skew_about_pivot(app: &mut LocalRasterApp, skew_h: f64, skew_v: f64) {
     let Some(s) = app.ui.transform.as_mut() else { return };
     let Some(m) = Parts::columns(s) else { return };
     let limit = f64::from(SKEW_LIMIT_DEG);
@@ -154,13 +154,13 @@ pub(super) fn scale_limit_pct(side: f64) -> f32 {
 pub(super) const SIZE_UNIT_KEY: &str = "edit.freeTransform";
 
 /// The W/H unit, with the document's resolution and the points per inch it converts with.
-pub(super) fn size_unit(app: &LocalPaintApp) -> crate::layer_props_ui::LenUnit {
-    use localpaint_engine::prefs::Unit;
+pub(super) fn size_unit(app: &LocalRasterApp) -> crate::layer_props_ui::LenUnit {
+    use localraster_engine::prefs::Unit;
     let unit = app.session.prefs().dialogs.get(SIZE_UNIT_KEY).and_then(|v| v.get("sizeUnit")).and_then(serde_json::Value::as_str).and_then(Unit::parse);
     crate::layer_props_ui::LenUnit { unit: unit.unwrap_or(Unit::Percent), ..crate::layer_props_ui::LenUnit::of(app) }
 }
 
-pub(super) fn set_size_unit(app: &mut LocalPaintApp, name: &str) {
+pub(super) fn set_size_unit(app: &mut LocalRasterApp, name: &str) {
     app.session.prefs.edit(|p| {
         let entry = p.dialogs.entry(SIZE_UNIT_KEY.to_string()).or_insert_with(|| json!({}));
         if !entry.is_object() {
@@ -186,7 +186,7 @@ pub(super) fn size_pct(u: &crate::layer_props_ui::LenUnit, v: f32, side: f64) ->
 /// or the warp controls), then the mode switch, cancel and commit right after them. A bar too
 /// narrow for both pins the buttons to the right edge and clips the fields, so Commit and Cancel
 /// are always reachable.
-pub fn options_bar(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+pub fn options_bar(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     let Some(t) = app.ui.transform.clone() else { return };
     let bar = ui.available_rect_before_wrap();
     let warping = t.warp.is_some();
@@ -209,7 +209,7 @@ pub fn options_bar(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
     transform_actions(app, &mut btns, warping, t.content_aware.is_none());
 }
 
-fn transform_fields(app: &mut LocalPaintApp, ui: &mut egui::Ui, t: &TransformSession) {
+fn transform_fields(app: &mut LocalRasterApp, ui: &mut egui::Ui, t: &TransformSession) {
     let tk = crate::theme::Tokens::get(ui.ctx());
     let (_, _, angle, skew_h) = readout(t);
     let lbl = |ui: &mut egui::Ui, s: &str| {
@@ -284,7 +284,7 @@ fn anchor_grid_widget(ui: &mut egui::Ui, current_anchor: Option<usize>) -> Optio
 }
 
 /// The reference point's X/Y and the W/H scale fields (with the aspect link) of the options bar.
-pub(crate) fn position_size_fields(app: &mut LocalPaintApp, ui: &mut egui::Ui, t: &TransformSession) {
+pub(crate) fn position_size_fields(app: &mut LocalRasterApp, ui: &mut egui::Ui, t: &TransformSession) {
     let tk = crate::theme::Tokens::get(ui.ctx());
     let (sx, sy, _, _) = readout(t);
     let lbl = |ui: &mut egui::Ui, s: &str| {
@@ -323,7 +323,7 @@ pub(crate) fn position_size_fields(app: &mut LocalPaintApp, ui: &mut egui::Ui, t
     let (mut w, mut h) = (size_shown(&u, sx, side_w), size_shown(&u, sy, side_h));
     let (suffix, places) = (u.unit.suffix(), u.unit.decimals() as u32);
     // Lengths need more room than a percentage ("2116.67 mm").
-    let size_w = if u.unit == localpaint_engine::prefs::Unit::Percent { 66.0 } else { 84.0 };
+    let size_w = if u.unit == localraster_engine::prefs::Unit::Percent { 66.0 } else { 84.0 };
     // Whatever their unit, W and H take any other typed in (`500 px` or `2 in` in percent, `50%`
     // in a length), converted at the document's resolution against the box's original side (#6284).
     let units = crate::widgets::FieldUnits { unit: u.unit, dpi: u.dpi, ppi: u.ppi };
@@ -357,7 +357,7 @@ pub(crate) fn position_size_fields(app: &mut LocalPaintApp, ui: &mut egui::Ui, t
 }
 
 /// Options bar fields in Warp mode: style, bend, the split icons and the grid menu.
-fn warp_fields(app: &mut LocalPaintApp, ui: &mut egui::Ui, w: &Warp) {
+fn warp_fields(app: &mut LocalRasterApp, ui: &mut egui::Ui, w: &Warp) {
     let tk = crate::theme::Tokens::get(ui.ctx());
     let lbl = |ui: &mut egui::Ui, s: &str| {
         ui.label(egui::RichText::new(s).color(tk.text_dim).size(12.0));
@@ -409,7 +409,7 @@ fn warp_fields(app: &mut LocalPaintApp, ui: &mut egui::Ui, w: &Warp) {
 }
 
 /// The Split icons and the Grid menu of the Warp options bar.
-fn warp_mesh_fields(app: &mut LocalPaintApp, ui: &mut egui::Ui, w: &Warp) {
+fn warp_mesh_fields(app: &mut LocalRasterApp, ui: &mut egui::Ui, w: &Warp) {
     let tk = crate::theme::Tokens::get(ui.ctx());
     let lbl = |ui: &mut egui::Ui, s: &str| {
         ui.label(egui::RichText::new(s).color(tk.text_dim).size(12.0));
@@ -456,7 +456,7 @@ fn warp_mesh_fields(app: &mut LocalPaintApp, ui: &mut egui::Ui, w: &Warp) {
 }
 
 /// Back to the untouched box: the default one-patch grid over the box, no bend.
-pub fn reset_warp(app: &mut LocalPaintApp) {
+pub fn reset_warp(app: &mut LocalRasterApp) {
     let Some(t) = app.ui.transform.as_mut() else { return };
     if t.warp.is_none() {
         return;
@@ -531,7 +531,7 @@ fn split_icon(ui: &mut egui::Ui, kind: &str, tip: &str, on: bool) -> egui::Respo
 
 /// Warp switch, cancel and commit, kept on the right of the options bar.
 /// `mode_switch`: the Free Transform / Warp switch (not for Content-Aware Scale, which only scales).
-fn transform_actions(app: &mut LocalPaintApp, ui: &mut egui::Ui, warping: bool, mode_switch: bool) {
+fn transform_actions(app: &mut LocalRasterApp, ui: &mut egui::Ui, warping: bool, mode_switch: bool) {
     ui.add_space(8.0);
     let commit_tip = if warping {
         crate::i18n::fmt(tl!("Commit warp ({key})"), &[("key", &crate::shortcuts::pretty("Enter"))])
@@ -574,7 +574,7 @@ fn transform_actions(app: &mut LocalPaintApp, ui: &mut egui::Ui, warping: bool, 
 }
 
 /// Scale the box along its own axes about the reference point.
-pub(super) fn scale_about_pivot(app: &mut LocalPaintApp, kx: f64, ky: f64) {
+pub(super) fn scale_about_pivot(app: &mut LocalRasterApp, kx: f64, ky: f64) {
     let Some(s) = app.ui.transform.as_mut() else { return };
     let Some(h) = Homography::rect_to_quad([0.0, 0.0, 1.0, 1.0], s.quad) else { return };
     let Some(inv) = h.inverse() else { return };
@@ -586,7 +586,7 @@ pub(super) fn scale_about_pivot(app: &mut LocalPaintApp, kx: f64, ky: f64) {
     s.quad = [m(0.0, 0.0), m(1.0, 0.0), m(1.0, 1.0), m(0.0, 1.0)];
 }
 
-pub(super) fn rotate_about_pivot(app: &mut LocalPaintApp, da: f64) {
+pub(super) fn rotate_about_pivot(app: &mut LocalRasterApp, da: f64) {
     let Some(s) = app.ui.transform.as_mut() else { return };
     let (sn, cs) = da.sin_cos();
     let c = s.pivot;

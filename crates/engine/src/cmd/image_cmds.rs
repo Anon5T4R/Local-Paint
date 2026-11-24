@@ -3,11 +3,11 @@
 
 use std::convert::Infallible;
 
-use localpaint_algo::resample::{Resample, crop_surface, resize_surface_in_canvas, translate_surface};
-use localpaint_color::{ColorMode, SampleType};
-use localpaint_doc::{Document, Effect, Effects, FxPaint, Layer, LayerContent, LayerId, Size};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_algo::resample::{Resample, crop_surface, resize_surface_in_canvas, translate_surface};
+use localraster_color::{ColorMode, SampleType};
+use localraster_doc::{Document, Effect, Effects, FxPaint, Layer, LayerContent, LayerId, Size};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;
@@ -107,7 +107,7 @@ pub(crate) fn reidentify_copied_layers(doc: &mut Document) {
         ids.insert(previous, layer.id);
     });
 
-    let remap = |comp: &mut localpaint_doc::LayerComp| {
+    let remap = |comp: &mut localraster_doc::LayerComp| {
         for state in &mut comp.states {
             if let Some(&new_id) = ids.get(&state.layer) {
                 state.layer = new_id;
@@ -241,7 +241,7 @@ fn image_size(s: &mut Session, p: &Value) -> Result<Value> {
     if !matches!(resample, Method::None) && (nw, nh) != (ow, oh) {
         // Color Sampler points scale with the pixels (same map `transform_geometry` applies).
         let (sx, sy) = (f64::from(nw) / f64::from(ow.max(1)), f64::from(nh) / f64::from(oh.max(1)));
-        s.set_sampler_map(localpaint_geom::Affine { m: [sx, 0.0, 0.0, sy, 0.0, 0.0] });
+        s.set_sampler_map(localraster_geom::Affine { m: [sx, 0.0, 0.0, sy, 0.0, 0.0] });
     }
     s.edit("Image Size", |doc, _| {
         if let Some(r) = dpi {
@@ -321,7 +321,7 @@ pub(crate) fn resample_doc(doc: &mut Document, nw: u32, nh: u32, filter: Resampl
         doc.selection = Some(resize_surface_in_canvas(sel, sx, sy, Resample::Bilinear, canvas));
     }
     // Vector geometry, guides and marks scale with the pixels; vectors re-render sharp.
-    crate::canvas_geom::transform_geometry(doc, &localpaint_geom::Affine { m: [sx, 0.0, 0.0, sy, 0.0, 0.0] });
+    crate::canvas_geom::transform_geometry(doc, &localraster_geom::Affine { m: [sx, 0.0, 0.0, sy, 0.0, 0.0] });
     doc.size = Size::new(nw, nh);
     crate::canvas_geom::refresh(doc, crate::canvas_geom::Refresh::All);
     let Ok(()) = crate::smart_cmds::restore_unrendered(doc, taken, |c| Ok::<_, Infallible>(resize_surface_in_canvas(c, sx, sy, filter, canvas)));
@@ -332,8 +332,8 @@ fn bad(cmd: &str, msg: impl Into<String>) -> EngineError {
 }
 
 /// The flattened document, or an error when the canvas is over the compositor's render cap
-/// ([`localpaint_compose::MAX_RENDER_PIXELS`]; `flatten` returns an empty buffer then).
-fn flatten_whole(doc: &Document, cmd: &str) -> Result<localpaint_compose::Buffer> {
+/// ([`localraster_compose::MAX_RENDER_PIXELS`]; `flatten` returns an empty buffer then).
+fn flatten_whole(doc: &Document, cmd: &str) -> Result<localraster_compose::Buffer> {
     let (w, h) = (doc.size.width, doc.size.height);
     let count = u64::from(w) * u64::from(h);
     let operation = if cmd == "image.trim" {
@@ -344,11 +344,11 @@ fn flatten_whole(doc: &Document, cmd: &str) -> Result<localpaint_compose::Buffer
         "flatten"
     };
     let too_large =
-        || bad(cmd, format!("the document ({w} x {h} px) is too large to {operation} (flatten limit {} pixels)", localpaint_compose::MAX_RENDER_PIXELS));
-    if count > localpaint_compose::MAX_RENDER_PIXELS {
+        || bad(cmd, format!("the document ({w} x {h} px) is too large to {operation} (flatten limit {} pixels)", localraster_compose::MAX_RENDER_PIXELS));
+    if count > localraster_compose::MAX_RENDER_PIXELS {
         return Err(too_large());
     }
-    let buf = localpaint_compose::flatten(doc);
+    let buf = localraster_compose::flatten(doc);
     if buf.px.len() as u64 != count {
         return Err(too_large());
     }
@@ -384,7 +384,7 @@ pub(crate) fn translate_doc(doc: &mut Document, cmd: &str, dx: i32, dy: i32) -> 
     }
     // Type, shapes, smart objects, vector masks, paths, guides, slices, notes… (caches above
     // are already translated exactly, so nothing needs re-rendering for the move itself).
-    crate::canvas_geom::transform_geometry(doc, &localpaint_geom::Affine::translate(f64::from(dx), f64::from(dy)));
+    crate::canvas_geom::transform_geometry(doc, &localraster_geom::Affine::translate(f64::from(dx), f64::from(dy)));
     Ok(())
 }
 
@@ -430,7 +430,7 @@ pub(crate) fn crop_doc(doc: &mut Document, cmd: &str, r: Rect, delete_pixels: bo
         && let LayerContent::Raster(surf) = &mut bg.content
     {
         let old = old_canvas.translate(dx, dy);
-        let px = localpaint_raster::from_rgba(&surf.format(), [extension[0], extension[1], extension[2], 1.0]);
+        let px = localraster_raster::from_rgba(&surf.format(), [extension[0], extension[1], extension[2], 1.0]);
         fill_background_extension(surf, Rect::from_xywh(0, 0, r.width(), r.height()), old, &px);
     }
     if extends {
@@ -534,7 +534,7 @@ fn canvas_size(s: &mut Session, p: &Value) -> Result<Value> {
     let dx = ((nw as f64 - ow) * ax).round() as i32;
     let dy = ((nh as f64 - oh) * ay).round() as i32;
     let ext = extension_color(s, p);
-    s.set_sampler_map(localpaint_geom::Affine::translate(f64::from(dx), f64::from(dy)));
+    s.set_sampler_map(localraster_geom::Affine::translate(f64::from(dx), f64::from(dy)));
     s.edit("Canvas Size", |doc, _| {
         translate_doc(doc, "image.canvasSize", dx, dy)?;
         doc.size = Size::new(nw, nh);
@@ -558,7 +558,7 @@ fn canvas_size(s: &mut Session, p: &Value) -> Result<Value> {
             && let Some(bg) = doc.background_mut()
             && let LayerContent::Raster(surf) = &mut bg.content
         {
-            let px = localpaint_raster::from_rgba(&surf.format(), ext);
+            let px = localraster_raster::from_rgba(&surf.format(), ext);
             fill_background_extension(surf, canvas, old, &px);
         }
         Ok(())
@@ -658,12 +658,12 @@ impl CropTarget {
 
     /// Where Color Sampler points go: shifted by the crop's origin, then scaled with the pixels
     /// when [`Self::apply`] resamples the cropped area `r` (as Image Size scales them).
-    fn sampler_map(&self, r: Rect) -> localpaint_geom::Affine {
-        let shift = localpaint_geom::Affine::translate(-f64::from(r.x0), -f64::from(r.y0));
+    fn sampler_map(&self, r: Rect) -> localraster_geom::Affine {
+        let shift = localraster_geom::Affine::translate(-f64::from(r.x0), -f64::from(r.y0));
         match self.size {
             Some((w, h)) if r.width() > 0 && r.height() > 0 => {
                 let (sx, sy) = (f64::from(w) / f64::from(r.width()), f64::from(h) / f64::from(r.height()));
-                shift.then(&localpaint_geom::Affine { m: [sx, 0.0, 0.0, sy, 0.0, 0.0] })
+                shift.then(&localraster_geom::Affine { m: [sx, 0.0, 0.0, sy, 0.0, 0.0] })
             }
             _ => shift,
         }
@@ -887,7 +887,7 @@ fn trim(s: &mut Session, p: &Value) -> Result<Value> {
         if side("right") { b.x1 } else { canvas.x1 },
         if side("bottom") { b.y1 } else { canvas.y1 },
     );
-    s.set_sampler_map(localpaint_geom::Affine::translate(-f64::from(r.x0), -f64::from(r.y0)));
+    s.set_sampler_map(localraster_geom::Affine::translate(-f64::from(r.x0), -f64::from(r.y0)));
     let extension = s.tools.background;
     s.edit("Trim", |doc, _| crop_doc(doc, "image.trim", r, true, extension))?;
     Ok(json!({ "x": r.x0, "y": r.y0, "width": r.width(), "height": r.height() }))
@@ -920,7 +920,7 @@ pub(crate) fn change_depth(doc: &mut Document, depth: SampleType) {
     // value is quantised to 8 or 16 bits). Masks, alpha and channels are not colour.
     let crosses = (current == SampleType::F32) != (depth == SampleType::F32) && matches!(doc.mode, ColorMode::Rgb | ColorMode::Grayscale);
     let to_linear = depth == SampleType::F32;
-    let transfer = localpaint_compose::adjust::Transfer::for_document(doc.mode, if to_linear { current } else { depth });
+    let transfer = localraster_compose::adjust::Transfer::for_document(doc.mode, if to_linear { current } else { depth });
     if crosses && !to_linear {
         for_each_surface(&mut doc.layers, false, &mut |surf, _| surf.map_color(|v| transfer.encode(v).clamp(0.0, 1.0)));
     }
@@ -939,13 +939,13 @@ pub(crate) fn change_depth(doc: &mut Document, depth: SampleType) {
 fn duplicate(s: &mut Session, p: &Value) -> Result<Value> {
     let d = s.active().ok_or(EngineError::NoDocument)?;
     let mut doc = (*d.doc).clone();
-    doc.id = localpaint_doc::DocId::fresh();
+    doc.id = localraster_doc::DocId::fresh();
     doc.name = p.get("name").and_then(Value::as_str).map(str::to_string).unwrap_or_else(|| format!("{} copy", d.doc.name));
     if p.get("mergedOnly").and_then(Value::as_bool).unwrap_or(false) {
         let buf = flatten_whole(&doc, "image.duplicate")?;
         let fmt = doc.pixel_format();
         let mut surf = Surface::new(fmt);
-        let vals: Vec<f32> = buf.px.iter().flat_map(|q| localpaint_raster::from_rgba(&fmt, *q)).collect();
+        let vals: Vec<f32> = buf.px.iter().flat_map(|q| localraster_raster::from_rgba(&fmt, *q)).collect();
         surf.write_region(doc.bounds(), &vals);
         surf.prune();
         // As Photoshop: a source with a Background gives one (opaque, locked); otherwise a plain
@@ -962,7 +962,7 @@ fn duplicate(s: &mut Session, p: &Value) -> Result<Value> {
         doc.last_document_state = None;
         // Likewise, variables drove template layers that no longer exist: drop the whole
         // binding set (defs, data sets and the active index) on the flattened copy.
-        doc.variables = localpaint_doc::Variables::default();
+        doc.variables = localraster_doc::Variables::default();
     }
     reidentify_copied_layers(&mut doc);
     let name = doc.name.clone();

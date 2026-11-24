@@ -4,23 +4,23 @@
 
 use egui::vec2;
 use egui_kittest::kittest::{NodeT, Queryable};
-use localpaint_doc::vector::PathOp;
-use localpaint_doc::{LayerContent, LayerId, Path};
+use localraster_doc::vector::PathOp;
+use localraster_doc::{LayerContent, LayerId, Path};
 use serde_json::json;
 
 use super::{pen_down, pen_path_op, pen_up};
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::state::Tool;
 
-fn app() -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn app() -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
     app.ui.tool = Tool::Pen;
     app
 }
 
 /// Clicks a closed square with the Pen, from `(x, y)` with side `side`.
-fn square(app: &mut LocalPaintApp, x: f64, y: f64, side: f64) {
+fn square(app: &mut LocalRasterApp, x: f64, y: f64, side: f64) {
     for (dx, dy) in [(0.0, 0.0), (side, 0.0), (side, side), (0.0, side)] {
         pen_down(app, x + dx, y + dy, false);
         pen_up(app);
@@ -29,7 +29,7 @@ fn square(app: &mut LocalPaintApp, x: f64, y: f64, side: f64) {
     pen_up(app);
 }
 
-fn shape_path(app: &LocalPaintApp) -> (LayerId, Path) {
+fn shape_path(app: &LocalRasterApp) -> (LayerId, Path) {
     let st = app.session.active().unwrap();
     let id = st.active_layer.unwrap();
     match &st.doc.layer(id).unwrap().content {
@@ -38,16 +38,16 @@ fn shape_path(app: &LocalPaintApp) -> (LayerId, Path) {
     }
 }
 
-fn work(app: &LocalPaintApp) -> Path {
+fn work(app: &LocalRasterApp) -> Path {
     app.session.active().unwrap().doc.work_path.clone().expect("a work path")
 }
 
-fn layers(app: &LocalPaintApp) -> usize {
+fn layers(app: &LocalRasterApp) -> usize {
     app.session.active().unwrap().doc.layers.len()
 }
 
 fn covered(path: &Path, x: i32, y: i32) -> f32 {
-    localpaint_vector::fill_rasterizer(path, localpaint_vector::DEFAULT_TOLERANCE).render(localpaint_geom::Rect::from_xywh(x, y, 1, 1))[0]
+    localraster_vector::fill_rasterizer(path, localraster_vector::DEFAULT_TOLERANCE).render(localraster_geom::Rect::from_xywh(x, y, 1, 1))[0]
 }
 
 /// The issue's mug: the body is drawn, then the hole in its handle is cut out of the same shape
@@ -119,7 +119,7 @@ fn a_locked_shape_layer_keeps_the_drawn_path() {
 }
 
 /// A hole drawn for a locked shape layer: the Pen's draft, refused, and the History length then.
-fn refused_hole(app: &mut LocalPaintApp) -> (LayerId, Path, usize) {
+fn refused_hole(app: &mut LocalRasterApp) -> (LayerId, Path, usize) {
     app.ui.tool_options.vector_mode = "shape".into();
     square(app, 20.0, 20.0, 100.0);
     let (id, body) = shape_path(app);
@@ -133,7 +133,7 @@ fn refused_hole(app: &mut LocalPaintApp) -> (LayerId, Path, usize) {
 
 /// The refused hole ended for good: kept, closed, as the Work Path, one History step; the locked
 /// shape is as it was.
-fn assert_kept_as_work_path(app: &LocalPaintApp, id: LayerId, body: &Path, steps: usize) {
+fn assert_kept_as_work_path(app: &LocalRasterApp, id: LayerId, body: &Path, steps: usize) {
     assert!(app.ui.pen.is_none() && app.ui.pen_doc.is_none());
     assert_eq!(shape_path(app), (id, body.clone()), "the locked shape is unchanged");
     let w = work(app);
@@ -151,7 +151,7 @@ fn assert_kept_as_work_path(app: &LocalPaintApp, id: LayerId, body: &Path, steps
 #[test]
 fn switching_tools_ends_a_refused_draft_once() {
     let mut h = egui_kittest::Harness::builder().with_size(vec2(1400.0, 900.0)).with_max_steps(64).build_eframe(|cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
         app()
     });
     h.run_steps(2);
@@ -170,7 +170,7 @@ fn switching_tools_ends_a_refused_draft_once() {
 #[test]
 fn esc_ends_a_refused_draft_and_return_keeps_it() {
     let ctx = egui::Context::default();
-    let key = |app: &mut LocalPaintApp, key: egui::Key| {
+    let key = |app: &mut LocalRasterApp, key: egui::Key| {
         let raw = egui::RawInput {
             events: vec![egui::Event::Key { key, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::NONE }],
             ..Default::default()
@@ -254,16 +254,16 @@ fn the_options_bar_menu_sets_the_operation_and_merges() {
     square(&mut app, 50.0, 50.0, 40.0);
     app.ui.tool_options.pen_path_op = "combine".into();
     let mut h = egui_kittest::Harness::builder().with_size(vec2(1100.0, 400.0)).build_ui_state(
-        |ui, app: &mut LocalPaintApp| {
+        |ui, app: &mut LocalRasterApp| {
             if ui.ctx().fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                 ui.horizontal(|ui| super::options_bar(app, ui, Tool::Pen));
             }
         },
         app,
     );
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::Studio);
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::Studio);
     h.run_steps(4);
-    let open = |h: &mut egui_kittest::Harness<'_, LocalPaintApp>| {
+    let open = |h: &mut egui_kittest::Harness<'_, LocalRasterApp>| {
         h.get_by_label("Path operations").click();
         h.run_steps(3);
     };
@@ -298,14 +298,14 @@ fn merge_is_disabled_with_fewer_than_two_components() {
     let mut app = app();
     square(&mut app, 20.0, 20.0, 100.0);
     let mut h = egui_kittest::Harness::builder().with_size(vec2(1100.0, 400.0)).build_ui_state(
-        |ui, app: &mut LocalPaintApp| {
+        |ui, app: &mut LocalRasterApp| {
             if ui.ctx().fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                 ui.horizontal(|ui| super::options_bar(app, ui, Tool::Pen));
             }
         },
         app,
     );
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::Studio);
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::Studio);
     h.run_steps(4);
     h.get_by_label("Path operations").click();
     h.run_steps(3);

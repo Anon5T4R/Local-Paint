@@ -7,10 +7,10 @@
 
 use std::sync::Arc;
 
-use localpaint_doc::{ColorMode, Document};
+use localraster_doc::{ColorMode, Document};
 use serde_json::{Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
 /// The field that marks a prompt as this module's.
 const FIELD: &str = "__heldOpen";
@@ -33,7 +33,7 @@ pub struct Held {
     pub bytes: Option<Arc<Vec<u8>>>,
     /// The tab position a reopened file keeps.
     pub slot: Option<usize>,
-    /// The profile question ([`localpaint_engine::color_cmds::ColorState::open_question`]), or
+    /// The profile question ([`localraster_engine::color_cmds::ColorState::open_question`]), or
     /// `None` to open without asking.
     pub question: Option<Value>,
     /// The Color Settings policy was already applied (a background open added it before it had
@@ -42,18 +42,18 @@ pub struct Held {
 }
 
 /// Whether a file that just finished reading has to wait: one earlier in the queue does.
-pub fn waiting(app: &LocalPaintApp) -> bool {
+pub fn waiting(app: &LocalRasterApp) -> bool {
     !app.held_opens.is_empty()
 }
 
 /// Opens `held` now, or queues it behind the file whose prompt is up.
-pub fn arrive(app: &mut LocalPaintApp, held: Held) {
+pub fn arrive(app: &mut LocalRasterApp, held: Held) {
     app.held_opens.push_back(held);
     advance(app);
 }
 
 /// Opens queued files in order until one needs its prompt, which is shown if it isn't yet.
-fn advance(app: &mut LocalPaintApp) {
+fn advance(app: &mut LocalRasterApp) {
     while let Some(front) = app.held_opens.front() {
         if front.damage_pending {
             if !app.ui.dialogs.iter().any(|d| owns_damage(&d.fields)) {
@@ -75,7 +75,7 @@ fn advance(app: &mut LocalPaintApp) {
 }
 
 /// Shows the Embedded Profile Mismatch (or missing profile) prompt for the first queued file.
-fn show(app: &mut LocalPaintApp) {
+fn show(app: &mut LocalRasterApp) {
     let Some(front) = app.held_opens.front() else { return };
     let Some(q) = &front.question else { return };
     // The mode reads as the catalogs name it (French "RVB"); the file name goes in last, so
@@ -109,10 +109,10 @@ fn show(app: &mut LocalPaintApp) {
 
 /// The Color Settings policy that answers this mode's files when Ask On Mismatch is off.
 fn policy_key(mode: ColorMode) -> Option<&'static str> {
-    match localpaint_engine::color_cmds::mode_space(mode) {
-        localpaint_cms::ColorSpace::Rgb => Some("policyRgb"),
-        localpaint_cms::ColorSpace::Cmyk => Some("policyCmyk"),
-        localpaint_cms::ColorSpace::Gray => Some("policyGray"),
+    match localraster_engine::color_cmds::mode_space(mode) {
+        localraster_cms::ColorSpace::Rgb => Some("policyRgb"),
+        localraster_cms::ColorSpace::Cmyk => Some("policyCmyk"),
+        localraster_cms::ColorSpace::Gray => Some("policyGray"),
         _ => None,
     }
 }
@@ -124,7 +124,7 @@ pub fn owns(fields: &serde_json::Map<String, Value>) -> bool {
 
 /// The prompt's answer: `Some(action)` (OK) opens the first queued file with it and moves on to
 /// the next; `None` (Cancel) drops every queued file and stops the reads still running.
-pub fn answer(app: &mut LocalPaintApp, action: Option<&str>) -> Result<Value, String> {
+pub fn answer(app: &mut LocalRasterApp, action: Option<&str>) -> Result<Value, String> {
     if app.held_opens.front().is_some_and(|h| h.damage_pending) {
         return Err("answer the damaged PSD confirmation first".into());
     }
@@ -149,7 +149,7 @@ pub fn answer(app: &mut LocalPaintApp, action: Option<&str>) -> Result<Value, St
 /// mode and Ask On Mismatch turns off, so files read from now on open without asking. Files
 /// already waiting with a mismatch in the same mode were asked before that and get the same
 /// answer; any other question still asks.
-pub fn answer_remembering(app: &mut LocalPaintApp, action: &str) -> Result<Value, String> {
+pub fn answer_remembering(app: &mut LocalRasterApp, action: &str) -> Result<Value, String> {
     if app.held_opens.front().is_some_and(|h| h.damage_pending) {
         return Err("answer the damaged PSD confirmation first".into());
     }
@@ -182,7 +182,7 @@ pub(crate) fn owns_damage(fields: &serde_json::Map<String, Value>) -> bool {
 
 /// Shows the standard agent-visible confirmation for the first damaged PSD
 /// waiting in the open queue, including its decoding warnings.
-fn show_damage(app: &mut LocalPaintApp) {
+fn show_damage(app: &mut LocalRasterApp) {
     let Some(front) = app.held_opens.front().filter(|h| h.damage_pending) else { return };
     let message = format!(
         "{}\n\n{}\n\n{}",
@@ -216,7 +216,7 @@ pub(crate) fn damage_body(ui: &mut egui::Ui, fields: &serde_json::Map<String, Va
 
 /// Continue or discard this file only, then move the queue forward. Accepting does not
 /// mark the document read-only: Save, Export, scripts and web downloads work normally.
-pub(crate) fn answer_damage(app: &mut LocalPaintApp, accept: bool) -> Result<Value, String> {
+pub(crate) fn answer_damage(app: &mut LocalRasterApp, accept: bool) -> Result<Value, String> {
     let Some(front) = app.held_opens.front_mut().filter(|h| h.damage_pending) else {
         return Err("no damaged PSD is waiting for confirmation".into());
     };
@@ -234,7 +234,7 @@ pub(crate) fn answer_damage(app: &mut LocalPaintApp, accept: bool) -> Result<Val
 
 /// Opens a queued file, applying `action` (the prompt's answer) or else the Color Settings
 /// policy, then does what any open does afterwards.
-fn open(app: &mut LocalPaintApp, held: Held, action: Option<&str>) -> Result<Value, String> {
+fn open(app: &mut LocalRasterApp, held: Held, action: Option<&str>) -> Result<Value, String> {
     if held.damage_pending {
         return Err("damaged PSD cannot be opened before confirmation".into());
     }

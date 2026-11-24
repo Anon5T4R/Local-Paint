@@ -1,4 +1,4 @@
-use localpaint_engine::file_cmds::read_file_info;
+use localraster_engine::file_cmds::read_file_info;
 
 #[test]
 fn numeric_character_references_are_decoded() {

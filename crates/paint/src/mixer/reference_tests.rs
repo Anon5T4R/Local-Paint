@@ -4,7 +4,7 @@ use super::*;
 fn reference(
     work: &mut crate::retouch::Region,
     fp: &crate::retouch::Footprint,
-    fmt: localpaint_color::PixelFormat,
+    fmt: localraster_color::PixelFormat,
     sample: Option<&Surface>,
     m: &MixerSettings,
     state: &mut MixerState,
@@ -111,7 +111,7 @@ fn reference(
 fn contiguous_mixer_matches_frozen_kernel_across_models_depths_and_spatial_loads() {
     use crate::retouch::Region;
     use crate::{BrushContext, BrushSettings, Stroke, StrokePoint};
-    use localpaint_color::{ColorMode, PixelFormat, SampleType};
+    use localraster_color::{ColorMode, PixelFormat, SampleType};
     let rect = Rect::new(-16, -16, 32, 32);
     for mode in [ColorMode::Rgb, ColorMode::Grayscale, ColorMode::Cmyk, ColorMode::Lab] {
         for depth in [SampleType::U8, SampleType::U16, SampleType::F32] {
@@ -158,8 +158,8 @@ fn contiguous_mixer_matches_frozen_kernel_across_models_depths_and_spatial_loads
 fn dry_and_wet_transitions_match_frozen_kernel() {
     use crate::retouch::Region;
     use crate::{BrushContext, BrushSettings, Dab};
-    use localpaint_color::{ColorMode, PixelFormat, SampleType};
-    use localpaint_geom::Point;
+    use localraster_color::{ColorMode, PixelFormat, SampleType};
+    use localraster_geom::Point;
 
     let rect = Rect::new(0, 0, 48, 48);
     for mode in [ColorMode::Rgb, ColorMode::Grayscale, ColorMode::Cmyk, ColorMode::Lab] {

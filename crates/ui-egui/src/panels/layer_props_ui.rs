@@ -3,12 +3,12 @@
 //! `edit.transform`, `layer.translate`, `layer.align.*` and selection commands.
 
 use egui::{Rect, Sense, Stroke, pos2, vec2};
-use localpaint_doc::{Layer, LayerContent};
+use localraster_doc::{Layer, LayerContent};
 use serde_json::{Value, json};
 
 use crate::props_layout::{LABEL_GAP, LABEL_W, quick_actions_ui, section, stacked_label};
 use crate::theme::{ROW_GAP, Tokens};
-use crate::{LocalPaintApp, widgets};
+use crate::{LocalRasterApp, widgets};
 
 /// `edit.transform` params that scale the content box `b` = [x0, y0, x1, y1] to `w` x `h`, keeping
 /// the top-left corner (Photoshop's Properties W/H fields), or `layer.translate` params for X/Y.
@@ -76,13 +76,13 @@ fn field(ui: &mut egui::Ui, id: &str, label: (&str, &str), name: &str, current: 
 /// rulers are in centimeters): document px ↔ that unit at the document's resolution.
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct LenUnit {
-    pub unit: localpaint_engine::prefs::Unit,
+    pub unit: localraster_engine::prefs::Unit,
     pub dpi: f64,
     pub ppi: f64,
 }
 
 impl LenUnit {
-    pub(crate) fn of(app: &LocalPaintApp) -> Self {
+    pub(crate) fn of(app: &LocalRasterApp) -> Self {
         let ur = &app.session.prefs().units_and_rulers;
         let dpi = app.session.active().map_or(72.0, |s| f64::from(s.doc.resolution_dpi));
         LenUnit { unit: ur.rulers, dpi, ppi: ur.point_size.per_inch() }
@@ -139,7 +139,7 @@ fn align_glyph(ui: &egui::Ui, r: Rect, kind: &str, color: egui::Color32) {
 /// The box the Transform fields show and edit, [x0, y0, x1, y1]: the layer's pixel frame `px`,
 /// or for a shape its path's geometry, as Photoshop's Properties shows it, without the pixels its
 /// stroke adds around it; W/H then scale the path to exactly the typed size.
-fn frame(layer: &Layer, px: localpaint_geom::Rect) -> [f64; 4] {
+fn frame(layer: &Layer, px: localraster_geom::Rect) -> [f64; 4] {
     let path = match &layer.content {
         LayerContent::Shape(sh) if !sh.path.inverted => sh.path.control_bounds().filter(|c| c.2 > c.0 && c.3 > c.1),
         _ => None,
@@ -153,7 +153,7 @@ const LINK_W: f32 = 20.0;
 /// Pro Properties body for a non-adjustment layer: Transform, Align and Distribute, the kind's own
 /// sections (Character/Paragraph/Type Options for type, Appearance/Shape for shapes), then Quick
 /// Actions, all with the same collapsible headers (#155).
-pub fn properties(app: &mut LocalPaintApp, ui: &mut egui::Ui, layer: &Layer) {
+pub fn properties(app: &mut LocalRasterApp, ui: &mut egui::Ui, layer: &Layer) {
     let mut run: Vec<(String, Value)> = Vec::new();
     if let Some(s) = layer.surface() {
         let bb = frame(layer, app.layer_frame_bounds(layer, s));
@@ -192,7 +192,7 @@ pub fn properties(app: &mut LocalPaintApp, ui: &mut egui::Ui, layer: &Layer) {
         }
     }
     // Gradient fills: their gradient first, as in Photoshop's Properties panel.
-    let gradient = matches!(layer.content, LayerContent::Fill(localpaint_doc::Fill::Gradient { .. }));
+    let gradient = matches!(layer.content, LayerContent::Fill(localraster_doc::Fill::Gradient { .. }));
     if gradient {
         crate::gradient_ui::properties(app, ui, layer);
     }
@@ -226,7 +226,7 @@ pub fn properties(app: &mut LocalPaintApp, ui: &mut egui::Ui, layer: &Layer) {
 
 /// The Align and Distribute section: its buttons run `layer.align.*` and `layer.distribute.*` on
 /// the selected layers (pushed onto `run`), greyed where the engine says they can't.
-fn align_and_distribute(app: &LocalPaintApp, ui: &mut egui::Ui, run: &mut Vec<(String, Value)>) {
+fn align_and_distribute(app: &LocalRasterApp, ui: &mut egui::Ui, run: &mut Vec<(String, Value)>) {
     let t = Tokens::get(ui.ctx());
     if !section(ui, "align", tl!("Align and Distribute")) {
         return;
@@ -239,7 +239,7 @@ fn align_and_distribute(app: &LocalPaintApp, ui: &mut egui::Ui, run: &mut Vec<(S
             }
             let id = format!("layer.align.{kind}");
             let on = app.session.is_enabled(&id);
-            let label = localpaint_engine::commands::find(&id).map_or(kind, |c| c.label);
+            let label = localraster_engine::commands::find(&id).map_or(kind, |c| c.label);
             let (r, resp) = ui.allocate_exact_size(vec2(24.0, 24.0), if on { Sense::click() } else { Sense::hover() });
             if resp.hovered() && on {
                 ui.painter().rect_filled(r, t.radius_sm, t.hover);
@@ -268,7 +268,7 @@ fn align_and_distribute(app: &LocalPaintApp, ui: &mut egui::Ui, run: &mut Vec<(S
 
 /// Several layers selected with the Background active: Photoshop's Properties keeps Align and
 /// Distribute for the selection there, above the Document properties (#4608).
-pub fn selection_align(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+pub fn selection_align(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     let mut run = Vec::new();
     align_and_distribute(app, ui, &mut run);
     for (id, p) in run {
@@ -285,12 +285,12 @@ mod tests {
 
     #[test]
     fn switching_between_gradient_and_raster_keeps_alignment_on_raster_only() {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 200, "height": 120})).unwrap();
         let mut h = egui_kittest::Harness::builder().with_size(vec2(280.0, 900.0)).build_ui_state(
-            |ui, app: &mut LocalPaintApp| {
+            |ui, app: &mut LocalRasterApp| {
                 if ui.ctx().cumulative_pass_nr() == 0 {
-                    LocalPaintApp::setup_context(ui.ctx(), crate::theme::ThemeKind::ProMedium);
+                    LocalRasterApp::setup_context(ui.ctx(), crate::theme::ThemeKind::ProMedium);
                     return;
                 }
                 let state = app.session.active().unwrap();
@@ -317,15 +317,15 @@ mod tests {
     /// #7314: in the Transform section W sits over X and H over Y, and each pair shares a centre.
     #[test]
     fn transform_labels_are_centred_on_each_other() {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 200, "height": 120})).unwrap();
         app.run("layer.new.layer", json!({})).unwrap();
         app.run("select.rect", json!({"x": 10, "y": 10, "width": 100, "height": 60})).unwrap();
         app.run("edit.fill", json!({"contents": "color", "color": "#336699"})).unwrap();
         let mut h = egui_kittest::Harness::builder().with_size(vec2(280.0, 900.0)).build_ui_state(
-            |ui, app: &mut LocalPaintApp| {
+            |ui, app: &mut LocalRasterApp| {
                 if ui.ctx().cumulative_pass_nr() == 0 {
-                    LocalPaintApp::setup_context(ui.ctx(), crate::theme::ThemeKind::ProMedium);
+                    LocalRasterApp::setup_context(ui.ctx(), crate::theme::ThemeKind::ProMedium);
                     return;
                 }
                 let state = app.session.active().unwrap();
@@ -350,7 +350,7 @@ mod tests {
 
     #[test]
     fn transform_fields_show_and_take_the_ruler_unit() {
-        use localpaint_engine::prefs::Unit;
+        use localraster_engine::prefs::Unit;
         // 72 dpi: 1644 px = 58 cm; typing 60 cm sets 1700.8 px
         let u = LenUnit { unit: Unit::Centimeters, dpi: 72.0, ppi: 72.0 };
         assert!((u.shown(1644.0, 1.0) - 58.0).abs() < 0.01);
@@ -375,7 +375,7 @@ mod tests {
 
     #[test]
     fn transform_params_resize_a_layer_in_the_engine() {
-        let mut s = localpaint_engine::Session::new();
+        let mut s = localraster_engine::Session::new();
         s.execute("file.new", json!({"width": 200, "height": 200, "background": "transparent"})).unwrap();
         s.execute("select.rect", json!({"x": 10, "y": 20, "width": 100, "height": 50})).unwrap();
         s.execute("edit.fill", json!({"color": "#ff0000"})).unwrap();
@@ -407,7 +407,7 @@ mod tests {
     /// Properties, while its outline is transformed by the engine as usual.
     #[test]
     fn linked_properties_resize_keeps_diagonal_arrow_editable() {
-        let mut s = localpaint_engine::Session::new();
+        let mut s = localraster_engine::Session::new();
         s.execute("file.new", json!({"width": 1200, "height": 1200})).unwrap();
         s.execute(
             "shape.create",
@@ -429,8 +429,8 @@ mod tests {
             let id = st.active_layer.unwrap();
             let layer = st.doc.layer(id).unwrap();
             let LayerContent::Shape(shape) = &layer.content else { panic!("expected shape layer") };
-            assert!(matches!(shape.live.as_ref(), Some(localpaint_doc::vector::LiveShape::ArrowLine { .. })));
-            let px = localpaint_compose::bounds::content_bounds(layer.surface().unwrap());
+            assert!(matches!(shape.live.as_ref(), Some(localraster_doc::vector::LiveShape::ArrowLine { .. })));
+            let px = localraster_compose::bounds::content_bounds(layer.surface().unwrap());
             (id, frame(layer, px))
         };
         let p = transform_params(id.0, b, Some(600.0), None, true, 0.05).unwrap();
@@ -438,7 +438,7 @@ mod tests {
         let layer = s.active().unwrap().doc.layer(id).unwrap();
         let LayerContent::Shape(shape) = &layer.content else { panic!("expected shape layer") };
         assert!(
-            matches!(shape.live.as_ref(), Some(localpaint_doc::vector::LiveShape::ArrowLine { .. })),
+            matches!(shape.live.as_ref(), Some(localraster_doc::vector::LiveShape::ArrowLine { .. })),
             "proportional Properties resize must preserve live arrow settings"
         );
 
@@ -446,21 +446,21 @@ mod tests {
         s.execute("shape.edit", json!({"layer": id.0, "arrowConcavity": 60.0})).unwrap();
         let layer = s.active().unwrap().doc.layer(id).unwrap();
         let LayerContent::Shape(shape) = &layer.content else { panic!("expected shape layer") };
-        assert!(matches!(shape.live.as_ref(), Some(localpaint_doc::vector::LiveShape::ArrowLine { concavity, .. }) if (*concavity - 60.0).abs() < 1e-9));
+        assert!(matches!(shape.live.as_ref(), Some(localraster_doc::vector::LiveShape::ArrowLine { concavity, .. }) if (*concavity - 60.0).abs() < 1e-9));
     }
 
     /// A stroked shape's Transform fields show its path, not the stroke's pixels, and a W edit
     /// scales the path to that width, as in Photoshop.
     #[test]
     fn shape_fields_show_and_scale_the_path_without_its_stroke() {
-        let mut s = localpaint_engine::Session::new();
+        let mut s = localraster_engine::Session::new();
         s.execute("file.new", json!({"width": 800, "height": 600})).unwrap();
         s.execute("shape.create", json!({"kind": "rect", "rect": [200, 150, 400, 300], "fill": "#3366cc", "stroke": {"width": 15, "color": "#000000"}}))
             .unwrap();
         let st = s.active().unwrap();
         let id = st.active_layer.unwrap();
         let layer = st.doc.layer(id).unwrap();
-        let px = localpaint_compose::bounds::content_bounds(layer.surface().unwrap());
+        let px = localraster_compose::bounds::content_bounds(layer.surface().unwrap());
         assert!(px.width() > 400, "the stroke's pixels reach past the path: {px:?}");
         let bb = frame(layer, px);
         assert_eq!(bb, [200.0, 150.0, 600.0, 450.0]);
@@ -474,14 +474,14 @@ mod tests {
     /// px typed as 400), while a pixel layer still ignores sub-pixel noise.
     #[test]
     fn a_shape_path_takes_a_width_edit_under_half_a_pixel() {
-        let mut s = localpaint_engine::Session::new();
+        let mut s = localraster_engine::Session::new();
         s.execute("file.new", json!({"width": 800, "height": 600})).unwrap();
         s.execute("shape.create", json!({"kind": "rect", "rect": [200, 150, 400.25, 100], "fill": "#3366cc"})).unwrap();
         let st = s.active().unwrap();
         let id = st.active_layer.unwrap();
         let layer = st.doc.layer(id).unwrap();
-        let u = LenUnit { unit: localpaint_engine::prefs::Unit::Pixels, dpi: 72.0, ppi: 72.0 };
-        let bb = frame(layer, localpaint_compose::bounds::content_bounds(layer.surface().unwrap()));
+        let u = LenUnit { unit: localraster_engine::prefs::Unit::Pixels, dpi: 72.0, ppi: 72.0 };
+        let bb = frame(layer, localraster_compose::bounds::content_bounds(layer.surface().unwrap()));
         assert_eq!(bb[2] - bb[0], 400.25);
         let tol = edit_tolerance(layer, u, 800.0);
         assert!(tol < 0.25, "{tol}");

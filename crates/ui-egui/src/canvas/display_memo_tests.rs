@@ -4,8 +4,8 @@
 use super::*;
 use serde_json::json;
 
-fn app() -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+fn app() -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 64, "height": 48, "mode": "gray"})).unwrap();
     app
 }

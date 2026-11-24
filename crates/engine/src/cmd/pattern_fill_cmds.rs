@@ -1,7 +1,7 @@
 //! Editing a Pattern Fill layer: Photoshop's Pattern Fill dialog (pattern, Angle, Scale, Link with
 //! Layer, Snap to Origin) commits one undoable content edit, independent of the layer's masks.
 
-use localpaint_doc::{Document, Fill, LayerContent, Pattern};
+use localraster_doc::{Document, Fill, LayerContent, Pattern};
 use serde_json::{Value, json};
 
 use crate::commands::{CommandSpec, check_pixels_unlocked, layer_param};
@@ -66,7 +66,7 @@ fn edited(s: &Session, base: &Fill, p: &Value) -> Result<(Fill, Option<Pattern>)
 }
 
 /// The target layer and the fill `p` gives it, checked against the active document.
-fn target(s: &Session, p: &Value) -> Result<(localpaint_doc::LayerId, Fill, Fill, Option<Pattern>)> {
+fn target(s: &Session, p: &Value) -> Result<(localraster_doc::LayerId, Fill, Fill, Option<Pattern>)> {
     if !p.is_object() || p.get("layer").is_some_and(|v| v.as_u64().is_none()) {
         return Err(bad("params must be an object and layer an unsigned id"));
     }
@@ -99,7 +99,7 @@ fn set(s: &mut Session, p: &Value) -> Result<Value> {
     Ok(info(id, &fill))
 }
 
-fn info(layer: localpaint_doc::LayerId, fill: &Fill) -> Value {
+fn info(layer: localraster_doc::LayerId, fill: &Fill) -> Value {
     match fill {
         Fill::Pattern { scale, id, angle, link, phase, .. } => {
             json!({"layer": layer.0, "pattern": id, "scale": scale * 100.0, "angle": angle, "link": link, "phase": [phase.0, phase.1]})
@@ -149,7 +149,7 @@ pub fn specs() -> Vec<CommandSpec> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_doc::LayerId;
+    use localraster_doc::LayerId;
     use std::sync::Arc;
 
     fn session(depth: u64) -> (Session, LayerId) {
@@ -239,7 +239,7 @@ mod tests {
         let doc = Arc::make_mut(&mut s.active_mut().unwrap().doc);
         let l = doc.layer_mut(opaque).unwrap();
         let fmt = l.surface().unwrap().format();
-        l.content = LayerContent::Raster(localpaint_raster::Surface::with_default(fmt, &[0.2, 0.4, 0.6, 1.0]));
+        l.content = LayerContent::Raster(localraster_raster::Surface::with_default(fmt, &[0.2, 0.4, 0.6, 1.0]));
         let video = LayerId(s.execute("layer.videoLayers.newBlankVideoLayer", json!({})).unwrap()["layer"].as_u64().unwrap());
         for old in [opaque, video] {
             s.execute("layer.select", json!({"layer": old.0})).unwrap();
@@ -283,8 +283,8 @@ mod tests {
         s.execute(CREATE, p).unwrap();
         // Layer ids are allocated per process, so the preview's new layer has its own id: compare
         // what the documents look like.
-        let all = localpaint_geom::Rect::new(0, 0, 40, 30);
-        assert_eq!(localpaint_compose::render(&shown, all).px, localpaint_compose::render(&s.active().unwrap().doc, all).px);
+        let all = localraster_geom::Rect::new(0, 0, 40, 30);
+        assert_eq!(localraster_compose::render(&shown, all).px, localraster_compose::render(&s.active().unwrap().doc, all).px);
         assert_eq!(shown.layers.len(), s.active().unwrap().doc.layers.len());
         assert!(preview(&s, "edit.fill", &json!({})).is_err());
     }
@@ -308,7 +308,7 @@ mod tests {
                 let previewed = shown.layers.iter().find(|l| matches!(l.content, LayerContent::Fill(Fill::Pattern { .. }))).unwrap();
                 assert_eq!(previewed.mask.is_some(), default_mask);
                 if let Some(mask) = &previewed.mask {
-                    assert_eq!(mask.surface.format(), localpaint_color::PixelFormat::new(localpaint_color::ColorMode::Grayscale, shown.depth, false));
+                    assert_eq!(mask.surface.format(), localraster_color::PixelFormat::new(localraster_color::ColorMode::Grayscale, shown.depth, false));
                 }
                 let id = LayerId(s.execute(CREATE, p).unwrap()["layer"].as_u64().unwrap());
                 let committed = s.active().unwrap().doc.layer(id).unwrap();

@@ -3,22 +3,22 @@
 //! [`crate::Services`], applying the interface theme, autosave and crash recovery, and the
 //! history log.
 //!
-//! The values live in the engine ([`localpaint_engine::prefs::Preferences`], so agents read and
+//! The values live in the engine ([`localraster_engine::prefs::Preferences`], so agents read and
 //! change them with `prefs.get` / `prefs.set`); this module only edits a working copy in a dialog
 //! and commits it with those commands on Apply or OK.
 
 use std::collections::{BTreeMap, HashMap, VecDeque};
 
 use egui::{Color32, RichText, Sense, vec2};
-use localpaint_doc::DocId;
-use localpaint_engine::jobs::{JobEvent, JobId, JobOutcome, Started};
+use localraster_doc::DocId;
+use localraster_engine::jobs::{JobEvent, JobId, JobOutcome, Started};
 #[cfg(test)]
-use localpaint_engine::prefs::Theme;
-use localpaint_engine::prefs::{self, AppearanceMode, DarkTheme, LightTheme, SECTIONS, Theme as SavedTheme};
-use localpaint_engine::snap::{SnapLine, SnapOptions, SnapTargets};
+use localraster_engine::prefs::Theme;
+use localraster_engine::prefs::{self, AppearanceMode, DarkTheme, LightTheme, SECTIONS, Theme as SavedTheme};
+use localraster_engine::snap::{SnapLine, SnapOptions, SnapTargets};
 use serde_json::{Map, Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::state::DialogKind;
 use crate::theme::{ThemeKind, Tokens};
 

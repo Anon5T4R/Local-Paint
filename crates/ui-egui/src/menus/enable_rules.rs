@@ -4,7 +4,7 @@
 //! Applied on top of `menus::is_enabled`, so menus, shortcuts and the Layers context menu grey the
 //! same items Photoshop greys.
 
-use localpaint_doc::{Document, Layer, LayerContent, LayerId};
+use localraster_doc::{Document, Layer, LayerContent, LayerId};
 
 /// Commands Photoshop greys while the Background layer is the active layer.
 fn background_blocks(id: &str, has_selection: bool) -> bool {
@@ -47,7 +47,7 @@ fn kind_blocks(id: &str, l: &Layer) -> bool {
         "layer.rasterize.layer" => {
             l.vector_mask.is_none() && !matches!(c, LayerContent::Text(_) | LayerContent::Shape(_) | LayerContent::Fill(_) | LayerContent::Smart(_))
         }
-        "layer.rasterize.layerStyle" => !localpaint_engine::rasterize_style_cmds::can_bake(l),
+        "layer.rasterize.layerStyle" => !localraster_engine::rasterize_style_cmds::can_bake(l),
         "layer.layerStyle.copyLayerStyle" | "layer.layerStyle.clear" => l.effects.items.is_empty(),
         _ => id.starts_with("layer.combineShapes.") && !matches!(c, LayerContent::Shape(_)),
     }
@@ -113,7 +113,7 @@ pub fn disabled_for_selection(doc: &Document, selected: &[LayerId], active: Opti
     !any
 }
 
-pub fn disabled(app: &crate::LocalPaintApp, id: &str) -> bool {
+pub fn disabled(app: &crate::LocalRasterApp, id: &str) -> bool {
     let Some(st) = app.session.active() else { return false };
     let active = st.active_layer.and_then(|a| st.doc.layer(a));
     // Free Transform Path works on the Background too: it moves the path, not the pixels.
@@ -129,7 +129,7 @@ pub fn disabled(app: &crate::LocalPaintApp, id: &str) -> bool {
     // Several layers selected: one box moves them all, the Background left out (#6501). It doesn't
     // warp, and doesn't distort while editable type is among them.
     if transform {
-        let targets = localpaint_engine::transform_cmds::selection_targets(st);
+        let targets = localraster_engine::transform_cmds::selection_targets(st);
         if targets.len() > 1 || targets.first() != st.active_layer.as_ref() {
             let text = targets.iter().any(|t| st.doc.layer(*t).is_some_and(|l| matches!(l.content, LayerContent::Text(_))));
             return match id {
@@ -156,7 +156,7 @@ pub fn disabled(app: &crate::LocalPaintApp, id: &str) -> bool {
             | "edit.transform.splitWarpVertically"
             | "edit.transform.removeWarpSplit"
     ) && active.is_some_and(|l| matches!(l.content, LayerContent::Text(_)))
-        && localpaint_engine::transform_cmds::lone_target(&st.doc, st.active_layer, &serde_json::json!({ "target": crate::canvas::paint_target(app) }))
+        && localraster_engine::transform_cmds::lone_target(&st.doc, st.active_layer, &serde_json::json!({ "target": crate::canvas::paint_target(app) }))
             .is_ok_and(|t| t.is_none())
     {
         return true;
@@ -173,13 +173,13 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    fn session() -> localpaint_engine::Session {
-        let mut s = localpaint_engine::Session::new();
+    fn session() -> localraster_engine::Session {
+        let mut s = localraster_engine::Session::new();
         s.execute("file.new", json!({"width": 20, "height": 20})).unwrap();
         s
     }
 
-    fn off(s: &localpaint_engine::Session, id: &str) -> bool {
+    fn off(s: &localraster_engine::Session, id: &str) -> bool {
         let st = s.active().unwrap();
         disabled_for(&st.doc, st.active_layer.and_then(|a| st.doc.layer(a)), id)
     }
@@ -211,7 +211,7 @@ mod tests {
         s.execute("select.deselect", json!({})).unwrap();
         s.execute("channel.new", json!({})).unwrap();
         s.execute("channel.target", json!({"channel": 0})).unwrap();
-        let app = crate::LocalPaintApp::new(s, crate::Services::default());
+        let app = crate::LocalRasterApp::new(s, crate::Services::default());
         assert!(!disabled(&app, "edit.freeTransform") && !disabled(&app, "edit.transform.flipHorizontal"));
     }
 
@@ -222,8 +222,8 @@ mod tests {
         let mut s = session();
         s.execute("layer.new.layer", json!({})).unwrap();
         let raster = s.active().unwrap().active_layer.unwrap();
-        let text = localpaint_doc::LayerId(s.execute("type.create", json!({"text": "Hi", "size": 12, "x": 2, "y": 12})).unwrap()["layer"].as_u64().unwrap());
-        let sel = |s: &localpaint_engine::Session, ids: &[localpaint_doc::LayerId], id: &str| {
+        let text = localraster_doc::LayerId(s.execute("type.create", json!({"text": "Hi", "size": 12, "x": 2, "y": 12})).unwrap()["layer"].as_u64().unwrap());
+        let sel = |s: &localraster_engine::Session, ids: &[localraster_doc::LayerId], id: &str| {
             let st = s.active().unwrap();
             disabled_for_selection(&st.doc, ids, ids.last().and_then(|a| st.doc.layer(*a)), id)
         };
@@ -248,8 +248,8 @@ mod tests {
     /// A document with a Background, plain layers, one with a mask, one with a vector mask, a type layer, a shape, a Smart
     /// Object, an adjustment layer and one with a drop shadow; `select` picks a selection (the last
     /// layer is active) and `copied` has a layer style on the clipboard.
-    fn world(select: &[&str], copied: bool) -> localpaint_engine::Session {
-        use localpaint_doc::LayerId;
+    fn world(select: &[&str], copied: bool) -> localraster_engine::Session {
+        use localraster_doc::LayerId;
         let mut s = session();
         let id = |r: serde_json::Value| LayerId(r["layer"].as_u64().unwrap());
         let mut ids = std::collections::HashMap::new();
@@ -278,7 +278,7 @@ mod tests {
     }
 
     /// What a layer command can change: kind, clipping, masks and style of every layer.
-    fn fingerprint(s: &localpaint_engine::Session) -> Vec<String> {
+    fn fingerprint(s: &localraster_engine::Session) -> Vec<String> {
         s.active()
             .unwrap()
             .doc
@@ -337,7 +337,7 @@ mod tests {
         for sel in selections {
             for copied in [false, true] {
                 for (cmd, must_change) in commands {
-                    let app = crate::LocalPaintApp::new(world(sel, copied), crate::Services::default());
+                    let app = crate::LocalRasterApp::new(world(sel, copied), crate::Services::default());
                     let enabled = crate::menus::is_enabled(&app, cmd);
                     let mut s = app.session;
                     let before = fingerprint(&s);

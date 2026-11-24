@@ -6,11 +6,11 @@
 
 use std::sync::Arc;
 
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_doc::{Document, Pattern};
-use localpaint_geom::Rect;
-use localpaint_psd::patterns::{PatternBudget, PsdPattern, block_has_user_mask, block_key, mode_channels, parse_pattern_block_with, write_pattern_block};
-use localpaint_raster::Surface;
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_doc::{Document, Pattern};
+use localraster_geom::Rect;
+use localraster_psd::patterns::{PatternBudget, PsdPattern, block_has_user_mask, block_key, mode_channels, parse_pattern_block_with, write_pattern_block};
+use localraster_raster::Surface;
 
 use crate::pixels::{deinterleave, max_sample, psd_depth, sample_for_depth, try_interleave, zero_sample};
 
@@ -110,7 +110,7 @@ fn pattern_from_psd(p: &PsdPattern, oom: &mut Option<String>) -> Option<Pattern>
     }
     let mut bytes = match try_interleave(&refs, &fill, n, s, &invert) {
         Ok(bytes) => bytes,
-        Err(localpaint_psd::PsdError::OutOfMemory(error)) => {
+        Err(localraster_psd::PsdError::OutOfMemory(error)) => {
             *oom = Some(error.to_string());
             return None;
         }
@@ -180,7 +180,7 @@ pub fn try_from_global_blocks(doc: &Document) -> Result<Vec<Pattern>, String> {
     for (_, _, d) in doc.metadata.psd_global_blocks.iter().filter(|(_, k, _)| PATTERN_KEYS.contains(k)) {
         let patterns = match parse_pattern_block_with(d, &mut budget) {
             Ok(patterns) => patterns,
-            Err(localpaint_psd::PsdError::OutOfMemory(error)) => return Err(error.to_string()),
+            Err(localraster_psd::PsdError::OutOfMemory(error)) => return Err(error.to_string()),
             Err(_) => continue,
         };
         for p in patterns {
@@ -193,7 +193,7 @@ pub fn try_from_global_blocks(doc: &Document) -> Result<Vec<Pattern>, String> {
 /// Global blocks to write: the raw ones while they still match [`Document::patterns`] (see
 /// [`repair_legacy_blocks`]), else the raw pattern blocks replaced by one written from the
 /// document (at the first one's position).
-pub fn export_global_blocks(doc: &Document) -> Vec<localpaint_doc::PsdGlobalBlock> {
+pub fn export_global_blocks(doc: &Document) -> Vec<localraster_doc::PsdGlobalBlock> {
     let raw = &doc.metadata.psd_global_blocks;
     if from_global_blocks(doc) == doc.patterns {
         return repair_legacy_blocks(raw);
@@ -218,11 +218,11 @@ pub fn export_global_blocks(doc: &Document) -> Vec<localpaint_doc::PsdGlobalBloc
     out
 }
 
-/// `raw` with each pattern block that keeps transparency where older Local Paint builds put it
+/// `raw` with each pattern block that keeps transparency where older Local Raster builds put it
 /// (which Photoshop refuses, #8054) rewritten in place from its own patterns. Every other block,
 /// unreadable pattern blocks included, is kept verbatim. Blocks are decoded in order with one
 /// shared budget, as [`from_global_blocks`] decodes them.
-fn repair_legacy_blocks(raw: &[localpaint_doc::PsdGlobalBlock]) -> Vec<localpaint_doc::PsdGlobalBlock> {
+fn repair_legacy_blocks(raw: &[localraster_doc::PsdGlobalBlock]) -> Vec<localraster_doc::PsdGlobalBlock> {
     if !raw.iter().any(|(_, k, d)| PATTERN_KEYS.contains(k) && block_has_user_mask(d)) {
         return raw.to_vec();
     }
@@ -245,19 +245,19 @@ fn repair_legacy_blocks(raw: &[localpaint_doc::PsdGlobalBlock]) -> Vec<localpain
 
 /// Reads a `.pat` pattern file.
 pub fn read_pat(bytes: &[u8]) -> Result<Vec<Pattern>, String> {
-    let ps = localpaint_psd::patterns::parse_pat_file(bytes).map_err(|e| format!("not a readable .pat file: {e}"))?;
+    let ps = localraster_psd::patterns::parse_pat_file(bytes).map_err(|e| format!("not a readable .pat file: {e}"))?;
     Ok(ps.iter().filter_map(from_psd).collect())
 }
 
 /// Writes patterns as a `.pat` file.
 pub fn write_pat(patterns: &[Pattern]) -> Result<Vec<u8>, String> {
-    localpaint_psd::patterns::write_pat_file(&patterns.iter().map(to_psd).collect::<Vec<_>>()).map_err(|e| e.to_string())
+    localraster_psd::patterns::write_pat_file(&patterns.iter().map(to_psd).collect::<Vec<_>>()).map_err(|e| e.to_string())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_color::SampleType;
+    use localraster_color::SampleType;
 
     fn pattern(mode: ColorMode, s: SampleType, alpha: bool) -> Pattern {
         let fmt = PixelFormat::new(mode, s, alpha);
@@ -293,7 +293,7 @@ mod tests {
 
     #[test]
     fn export_reuses_raw_blocks_until_patterns_change() {
-        let mut d = Document::new("x", localpaint_geom::Size { width: 4, height: 4 }, ColorMode::Rgb, SampleType::U8);
+        let mut d = Document::new("x", localraster_geom::Size { width: 4, height: 4 }, ColorMode::Rgb, SampleType::U8);
         let p = pattern(ColorMode::Rgb, SampleType::U8, false);
         let raw = write_pattern_block(&[to_psd(&p)]).unwrap();
         d.metadata.psd_global_blocks = vec![(*b"8BIM", *b"Txt2", Arc::new(vec![1])), (*b"8BIM", *b"Patt", Arc::new(raw.clone()))];
@@ -314,7 +314,7 @@ mod tests {
     fn transparent_pattern_blocks_from_older_builds_are_rewritten_on_save() {
         // #8054: Define Pattern over transparency, then a Pattern Fill layer; Photoshop refused
         // the PSD because the pattern's transparency sat in the user mask array.
-        let mut d = Document::new("x", localpaint_geom::Size { width: 4, height: 4 }, ColorMode::Rgb, SampleType::U16);
+        let mut d = Document::new("x", localraster_geom::Size { width: 4, height: 4 }, ColorMode::Rgb, SampleType::U16);
         d.patterns.push(pattern(ColorMode::Rgb, SampleType::U16, true));
         let out = export_global_blocks(&d);
         assert_eq!(out.len(), 1);
@@ -348,8 +348,8 @@ mod tests {
 #[cfg(test)]
 mod unpaintable_tests {
     use super::*;
-    use localpaint_doc::PixelFormat;
-    use localpaint_raster::Surface;
+    use localraster_doc::PixelFormat;
+    use localraster_raster::Surface;
 
     #[test]
     fn a_pattern_too_large_to_paint_is_named_on_opening() {

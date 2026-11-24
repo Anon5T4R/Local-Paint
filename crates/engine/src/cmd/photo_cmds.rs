@@ -1,23 +1,23 @@
 //! Computational-photography automation: File › Automate › Photomerge, Merge to HDR Pro and
 //! Crop and Straighten Photos. The registration and blending code
-//! ([`localpaint_algo::panorama`]) is shared with Edit › Auto-Align / Auto-Blend Layers
+//! ([`localraster_algo::panorama`]) is shared with Edit › Auto-Align / Auto-Blend Layers
 //! (`align_cmds`).
 //!
 //! Inputs are files (`"paths"`: an array or a folder) or, with `"useOpenDocuments": true`, the
 //! open documents (Photoshop's *Add Open Files*). Each command creates new documents; the
 //! sources are untouched.
 
-use localpaint_algo::exif;
-use localpaint_algo::hdr::{self, MergeOptions, ToneMethod};
-use localpaint_algo::panorama::{self, AlignOptions, Alignment, Layout, Placement, RoiImage};
-use localpaint_algo::scancrop;
-use localpaint_algo::tone::HdrToning;
-use localpaint_algo::transform::{Homography, Interp, warp_surface};
-use localpaint_algo::warp::warp_mesh_surface;
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_doc::{Document, Layer, LayerContent, LayerMask, Size};
-use localpaint_geom::Rect;
-use localpaint_raster::{Surface, to_rgba};
+use localraster_algo::exif;
+use localraster_algo::hdr::{self, MergeOptions, ToneMethod};
+use localraster_algo::panorama::{self, AlignOptions, Alignment, Layout, Placement, RoiImage};
+use localraster_algo::scancrop;
+use localraster_algo::tone::HdrToning;
+use localraster_algo::transform::{Homography, Interp, warp_surface};
+use localraster_algo::warp::warp_mesh_surface;
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_doc::{Document, Layer, LayerContent, LayerMask, Size};
+use localraster_geom::Rect;
+use localraster_raster::{Surface, to_rgba};
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;
@@ -155,15 +155,15 @@ const DIRECT_MIN_CORRELATION: f64 = 0.5;
 pub(crate) const NO_DETAIL: &str = "Auto-Align couldn't find enough matching detail between the layers";
 
 /// Registers `images` (surface, content area, all of one size) by intensity
-/// ([`localpaint_algo::direct`]), for layers that nearly coincide (a focus or exposure bracket,
+/// ([`localraster_algo::direct`]), for layers that nearly coincide (a focus or exposure bracket,
 /// a burst): outward from the reference, each layer to the previous one aligned, starting from
 /// its pose. The luminance planes are built at the search scale (≤ [`DIRECT_SIDE`] across), so
 /// nothing full-resolution is held or warped. A layer whose best pose overlaps its neighbour
 /// too little or explains too little of it is no fit, and fails with [`NO_DETAIL`]. Planar
 /// layouts only; Auto means a similarity (Collage).
 pub(crate) fn register_direct(images: &[(&Surface, Rect)], layout: Layout, reference: usize) -> std::result::Result<Alignment, String> {
-    use localpaint_algo::direct::{self, Plane, Pose};
-    use localpaint_algo::transform::Homography;
+    use localraster_algo::direct::{self, Plane, Pose};
+    use localraster_algo::transform::Homography;
     let (motion, layout) = match layout {
         Layout::Reposition => (panorama::Motion::Translation, Layout::Reposition),
         Layout::Auto | Layout::Collage => (panorama::Motion::Similarity, Layout::Collage),
@@ -604,7 +604,7 @@ fn photomerge(s: &mut Session, p: &Value) -> Result<Value> {
 /// Fills the transparent areas of a composite (inside its bounding rectangle) with
 /// content-aware fill, at a reduced scale for large panoramas.
 fn content_aware_fill(comp: &Surface, canvas: Rect) -> Surface {
-    use localpaint_algo::content_aware::{FillOptions, fill};
+    use localraster_algo::content_aware::{FillOptions, fill};
     let fmt = comp.format();
     let n = fmt.channels();
     let (w, h) = (canvas.width() as usize, canvas.height() as usize);
@@ -791,12 +791,12 @@ fn merge_to_hdr(s: &mut Session, p: &Value) -> Result<Value> {
         q[3] = 1.0;
     }
     let mut doc = Document::new(format!("Untitled_HDR{}", s.documents().len() + 1), Size::new(w as u32, h as u32), ColorMode::Rgb, depth);
-    doc.icc_profile = if depth == SampleType::F32 { Some(localpaint_cms::builtin::Builtin::LinearSrgb.profile().to_bytes()) } else { icc };
+    doc.icc_profile = if depth == SampleType::F32 { Some(localraster_cms::builtin::Builtin::LinearSrgb.profile().to_bytes()) } else { icc };
     let fmt = doc.pixel_format();
     let n = fmt.channels();
     let mut data = vec![0.0f32; w * h * n];
     for (q, o) in px.iter().zip(data.chunks_exact_mut(n)) {
-        localpaint_raster::from_rgba_into(&fmt, *q, o);
+        localraster_raster::from_rgba_into(&fmt, *q, o);
     }
     let mut surf = Surface::new(fmt);
     surf.write_region(area, &data);

@@ -8,8 +8,8 @@
 //! bristle streaks, which together with the smoothed luminance form a height
 //! map shaded by a directional light.
 
-use localpaint_color::ColorMode;
-use localpaint_geom::Rect;
+use localraster_color::ColorMode;
+use localraster_geom::Rect;
 
 use crate::Ctx;
 use crate::fxutil::{MAXC, gauss_blur_n, ncol, premul_window, unpremul_px};

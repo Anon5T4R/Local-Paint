@@ -1,6 +1,6 @@
 //! Regression for #1350: saving an inactive .pcraft file must not select it.
 
-use localpaint_automation::Headless;
+use localraster_automation::Headless;
 use serde_json::json;
 
 #[test]

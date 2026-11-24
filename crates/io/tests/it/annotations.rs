@@ -4,12 +4,12 @@
 #[cfg(feature = "corpus")]
 use std::path::PathBuf;
 
-use localpaint_color::{ColorMode, SampleType};
-use localpaint_doc::{Document, MeasurementScale, Note};
-use localpaint_geom::Size;
-use localpaint_io::annotations_map::MEASUREMENT_SCALE;
-use localpaint_io::{ExportOptions, export, import};
-use localpaint_psd::PsdFile;
+use localraster_color::{ColorMode, SampleType};
+use localraster_doc::{Document, MeasurementScale, Note};
+use localraster_geom::Size;
+use localraster_io::annotations_map::MEASUREMENT_SCALE;
+use localraster_io::{ExportOptions, export, import};
+use localraster_psd::PsdFile;
 
 #[cfg(feature = "corpus")]
 fn corpus(rel: &str) -> Vec<u8> {
@@ -49,7 +49,7 @@ fn corpus_notes_import_and_verbatim_export() {
 #[test]
 fn measurement_scale_roundtrips_through_psd() {
     for depth in [SampleType::U8, SampleType::U16, SampleType::F32] {
-        let mut doc = Document::with_background("m", Size::new(16, 8), ColorMode::Rgb, depth, localpaint_color::Color::rgb(1.0, 1.0, 1.0));
+        let mut doc = Document::with_background("m", Size::new(16, 8), ColorMode::Rgb, depth, localraster_color::Color::rgb(1.0, 1.0, 1.0));
         let f = PsdFile::from_bytes(&to_psd(&doc)).unwrap();
         assert!(f.resource(MEASUREMENT_SCALE).is_none());
         doc.measurement.scale = MeasurementScale { pixel_length: 120.0, logical_length: 3.0, units: "cm".into() };
@@ -101,9 +101,9 @@ fn anno_with_icon(top: i32, left: i32) -> Vec<u8> {
 
 fn psd_with_anno(anno: Vec<u8>) -> Vec<u8> {
     let mut doc = Document::new("notes", Size::new(16, 16), ColorMode::Rgb, SampleType::U8);
-    doc.layers.push(localpaint_doc::Layer::raster("Background", doc.pixel_format()));
+    doc.layers.push(localraster_doc::Layer::raster("Background", doc.pixel_format()));
     let mut file = PsdFile::from_bytes(&to_psd(&doc)).unwrap();
-    let mut tb = localpaint_psd::TaggedBlock::new(*b"Anno", anno.clone());
+    let mut tb = localraster_psd::TaggedBlock::new(*b"Anno", anno.clone());
     tb.padding = Some(vec![0; (4 - anno.len() % 4) % 4]);
     file.global_blocks.push(tb);
     file.to_bytes().unwrap()

@@ -3,8 +3,8 @@
 //! cache isolated from parallel unit tests; the tests here take turns on it.
 use std::sync::Mutex;
 
-use localpaint_codecs::{ChannelLayout, EncodeOptions, Format, Image, SampleType};
-use localpaint_engine::{Session, file_cmds, smart_cmds};
+use localraster_codecs::{ChannelLayout, EncodeOptions, Format, Image, SampleType};
+use localraster_engine::{Session, file_cmds, smart_cmds};
 use serde_json::json;
 
 static TURN: Mutex<()> = Mutex::new(());
@@ -14,16 +14,16 @@ const SIDE: u32 = 256;
 fn png() -> Vec<u8> {
     let px = (0..SIDE * SIDE).flat_map(|i| [(i % SIDE) as u8, (i / SIDE) as u8, ((i * 7) % 251) as u8, 255]);
     let img = Image::from_raw(SIDE, SIDE, ChannelLayout::Rgba, SampleType::U8, px.collect()).unwrap();
-    localpaint_codecs::encode(&img, Format::Png, &EncodeOptions::default()).unwrap()
+    localraster_codecs::encode(&img, Format::Png, &EncodeOptions::default()).unwrap()
 }
 
 /// Every cache `edit.purge.all` clears, emptied.
 fn empty_caches() {
     smart_cmds::purge_source_cache();
     smart_cmds::purge_stack_cache();
-    localpaint_compose::purge_effect_cache();
-    localpaint_compose::masks::purge_cache();
-    localpaint_compose::shape_split::purge_cache();
+    localraster_compose::purge_effect_cache();
+    localraster_compose::masks::purge_cache();
+    localraster_compose::shape_split::purge_cache();
 }
 
 fn session_with_smart_object(bytes: &[u8]) -> Session {

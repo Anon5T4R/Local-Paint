@@ -1,6 +1,6 @@
 use super::editing::edit_home;
 use super::ime_edit::{ime_geometry, reconcile_preedit};
-use super::{Arc, HashMap, ImeContextTracker, ImeMutationStamp, ImeTarget, LayerId, LocalPaintApp, TextEdit, ViewXform, active_doc_id, current_text};
+use super::{Arc, HashMap, ImeContextTracker, ImeMutationStamp, ImeTarget, LayerId, LocalRasterApp, TextEdit, ViewXform, active_doc_id, current_text};
 
 /// Per-editor IME owner/generation bookkeeping for the custom Type tool.
 ///
@@ -161,7 +161,7 @@ impl ImeState {
 ///
 /// The document, layer and viewport identify the target; the edit session is the replacement
 /// epoch, so committing and editing the same layer again cannot reuse the old generation.
-pub(super) fn ime_target(app: &LocalPaintApp, ed: &TextEdit, viewport: egui::ViewportId) -> Option<ImeTarget> {
+pub(super) fn ime_target(app: &LocalRasterApp, ed: &TextEdit, viewport: egui::ViewportId) -> Option<ImeTarget> {
     let document = ed.document.or_else(|| active_doc_id(app))?;
     // A Type Mask session is a distinct owner: its hidden working layer can have the same id as
     // a regular type layer in another tool session. The session epoch replaces the context when
@@ -171,13 +171,13 @@ pub(super) fn ime_target(app: &LocalPaintApp, ed: &TextEdit, viewport: egui::Vie
     Some(ImeTarget::new(owner, epoch))
 }
 
-fn incoming_selection(app: &LocalPaintApp, viewport: egui::ViewportId) -> Option<IncomingSelection> {
+fn incoming_selection(app: &LocalRasterApp, viewport: egui::ViewportId) -> Option<IncomingSelection> {
     let ed = app.ui.text_edit.as_ref()?;
     Some(IncomingSelection { target: ime_target(app, ed, viewport)?, caret: ed.caret, anchor: ed.anchor, revision: app.session.active()?.revision })
 }
 
 /// Settle the already-visible preview where it was typed, never replay it at a moved caret.
-pub(super) fn interrupt_incoming(app: &mut LocalPaintApp) {
+pub(super) fn interrupt_incoming(app: &mut LocalRasterApp) {
     if !matches!(app.type_ime.incoming, Some(IncomingComposition::Active(_) | IncomingComposition::TerminalPending(_))) {
         return;
     }
@@ -189,7 +189,7 @@ pub(super) fn interrupt_incoming(app: &mut LocalPaintApp) {
     app.type_ime.request_interrupt();
 }
 
-pub(super) fn interrupt_action(app: &mut LocalPaintApp, viewport: egui::ViewportId) {
+pub(super) fn interrupt_action(app: &mut LocalRasterApp, viewport: egui::ViewportId) {
     let guarded = reset_guarded(app, viewport);
     interrupt_incoming(app);
     if guarded {
@@ -197,7 +197,7 @@ pub(super) fn interrupt_action(app: &mut LocalPaintApp, viewport: egui::Viewport
     }
 }
 
-pub(super) fn sync_incoming(app: &mut LocalPaintApp, viewport: egui::ViewportId) {
+pub(super) fn sync_incoming(app: &mut LocalRasterApp, viewport: egui::ViewportId) {
     let destination = incoming_selection(app, viewport);
     if app.type_ime.resets.get(&viewport).is_some_and(|phase| match phase {
         ResetPhase::Awaiting { destination: old, .. } | ResetPhase::AllocationFailed { destination: old, .. } => Some(*old) != destination,
@@ -229,7 +229,7 @@ pub(super) fn sync_incoming(app: &mut LocalPaintApp, viewport: egui::ViewportId)
 }
 
 /// Accepted IME mutations update provenance without canceling their own Delete→Commit chain.
-pub(super) fn remember_incoming(app: &mut LocalPaintApp, preedit_empty: Option<bool>) {
+pub(super) fn remember_incoming(app: &mut LocalRasterApp, preedit_empty: Option<bool>) {
     let viewport = app.type_ime.frame.map_or(egui::ViewportId::ROOT, |frame| frame.viewport);
     let Some(expected) = incoming_selection(app, viewport) else { return };
     let next = match (preedit_empty, app.type_ime.incoming) {
@@ -242,7 +242,7 @@ pub(super) fn remember_incoming(app: &mut LocalPaintApp, preedit_empty: Option<b
 
 /// A host may recreate its Context while retaining the application. Old pass counters and
 /// output keys are not evidence of publication in that new Context.
-pub(super) fn bind_reset_context(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub(super) fn bind_reset_context(app: &mut LocalRasterApp, ctx: &egui::Context) {
     // `on_begin_pass` callbacks registered during this pass cannot mark the pass already
     // running. Reinstall here so a replacement Context is ready for its next pass, and rely on
     // the host's creator/`setup_context` having installed before the very first `run_ui`.
@@ -277,14 +277,14 @@ pub(crate) fn install_reset_hooks(ctx: &egui::Context) {
     }
     ctx.data_mut(|data| data.insert_temp(installed, true));
     ctx.on_begin_pass(
-        "localpaint type reset UI mode",
+        "localraster type reset UI mode",
         Arc::new(|ui| {
             let key = ui_mode_id(ui.ctx().viewport_id());
             ui.ctx().data_mut(|data| data.insert_temp(key, true));
         }),
     );
     ctx.on_end_pass(
-        "localpaint type reset UI mode end",
+        "localraster type reset UI mode end",
         Arc::new(|ui| {
             let key = ui_mode_id(ui.ctx().viewport_id());
             ui.ctx().data_mut(|data| data.insert_temp(key, false));
@@ -297,11 +297,11 @@ pub(crate) fn in_ui_pass(ctx: &egui::Context) -> bool {
     ctx.data(|data| data.get_temp::<bool>(key)).unwrap_or(false)
 }
 
-pub(super) fn reset_guarded(app: &LocalPaintApp, viewport: egui::ViewportId) -> bool {
+pub(super) fn reset_guarded(app: &LocalRasterApp, viewport: egui::ViewportId) -> bool {
     app.type_ime.needs_request || app.type_ime.resets.contains_key(&viewport) || matches!(app.type_ime.incoming, Some(IncomingComposition::Stale))
 }
 
-pub(super) fn reset_route_eligible(app: &LocalPaintApp, ctx: &egui::Context) -> bool {
+pub(super) fn reset_route_eligible(app: &LocalRasterApp, ctx: &egui::Context) -> bool {
     // The actual app draws only after `logic_frame` marks fonts ready; `ui_frame` early-returns
     // on the first frame. Direct handler tests that have not run the first logic frame use the
     // pre-styled app state and are not an actual UI route.
@@ -317,13 +317,13 @@ pub(super) fn reset_route_eligible(app: &LocalPaintApp, ctx: &egui::Context) -> 
 /// Whether this input can be attributed to a visible custom descriptor right now. Completion
 /// arrives before the final descriptor exists, so use the last canvas mapping and the current
 /// model: requiring this pass's final output here would deadlock the ordered suffix.
-fn reset_geometry_available(app: &mut LocalPaintApp, viewport: egui::ViewportId) -> bool {
+fn reset_geometry_available(app: &mut LocalRasterApp, viewport: egui::ViewportId) -> bool {
     let Some(ed) = app.ui.text_edit.clone() else { return false };
     let Some(view) = app.type_ime.view.filter(|view| view.viewport == viewport) else { return false };
     ime_geometry(app, &ed, view.xf).is_some()
 }
 
-pub(super) fn suspend_reset(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub(super) fn suspend_reset(app: &mut LocalRasterApp, ctx: &egui::Context) {
     let viewport = ctx.viewport_id();
     if reset_guarded(app, viewport) {
         app.type_ime.resets.insert(viewport, ResetPhase::Suspended);
@@ -332,7 +332,7 @@ pub(super) fn suspend_reset(app: &mut LocalPaintApp, ctx: &egui::Context) {
     app.type_ime.last_custom.remove(&viewport);
 }
 
-fn allocate_reset(app: &mut LocalPaintApp, ctx: &egui::Context, destination: IncomingSelection, context: Option<ResetContext>) {
+fn allocate_reset(app: &mut LocalRasterApp, ctx: &egui::Context, destination: IncomingSelection, context: Option<ResetContext>) {
     let viewport = ctx.viewport_id();
     let phase = match ctx.request_ime_reset(viewport) {
         Some(id) => ResetPhase::Awaiting { id, destination, context },
@@ -343,7 +343,7 @@ fn allocate_reset(app: &mut LocalPaintApp, ctx: &egui::Context, destination: Inc
 }
 
 /// Reconcile before the next raw element, not merely at descriptor publication.
-pub(super) fn prepare_reset(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub(super) fn prepare_reset(app: &mut LocalRasterApp, ctx: &egui::Context) {
     let viewport = ctx.viewport_id();
     sync_incoming(app, viewport);
     if app.type_ime.needs_request {
@@ -354,7 +354,7 @@ pub(super) fn prepare_reset(app: &mut LocalPaintApp, ctx: &egui::Context) {
     // must never inherit a speculative custom-editor reset request.
 }
 
-pub(super) fn complete_reset(app: &mut LocalPaintApp, ctx: &egui::Context, request_id: egui::ImeResetId) {
+pub(super) fn complete_reset(app: &mut LocalRasterApp, ctx: &egui::Context, request_id: egui::ImeResetId) {
     let viewport = ctx.viewport_id();
     let Some(ResetPhase::Awaiting { id, destination, context }) = app.type_ime.resets.get(&viewport).copied() else { return };
     if request_id != id
@@ -381,14 +381,14 @@ pub(super) fn complete_reset(app: &mut LocalPaintApp, ctx: &egui::Context, reque
     }
 }
 
-pub(super) fn claim_raw_pass(app: &mut LocalPaintApp, ctx: &egui::Context) -> bool {
+pub(super) fn claim_raw_pass(app: &mut LocalRasterApp, ctx: &egui::Context) -> bool {
     let viewport = ctx.viewport_id();
     let pass = ctx.cumulative_pass_nr_for(viewport);
     app.type_ime.raw_pass.insert(viewport, pass) != Some(pass)
 }
 
 /// The exclusive route when no custom editor may mutate. Do not consume stock text/keys.
-pub(crate) fn controls_only(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub(crate) fn controls_only(app: &mut LocalRasterApp, ctx: &egui::Context) {
     bind_reset_context(app, ctx);
     if !claim_raw_pass(app, ctx) {
         return;
@@ -405,7 +405,7 @@ pub(crate) fn controls_only(app: &mut LocalPaintApp, ctx: &egui::Context) {
 }
 
 /// True outer UI tail, including discarded/early-return passes and host-side mutations.
-pub(crate) fn finish_reset_pass(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub(crate) fn finish_reset_pass(app: &mut LocalRasterApp, ctx: &egui::Context) {
     bind_reset_context(app, ctx);
     let viewport = ctx.viewport_id();
     if app.type_ime.raw_pass.get(&viewport).copied() != Some(ctx.cumulative_pass_nr_for(viewport)) {
@@ -443,7 +443,7 @@ pub(crate) fn finish_reset_pass(app: &mut LocalPaintApp, ctx: &egui::Context) {
     }
 }
 
-pub(crate) fn finish_reset_logic(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub(crate) fn finish_reset_logic(app: &mut LocalRasterApp, ctx: &egui::Context) {
     bind_reset_context(app, ctx);
     if !in_ui_pass(ctx) {
         sync_incoming(app, ctx.viewport_id());

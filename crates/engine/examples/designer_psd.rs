@@ -5,10 +5,10 @@
 //! through engine commands and saved through the real PSD exporter.
 //!
 //! ```sh
-//! cargo run -p localpaint-engine --example designer_psd -- out.psd
+//! cargo run -p localraster-engine --example designer_psd -- out.psd
 //! ```
 
-use localpaint_engine::Session;
+use localraster_engine::Session;
 use serde_json::{Value, json};
 
 const NAMES: &[&str] = &[
@@ -175,7 +175,7 @@ fn main() -> Result<(), String> {
     g.run("layer.linkLayers", json!({}));
     let doc = g.s.active().map(|d| (*d.doc).clone()).ok_or("no document")?;
     let layers = doc.walk().len();
-    let bytes = localpaint_io::export(&doc, &out, &Default::default()).map_err(|e| e.to_string())?.bytes;
+    let bytes = localraster_io::export(&doc, &out, &Default::default()).map_err(|e| e.to_string())?.bytes;
     std::fs::write(&out, &bytes).map_err(|e| e.to_string())?;
     println!("wrote {out}: {layers} layers, {} bytes", bytes.len());
     Ok(())

@@ -1,7 +1,7 @@
 use super::strokes::live_stroke;
-use super::{Color32, Document, LayerContent, LocalPaintApp, TextureOptions};
+use super::{Color32, Document, LayerContent, LocalRasterApp, TextureOptions};
 
-pub(super) fn checker(app: &mut LocalPaintApp, ctx: &egui::Context) -> egui::TextureId {
+pub(super) fn checker(app: &mut LocalRasterApp, ctx: &egui::Context) -> egui::TextureId {
     // Preferences › Transparency & Gamut colours (the texture is rebuilt when they change).
     let [ca, cb] = app.session.prefs().transparency_and_gamut.colors();
     if app.prefs_rt.checker_key != Some([ca, cb]) {
@@ -23,7 +23,7 @@ pub(super) fn checker(app: &mut LocalPaintApp, ctx: &egui::Context) -> egui::Tex
         .id()
 }
 
-fn buffer_to_image(buf: &localpaint_compose::Buffer) -> egui::ColorImage {
+fn buffer_to_image(buf: &localraster_compose::Buffer) -> egui::ColorImage {
     // `buf.to_rgba8()` then `color_image`, fused: one parallel pass, no intermediate image.
     let q = |v: f32| (v.clamp(0.0, 1.0) * 255.0 + 0.5) as u8;
     let mut pixels = vec![egui::Color32::TRANSPARENT; buf.px.len()];
@@ -42,7 +42,7 @@ fn buffer_to_image(buf: &localpaint_compose::Buffer) -> egui::ColorImage {
 /// `img` as an egui image: `ColorImage::from_rgba_unmultiplied`, in parallel off wasm. egui's own
 /// conversion runs on one thread and took 37 ms of a 24 MP canvas or preview update, three times
 /// the quantize before it.
-fn color_image(img: &localpaint_raster::Rgba8Image) -> egui::ColorImage {
+fn color_image(img: &localraster_raster::Rgba8Image) -> egui::ColorImage {
     let size = [img.width as usize, img.height as usize];
     let src = img.pixels.as_chunks::<4>().0;
     let mut pixels = vec![egui::Color32::TRANSPARENT; src.len()];
@@ -60,7 +60,7 @@ fn color_image(img: &localpaint_raster::Rgba8Image) -> egui::ColorImage {
 
 /// A composite as monitor pixels: document profile → monitor profile (nothing to do in the
 /// common sRGB-on-sRGB case).
-pub(crate) fn display_image(display: Option<&localpaint_engine::display_color::CanvasDisplay>, buf: &localpaint_compose::Buffer) -> egui::ColorImage {
+pub(crate) fn display_image(display: Option<&localraster_engine::display_color::CanvasDisplay>, buf: &localraster_compose::Buffer) -> egui::ColorImage {
     match display {
         Some(d) if !d.is_identity() => color_image(&d.to_rgba8(buf)),
         _ => buffer_to_image(buf),
@@ -71,10 +71,10 @@ pub(crate) fn display_image(display: Option<&localpaint_engine::display_color::C
 /// with it (folded into the canvas caches' preview keys, so a monitor or profile change
 /// re-renders).
 pub(crate) fn canvas_display(
-    app: &LocalPaintApp,
+    app: &LocalRasterApp,
     doc: &Document,
     display: Option<u32>,
-) -> (Option<std::sync::Arc<localpaint_engine::display_color::CanvasDisplay>>, u64) {
+) -> (Option<std::sync::Arc<localraster_engine::display_color::CanvasDisplay>>, u64) {
     match app.session.color.canvas_display_for(doc, display.or(app.session.color.main_display)) {
         Ok(d) => {
             let k = d.key;
@@ -86,13 +86,13 @@ pub(crate) fn canvas_display(
 
 /// [`canvas_display`]'s key for the GPU canvas texture: what the texture stores, the same on
 /// every display (the display LUT holds the monitor profile).
-pub(super) fn texture_key(display: Option<&localpaint_engine::display_color::CanvasDisplay>) -> u64 {
+pub(super) fn texture_key(display: Option<&localraster_engine::display_color::CanvasDisplay>) -> u64 {
     display.map_or(0, |d| d.texture_key)
 }
 
 /// `app.canvases` key: CPU canvas textures are per document and display (they hold monitor
 /// values); the GPU canvas state uses [`GPU_OUTPUT`].
-pub(crate) fn cache_key(doc: localpaint_doc::DocId, display: Option<u32>) -> (localpaint_doc::DocId, u32) {
+pub(crate) fn cache_key(doc: localraster_doc::DocId, display: Option<u32>) -> (localraster_doc::DocId, u32) {
     (doc, display.unwrap_or(0))
 }
 
@@ -100,7 +100,7 @@ pub(crate) fn cache_key(doc: localpaint_doc::DocId, display: Option<u32>) -> (lo
 pub(crate) const GPU_OUTPUT: u32 = u32::MAX;
 
 /// The document to render: the committed one, or a clone with the live adjustment preview applied.
-pub(crate) fn display_doc(app: &mut LocalPaintApp, idx: usize) -> (std::sync::Arc<Document>, u64) {
+pub(crate) fn display_doc(app: &mut LocalRasterApp, idx: usize) -> (std::sync::Arc<Document>, u64) {
     if let Some(shown) = crate::type_panels_ui::color_picker::display_doc(app, idx) {
         return shown;
     }
@@ -166,7 +166,7 @@ pub(crate) fn display_doc(app: &mut LocalPaintApp, idx: usize) -> (std::sync::Ar
     if let (Some(t), Some(pv)) = (&app.ui.transform, &app.transform_preview)
         && app.session.active_index() == Some(idx)
         && pv.doc.id == st.doc.id
-        && st.doc.layer(localpaint_doc::LayerId(t.layer)).is_some()
+        && st.doc.layer(localraster_doc::LayerId(t.layer)).is_some()
     {
         return (pv.doc.clone(), (1 << 40) + pv.session);
     }
@@ -202,8 +202,8 @@ pub(crate) fn display_doc(app: &mut LocalPaintApp, idx: usize) -> (std::sync::Ar
     {
         let key = crate::adjust_preview::live_key(app, &snapshot, revision, layer, &params);
         let shown = memo_display(app, &snapshot, key, || {
-            let kind = localpaint_engine::commands::adjustment_kind(a);
-            let preview = localpaint_engine::adjust_params::from_params(kind, &params, Some(a), snapshot.mode).unwrap_or_else(|_| a.clone());
+            let kind = localraster_engine::commands::adjustment_kind(a);
+            let preview = localraster_engine::adjust_params::from_params(kind, &params, Some(a), snapshot.mode).unwrap_or_else(|_| a.clone());
             let mut doc = (*snapshot).clone();
             if let Some(lm) = doc.layer_mut(layer) {
                 lm.content = LayerContent::Adjustment(preview);
@@ -215,7 +215,7 @@ pub(crate) fn display_doc(app: &mut LocalPaintApp, idx: usize) -> (std::sync::Ar
         }
     }
     // Duotone documents display through their inks.
-    if let Some(shown) = memo_display(app, &snapshot, 1 << 41, || localpaint_engine::mode_cmds::display_document(&snapshot)) {
+    if let Some(shown) = memo_display(app, &snapshot, 1 << 41, || localraster_engine::mode_cmds::display_document(&snapshot)) {
         return (shown, 1 << 41);
     }
     (snapshot, 0)
@@ -224,7 +224,7 @@ pub(crate) fn display_doc(app: &mut LocalPaintApp, idx: usize) -> (std::sync::Ar
 /// `display_doc`'s live-adjust and Duotone documents, built once per document snapshot and key
 /// rather than on each of its 3–4 calls a frame (#4527): each build clones the whole document.
 fn memo_display(
-    app: &mut LocalPaintApp,
+    app: &mut LocalRasterApp,
     snapshot: &std::sync::Arc<Document>,
     key: u64,
     build: impl FnOnce() -> Option<Document>,
@@ -253,7 +253,7 @@ const DISPLAY_LUT: usize = 33;
 /// `doc`'s colour management: document → monitor profile and View › Proof Colors / Gamut
 /// Warning (the 32-bit preview is applied by the canvas shader, see [`hdr_preview`]). Returns the canvas `display` mode (0 none — the identity, e.g. sRGB on
 /// an sRGB monitor —, 1 LUT, 2 LUT + gamut warning, 3 matrix/shaper).
-pub(super) fn sync_display_lut(app: &mut LocalPaintApp, doc: &localpaint_doc::Document, key: u64, display: Option<u32>) -> u8 {
+pub(super) fn sync_display_lut(app: &mut LocalRasterApp, doc: &localraster_doc::Document, key: u64, display: Option<u32>) -> u8 {
     let Some(gpu) = app.gpu.clone() else { return 0 };
     let output = display.unwrap_or(0);
     // Rebuild only when anything feeding the LUT changes.
@@ -292,6 +292,6 @@ pub(super) fn sync_display_lut(app: &mut LocalPaintApp, doc: &localpaint_doc::Do
 }
 
 /// View › 32-bit Preview Options for the GPU canvas shader: (exposure, gamma) when active.
-pub(super) fn hdr_preview(app: &LocalPaintApp, doc: &localpaint_doc::Document) -> Option<[f32; 2]> {
+pub(super) fn hdr_preview(app: &LocalRasterApp, doc: &localraster_doc::Document) -> Option<[f32; 2]> {
     app.session.color.hdr_preview(doc).map(|h| [h.exposure, h.gamma])
 }

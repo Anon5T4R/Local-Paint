@@ -15,13 +15,13 @@ use std::sync::Arc;
 
 use egui::emath::GuiRounding;
 use egui::{Color32, Pos2, Rect, Sense, Stroke, StrokeKind, pos2, vec2};
-use localpaint_compose::gradient_fill as gf;
-use localpaint_doc::{Document, Fill, GradientStyle, Layer, LayerContent, LayerId};
-use localpaint_engine::gradient_fill_cmds as cmds;
-use localpaint_engine::presets::gradients as gradient_presets;
+use localraster_compose::gradient_fill as gf;
+use localraster_doc::{Document, Fill, GradientStyle, Layer, LayerContent, LayerId};
+use localraster_engine::gradient_fill_cmds as cmds;
+use localraster_engine::presets::gradients as gradient_presets;
 use serde_json::{Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::canvas::{ToolEvent, ViewXform};
 use crate::state::Tool;
 use crate::theme::Tokens;
@@ -78,14 +78,14 @@ pub struct LiveGradient {
 }
 
 /// Whether an uncommitted gradient gesture must finish before applying a saved vector.
-pub(crate) fn editing(app: &LocalPaintApp) -> bool {
+pub(crate) fn editing(app: &LocalRasterApp) -> bool {
     app.gradient.drag.is_some() || app.gradient.panel.is_some() || app.gradient.preset_stop.is_some()
 }
 
 /// Whether the Gradient tool is in its live (Gradient Fill layer) mode.
 /// Painting into a layer mask, an alpha channel or the Quick Mask stays classic (pixels), except
 /// that a selected gradient fill layer is always edited live (selecting it targets its mask).
-pub fn live_mode(app: &LocalPaintApp) -> bool {
+pub fn live_mode(app: &LocalRasterApp) -> bool {
     if app.active_tool() != Tool::Gradient || app.ui.tool_options.gradient_classic {
         return false;
     }
@@ -97,17 +97,17 @@ pub fn live_mode(app: &LocalPaintApp) -> bool {
 }
 
 /// The active layer when it is a gradient fill layer: (layer, its frame, the canvas).
-fn active_gradient(app: &LocalPaintApp) -> Option<(Layer, Rect32, localpaint_geom::Rect)> {
+fn active_gradient(app: &LocalRasterApp) -> Option<(Layer, Rect32, localraster_geom::Rect)> {
     let st = app.session.active()?;
     let l = st.doc.layer(st.active_layer?)?;
     if !matches!(l.content, LayerContent::Fill(Fill::Gradient { .. })) || !l.visible {
         return None;
     }
     let canvas = st.doc.bounds();
-    Some((l.clone(), localpaint_compose::fill_frame(l, canvas), canvas))
+    Some((l.clone(), localraster_compose::fill_frame(l, canvas), canvas))
 }
 
-type Rect32 = localpaint_geom::Rect;
+type Rect32 = localraster_geom::Rect;
 
 fn fill_of(l: &Layer) -> Option<&Fill> {
     match &l.content {
@@ -117,7 +117,7 @@ fn fill_of(l: &Layer) -> Option<&Fill> {
 }
 
 /// The fill an in-progress edit shows (`None` when it can't apply, e.g. a stale index).
-fn edited_fill(app: &LocalPaintApp, layer: &Layer, canvas: Rect32, cmd: &str, p: &Value) -> Option<Fill> {
+fn edited_fill(app: &LocalRasterApp, layer: &Layer, canvas: Rect32, cmd: &str, p: &Value) -> Option<Fill> {
     let f = fill_of(layer)?;
     let (fg, bg) = (app.session.tools.foreground, app.session.tools.background);
     let edited = match cmd {
@@ -133,7 +133,7 @@ fn edited_fill(app: &LocalPaintApp, layer: &Layer, canvas: Rect32, cmd: &str, p:
 }
 
 /// Options-bar params of a new live gradient.
-fn create_params(app: &LocalPaintApp, from: [f32; 2], to: [f32; 2]) -> Value {
+fn create_params(app: &LocalRasterApp, from: [f32; 2], to: [f32; 2]) -> Value {
     let o = &app.ui.tool_options;
     json!({"from": from, "to": to, "style": o.gradient_style, "reverse": o.gradient_reverse, "dither": o.gradient_dither, "opacity": o.fill_opacity, "mode": o.gradient_blend_mode.label()})
 }
@@ -219,7 +219,7 @@ impl Widget {
 }
 
 /// Pointer input for the Gradient tool in live mode. Returns true when consumed.
-pub fn pointer(app: &mut LocalPaintApp, ev: ToolEvent, mods: egui::Modifiers) -> bool {
+pub fn pointer(app: &mut LocalRasterApp, ev: ToolEvent, mods: egui::Modifiers) -> bool {
     if !live_mode(app) {
         app.gradient.drag = None;
         return false;
@@ -249,7 +249,7 @@ pub fn pointer(app: &mut LocalPaintApp, ev: ToolEvent, mods: egui::Modifiers) ->
     true
 }
 
-fn drag_to(app: &mut LocalPaintApp, p: [f32; 2], mods: egui::Modifiers) {
+fn drag_to(app: &mut LocalRasterApp, p: [f32; 2], mods: egui::Modifiers) {
     let zoom = app.point_zoom().max(0.01);
     let active = active_gradient(app);
     let Some(drag) = app.gradient.drag.as_mut() else { return };
@@ -301,7 +301,7 @@ fn drag_to(app: &mut LocalPaintApp, p: [f32; 2], mods: egui::Modifiers) {
     }
 }
 
-fn finish(app: &mut LocalPaintApp) {
+fn finish(app: &mut LocalRasterApp) {
     let Some(drag) = app.gradient.drag.take() else { return };
     let zoom = app.point_zoom().max(0.01);
     match drag {
@@ -327,7 +327,7 @@ fn finish(app: &mut LocalPaintApp) {
 
 /// A click (no drag) on the widget: the line adds a stop; a double-click on a stop (or on an end
 /// handle, for the stop there) opens the Color Picker.
-fn click(app: &mut LocalPaintApp, layer: LayerId, grab: Grab) {
+fn click(app: &mut LocalRasterApp, layer: LayerId, grab: Grab) {
     let now = app.last_frame_time;
     let double = app.gradient.last_click.is_some_and(|(g, t)| g == grab && now - t <= DOUBLE_CLICK);
     app.gradient.last_click = Some((grab, now));
@@ -349,7 +349,7 @@ fn click(app: &mut LocalPaintApp, layer: LayerId, grab: Grab) {
 }
 
 /// Opens the Color Picker on colour stop `i`; OK runs `gradient.fill.stop` (one history step).
-pub fn edit_stop_color(app: &mut LocalPaintApp, layer: LayerId, i: usize) {
+pub fn edit_stop_color(app: &mut LocalRasterApp, layer: LayerId, i: usize) {
     let Some(st) = app.session.active() else { return };
     let Some(Fill::Gradient { stops, .. }) = st.doc.layer(layer).and_then(fill_of) else { return };
     let mut sorted = stops.clone();
@@ -371,7 +371,7 @@ fn preview_key(revision: u64, what: &str) -> u64 {
 }
 
 /// The document to show while a gradient is drawn or edited (`canvas::display_doc`).
-pub fn display_doc(app: &mut LocalPaintApp, idx: usize) -> Option<(Arc<Document>, u64)> {
+pub fn display_doc(app: &mut LocalRasterApp, idx: usize) -> Option<(Arc<Document>, u64)> {
     if app.session.active_index() != Some(idx) {
         return None;
     }
@@ -401,7 +401,7 @@ pub fn display_doc(app: &mut LocalPaintApp, idx: usize) -> Option<(Arc<Document>
         l.id = PREVIEW_LAYER;
         // Where the committed layer will go, so the preview doesn't jump on release.
         let active = app.session.active().and_then(|s| s.active_layer);
-        localpaint_engine::layer_place::insert_new(&mut shown, active, l, localpaint_engine::layer_place::Place::AutoEditable);
+        localraster_engine::layer_place::insert_new(&mut shown, active, l, localraster_engine::layer_place::Place::AutoEditable);
     } else {
         let l = doc.layer(layer)?;
         let f = edited_fill(app, l, doc.bounds(), cmd, &p)?;
@@ -413,19 +413,19 @@ pub fn display_doc(app: &mut LocalPaintApp, idx: usize) -> Option<(Arc<Document>
 }
 
 /// The fill and frame the widget shows: the one being drawn or edited, else the selected one.
-fn shown_fill(app: &LocalPaintApp) -> Option<(Fill, Rect32, Option<Grab>)> {
+fn shown_fill(app: &LocalRasterApp) -> Option<(Fill, Rect32, Option<Grab>)> {
     let st = app.session.active()?;
     let canvas = st.doc.bounds();
     match &app.gradient.drag {
         Some(Drag::Draw { from, to, redraw: None }) => {
             let l = cmds::new_layer(&app.session, &st.doc, &create_params(app, *from, *to)).ok()?;
             let f = fill_of(&l)?.clone();
-            Some((f, localpaint_compose::fill_frame(&l, canvas), Some(Grab::End)))
+            Some((f, localraster_compose::fill_frame(&l, canvas), Some(Grab::End)))
         }
         Some(Drag::Draw { from, to, redraw: Some(id) }) => {
             let l = st.doc.layer(*id)?;
             let f = edited_fill(app, l, canvas, cmds::SET, &json!({"from": from, "to": to}))?;
-            Some((f, localpaint_compose::fill_frame(l, canvas), Some(Grab::End)))
+            Some((f, localraster_compose::fill_frame(l, canvas), Some(Grab::End)))
         }
         Some(Drag::Edit { layer, grab, commit, .. }) => {
             let l = st.doc.layer(*layer)?;
@@ -438,7 +438,7 @@ fn shown_fill(app: &LocalPaintApp) -> Option<(Fill, Rect32, Option<Grab>)> {
             };
             // A torn-off stop no longer exists: highlight nothing.
             let deleting = commit.as_ref().is_some_and(|(_, p)| p["action"] == "delete");
-            Some((f, localpaint_compose::fill_frame(l, canvas), (!deleting).then_some(*grab)))
+            Some((f, localraster_compose::fill_frame(l, canvas), (!deleting).then_some(*grab)))
         }
         None => {
             let (l, frame, _) = active_gradient(app)?;
@@ -463,7 +463,7 @@ pub(crate) fn diamond(painter: &egui::Painter, c: Pos2, r: f32, fill: Color32, o
 }
 
 /// Draws the live gradient widget over the canvas.
-pub fn draw_overlay(app: &LocalPaintApp, painter: &egui::Painter, xf: &ViewXform) {
+pub fn draw_overlay(app: &LocalRasterApp, painter: &egui::Painter, xf: &ViewXform) {
     if !live_mode(app) {
         return;
     }
@@ -552,7 +552,7 @@ const THUMB_PX: u32 = 64;
 pub fn thumbnail_image(f: &Fill) -> Option<egui::ColorImage> {
     let Fill::Gradient { .. } = f else { return None };
     let n = THUMB_PX as i32;
-    let square = localpaint_geom::Rect::new(0, 0, n, n);
+    let square = localraster_geom::Rect::new(0, 0, n, n);
     // No dither: it is invisible at this size and would only add noise.
     let mut plain = f.clone();
     if let Fill::Gradient { dither, .. } = &mut plain {
@@ -595,11 +595,11 @@ pub fn paint_thumbnail(ui: &egui::Ui, layer: LayerId, f: &Fill, rect: Rect) -> b
 /// Options-bar swatch of the current gradient. Both live and classic modes use the same
 /// engine-owned preset (#1651). Clicking it opens the Gradient Editor window, as Photoshop's
 /// swatch does. Returns whether it was clicked.
-pub fn preset_swatch(app: &mut LocalPaintApp, ui: &mut egui::Ui) -> bool {
+pub fn preset_swatch(app: &mut LocalRasterApp, ui: &mut egui::Ui) -> bool {
     let t = Tokens::get(ui.ctx());
     let stops = app.session.presets.gradient.resolve(app.session.tools.foreground, app.session.tools.background);
     let (r, resp) = ui.allocate_exact_size(vec2(96.0, 20.0), Sense::click());
-    paint_ramp(ui.painter(), r, |u| localpaint_algo::paint::sample_stops(&stops, u));
+    paint_ramp(ui.painter(), r, |u| localraster_algo::paint::sample_stops(&stops, u));
     ui.painter().rect_stroke(r, 0.0, Stroke::new(1.0, t.field_border), StrokeKind::Outside);
     // Name the control for accessibility (and so tests and agents can find it).
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, tl!("Gradient picker")));
@@ -608,7 +608,7 @@ pub fn preset_swatch(app: &mut LocalPaintApp, ui: &mut egui::Ui) -> bool {
 
 /// The selected layer when it is a gradient fill layer. Unlike [`active_gradient`] it does not
 /// require the layer to be visible: the editor edits it either way.
-fn selected_gradient(app: &LocalPaintApp) -> Option<Layer> {
+fn selected_gradient(app: &LocalRasterApp) -> Option<Layer> {
     let st = app.session.active()?;
     let l = st.doc.layer(st.active_layer?)?;
     fill_of(l)?;
@@ -619,7 +619,7 @@ fn selected_gradient(app: &LocalPaintApp) -> Option<Layer> {
 /// Editor. A selected gradient fill layer gets a combined ramp, with opacity above and colour
 /// below, selected-stop fields and Gradient Options. Without a gradient fill layer, the same
 /// stop controls edit the tool's current gradient and offer saving it as a preset.
-pub fn editor_window(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub fn editor_window(app: &mut LocalRasterApp, ctx: &egui::Context) {
     if !app.ui.panels.gradient_editor {
         return;
     }
@@ -664,7 +664,7 @@ pub fn editor_window(app: &mut LocalPaintApp, ctx: &egui::Context) {
 
 /// Live mode: style, reverse, dither and blend mode changes in the options bar also edit the selected
 /// gradient fill layer (one history step each), as in Photoshop.
-pub fn options_changed(app: &mut LocalPaintApp, before: &crate::state::ToolOptions) {
+pub fn options_changed(app: &mut LocalRasterApp, before: &crate::state::ToolOptions) {
     let o = app.ui.tool_options.clone();
     if app.ui.tool != Tool::Gradient || o.gradient_classic {
         return;
@@ -692,7 +692,7 @@ pub fn options_changed(app: &mut LocalPaintApp, before: &crate::state::ToolOptio
 /// Live mode: the options bar's Opacity sets a selected gradient fill layer's opacity, as a
 /// drag's `opacity` does, live while it is scrubbed; `drag` numbers the scrub so it is one undo
 /// step, as in the Layers panel (#5012).
-pub fn opacity_changed(app: &mut LocalPaintApp, drag: Option<u64>) {
+pub fn opacity_changed(app: &mut LocalRasterApp, drag: Option<u64>) {
     let o = &app.ui.tool_options;
     if app.ui.tool != Tool::Gradient || o.gradient_classic {
         return;
@@ -711,7 +711,7 @@ pub fn opacity_changed(app: &mut LocalPaintApp, drag: Option<u64>) {
 // ---------------------------------------------------------------- Properties panel
 
 /// Properties panel for a live gradient. Every change uses the existing gradient commands.
-pub fn properties(app: &mut LocalPaintApp, ui: &mut egui::Ui, layer: &Layer) {
+pub fn properties(app: &mut LocalRasterApp, ui: &mut egui::Ui, layer: &Layer) {
     properties_panel::show(app, ui, layer);
 }
 
@@ -723,7 +723,7 @@ enum Marker {
     Mid(usize),
 }
 
-fn strip_key(app: &LocalPaintApp, sink: Sink) -> egui::Id {
+fn strip_key(app: &LocalRasterApp, sink: Sink) -> egui::Id {
     // Layer IDs can repeat in different documents. Tool presets belong to the session.
     let document = match sink {
         Sink::Layer(_) => app.session.active().map(|s| s.doc.id),
@@ -742,7 +742,7 @@ enum Sink {
 }
 
 impl Sink {
-    fn fill(self, app: &LocalPaintApp) -> Option<Fill> {
+    fn fill(self, app: &LocalRasterApp) -> Option<Fill> {
         match self {
             Sink::Layer(id) => fill_of(app.session.active()?.doc.layer(id)?).cloned(),
             Sink::Preset => preset_fill(app),
@@ -777,7 +777,7 @@ impl Sink {
 
 /// The Gradient Editor window's no-layer mode: the strip edits the Gradient tool's current
 /// gradient in place (`gradient.presets.stop`), as Photoshop's editor edits the tool gradient.
-fn preset_stops_editor(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+fn preset_stops_editor(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     if let Some(f) = preset_fill(app) {
         stops_editor_for(app, ui, Sink::Preset, f);
     }
@@ -785,7 +785,7 @@ fn preset_stops_editor(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
 
 /// The current gradient as a fill for the strip (foreground/background resolved now, the preset's
 /// own opacity stops, empty = opaque, midpoints centred).
-fn preset_fill(app: &LocalPaintApp) -> Option<Fill> {
+fn preset_fill(app: &LocalRasterApp) -> Option<Fill> {
     let (fg, bg) = (app.session.tools.foreground, app.session.tools.background);
     let (cs, os) = app.session.presets.gradient.fill_stops(fg, bg);
     Some(Fill::Gradient {
@@ -804,7 +804,7 @@ fn preset_fill(app: &LocalPaintApp) -> Option<Fill> {
 
 /// Opens the Color Picker on the current gradient's colour stop `i`; OK runs
 /// `gradient.presets.stop` (one journal step).
-fn preset_stop_color(app: &mut LocalPaintApp, i: usize) {
+fn preset_stop_color(app: &mut LocalRasterApp, i: usize) {
     let Some(f) = preset_fill(app) else { return };
     let Fill::Gradient { stops, .. } = &f else { return };
     let mut sorted = stops.clone();
@@ -815,7 +815,7 @@ fn preset_stop_color(app: &mut LocalPaintApp, i: usize) {
     crate::color_picker_ui::open_for_command(app, "Color Picker (Stop Color)", r, gradient_presets::STOP, json!({"action": "color", "index": i}));
 }
 
-fn stops_editor_for(app: &mut LocalPaintApp, ui: &mut egui::Ui, sink: Sink, f: Fill) {
+fn stops_editor_for(app: &mut LocalRasterApp, ui: &mut egui::Ui, sink: Sink, f: Fill) {
     let key = strip_key(app, sink);
     let selection_key = key.with("selection");
     if ui.data(|d| d.get_temp::<Marker>(selection_key)).is_none() {

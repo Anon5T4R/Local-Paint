@@ -1,7 +1,7 @@
 //! Flatten Image must leave the same Background behaviour as a newly created document (#1105).
 
-use localpaint_doc::Layer;
-use localpaint_engine::Session;
+use localraster_doc::Layer;
+use localraster_engine::Session;
 use serde_json::json;
 
 fn layered(depth: u32) -> Session {

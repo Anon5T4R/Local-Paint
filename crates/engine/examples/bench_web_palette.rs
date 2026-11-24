@@ -1,9 +1,9 @@
 //! Compare generated-palette and edited fixed-palette GIF exports on a 24 MP image.
-//! cargo run --release -p localpaint-engine --example bench_web_palette
+//! cargo run --release -p localraster-engine --example bench_web_palette
 use std::time::Instant;
 
-use localpaint_engine::web_cmds::{WebSettings, optimize};
-use localpaint_geom::Rect;
+use localraster_engine::web_cmds::{WebSettings, optimize};
+use localraster_geom::Rect;
 use serde_json::json;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

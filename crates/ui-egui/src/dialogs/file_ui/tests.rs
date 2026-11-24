@@ -7,7 +7,7 @@ fn busy_driver_page_requests_a_retry_without_input() {
     let (held_tx, held) = std::sync::mpsc::channel();
     let (release, released_rx) = std::sync::mpsc::channel::<()>();
     let holder = std::thread::spawn(move || {
-        localpaint_engine::print_cmds::with_spooler(|| {
+        localraster_engine::print_cmds::with_spooler(|| {
             held_tx.send(()).unwrap();
             let _ = released_rx.recv_timeout(std::time::Duration::from_secs(5));
         });
@@ -23,13 +23,13 @@ fn busy_driver_page_requests_a_retry_without_input() {
     let initialized = fields.get("__driverPageInitialized").cloned();
     let _ = release.send(());
     holder.join().unwrap();
-    assert_eq!(busy, Some(json!(localpaint_engine::print_cmds::SPOOLER_BUSY)));
+    assert_eq!(busy, Some(json!(localraster_engine::print_cmds::SPOOLER_BUSY)));
     assert_ne!(initialized, Some(json!(true)));
     assert!(delay <= std::time::Duration::from_millis(100), "busy driver repaint delay: {delay:?}");
-    localpaint_engine::print_cmds::with_spooler(|| {
+    localraster_engine::print_cmds::with_spooler(|| {
         ctx.run_ui(Default::default(), |ui| print_body(&mut app, ui, &mut fields, 1)).textures_delta.clear();
         assert_eq!(fields.get("__driverPageInitialized"), Some(&json!(true)));
-        assert_ne!(fields.get("__pageError"), Some(&json!(localpaint_engine::print_cmds::SPOOLER_BUSY)));
+        assert_ne!(fields.get("__pageError"), Some(&json!(localraster_engine::print_cmds::SPOOLER_BUSY)));
     });
 }
 
@@ -48,15 +48,15 @@ fn print_dialog_keeps_saved_settings_when_the_cached_printer_list_is_empty() {
         }
     }));
     app.session.prefs.edit(|p| {
-        p.dialogs.insert(localpaint_engine::print_cmds::REMEMBERED.into(), json!({"printer": "Saved printer", "printerSettings": "0011"}));
+        p.dialogs.insert(localraster_engine::print_cmds::REMEMBERED.into(), json!({"printer": "Saved printer", "printerSettings": "0011"}));
     });
-    let mut lister = localpaint_engine::Session::new();
+    let mut lister = localraster_engine::Session::new();
     lister.printer_source = app.session.printer_source.clone();
     let (held_tx, held) = std::sync::mpsc::channel();
     let (release, released_rx) = std::sync::mpsc::channel::<()>();
     let holder = std::thread::spawn(move || {
-        localpaint_engine::print_cmds::with_spooler(|| {
-            assert!(localpaint_engine::print_cmds::rgb_printers(&lister).unwrap().is_empty());
+        localraster_engine::print_cmds::with_spooler(|| {
+            assert!(localraster_engine::print_cmds::rgb_printers(&lister).unwrap().is_empty());
             available.store(true, Ordering::SeqCst);
             held_tx.send(()).unwrap();
             let _ = released_rx.recv_timeout(std::time::Duration::from_secs(5));
@@ -72,7 +72,7 @@ fn print_dialog_keeps_saved_settings_when_the_cached_printer_list_is_empty() {
     assert_eq!(pending, Some(json!(true)));
     assert_eq!(before_retry, (Some(json!("Saved printer")), Some(json!("0011"))));
     fields.insert("dryRun".into(), json!(true));
-    localpaint_engine::print_cmds::with_spooler(|| {
+    localraster_engine::print_cmds::with_spooler(|| {
         ctx.run_ui(Default::default(), |ui| print_body(&mut app, ui, &mut fields, id)).textures_delta.clear();
         assert_eq!(fields["printer"], "Saved printer");
         assert_eq!(fields["printerSettings"], "0011");
@@ -95,7 +95,7 @@ fn print_dialog_retries_an_uncached_printer_list_after_the_spooler_is_released()
     let released = Arc::new(AtomicBool::new(false));
     let done = Arc::clone(&released);
     let holder = std::thread::spawn(move || {
-        localpaint_engine::print_cmds::with_spooler(|| {
+        localraster_engine::print_cmds::with_spooler(|| {
             held_tx.send(()).unwrap();
             let _ = released_rx.recv_timeout(std::time::Duration::from_secs(5));
             done.store(true, Ordering::SeqCst);
@@ -113,7 +113,7 @@ fn print_dialog_retries_an_uncached_printer_list_after_the_spooler_is_released()
     assert!(!waited, "opening or drawing Print waited for the spooler");
     assert_eq!(calls_while_busy, 0);
     assert_eq!(fields["__systemPrinters"], json!([]));
-    localpaint_engine::print_cmds::with_spooler(|| {
+    localraster_engine::print_cmds::with_spooler(|| {
         ctx.run_ui(Default::default(), |ui| print_body(&mut app, ui, &mut fields, id)).textures_delta.clear();
         assert_eq!(fields["__systemPrinters"], json!([{"name": "Retry printer", "default": true}]));
         assert_eq!(fields.get("__printers"), cfg!(windows).then(|| json!(["Retry printer"])).as_ref());
@@ -132,7 +132,7 @@ fn driver_calls_do_not_wait_while_the_spooler_is_busy() {
     let holder = {
         let released = Arc::clone(&released);
         std::thread::spawn(move || {
-            localpaint_engine::print_cmds::with_spooler(|| {
+            localraster_engine::print_cmds::with_spooler(|| {
                 held_tx.send(()).unwrap();
                 let _ = released_rx.recv_timeout(std::time::Duration::from_secs(5));
                 released.store(true, Ordering::SeqCst);
@@ -154,8 +154,8 @@ fn driver_calls_do_not_wait_while_the_spooler_is_busy() {
     assert!(!waited, "a driver call waited for the spooler");
     assert!(!answered);
     assert!(page.get("__driverPageInitialized").is_none());
-    assert_eq!(page["__pageError"], localpaint_engine::print_cmds::SPOOLER_BUSY);
-    assert_eq!(turn["__pageError"], localpaint_engine::print_cmds::SPOOLER_BUSY);
+    assert_eq!(page["__pageError"], localraster_engine::print_cmds::SPOOLER_BUSY);
+    assert_eq!(turn["__pageError"], localraster_engine::print_cmds::SPOOLER_BUSY);
     assert_eq!((turn.get("paper"), turn.get("printerSettings")), (Some(&json!([595.28, 841.89])), None));
 }
 
@@ -173,17 +173,17 @@ fn print_drag_uses_the_resolved_layout_and_screen_points_without_accumulation() 
                 .as_object()
                 .unwrap()
                 .clone();
-                let start = localpaint_engine::print_cmds::layout(doc, &Value::Object(f.clone()), "file.print").unwrap();
+                let start = localraster_engine::print_cmds::layout(doc, &Value::Object(f.clone()), "file.print").unwrap();
                 let page = egui::Rect::from_min_size(egui::pos2(20.0, 30.0), egui::vec2(start.paper.0 as f32, start.paper.1 as f32));
                 assert!(drag_print_position(&mut f, start, egui::Vec2::ZERO, 1.0));
-                let manual = localpaint_engine::print_cmds::layout(doc, &Value::Object(f.clone()), "file.print").unwrap();
+                let manual = localraster_engine::print_cmds::layout(doc, &Value::Object(f.clone()), "file.print").unwrap();
                 assert!((manual.rect.0 - start.rect.0).abs() < 1e-9);
                 assert!((manual.rect.1 - start.rect.1).abs() < 1e-9);
                 assert_eq!(manual.scale, start.scale);
                 for k in [0.25, 0.5, 1.0, 2.0] {
                     let delta = egui::vec2(-90.0, 45.0) * k;
                     assert!(drag_print_position(&mut f, start, delta, k));
-                    let moved = localpaint_engine::print_cmds::layout(doc, &Value::Object(f.clone()), "file.print").unwrap();
+                    let moved = localraster_engine::print_cmds::layout(doc, &Value::Object(f.clone()), "file.print").unwrap();
                     let old_img = print_preview_image(start, page, k);
                     let new_img = print_preview_image(moved, page, k);
                     assert!((new_img.min - old_img.min - delta).length() < 0.001);
@@ -203,7 +203,7 @@ fn print_drag_uses_the_resolved_layout_and_screen_points_without_accumulation() 
 fn print_drag_rejects_nonfinite_input_and_bounds_offsets() {
     let (app, _) = app();
     let doc = &app.session.active().unwrap().doc;
-    let start = localpaint_engine::print_cmds::layout(doc, &json!({}), "file.print").unwrap();
+    let start = localraster_engine::print_cmds::layout(doc, &json!({}), "file.print").unwrap();
     let mut f = Map::new();
     for k in [0.0, -1.0, f32::NAN, f32::INFINITY] {
         assert!(!drag_print_position(&mut f, start, egui::vec2(10.0, 10.0), k));
@@ -212,12 +212,12 @@ fn print_drag_rejects_nonfinite_input_and_bounds_offsets() {
     assert!(!drag_print_position(&mut f, start, egui::vec2(f32::NAN, 0.0), 1.0));
     assert!(f.is_empty());
     assert!(drag_print_position(&mut f, start, egui::vec2(-f32::MAX, f32::MAX), 1.0));
-    assert_eq!(f["left"], -localpaint_engine::print_cmds::MAX_POSITION_INCHES);
-    assert_eq!(f["top"], localpaint_engine::print_cmds::MAX_POSITION_INCHES);
+    assert_eq!(f["left"], -localraster_engine::print_cmds::MAX_POSITION_INCHES);
+    assert_eq!(f["top"], localraster_engine::print_cmds::MAX_POSITION_INCHES);
 }
 
-fn app() -> (LocalPaintApp, egui::Context) {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn app() -> (LocalRasterApp, egui::Context) {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.printer_source =
         Some(Arc::new(|| vec![craft_print::Printer { name: "Test printer".into(), default: true, two_sided: None, description: String::new() }]));
     app.run("file.new", json!({"width": 120, "height": 80, "name": "web"})).unwrap();
@@ -234,8 +234,8 @@ fn droplet_folder_follows_the_document_or_uses_a_safe_fallback() {
     }
     #[cfg(not(target_os = "macos"))]
     assert_eq!(fallback, ".");
-    app.session.active_mut().unwrap().path = Some("/tmp/localpaint/drawing.pcraft".into());
-    assert_eq!(droplet_default_dir(&app), "/tmp/localpaint");
+    app.session.active_mut().unwrap().path = Some("/tmp/localraster/drawing.pcraft".into());
+    assert_eq!(droplet_default_dir(&app), "/tmp/localraster");
 }
 
 #[test]
@@ -297,16 +297,16 @@ fn save_for_web_starts_at_the_current_document_size() {
 }
 
 /// Save for Web's Image Size on a 120 x 80 document, as a PNG-24 (no other number fields).
-fn web_size_dialog(app: LocalPaintApp) -> (egui_kittest::Harness<'static, LocalPaintApp>, u64) {
+fn web_size_dialog(app: LocalRasterApp) -> (egui_kittest::Harness<'static, LocalRasterApp>, u64) {
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1600.0, 1100.0)).build_ui_state(
-        |ui, app: &mut LocalPaintApp| {
+        |ui, app: &mut LocalRasterApp| {
             if ui.ctx().fonts(|f| f.families().contains(&egui::FontFamily::Name("semibold".into()))) {
                 crate::dialogs::show(app, ui.ctx());
             }
         },
         app,
     );
-    LocalPaintApp::setup_context(&h.ctx, Default::default());
+    LocalRasterApp::setup_context(&h.ctx, Default::default());
     let id = open_web(h.state_mut());
     h.state_mut().ui.dialog_mut(id).unwrap().fields.insert("format".into(), json!("png24"));
     h.run_steps(5);
@@ -314,7 +314,7 @@ fn web_size_dialog(app: LocalPaintApp) -> (egui_kittest::Harness<'static, LocalP
 }
 
 /// Types `text` into the number field now showing `value`, and leaves it with Tab.
-fn type_into_field(h: &mut egui_kittest::Harness<'static, LocalPaintApp>, value: f64, text: &str) {
+fn type_into_field(h: &mut egui_kittest::Harness<'static, LocalRasterApp>, value: f64, text: &str) {
     use egui_kittest::kittest::{NodeT, Queryable};
     let field = h
         .query_all_by_role(egui::accesskit::Role::SpinButton)
@@ -363,7 +363,7 @@ fn save_for_web_width_keeps_proportions_and_sizes_the_file() {
     let r = crate::dialogs::confirm(h.state_mut(), id).unwrap();
     assert_eq!((r["width"].as_u64(), r["height"].as_u64()), (Some(60), Some(40)), "{r}");
     let st = h.state().session.active().unwrap();
-    assert_eq!((st.revision, st.doc.size), (revision, localpaint_doc::Size::new(120, 80)));
+    assert_eq!((st.revision, st.doc.size), (revision, localraster_doc::Size::new(120, 80)));
 }
 
 /// Reopened on another document, Save for Web starts at that document's full size again
@@ -423,8 +423,8 @@ fn save_for_web_downloads_images_and_html_through_the_platform_writer() {
 
 #[test]
 fn save_for_web_authorizes_before_opening_a_picker() {
-    fn deny(_: &str, _: &Value) -> localpaint_engine::Result<()> {
-        Err(localpaint_engine::EngineError::Other("export denied".into()))
+    fn deny(_: &str, _: &Value) -> localraster_engine::Result<()> {
+        Err(localraster_engine::EngineError::Other("export denied".into()))
     }
     for explicit_path in [false, true] {
         for synthetic_input in [false, true] {
@@ -453,8 +453,8 @@ fn save_for_web_authorizes_before_opening_a_picker() {
 
 #[test]
 fn save_for_web_authorizes_generated_palette_before_opening_a_picker() {
-    fn deny_palette(_: &str, p: &Value) -> localpaint_engine::Result<()> {
-        if p.get("colorTable").is_some() { Err(localpaint_engine::EngineError::Other("palette denied".into())) } else { Ok(()) }
+    fn deny_palette(_: &str, p: &Value) -> localraster_engine::Result<()> {
+        if p.get("colorTable").is_some() { Err(localraster_engine::EngineError::Other("palette denied".into())) } else { Ok(()) }
     }
     for synthetic_input in [false, true] {
         let (mut app, _) = app();
@@ -490,9 +490,9 @@ fn web_preview_grows_with_resize_and_accepts_zoom_and_pan() {
         },
         app,
     );
-    LocalPaintApp::setup_context(&h.ctx, Default::default());
+    LocalRasterApp::setup_context(&h.ctx, Default::default());
     h.run_steps(5);
-    let pane = |h: &egui_kittest::Harness<'_, LocalPaintApp>| {
+    let pane = |h: &egui_kittest::Harness<'_, LocalRasterApp>| {
         let r = &h.state().ui.dialogs[0].fields["__previewRects"][0];
         egui::Rect::from_min_max(
             egui::pos2(r[0].as_f64().unwrap() as f32, r[1].as_f64().unwrap() as f32),
@@ -553,21 +553,21 @@ fn web_preview_keeps_its_size_and_zoom_while_the_pointer_moves() {
     for ppp in [1.0, 1.25, 1.5, 1.75, 2.25] {
         for screen in [egui::vec2(1600.0, 1100.0), egui::vec2(1097.0, 617.0), egui::vec2(1280.0, 720.0)] {
             for view in ["2up", "4up", "original"] {
-                let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+                let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
                 app.run("file.new", json!({"width": 1980, "height": 1200})).unwrap();
                 let id = open_web(&mut app);
                 app.ui.dialog_mut(id).unwrap().fields.insert("__view".into(), json!(view));
                 let mut h = egui_kittest::Harness::builder().with_size(screen).with_pixels_per_point(ppp).build_ui_state(
-                    |ui, app: &mut LocalPaintApp| {
+                    |ui, app: &mut LocalRasterApp| {
                         if ui.ctx().fonts(|f| f.families().contains(&egui::FontFamily::Name("semibold".into()))) {
                             crate::dialogs::show(app, ui.ctx());
                         }
                     },
                     app,
                 );
-                LocalPaintApp::setup_context(&h.ctx, Default::default());
+                LocalRasterApp::setup_context(&h.ctx, Default::default());
                 h.run_steps(8);
-                let layout = |h: &egui_kittest::Harness<'_, LocalPaintApp>| {
+                let layout = |h: &egui_kittest::Harness<'_, LocalRasterApp>| {
                     let f = &h.state().ui.dialogs[0].fields;
                     let rects: Vec<egui::Rect> = h.ctx.data(|m| m.get_temp(egui::Id::unique("pc-dialog-rects"))).unwrap();
                     (rects[0], f["__previewRects"].clone(), f["__effectiveZoom"].clone())
@@ -652,7 +652,8 @@ fn printer_menu_lists_the_spooler_printers_after_the_default() {
     assert_eq!(printer_options(None, "").len(), 1);
     // The dialog asks the engine, and the list never reaches file.print's params.
     let (mut app, ctx) = app();
-    let id = localpaint_engine::print_cmds::with_spooler(|| crate::menus::invoke(&mut app, &ctx, "file.print", json!({})).unwrap()["dialog"].as_u64().unwrap());
+    let id =
+        localraster_engine::print_cmds::with_spooler(|| crate::menus::invoke(&mut app, &ctx, "file.print", json!({})).unwrap()["dialog"].as_u64().unwrap());
     let f = &app.ui.dialog_mut(id).unwrap().fields;
     assert_eq!(f["__systemPrinters"], json!([{"name": "Test printer", "default": true}]));
     assert_eq!(f.get("__printers"), cfg!(windows).then(|| json!(["Test printer"])).as_ref());
@@ -661,7 +662,7 @@ fn printer_menu_lists_the_spooler_printers_after_the_default() {
     }
     assert!(params(f).get("__systemPrinters").is_none());
     assert!(params(f).get("__printers").is_none());
-    assert_eq!(localpaint_engine::print_cmds::system_printer_listings(), 0, "a test asked the system spooler for its printers");
+    assert_eq!(localraster_engine::print_cmds::system_printer_listings(), 0, "a test asked the system spooler for its printers");
 }
 
 /// An output path or a preview typed and confirmed in one frame doesn't take the driver's area.
@@ -685,7 +686,7 @@ fn print_dialog_opens_with_the_settings_remembered_from_an_earlier_session() {
     let (mut app, _) = app();
     app.session.prefs.edit(|p| {
         p.dialogs
-            .insert(localpaint_engine::print_cmds::REMEMBERED.into(), json!({"paper": "a5", "scale": 50, "orientation": "landscape", "intent": "perceptual"}));
+            .insert(localraster_engine::print_cmds::REMEMBERED.into(), json!({"paper": "a5", "scale": 50, "orientation": "landscape", "intent": "perceptual"}));
     });
     let id = open_print(&mut app);
     let f = &app.ui.dialog_mut(id).unwrap().fields;
@@ -702,8 +703,8 @@ fn save_as_pdf_browse_fills_the_output_from_a_save_dialog() {
     let out = std::env::temp_dir().join(format!("pc-printui-browse-{}", std::process::id())).to_string_lossy().into_owned();
     let (show, asked) = crate::file_dialog::fake(vec![Some(FileDialogAnswer::SaveTo(out.clone()))]);
     let mut h = Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_max_steps(64).build_eframe(move |cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services { file_dialog: Some(show), ..Default::default() });
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services { file_dialog: Some(show), ..Default::default() });
         app.session.printer_source =
             Some(Arc::new(|| vec![craft_print::Printer { name: "Test printer".into(), default: true, two_sided: None, description: String::new() }]));
         app
@@ -757,7 +758,7 @@ fn turning_without_a_driver_keeps_the_settings_and_shows_the_error() {
     assert!(craft_print::rgb::DevMode::from_hex(&hex).is_ok());
     let (mut app, _) = app();
     let mut f = Map::new();
-    f.insert("printer".into(), json!("localpaint-no-such-printer"));
+    f.insert("printer".into(), json!("localraster-no-such-printer"));
     f.insert("printerSettings".into(), json!(hex));
     f.insert("paper".into(), json!([595.28, 841.89]));
     turn_driver(&mut app, &mut f, true);
@@ -806,7 +807,7 @@ fn a_turn_takes_the_printable_area_with_the_paper() {
     f.insert("printable".into(), json!([12.0, 12.0, 818.29, 1167.14]));
     f.insert("orientation".into(), json!("portrait"));
     take_turned_page(&mut f, &json!({"printerSettings": "new", "paper": [1191.14, 842.29], "printable": [12.0, 12.0, 1167.14, 818.29]}));
-    let l = localpaint_engine::print_cmds::layout(&doc, &print_params(&f), "file.print");
+    let l = localraster_engine::print_cmds::layout(&doc, &print_params(&f), "file.print");
     assert_eq!(l.map(|l| l.paper).map_err(|e| e.to_string()), Ok((1191.14, 842.29)));
     assert_eq!(f.get("printable"), Some(&json!([12.0, 12.0, 1167.14, 818.29])));
     // An answer without a usable area drops the old one: the fixed margin, not a stale area.

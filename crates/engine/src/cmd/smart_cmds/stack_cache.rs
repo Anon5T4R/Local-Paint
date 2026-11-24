@@ -5,10 +5,10 @@
 
 use std::sync::{Mutex, PoisonError};
 
-use localpaint_color::PixelFormat;
-use localpaint_doc::{SmartFilter, SmartObject};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_color::PixelFormat;
+use localraster_doc::{SmartFilter, SmartObject};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 
 /// blake3 of a stage's inputs: the source contents, the placement and the filters so far.
 pub(super) type StageKey = [u8; 32];

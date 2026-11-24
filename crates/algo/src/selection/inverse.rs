@@ -3,9 +3,9 @@
 use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
 
-use localpaint_color::{PixelFormat, read_sample};
-use localpaint_geom::{Rect, TILE_SIZE, TileCoord};
-use localpaint_raster::{Surface, Tile};
+use localraster_color::{PixelFormat, read_sample};
+use localraster_geom::{Rect, TILE_SIZE, TileCoord};
+use localraster_raster::{Surface, Tile};
 
 use crate::photo_util::par_map;
 

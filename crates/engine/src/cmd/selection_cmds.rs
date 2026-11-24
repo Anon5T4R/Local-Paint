@@ -2,10 +2,10 @@
 //! (expand/contract/border/smooth/feather), Grow, Similar, Lasso.
 //! Selections are grayscale coverage surfaces clipped to the canvas.
 
-use localpaint_algo::selection::{self as sel, SelectionMode};
-use localpaint_doc::Document;
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_algo::selection::{self as sel, SelectionMode};
+use localraster_doc::Document;
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;
@@ -70,7 +70,7 @@ fn sample_pixels(s: &Session, all_layers: bool, window: Option<Rect>) -> Result<
             surf.read_rgba_into(area, &mut px);
             Ok((area, px))
         }
-        _ => Ok((area, localpaint_compose::render(&d.doc, area).px)),
+        _ => Ok((area, localraster_compose::render(&d.doc, area).px)),
     }
 }
 
@@ -124,7 +124,7 @@ pub(crate) fn sample_rgba8(s: &Session, all_layers: bool) -> Result<(Rect, Vec<[
         (false, Some(surf)) => Ok((area, sel::rgba8_image(surf, area))),
         _ => {
             let q = |v: f32| (v.clamp(0.0, 1.0) * 255.0 + 0.5) as u8;
-            Ok((area, localpaint_compose::render(&d.doc, area).px.iter().map(|p| p.map(q)).collect()))
+            Ok((area, localraster_compose::render(&d.doc, area).px.iter().map(|p| p.map(q)).collect()))
         }
     }
 }
@@ -158,10 +158,10 @@ fn parse_color(p: &Value) -> [f32; 3] {
 }
 
 /// Composite RGB (the compositor's output profile for the document) → CIE Lab D50.
-fn lab_transform(s: &Session) -> Result<std::sync::Arc<localpaint_cms::Transform>> {
+fn lab_transform(s: &Session) -> Result<std::sync::Arc<localraster_cms::Transform>> {
     let d = s.active().ok_or(EngineError::NoDocument)?;
     let src = crate::color_cmds::composite_profile(&d.doc);
-    localpaint_cms::cached(&src, localpaint_cms::Builtin::LabD50.profile(), localpaint_cms::TransformOptions::default())
+    localraster_cms::cached(&src, localraster_cms::Builtin::LabD50.profile(), localraster_cms::TransformOptions::default())
         .map_err(|e| EngineError::Other(format!("colour management: {e}")))
 }
 
@@ -170,14 +170,14 @@ fn decode_lab(v: [f32; 3]) -> [f32; 3] {
     [v[0] * 100.0, v[1] * 255.0 - 128.0, v[2] * 255.0 - 128.0]
 }
 
-fn colour_to_lab(t: &localpaint_cms::Transform, rgb: [f32; 3]) -> [f32; 3] {
+fn colour_to_lab(t: &localraster_cms::Transform, rgb: [f32; 3]) -> [f32; 3] {
     let mut out = [0.0f32; 3];
     t.eval(&rgb.map(|v| v.clamp(0.0, 1.0)), &mut out);
     decode_lab(out)
 }
 
 /// RGBA pixels → Lab + alpha (L, a, b, alpha).
-fn pixels_to_lab(t: &localpaint_cms::Transform, px: &[[f32; 4]]) -> Vec<[f32; 4]> {
+fn pixels_to_lab(t: &localraster_cms::Transform, px: &[[f32; 4]]) -> Vec<[f32; 4]> {
     let src: Vec<[f32; 4]> = px.iter().map(|p| [p[0].clamp(0.0, 1.0), p[1].clamp(0.0, 1.0), p[2].clamp(0.0, 1.0), p[3]]).collect();
     let mut out = vec![[0.0f32; 4]; px.len()];
     t.convert_f32(src.as_flattened(), 4, out.as_flattened_mut(), 4, true);
@@ -191,7 +191,7 @@ fn pixels_to_lab(t: &localpaint_cms::Transform, px: &[[f32; 4]]) -> Vec<[f32; 4]
 /// Prepared Sampled Colors query shared by the command and its interactive preview.
 /// Samples always come from the original document; reducing an image must not change them.
 pub struct ColorRangeSamples {
-    to_lab: std::sync::Arc<localpaint_cms::Transform>,
+    to_lab: std::sync::Arc<localraster_cms::Transform>,
     range: sel::LabRange,
     grid: bool,
     fuzziness: f32,
@@ -234,7 +234,7 @@ impl ColorRangeSamples {
                 };
                 let px = match pixel {
                     Some(px) => px,
-                    None => localpaint_compose::render(doc, r).px.first().copied().unwrap_or([0.0; 4]),
+                    None => localraster_compose::render(doc, r).px.first().copied().unwrap_or([0.0; 4]),
                 };
                 samples.push(sel::RangeSample { color: [px[0], px[1], px[2]], at: Some(((x - area.x0) as f32, (y - area.y0) as f32)) });
             }
@@ -289,9 +289,9 @@ impl ColorRangeSamples {
         // "Subtract from Sample" reshapes it (sel::LabRange::subtract).
         let to_lab = lab_transform(s)?;
         // 8-bit documents are compared on the 8-bit Lab grid, samples and pixels alike.
-        let grid = s.active().is_some_and(|d| d.doc.depth == localpaint_doc::SampleType::U8);
+        let grid = s.active().is_some_and(|d| d.doc.depth == localraster_doc::SampleType::U8);
         let q = |c: [f32; 3]| if grid { sel::quantize_lab8(c) } else { c };
-        let colour_to_lab = |t: &localpaint_cms::Transform, c: [f32; 3]| q(colour_to_lab(t, c));
+        let colour_to_lab = |t: &localraster_cms::Transform, c: [f32; 3]| q(colour_to_lab(t, c));
         let foreground = || {
             let [r, g, b, _] = s.tools.foreground;
             sel::LabRange::point(colour_to_lab(&to_lab, [r, g, b]))
@@ -339,7 +339,7 @@ fn color_range_area(doc: &Document, m: SelectionMode) -> Rect {
     }
     // content_bounds orders raw tile coordinates by their differences. Reject coordinates
     // outside the pixel-addressable range before those differences can overflow.
-    let valid = (i32::MIN / localpaint_geom::TILE_SIZE)..=(i32::MAX / localpaint_geom::TILE_SIZE);
+    let valid = (i32::MIN / localraster_geom::TILE_SIZE)..=(i32::MAX / localraster_geom::TILE_SIZE);
     if selection.tiles().any(|(tile, _)| !valid.contains(&tile.tx) || !valid.contains(&tile.ty)) {
         return canvas;
     }

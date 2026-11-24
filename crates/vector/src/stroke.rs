@@ -5,7 +5,7 @@
 
 use std::borrow::Cow;
 
-use localpaint_doc::{LineCap, LineJoin};
+use localraster_doc::{LineCap, LineJoin};
 
 use crate::flatten::Polyline;
 

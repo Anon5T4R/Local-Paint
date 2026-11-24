@@ -12,7 +12,7 @@ use std::f32::consts::PI;
 
 use crate::photo_util::{par_rows, par_rows2};
 
-use localpaint_geom::Rect;
+use localraster_geom::Rect;
 
 use crate::Ctx;
 use crate::artistic::GalleryEffect;
@@ -1337,8 +1337,8 @@ fn normalize3(v: [f32; 3]) -> [f32; 3] {
 
 #[cfg(test)]
 mod tests {
-    use localpaint_color::{ColorMode, PixelFormat, SampleType};
-    use localpaint_raster::Surface;
+    use localraster_color::{ColorMode, PixelFormat, SampleType};
+    use localraster_raster::Surface;
 
     use super::*;
     use crate::{FilterParams, apply_tiled};
@@ -1575,7 +1575,7 @@ mod tests {
         assert_eq!(e.get("relief"), 50.0);
     }
 
-    /// Release timing on 24 MP: `cargo test -p localpaint-algo --release bench_gallery -- --ignored --nocapture`.
+    /// Release timing on 24 MP: `cargo test -p localraster-algo --release bench_gallery -- --ignored --nocapture`.
     #[test]
     #[ignore]
     fn bench_gallery() {
@@ -1608,7 +1608,7 @@ mod tests {
         println!("{:>18}: {total:>7.0} ms", "total");
     }
 
-    /// Visual check: `GALLERY_RAW=src.raw GALLERY_W=480 GALLERY_H=322 cargo test -p localpaint-algo --release gallery_sheet -- --ignored`
+    /// Visual check: `GALLERY_RAW=src.raw GALLERY_W=480 GALLERY_H=322 cargo test -p localraster-algo --release gallery_sheet -- --ignored`
     /// writes `<key>.raw` (RGB8) beside the input for every filter (or one, see `GALLERY_ONLY`).
     #[test]
     #[ignore]

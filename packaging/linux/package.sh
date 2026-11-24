@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Build and package Local Paint for Linux (<arch> is x86_64, aarch64 or riscv64):
+# Build and package Local Raster for Linux (<arch> is x86_64, aarch64 or riscv64):
 #
-#   $DIST/localpaint-<version>-linux-<arch>.AppImage  any distro with glibc >= the build host's
-#   $DIST/localpaint-<version>-linux-<arch>.AppImage.zsync  delta updates (needs zsyncmake)
-#   $DIST/localpaint-<version>-linux-<arch>.deb       Debian, Ubuntu, Mint, Pop!_OS, ...
-#   $DIST/localpaint-<version>-linux-<arch>.rpm       Fedora, openSUSE, RHEL, ...
-#   $DIST/localpaint-<version>-linux-<arch>.tar.gz    plain FHS-style tree (bin/, share/)
-#   $DIST/localpaint-cli-<version>-linux-<arch>.tar.gz  the headless CLI alone (servers, CI, agents)
+#   $DIST/localraster-<version>-linux-<arch>.AppImage  any distro with glibc >= the build host's
+#   $DIST/localraster-<version>-linux-<arch>.AppImage.zsync  delta updates (needs zsyncmake)
+#   $DIST/localraster-<version>-linux-<arch>.deb       Debian, Ubuntu, Mint, Pop!_OS, ...
+#   $DIST/localraster-<version>-linux-<arch>.rpm       Fedora, openSUSE, RHEL, ...
+#   $DIST/localraster-<version>-linux-<arch>.tar.gz    plain FHS-style tree (bin/, share/)
+#   $DIST/localraster-cli-<version>-linux-<arch>.tar.gz  the headless CLI alone (servers, CI, agents)
 #
 # Usage: packaging/linux/package.sh [--skip-build] [--formats "appimage deb rpm tar cli"]
 #
@@ -24,7 +24,7 @@ set -euo pipefail
 HERE="$ROOT/packaging/linux"
 # shellcheck source=verified-download.sh
 . "$HERE/verified-download.sh"
-APP_ID=com.localpaint.app
+APP_ID=com.localraster.app
 
 SKIP_BUILD=0
 FORMATS="appimage deb rpm tar cli"
@@ -44,21 +44,21 @@ case "$ARCH" in
   aarch64 | arm64) ARCH=aarch64; DEB_ARCH=arm64 ;;
   *) echo "unsupported architecture $ARCH" >&2; exit 2 ;;
 esac
-export LOCALPAINT_MAINTAINER="${LOCALPAINT_MAINTAINER:-Local Paint maintainers <localpaint@users.noreply.github.com>}"
-BASENAME="localpaint-$VERSION-linux-$ARCH"
+export LOCALRASTER_MAINTAINER="${LOCALRASTER_MAINTAINER:-Local Raster maintainers <localraster@users.noreply.github.com>}"
+BASENAME="localraster-$VERSION-linux-$ARCH"
 
-echo "==> Local Paint $VERSION for Linux $ARCH ($FORMATS)"
+echo "==> Local Raster $VERSION for Linux $ARCH ($FORMATS)"
 
-# The man-and-completions example writes localpaint-cli's man pages and shell completions below. It
+# The man-and-completions example writes localraster-cli's man pages and shell completions below. It
 # is built in its own cargo run: built with the binaries, its dev-dependencies' features would be
 # unified into them.
 if [[ "$SKIP_BUILD" = 0 ]]; then
   if [[ -n "${CROSS_TARGET:-}" ]]; then
-    (cd "$ROOT" && cargo build --release --locked -p localpaint -p localpaint-cli --features heif --bins --target "$CROSS_TARGET")
-    (cd "$ROOT" && cargo build --release --locked -p localpaint-cli --features heif --example man-and-completions --target "$CROSS_TARGET")
+    (cd "$ROOT" && cargo build --release --locked -p localraster -p localraster-cli --features heif --bins --target "$CROSS_TARGET")
+    (cd "$ROOT" && cargo build --release --locked -p localraster-cli --features heif --example man-and-completions --target "$CROSS_TARGET")
   else
-    (cd "$ROOT" && cargo build --release --locked -p localpaint -p localpaint-cli --features heif --bins)
-    (cd "$ROOT" && cargo build --release --locked -p localpaint-cli --features heif --example man-and-completions)
+    (cd "$ROOT" && cargo build --release --locked -p localraster -p localraster-cli --features heif --bins)
+    (cd "$ROOT" && cargo build --release --locked -p localraster-cli --features heif --example man-and-completions)
   fi
 fi
 BIN="$CARGO_TARGET_DIR/${CROSS_TARGET:+$CROSS_TARGET/}release"
@@ -67,28 +67,28 @@ STAGE="$WORK/root"
 rm -rf "$WORK"
 
 # ---- stage an FHS tree (shared by every format) -------------------------------------------------
-install -Dm755 "$BIN/localpaint" "$STAGE/usr/bin/localpaint"
-install -Dm755 "$BIN/localpaint-cli" "$STAGE/usr/bin/localpaint-cli"
-"${CROSS_COMPILE:-}strip" "$STAGE/usr/bin/localpaint" "$STAGE/usr/bin/localpaint-cli" 2>/dev/null || true
+install -Dm755 "$BIN/localraster" "$STAGE/usr/bin/localraster"
+install -Dm755 "$BIN/localraster-cli" "$STAGE/usr/bin/localraster-cli"
+"${CROSS_COMPILE:-}strip" "$STAGE/usr/bin/localraster" "$STAGE/usr/bin/localraster-cli" 2>/dev/null || true
 install -Dm644 "$HERE/$APP_ID.desktop" "$STAGE/usr/share/applications/$APP_ID.desktop"
 install -Dm644 "$HERE/$APP_ID.mime.xml" "$STAGE/usr/share/mime/packages/$APP_ID.xml"
 mkdir -p "$STAGE/usr/share/metainfo"
-sed -e "s/@VERSION@/$VERSION/g" -e "s/@DATE@/$LOCALPAINT_BUILD_DATE/g" \
+sed -e "s/@VERSION@/$VERSION/g" -e "s/@DATE@/$LOCALRASTER_BUILD_DATE/g" \
   "$HERE/$APP_ID.metainfo.xml.in" >"$STAGE/usr/share/metainfo/$APP_ID.metainfo.xml"
 mkdir -p "$STAGE/usr/share/icons"
 cp -R "$ROOT/assets/app-icon/hicolor" "$STAGE/usr/share/icons/"
-mkdir -p "$STAGE/usr/share/doc/localpaint"
-copy_docs "$STAGE/usr/share/doc/localpaint"
-# localpaint-cli's man pages and shell completions, from its clap definition, written by the
+mkdir -p "$STAGE/usr/share/doc/localraster"
+copy_docs "$STAGE/usr/share/doc/localraster"
+# localraster-cli's man pages and shell completions, from its clap definition, written by the
 # example built above. A cross build runs it through $EMULATOR, like the --version check at the
 # end, and leaves them out without one, as a --skip-build run whose prebuilt binaries came without
 # the example does. zsh reads site-functions on Fedora and openSUSE; the deb also links the
 # completion into Debian's vendor-completions (nfpm.yaml).
 CLI_DOCS="$BIN/examples/man-and-completions"
 if [[ -n "${CROSS_TARGET:-}" ]] && [[ -z "${EMULATOR:-}" ]]; then
-  warn "no EMULATOR to run the $CROSS_TARGET build, so localpaint-cli's man pages and completions are left out"
+  warn "no EMULATOR to run the $CROSS_TARGET build, so localraster-cli's man pages and completions are left out"
 elif [[ ! -x "$CLI_DOCS" ]]; then
-  warn "$CLI_DOCS is not built, so localpaint-cli's man pages and completions are left out"
+  warn "$CLI_DOCS is not built, so localraster-cli's man pages and completions are left out"
 else
   if [[ -n "${CROSS_TARGET:-}" ]]; then
     "$EMULATOR" "$CLI_DOCS" "$WORK/cli-docs"
@@ -96,9 +96,9 @@ else
     "$CLI_DOCS" "$WORK/cli-docs"
   fi
   install -Dm644 -t "$STAGE/usr/share/man/man1" "$WORK"/cli-docs/*.1
-  install -Dm644 "$WORK/cli-docs/localpaint-cli.bash" "$STAGE/usr/share/bash-completion/completions/localpaint-cli"
-  install -Dm644 "$WORK/cli-docs/_localpaint-cli" "$STAGE/usr/share/zsh/site-functions/_localpaint-cli"
-  install -Dm644 "$WORK/cli-docs/localpaint-cli.fish" "$STAGE/usr/share/fish/vendor_completions.d/localpaint-cli.fish"
+  install -Dm644 "$WORK/cli-docs/localraster-cli.bash" "$STAGE/usr/share/bash-completion/completions/localraster-cli"
+  install -Dm644 "$WORK/cli-docs/_localraster-cli" "$STAGE/usr/share/zsh/site-functions/_localraster-cli"
+  install -Dm644 "$WORK/cli-docs/localraster-cli.fish" "$STAGE/usr/share/fish/vendor_completions.d/localraster-cli.fish"
 fi
 
 if command -v desktop-file-validate >/dev/null; then
@@ -121,13 +121,13 @@ if has tar; then
 fi
 
 # ---- CLI-only .tar.gz ---------------------------------------------------------------------------
-# The stripped localpaint-cli (and its opt-in MCP server) with the licences, for machines that
+# The stripped localraster-cli (and its opt-in MCP server) with the licences, for machines that
 # never open a window. Like the other formats it needs glibc >= the build host's.
 if has cli; then
-  CLI_NAME="localpaint-cli-$VERSION-linux-$ARCH"
+  CLI_NAME="localraster-cli-$VERSION-linux-$ARCH"
   CLI_DIR="$WORK/cli/$CLI_NAME"
   mkdir -p "$CLI_DIR"
-  cp "$STAGE/usr/bin/localpaint-cli" "$CLI_DIR/"
+  cp "$STAGE/usr/bin/localraster-cli" "$CLI_DIR/"
   copy_docs "$CLI_DIR"
   tar -C "$WORK/cli" -czf "$DIST/$CLI_NAME.tar.gz" "$CLI_NAME"
   echo "wrote $DIST/$CLI_NAME.tar.gz"
@@ -142,7 +142,7 @@ if has deb || has rpm; then
   # Without the completions (a cross build with no EMULATOR) the deb's zsh symlink would dangle,
   # so its entry is dropped too.
   DROP_ZSH_LINK=
-  [[ -f "$STAGE/usr/share/zsh/site-functions/_localpaint-cli" ]] || DROP_ZSH_LINK='\|^  - src: /usr/share/zsh/site-functions/|,/packager: deb/d;'
+  [[ -f "$STAGE/usr/share/zsh/site-functions/_localraster-cli" ]] || DROP_ZSH_LINK='\|^  - src: /usr/share/zsh/site-functions/|,/packager: deb/d;'
   sed "${DROP_ZSH_LINK}s|\${STAGE}|$STAGE|g" "$HERE/nfpm.yaml" >"$WORK/nfpm.yaml"
   for fmt in deb rpm; do
     if has "$fmt"; then (cd "$ROOT" && nfpm package -f "$WORK/nfpm.yaml" -p "$fmt" -t "$DIST/$BASENAME.$fmt"); fi
@@ -151,7 +151,7 @@ fi
 
 # ---- AppImage -----------------------------------------------------------------------------------
 if has appimage; then
-  APPDIR="$WORK/LocalPaint.AppDir"
+  APPDIR="$WORK/LocalRaster.AppDir"
   cp -R "$STAGE" "$APPDIR"
   # AppRun is a script, not a symlink: it installs the .desktop entry and icons into
   # $XDG_DATA_HOME before launching, so Wayland compositors can resolve the window's
@@ -209,8 +209,8 @@ if has appimage; then
   # file and fetch only the blocks that changed in a newer release, through the .zsync published
   # next to each AppImage on GitHub Releases. `latest` is the newest published release that is
   # not a pre-release. A fork's builds point at its own releases through GITHUB_REPOSITORY.
-  REPO="${GITHUB_REPOSITORY:-Anon5T4R/Local-Paint}"
-  UPDATE_INFO="gh-releases-zsync|${REPO%%/*}|${REPO#*/}|latest|localpaint-*-linux-$ARCH.AppImage.zsync"
+  REPO="${GITHUB_REPOSITORY:-Anon5T4R/Local-Raster}"
+  UPDATE_INFO="gh-releases-zsync|${REPO%%/*}|${REPO#*/}|latest|localraster-*-linux-$ARCH.AppImage.zsync"
   # Extract-and-run: works without FUSE (containers, CI). The output embeds the static runtime,
   # so users don't need libfuse2 either. With zsyncmake on the host (CI installs the zsync
   # package) appimagetool also writes the .zsync, into its working directory, hence the cd.
@@ -225,9 +225,9 @@ if has appimage; then
 fi
 
 if [[ -z "${CROSS_TARGET:-}" ]]; then
-  "$STAGE/usr/bin/localpaint-cli" --version
+  "$STAGE/usr/bin/localraster-cli" --version
 elif [[ -n "${EMULATOR:-}" ]]; then
-  "$EMULATOR" "$STAGE/usr/bin/localpaint-cli" --version
+  "$EMULATOR" "$STAGE/usr/bin/localraster-cli" --version
 fi
 echo "==> done"
 ls -lh "$DIST"

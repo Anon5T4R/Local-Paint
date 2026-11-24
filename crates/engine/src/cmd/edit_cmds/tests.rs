@@ -346,7 +346,7 @@ fn copy_paste_between_documents() {
 /// exactly the old pixels.
 #[test]
 fn paste_damages_only_the_pasted_layer() {
-    let render = |s: &Session| localpaint_compose::render(&s.active().unwrap().doc, s.active().unwrap().doc.bounds());
+    let render = |s: &Session| localraster_compose::render(&s.active().unwrap().doc, s.active().unwrap().doc.bounds());
     for depth in [8, 16, 32] {
         let mut s = Session::new();
         s.execute("file.new", json!({"width": 60, "height": 50, "depth": depth, "background": "white"})).unwrap();
@@ -400,7 +400,7 @@ fn mask_target_session(depth: u32) -> (Session, LayerId, LayerId) {
 /// The luminosity of `src`'s pixel at (`x`, `y`): what a paste into a mask writes there.
 fn luminosity(s: &Session, src: LayerId, x: i32, y: i32) -> f32 {
     let p = s.active().unwrap().doc.layer(src).unwrap().surface().unwrap().rgba(x, y);
-    localpaint_color::convert::rgb_to_gray([p[0], p[1], p[2]])
+    localraster_color::convert::rgb_to_gray([p[0], p[1], p[2]])
 }
 
 fn mask_at(s: &Session, id: LayerId, x: i32, y: i32) -> f32 {
@@ -585,9 +585,9 @@ fn paste_between_different_color_modes() {
     s.execute("file.new", json!({"width": 120, "height": 120, "mode": "gray"})).unwrap();
     s.execute("edit.paste", json!({})).unwrap();
     let d = &s.active().unwrap().doc;
-    assert_eq!(d.mode, localpaint_doc::ColorMode::Grayscale);
+    assert_eq!(d.mode, localraster_doc::ColorMode::Grayscale);
     let pasted = d.layers.last().unwrap().surface().unwrap();
-    assert_eq!(pasted.format().mode, localpaint_color::ColorMode::Grayscale, "pasted layer is grayscale");
+    assert_eq!(pasted.format().mode, localraster_color::ColorMode::Grayscale, "pasted layer is grayscale");
     assert!(!pasted.content_bounds().is_empty(), "pasted content exists");
 }
 
@@ -640,7 +640,7 @@ fn layer_via_copy_of_a_background_keeps_colour_and_partial_selection() {
         let mut s = Session::new();
         s.execute("file.new", json!({"width": 40, "height": 30, "depth": depth, "background": "#336699"})).unwrap();
         s.edit("partial selection", |doc, _| {
-            let mut m = localpaint_raster::Surface::new(PixelFormat::GRAY8);
+            let mut m = localraster_raster::Surface::new(PixelFormat::GRAY8);
             m.fill_rect(Rect::new(5, 5, 15, 15), &[1.0]);
             m.fill_rect(Rect::new(15, 5, 20, 15), &[0.5]);
             doc.selection = Some(m);
@@ -894,9 +894,9 @@ fn paste_keeps_a_psd_embedded_smart_object_openable() {
         let LayerContent::Smart(sm) = &mut doc.layer_mut(outer).ok_or(EngineError::NoDocument)?.content else {
             return Err(EngineError::Other("not a smart object".into()));
         };
-        sm.source = localpaint_doc::SmartSource::Linked { path: "uuid-1".into() };
-        let linked = localpaint_io::linked::LinkedFile { uuid: "uuid-1".into(), file_name: "in.png".into(), bytes: vec![1, 2, 3, 4] };
-        doc.metadata.psd_global_blocks.push((*b"8BIM", *b"lnk2", Arc::new(localpaint_io::linked::encode_linked_file(&linked))));
+        sm.source = localraster_doc::SmartSource::Linked { path: "uuid-1".into() };
+        let linked = localraster_io::linked::LinkedFile { uuid: "uuid-1".into(), file_name: "in.png".into(), bytes: vec![1, 2, 3, 4] };
+        doc.metadata.psd_global_blocks.push((*b"8BIM", *b"lnk2", Arc::new(localraster_io::linked::encode_linked_file(&linked))));
         Ok(())
     })
     .unwrap();
@@ -981,7 +981,7 @@ fn cross_document_group_paste_renders_shapes_on_destination_canvas() {
             assert_eq!(cache.format().sample, st.doc.depth);
             assert!(!cache.content_bounds().is_empty(), "destination cache must not be clipped to source canvas");
             assert!(cache.content_bounds().x0 > 100);
-            let fresh = localpaint_vector::render_shape(shape, st.doc.pixel_format(), st.doc.bounds());
+            let fresh = localraster_vector::render_shape(shape, st.doc.pixel_format(), st.doc.bounds());
             assert_eq!(cache, &fresh);
         }
         let before = st.doc.clone();
@@ -1007,15 +1007,15 @@ fn paste_repairs_uncached_shapes_before_transform_and_effect_rendering() {
     let LayerContent::Shape(sh) = &layer.content else { panic!("shape") };
     assert!(sh.cache.is_some());
     assert!(!crate::transform_cmds::transform_bounds(&st.doc, layer).is_empty());
-    let expected = localpaint_vector::render_shape(sh, st.doc.pixel_format(), st.doc.bounds());
+    let expected = localraster_vector::render_shape(sh, st.doc.pixel_format(), st.doc.bounds());
     assert_eq!(sh.cache.as_ref().unwrap(), &expected);
-    let rendered = localpaint_compose::render_layer_in(&st.doc, layer, st.doc.bounds());
+    let rendered = localraster_compose::render_layer_in(&st.doc, layer, st.doc.bounds());
     let mut fresh_doc = (*st.doc).clone();
     let snapshot = fresh_doc.clone();
     if let LayerContent::Shape(shape) = &mut fresh_doc.layer_mut(layer.id).unwrap().content {
         crate::vector_cmds::refresh_shape(&snapshot, shape);
     }
-    let fresh = localpaint_compose::render_layer_in(&fresh_doc, fresh_doc.layer(layer.id).unwrap(), fresh_doc.bounds());
+    let fresh = localraster_compose::render_layer_in(&fresh_doc, fresh_doc.layer(layer.id).unwrap(), fresh_doc.bounds());
     assert_eq!(rendered.px, fresh.px, "pasted effects match a freshly rebuilt shape");
     assert!(s.undo());
     assert!(s.redo());
@@ -1430,13 +1430,13 @@ fn guides_keep_sub_pixel_positions_through_pcraft_and_psd() {
     fn wide(v: impl Into<f64>) -> f64 {
         v.into()
     }
-    let exact = |g: &localpaint_doc::Guides| (wide(g.horizontal[0]), wide(g.vertical[0]));
+    let exact = |g: &localraster_doc::Guides| (wide(g.horizontal[0]), wide(g.vertical[0]));
     let doc = &s.active().unwrap().doc;
     assert_eq!(exact(&doc.guides), (cm, far));
-    let pcraft = localpaint_format::save_to_bytes(doc, &Default::default()).unwrap();
-    assert_eq!(exact(&localpaint_format::load_from_bytes(&pcraft).unwrap().guides), (cm, far));
-    let psd = localpaint_io::export(doc, "psd", &Default::default()).unwrap().bytes;
-    let back = localpaint_io::import("g.psd", &psd).unwrap().document.guides;
+    let pcraft = localraster_format::save_to_bytes(doc, &Default::default()).unwrap();
+    assert_eq!(exact(&localraster_format::load_from_bytes(&pcraft).unwrap().guides), (cm, far));
+    let psd = localraster_io::export(doc, "psd", &Default::default()).unwrap().bytes;
+    let back = localraster_io::import("g.psd", &psd).unwrap().document.guides;
     assert_eq!(wide(back.vertical[0]), far, "1032 stores 1/32 px");
 }
 
@@ -1490,7 +1490,7 @@ fn assert_same_clip(a: &Clip, b: &Clip, what: &str) {
 /// the tile grid, and for content reaching past the canvas.
 #[test]
 fn tiled_lift_matches_the_whole_area_lift() {
-    use localpaint_color::{ColorMode, SampleType};
+    use localraster_color::{ColorMode, SampleType};
     let canvas = Rect::new(0, 0, 700, 600);
     for sample in [SampleType::U8, SampleType::U16, SampleType::F32] {
         for alpha in [true, false] {

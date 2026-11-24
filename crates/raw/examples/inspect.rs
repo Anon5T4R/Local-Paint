@@ -1,4 +1,4 @@
-//! Prints the raw metadata of files: `cargo run -p localpaint-raw --example inspect -- a.cr2 b.nef`
+//! Prints the raw metadata of files: `cargo run -p localraster-raw --example inspect -- a.cr2 b.nef`
 //! (handy while adding corpus files; the oracle expectations in `tests/it/raw_corpus.rs` come from it).
 use std::env;
 
@@ -11,7 +11,7 @@ fn main() {
                 continue;
             }
         };
-        match localpaint_raw::decode(&bytes, &localpaint_raw::Limits::default()) {
+        match localraster_raw::decode(&bytes, &localraster_raw::Limits::default()) {
             Ok(s) => {
                 println!(
                     "{path}: {:?} make={:?} model={:?} {}x{} samples={} cfa={:?} wb={:?} black={:?} white={:?} crop={:?}..{:?} orientation={} warnings={}",

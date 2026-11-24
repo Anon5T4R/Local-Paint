@@ -1,12 +1,12 @@
 //! One integration-test process keeps its global mask cache isolated from parallel unit tests.
 use std::sync::Arc;
 
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_compose::masks;
-use localpaint_doc::{Layer, LayerMask};
-use localpaint_engine::Session;
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_compose::masks;
+use localraster_doc::{Layer, LayerMask};
+use localraster_engine::Session;
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 use serde_json::json;
 
 #[test]

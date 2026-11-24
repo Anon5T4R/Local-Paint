@@ -1,6 +1,6 @@
 use super::*;
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_raster::{Interrupt, Surface};
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_raster::{Interrupt, Surface};
 
 mod reference;
 

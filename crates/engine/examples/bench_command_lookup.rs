@@ -1,6 +1,6 @@
 //! Registry lookup cost, separate from command execution and canvas refresh.
-//! Run with `cargo run --release -p localpaint-engine --example bench_command_lookup`.
-use localpaint_engine::commands;
+//! Run with `cargo run --release -p localraster-engine --example bench_command_lookup`.
+use localraster_engine::commands;
 use std::hint::black_box;
 use std::time::Instant;
 

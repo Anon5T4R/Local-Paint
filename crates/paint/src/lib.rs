@@ -14,8 +14,8 @@
 #![forbid(unsafe_code)]
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
-use localpaint_geom::{Point, Rect};
-use localpaint_raster::Surface;
+use localraster_geom::{Point, Rect};
+use localraster_raster::Surface;
 use serde::{Deserialize, Serialize};
 
 pub mod bg_erase;
@@ -272,7 +272,7 @@ pub fn smooth(points: &[StrokePoint], amount: f32) -> Vec<StrokePoint> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_color::PixelFormat;
+    use localraster_color::PixelFormat;
 
     fn stroke(points: &[(f64, f64)], size: f32) -> Stroke {
         Stroke {
@@ -356,7 +356,7 @@ mod tests {
         // Half-transparent white under a black stroke at 50%: the colour moves halfway (Photoshop's
         // source-atop), not by the source-over weight 0.5 / 0.75 (#5783).
         for f in [PixelFormat::RGBA8, PixelFormat::RGBA16, PixelFormat::RGBA32F] {
-            for mode in [localpaint_color::BlendMode::Normal, localpaint_color::BlendMode::Multiply] {
+            for mode in [localraster_color::BlendMode::Normal, localraster_color::BlendMode::Multiply] {
                 let mut s = Surface::new(f);
                 s.fill_rect(Rect::new(0, 0, 100, 20), &[1.0, 1.0, 1.0, 0.5]);
                 let mut st = stroke(&[(10.0, 10.0), (90.0, 10.0)], 8.0);

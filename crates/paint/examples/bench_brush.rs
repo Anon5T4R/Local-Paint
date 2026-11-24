@@ -2,20 +2,20 @@
 //! 6016×6016 RGBA8 layer, fed in 16-point chunks (as interactive painting would), compositing the
 //! dirty tiles after each chunk.
 //!
-//! `cargo run --release -p localpaint-paint --example bench_brush`
+//! `cargo run --release -p localraster-paint --example bench_brush`
 
 use std::time::Instant;
 
-use localpaint_color::{PixelFormat, SampleType};
-use localpaint_geom::Rect;
-use localpaint_paint::{BrushSettings, Dynamic, Scattering, ShapeDynamics, StrokePoint, StrokeRenderer, Texture, presets};
-use localpaint_raster::Surface;
+use localraster_color::{PixelFormat, SampleType};
+use localraster_geom::Rect;
+use localraster_paint::{BrushSettings, Dynamic, Scattering, ShapeDynamics, StrokePoint, StrokeRenderer, Texture, presets};
+use localraster_raster::Surface;
 
 fn run(fmt: PixelFormat, label: &str, brush: &BrushSettings) {
     let n = 6016;
-    let mut s = Surface::with_default(fmt, &localpaint_raster::from_rgba(&fmt, [1.0; 4]));
+    let mut s = Surface::with_default(fmt, &localraster_raster::from_rgba(&fmt, [1.0; 4]));
     // Materialise the layer like a real photo layer.
-    s.fill_rect(Rect::new(0, 0, n, n), &localpaint_raster::from_rgba(&fmt, [0.8, 0.7, 0.6, 1.0]));
+    s.fill_rect(Rect::new(0, 0, n, n), &localraster_raster::from_rgba(&fmt, [0.8, 0.7, 0.6, 1.0]));
     let pts: Vec<StrokePoint> = (0..500)
         .map(|i| {
             let t = i as f64 / 499.0;

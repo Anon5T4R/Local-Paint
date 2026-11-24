@@ -9,7 +9,7 @@ fn data_set_files_must_be_valid_utf8() {
 
 #[test]
 fn showing_grid_restores_hidden_extras() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     let ctx = egui::Context::default();
     app.ui.extras.grid = false;
     app.ui.view.extras = false;
@@ -30,8 +30,8 @@ fn showing_grid_restores_hidden_extras() {
 
 #[test]
 fn sync_with_system_menu_keeps_saved_slots_and_its_checkmark_across_palettes() {
-    use localpaint_engine::prefs::{AppearanceMode, DarkTheme, LightTheme};
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    use localraster_engine::prefs::{AppearanceMode, DarkTheme, LightTheme};
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     let ctx = egui::Context::default();
     app.services.system_theme = Some(Box::new(|_| Some(egui::Theme::Light)));
     app.run("prefs.set", json!({"values": {"interface.darkTheme": "studio", "interface.lightTheme": "classic"}})).unwrap();
@@ -78,7 +78,7 @@ fn submenu_header_is_disabled_when_every_item_is() {
 
 #[test]
 fn live_lookup_finds_engine_and_shell_commands() {
-    for command in localpaint_engine::commands::command_specs() {
+    for command in localraster_engine::commands::command_specs() {
         assert!(is_live(command.id), "{}", command.id);
     }
     for &(id, ..) in UI_COMMANDS {
@@ -91,7 +91,7 @@ fn live_lookup_finds_engine_and_shell_commands() {
 
 #[test]
 fn select_menu_contains_every_selection_context_action_and_more() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 32, "height": 32})).unwrap();
     app.run("select.rect", json!({"x": 2, "y": 2, "width": 8, "height": 8})).unwrap();
     let items = menu_items(&app);
@@ -116,7 +116,7 @@ fn select_menu_contains_every_selection_context_action_and_more() {
 /// Other submenu (not a second "Other") right after Offset, enabled on a pixel layer.
 #[test]
 fn color_to_alpha_sits_in_filter_other_after_offset() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 32, "height": 32})).unwrap();
     let items = menu_items(&app);
     let at = |id: &str| items.iter().position(|i| i.id == id).unwrap_or_else(|| panic!("{id} missing"));
@@ -135,14 +135,14 @@ fn menu_bar_labels_have_horizontal_padding_and_open_menus() {
 
     for theme in crate::theme::ThemeKind::ALL {
         for width in [640.0, 1440.0] {
-            let app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+            let app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
             let mut harness = Harness::builder().with_size(egui::vec2(width, 200.0)).build_ui_state(
                 |ui, app| {
                     menu_bar(app, ui);
                 },
                 app,
             );
-            LocalPaintApp::setup_context(&harness.ctx, theme);
+            LocalRasterApp::setup_context(&harness.ctx, theme);
             harness.run_steps(3);
 
             let font = egui::TextStyle::Button.resolve(&harness.ctx.global_style());
@@ -196,7 +196,7 @@ fn overlapped_menu_title_does_not_receive_hover_switching() {
 fn hovering_a_title_at_the_screen_edge_switches_the_open_menu() {
     use egui_kittest::{Harness, kittest::Queryable};
 
-    let app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     let mut harness = Harness::builder().with_size(egui::vec2(1200.0, 700.0)).build_ui_state(
         |ui, app| {
             egui::Frame::NONE.inner_margin(egui::Margin { top: 4, ..Default::default() }).show(ui, |ui| {
@@ -205,7 +205,7 @@ fn hovering_a_title_at_the_screen_edge_switches_the_open_menu() {
         },
         app,
     );
-    LocalPaintApp::setup_context(&harness.ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&harness.ctx, crate::theme::ThemeKind::ALL[0]);
     harness.run_steps(3);
     harness.get_by_label("File").click();
     harness.run_steps(3);
@@ -222,14 +222,14 @@ fn hovering_a_title_at_the_screen_edge_switches_the_open_menu() {
 fn hovering_another_title_switches_the_open_menu() {
     use egui_kittest::{Harness, kittest::Queryable};
 
-    let app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     let mut harness = Harness::builder().with_size(egui::vec2(1200.0, 700.0)).build_ui_state(
         |ui, app| {
             menu_bar(app, ui);
         },
         app,
     );
-    LocalPaintApp::setup_context(&harness.ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&harness.ctx, crate::theme::ThemeKind::ALL[0]);
     harness.run_steps(3);
     // Nothing open: hovering a title does not open it.
     harness.get_by_label("Image").hover();
@@ -251,21 +251,21 @@ fn hovering_another_title_switches_the_open_menu() {
 fn an_open_menu_reuses_its_items_until_the_state_changes() {
     use egui_kittest::{Harness, kittest::Queryable};
 
-    let app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     let mut harness = Harness::builder().with_size(egui::vec2(1200.0, 700.0)).build_ui_state(
         |ui, app| {
             menu_bar(app, ui);
         },
         app,
     );
-    LocalPaintApp::setup_context(&harness.ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&harness.ctx, crate::theme::ThemeKind::ALL[0]);
     harness.run_steps(3);
     assert!(harness.state().menu_cache.is_none(), "no menu open, nothing built");
     harness.get_by_label("File").click();
     harness.run_steps(3);
     // The same allocation frame after frame: the items were not rebuilt.
-    let built = |app: &LocalPaintApp| app.menu_cache.as_ref().map(|c| c.items.as_ptr());
-    let close = |app: &LocalPaintApp| app.menu_cache.as_ref().and_then(|c| c.items.iter().find(|i| i.id == "file.close")).map(|i| i.enabled);
+    let built = |app: &LocalRasterApp| app.menu_cache.as_ref().map(|c| c.items.as_ptr());
+    let close = |app: &LocalRasterApp| app.menu_cache.as_ref().and_then(|c| c.items.iter().find(|i| i.id == "file.close")).map(|i| i.enabled);
     let first = built(harness.state());
     assert!(first.is_some());
     assert_eq!(close(harness.state()), Some(false));
@@ -282,7 +282,7 @@ fn an_open_menu_reuses_its_items_until_the_state_changes() {
 
 #[test]
 fn help_search_finds_commands_by_any_word() {
-    let app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     let items = menu_items(&app);
     let ids = |q: &str| search_items(&items, q, crate::i18n::Lang::EN).iter().map(|i| i.id.clone()).collect::<Vec<_>>();
     let di = ids("DI");
@@ -301,7 +301,7 @@ fn help_search_finds_commands_by_any_word() {
 /// In another UI language both the translated and the English names match.
 #[test]
 fn help_search_matches_the_ui_language_and_english() {
-    let app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     let items = menu_items(&app);
     let Some(fr) = crate::i18n::Lang::from_code("fr") else { return };
     let ids = |q: &str| search_items(&items, q, fr).iter().map(|i| i.id.clone()).collect::<Vec<_>>();
@@ -321,8 +321,8 @@ fn help_search_takes_typing_and_clicks_without_closing_the_menu() {
         let what = format!("custom title bar {custom}, document {doc}, scale {scale}");
         let mut h =
             Harness::builder().with_size(egui::vec2(1200.0 / scale, 800.0 / scale)).with_pixels_per_point(scale).with_max_steps(64).build_eframe(move |cc| {
-                LocalPaintApp::setup_context(&cc.egui_ctx, crate::theme::ThemeKind::ALL[0]);
-                let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+                LocalRasterApp::setup_context(&cc.egui_ctx, crate::theme::ThemeKind::ALL[0]);
+                let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
                 app.custom_titlebar = custom;
                 if doc {
                     app.run("file.new", json!({"width": 64, "height": 48})).unwrap();
@@ -330,7 +330,7 @@ fn help_search_takes_typing_and_clicks_without_closing_the_menu() {
                 app
             });
         h.run_steps(4);
-        let click = |h: &mut Harness<'_, LocalPaintApp>, at: egui::Pos2| {
+        let click = |h: &mut Harness<'_, LocalRasterApp>, at: egui::Pos2| {
             h.event(Event::PointerMoved(at));
             h.run_steps(1);
             h.event(Event::PointerButton { pos: at, button: PointerButton::Primary, pressed: true, modifiers: Modifiers::NONE });
@@ -338,14 +338,14 @@ fn help_search_takes_typing_and_clicks_without_closing_the_menu() {
             h.event(Event::PointerButton { pos: at, button: PointerButton::Primary, pressed: false, modifiers: Modifiers::NONE });
             h.run_steps(3);
         };
-        let typing = |h: &mut Harness<'_, LocalPaintApp>, text: &str| {
+        let typing = |h: &mut Harness<'_, LocalRasterApp>, text: &str| {
             for c in text.chars() {
                 h.event(Event::Text(c.to_string()));
                 h.run_steps(1);
             }
             h.run_steps(3);
         };
-        let open = |h: &Harness<'_, LocalPaintApp>| h.query_by_label_contains("About Local Paint").is_some();
+        let open = |h: &Harness<'_, LocalRasterApp>| h.query_by_label_contains("About Local Raster").is_some();
         let field_id = egui::Id::unique("help-menu-search").with("field");
         let help = h.get_by_label("Help").rect().center();
         click(&mut h, help);
@@ -372,8 +372,8 @@ fn help_search_letters_are_not_mnemonics() {
     use egui::{Event, Key, Modifiers, PointerButton};
     use egui_kittest::{Harness, kittest::Queryable};
     let mut h = Harness::builder().with_size(egui::vec2(1200.0, 800.0)).with_max_steps(64).build_eframe(|cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, crate::theme::ThemeKind::ALL[0]);
-        LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default())
+        LocalRasterApp::setup_context(&cc.egui_ctx, crate::theme::ThemeKind::ALL[0]);
+        LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default())
     });
     h.run_steps(4);
     let help = h.get_by_label("Help").rect().center();
@@ -384,7 +384,7 @@ fn help_search_letters_are_not_mnemonics() {
         h.run_steps(1);
     }
     h.run_steps(3);
-    assert!(h.query_by_label_contains("About Local Paint").is_some(), "Help opened");
+    assert!(h.query_by_label_contains("About Local Raster").is_some(), "Help opened");
     for c in "DeSelect all".chars() {
         let key = Key::from_name(&c.to_ascii_uppercase().to_string());
         if let Some(key) = key {
@@ -397,7 +397,7 @@ fn help_search_letters_are_not_mnemonics() {
         }
     }
     h.run_steps(3);
-    assert!(h.query_by_label_contains("About Local Paint").is_some(), "typing keeps Help open");
+    assert!(h.query_by_label_contains("About Local Raster").is_some(), "typing keeps Help open");
     let query: String = h.ctx.data(|d| d.get_temp(egui::Id::unique("help-menu-search"))).unwrap_or_default();
     assert_eq!(query, "DeSelect all", "every letter reached the field");
     assert!(h.state().ui.dialogs.is_empty(), "no menu command ran: {:?}", h.state().ui.dialogs);
@@ -408,14 +408,14 @@ fn dropdown_items_have_room() {
     use egui_kittest::{Harness, kittest::Queryable};
 
     for theme in crate::theme::ThemeKind::ALL {
-        let app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         let mut harness = Harness::builder().with_size(egui::vec2(1200.0, 900.0)).build_ui_state(
             |ui, app| {
                 menu_bar(app, ui);
             },
             app,
         );
-        LocalPaintApp::setup_context(&harness.ctx, theme);
+        LocalRasterApp::setup_context(&harness.ctx, theme);
         harness.run_steps(3);
         harness.get_by_label("File").click();
         harness.run_steps(3);
@@ -435,14 +435,14 @@ fn dropdown_items_have_room() {
 fn menu_level_height_is_bounded_by_viewport() {
     use egui_kittest::Harness;
 
-    let app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     let mut harness = Harness::builder().with_size(egui::vec2(900.0, 240.0)).build_ui_state(
         |ui, app| {
             menu_bar(app, ui);
         },
         app,
     );
-    LocalPaintApp::setup_context(&harness.ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&harness.ctx, crate::theme::ThemeKind::ALL[0]);
     harness.run_steps(3);
     // Opening a top-level menu with many entries must not grow its popup past the viewport.
     use egui_kittest::kittest::Queryable;
@@ -463,14 +463,14 @@ fn menu_level_height_is_bounded_by_viewport() {
 fn tall_menu_scrolls_with_mouse_wheel_on_short_display() {
     use egui_kittest::{Harness, kittest::Queryable};
 
-    let app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     let mut harness = Harness::builder().with_size(egui::vec2(900.0, 220.0)).build_ui_state(
         |ui, app| {
             menu_bar(app, ui);
         },
         app,
     );
-    LocalPaintApp::setup_context(&harness.ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&harness.ctx, crate::theme::ThemeKind::ALL[0]);
     harness.run_steps(3);
     harness.get_by_label("Filter").click();
     harness.run_steps(3);
@@ -493,7 +493,7 @@ fn tall_menu_scrolls_with_mouse_wheel_on_short_display() {
 
 #[test]
 fn window_panel_and_workspace_ids_drive_the_shell() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
     assert!(!app.ui.panels.history);
     invoke(&mut app, &ctx, "window.panel.history", Value::Null).unwrap();
@@ -514,7 +514,7 @@ fn window_panel_and_workspace_ids_drive_the_shell() {
 
 #[test]
 fn proof_setup_presets_and_checkmarks() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
     app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
     app.sync_views();
@@ -531,7 +531,7 @@ fn proof_setup_presets_and_checkmarks() {
     assert_eq!((at(0, 8, 0), at(4, 4, 4)), (255, 0));
     // Custom… opens the generated Proof Setup dialog with a profile choice.
     assert!(invoke(&mut app, &ctx, "view.proofSetup.custom", Value::Null).unwrap()["dialog"].is_u64());
-    let spec = localpaint_engine::commands::find("edit.convertToProfile").unwrap();
+    let spec = localraster_engine::commands::find("edit.convertToProfile").unwrap();
     let params = crate::filter_dialog::parse_spec(spec.params);
     assert!(matches!(&params[0].kind, crate::filter_dialog::Kind::Choice { options, .. } if options[0] == "srgb" && !options.iter().any(|v| v.contains('/'))));
 }

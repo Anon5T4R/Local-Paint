@@ -1,7 +1,7 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
-use localpaint_codecs::{decode_as_with, decode_gif_frames, DecodeOptions, Format, Limits};
+use localraster_codecs::{decode_as_with, decode_gif_frames, DecodeOptions, Format, Limits};
 
 fuzz_target!(|data: &[u8]| {
     let opts = DecodeOptions {

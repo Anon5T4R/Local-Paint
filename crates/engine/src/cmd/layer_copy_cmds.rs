@@ -10,9 +10,9 @@
 
 use std::collections::{HashMap, HashSet};
 
-use localpaint_color::ColorMode;
-use localpaint_doc::{Document, Layer, LayerContent, LayerId, SmartContentsId};
-use localpaint_geom::Rect;
+use localraster_color::ColorMode;
+use localraster_doc::{Document, Layer, LayerContent, LayerId, SmartContentsId};
+use localraster_geom::Rect;
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;

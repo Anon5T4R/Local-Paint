@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Build, sign and (optionally) notarize the macOS release artifacts:
 #
-#   $DIST/localpaint-<version>-macos-<arch>.dmg          LocalPaint.app on a drag-to-Applications DMG
-#   $DIST/localpaint-cli-<version>-macos-<arch>.zip      the headless CLI
+#   $DIST/localraster-<version>-macos-<arch>.dmg          LocalRaster.app on a drag-to-Applications DMG
+#   $DIST/localraster-cli-<version>-macos-<arch>.zip      the headless CLI
 #
 # Usage: packaging/macos/package.sh [--arch universal|aarch64|x86_64] [--skip-build]
 #
@@ -39,9 +39,9 @@ export MACOSX_DEPLOYMENT_TARGET=11.0
 IDENTITY="${MACOS_SIGN_IDENTITY:--}"
 SHORT_VERSION="${VERSION%%-*}"
 WORK="$CARGO_TARGET_DIR/macos-package"
-APP="$WORK/LocalPaint.app"
-DMG="$DIST/localpaint-$VERSION-macos-$ARCH.dmg"
-CLI_ZIP="$DIST/localpaint-cli-$VERSION-macos-$ARCH.zip"
+APP="$WORK/LocalRaster.app"
+DMG="$DIST/localraster-$VERSION-macos-$ARCH.dmg"
+CLI_ZIP="$DIST/localraster-cli-$VERSION-macos-$ARCH.zip"
 
 NOTARIZE=0
 if [[ "$IDENTITY" = "-" ]]; then
@@ -52,18 +52,18 @@ else
   warn "macOS: APPLE_ID / APPLE_PASSWORD / APPLE_TEAM_ID incomplete; signed but not notarized"
 fi
 
-echo "==> Local Paint $VERSION for macOS ($ARCH), identity: $IDENTITY, notarize: $NOTARIZE"
+echo "==> Local Raster $VERSION for macOS ($ARCH), identity: $IDENTITY, notarize: $NOTARIZE"
 
 # ---- build -------------------------------------------------------------------------------------
 if [[ "$SKIP_BUILD" = 0 ]]; then
   args=()
   for t in "${TARGETS[@]}"; do args+=(--target "$t"); done
-  (cd "$ROOT" && cargo build --release --locked -p localpaint -p localpaint-cli --features heif "${args[@]}")
+  (cd "$ROOT" && cargo build --release --locked -p localraster -p localraster-cli --features heif "${args[@]}")
 fi
 
 rm -rf "$WORK"
 mkdir -p "$WORK/bin"
-for bin in localpaint localpaint-cli; do
+for bin in localraster localraster-cli; do
   inputs=()
   for t in "${TARGETS[@]}"; do inputs+=("$CARGO_TARGET_DIR/$t/release/$bin"); done
   lipo -create -output "$WORK/bin/$bin" "${inputs[@]}"
@@ -115,13 +115,13 @@ staple() {
   done
 }
 
-# ---- LocalPaint.app ----------------------------------------------------------------------------
+# ---- LocalRaster.app ----------------------------------------------------------------------------
 echo "==> assembling $APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 # Executable and icon carry the display name (CFBundleExecutable / CFBundleIconFile).
-cp "$WORK/bin/localpaint" "$APP/Contents/MacOS/LocalPaint"
-cp "$WORK/bin/localpaint-cli" "$APP/Contents/MacOS/localpaint-cli"
-cp "$ROOT/assets/app-icon/localpaint.icns" "$APP/Contents/Resources/LocalPaint.icns"
+cp "$WORK/bin/localraster" "$APP/Contents/MacOS/LocalRaster"
+cp "$WORK/bin/localraster-cli" "$APP/Contents/MacOS/localraster-cli"
+cp "$ROOT/assets/app-icon/localraster.icns" "$APP/Contents/Resources/LocalRaster.icns"
 # Notices for the bundled font fallback, included before the bundle is signed.
 cp "$ROOT/NOTICE" "$ROOT/ATTRIBUTION.md" "$APP/Contents/Resources/"
 # Licences of the embedded craft-fonts fonts (only when built with CRAFT_FONTS_DIR).
@@ -130,21 +130,21 @@ if [[ -n "${CRAFT_FONTS_DIR:-}" ]]; then
   copy_font_licences "$APP/Contents/Resources/Licenses"
 fi
 sed -e "s/@VERSION@/$VERSION/g" -e "s/@SHORT_VERSION@/$SHORT_VERSION/g" \
-  -e "s/@BUILD_SHA@/${LOCALPAINT_BUILD_SHA:-unknown}/g" \
+  -e "s/@BUILD_SHA@/${LOCALRASTER_BUILD_SHA:-unknown}/g" \
   "$HERE/Info.plist.in" >"$APP/Contents/Info.plist"
 plutil -lint "$APP/Contents/Info.plist"
 printf 'APPL????' >"$APP/Contents/PkgInfo"
 
 # Sign inside-out: nested code first, then the bundle itself (no --deep on the final signature).
 # The bundled CLI is nested executable code; sign it before sealing the app bundle.
-sign --options runtime --identifier com.localpaint.app-cli "$APP/Contents/MacOS/localpaint-cli"
-sign --options runtime --entitlements "$HERE/entitlements.plist" "$APP/Contents/MacOS/LocalPaint"
+sign --options runtime --identifier com.localraster.app-cli "$APP/Contents/MacOS/localraster-cli"
+sign --options runtime --entitlements "$HERE/entitlements.plist" "$APP/Contents/MacOS/LocalRaster"
 sign --options runtime --entitlements "$HERE/entitlements.plist" "$APP"
 codesign --verify --strict --deep --verbose=2 "$APP"
 
 if [[ "$NOTARIZE" = 1 ]]; then
-  ditto -c -k --keepParent "$APP" "$WORK/LocalPaint-notarize.zip"
-  notarize "$WORK/LocalPaint-notarize.zip"
+  ditto -c -k --keepParent "$APP" "$WORK/LocalRaster-notarize.zip"
+  notarize "$WORK/LocalRaster-notarize.zip"
   staple "$APP"
   spctl --assess --type execute -vvv "$APP"
 fi
@@ -153,7 +153,7 @@ fi
 echo "==> building $DMG"
 STAGE="$WORK/dmg"
 mkdir -p "$STAGE"
-ditto "$APP" "$STAGE/LocalPaint.app"
+ditto "$APP" "$STAGE/LocalRaster.app"
 ln -s /Applications "$STAGE/Applications"
 # Finder window layout: background, icon size and positions (packaging/macos/dmg/README.md).
 mkdir -p "$STAGE/.background"
@@ -163,7 +163,7 @@ rm -f "$DMG" "$WORK/raw.dmg"
 # makehybrid + convert builds the image without attaching a device, unlike `create -srcfolder`,
 # which is flaky on CI runners ("Resource busy") and hangs in sandboxed sessions.
 # The volume name has no version: .DS_Store finds the background through an alias that includes it.
-hdiutil makehybrid -hfs -hfs-volume-name "LocalPaint" -hfs-openfolder "$STAGE" -o "$WORK/raw.dmg" "$STAGE"
+hdiutil makehybrid -hfs -hfs-volume-name "LocalRaster" -hfs-openfolder "$STAGE" -o "$WORK/raw.dmg" "$STAGE"
 hdiutil convert "$WORK/raw.dmg" -format UDZO -imagekey zlib-level=9 -o "$DMG"
 rm -f "$WORK/raw.dmg"
 sign "$DMG"
@@ -176,20 +176,20 @@ fi
 
 # ---- CLI ---------------------------------------------------------------------------------------
 echo "==> building $CLI_ZIP"
-CLI_DIR="$WORK/localpaint-cli-$VERSION-macos-$ARCH"
+CLI_DIR="$WORK/localraster-cli-$VERSION-macos-$ARCH"
 mkdir -p "$CLI_DIR"
-cp "$WORK/bin/localpaint-cli" "$CLI_DIR/"
+cp "$WORK/bin/localraster-cli" "$CLI_DIR/"
 copy_docs "$CLI_DIR"
 # Same Developer ID and hardened runtime as the app, with an explicit reverse-DNS identifier
 # (codesign would otherwise use the bare file name).
-sign --options runtime --identifier com.localpaint.app-cli "$CLI_DIR/localpaint-cli"
-codesign --verify --strict --verbose=2 "$CLI_DIR/localpaint-cli"
+sign --options runtime --identifier com.localraster.app-cli "$CLI_DIR/localraster-cli"
+codesign --verify --strict --verbose=2 "$CLI_DIR/localraster-cli"
 rm -f "$CLI_ZIP"
 ditto -c -k --keepParent "$CLI_DIR" "$CLI_ZIP"
 # notarytool accepts a zip of the bare binary. A bare Mach-O can't carry a stapled ticket, so
 # Gatekeeper looks the notarization up online when a quarantined copy first runs.
 if [[ "$NOTARIZE" = 1 ]]; then notarize "$CLI_ZIP"; fi
 
-"$WORK/bin/localpaint-cli" --version
+"$WORK/bin/localraster-cli" --version
 echo "==> done (check the artifacts as shipped with packaging/macos/verify.sh --arch $ARCH)"
 ls -lh "$DMG" "$CLI_ZIP"

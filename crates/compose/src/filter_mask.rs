@@ -8,8 +8,8 @@
 //! keep the mixed result as their pixels, so PSD import mixes ([`mix`]) and export unmixes
 //! ([`unmix`]).
 
-use localpaint_doc::LayerMask;
-use localpaint_raster::Surface;
+use localraster_doc::LayerMask;
+use localraster_raster::Surface;
 
 /// `filtered` mixed over `base` (the unfiltered pixels) through `mask`: premultiplied, any
 /// channel layout. Pixels the mask hides entirely are `base`'s.
@@ -123,9 +123,9 @@ pub fn unmix(base: &Surface, mixed: &Surface, mask: &LayerMask) -> Surface {
 
 #[cfg(test)]
 mod tests {
-    use localpaint_color::{ColorMode, PixelFormat, SampleType};
-    use localpaint_doc::LayerMask;
-    use localpaint_raster::Surface;
+    use localraster_color::{ColorMode, PixelFormat, SampleType};
+    use localraster_doc::LayerMask;
+    use localraster_raster::Surface;
 
     use super::*;
 

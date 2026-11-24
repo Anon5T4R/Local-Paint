@@ -1,7 +1,7 @@
 //! Eraser on the Background (or any transparency-locked layer) paints the background colour
 //! (Photoshop); on a normal layer it erases to transparency (#76).
 
-use localpaint_engine::Session;
+use localraster_engine::Session;
 use serde_json::{Value, json};
 
 fn doc(mode: &str, depth: u32) -> Session {
@@ -17,7 +17,7 @@ fn layer_px(s: &Session, x: i32, y: i32) -> [f32; 4] {
     l.surface().unwrap().rgba(x, y)
 }
 
-fn erase(s: &mut Session, extra: Value) -> localpaint_engine::Result<Value> {
+fn erase(s: &mut Session, extra: Value) -> localraster_engine::Result<Value> {
     let mut p = json!({"points": [[2, 10], [38, 10]], "size": 8, "hardness": 1.0, "erase": true});
     if let (Some(o), Some(e)) = (p.as_object_mut(), extra.as_object()) {
         o.extend(e.clone());

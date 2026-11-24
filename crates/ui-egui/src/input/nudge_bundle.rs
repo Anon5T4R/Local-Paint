@@ -15,9 +15,9 @@
 
 use serde_json::{Value, json};
 
-use crate::LocalPaintApp;
-use localpaint_doc::DocId;
-use localpaint_engine::DocState;
+use crate::LocalRasterApp;
+use localraster_doc::DocId;
+use localraster_engine::DocState;
 
 /// What a run of nudges needs to find unchanged to go on: the document, and its revisions (every
 /// edit, Undo, Redo and layer selection moves `revision`, a save moves `saved_revision`).
@@ -83,14 +83,14 @@ impl NudgeBundle {
 
 /// The longest pause (seconds) between two nudges of one run, or `None` when nudges aren't
 /// bundled (Tools › Bundle Arrow-Key Nudges).
-pub(crate) fn pause(app: &LocalPaintApp) -> Option<f64> {
+pub(crate) fn pause(app: &LocalRasterApp) -> Option<f64> {
     let tools = &app.session.prefs().tools;
     tools.bundle_nudges.then(|| f64::from(tools.nudge_bundle_pause_ms) / 1000.0)
 }
 
 /// Run the nudge command `id` (`what` names the thing it nudges: "layers", "selection") as part
 /// of the current run of nudges, or on its own when nudges aren't bundled.
-pub(crate) fn run(app: &mut LocalPaintApp, what: &str, id: &str, mut params: Value) -> Result<Value, String> {
+pub(crate) fn run(app: &mut LocalRasterApp, what: &str, id: &str, mut params: Value) -> Result<Value, String> {
     let Some(pause) = pause(app) else {
         app.nudge_bundle.reset();
         return app.run(id, params);

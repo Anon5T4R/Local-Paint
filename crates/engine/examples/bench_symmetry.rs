@@ -1,7 +1,7 @@
 //! Compare plain, single-axis and dual-axis live painting on a 24 MP document.
-//! Run with `cargo run --release -p localpaint-engine --example bench_symmetry`.
-use localpaint_engine::{Session, brush_cmds::LiveStroke};
-use localpaint_paint::StrokePoint;
+//! Run with `cargo run --release -p localraster-engine --example bench_symmetry`.
+use localraster_engine::{Session, brush_cmds::LiveStroke};
+use localraster_paint::StrokePoint;
 use serde_json::json;
 use std::time::Instant;
 

@@ -11,8 +11,8 @@
 //! resolved attributes, so the text looks the same whatever a reader makes of the reference).
 //! Named sheets are written with fully resolved attributes too. Unverified against Photoshop.
 
-use localpaint_doc::text::{CharStyle, ParagraphStyle};
-use localpaint_doc::{TextLayer, TextStyles};
+use localraster_doc::text::{CharStyle, ParagraphStyle};
+use localraster_doc::{TextLayer, TextStyles};
 
 use crate::engine_data::Value as E;
 use crate::psd::{char_style, engine_data, para_style, paragraph_properties, parse_tysh, postscript_for, style_sheet_data, write_tysh};
@@ -245,7 +245,7 @@ pub fn write_style_sheets(tysh: &[u8], layer: &TextLayer, styles: &TextStyles, d
     let raw = crate::engine_data::write(&e);
     {
         let item = t.text.items.iter_mut().find(|(k, _)| k.is("EngineData"))?;
-        item.1 = localpaint_psd::descriptor::Value::RawData(raw)
+        item.1 = localraster_psd::descriptor::Value::RawData(raw)
     }
     Some(write_tysh(&t))
 }
@@ -253,8 +253,8 @@ pub fn write_style_sheets(tysh: &[u8], layer: &TextLayer, styles: &TextStyles, d
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_doc::text::{TextAlign, TextRun};
-    use localpaint_doc::text_styles::{CharacterStyleDef, ParagraphStyleDef, diff_attrs};
+    use localraster_doc::text::{TextAlign, TextRun};
+    use localraster_doc::text_styles::{CharacterStyleDef, ParagraphStyleDef, diff_attrs};
 
     #[test]
     fn a_negative_sheet_index_is_not_a_slot_and_infinite_dpi_uses_72() {
@@ -283,7 +283,7 @@ mod tests {
         let mut layer = TextLayer {
             text: "plain bold".into(),
             runs: vec![TextRun { len: 6, style: base.clone() }, TextRun { len: 4, style: emph }],
-            paragraphs: vec![localpaint_doc::text::ParagraphRun { len: 10, style: styles.resolve_para(Some(2)) }],
+            paragraphs: vec![localraster_doc::text::ParagraphRun { len: 10, style: styles.resolve_para(Some(2)) }],
             ..Default::default()
         };
         layer.sync_summary();

@@ -1,8 +1,8 @@
 use super::*;
 use serde_json::json;
 
-fn app(doc: bool) -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn app(doc: bool) -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     if doc {
         app.run("file.new", json!({"width": 64, "height": 48})).unwrap();
         app.sync_views();
@@ -11,7 +11,7 @@ fn app(doc: bool) -> LocalPaintApp {
 }
 
 fn layout(doc: bool) -> Layout {
-    localpaint_layout(&crate::menus::menu_items(&app(doc)), Lang::EN, "auto")
+    localraster_layout(&crate::menus::menu_items(&app(doc)), Lang::EN, "auto")
 }
 
 fn ids(nodes: &[Node]) -> Vec<String> {
@@ -27,17 +27,17 @@ fn ids(nodes: &[Node]) -> Vec<String> {
 }
 
 #[test]
-fn localpaint_gets_a_mac_app_menu() {
+fn localraster_gets_a_mac_app_menu() {
     let l = layout(true);
     let app = &l.bar.menus[0];
-    assert_eq!((app.title.as_str(), app.role), ("Local Paint", MenuRole::App));
+    assert_eq!((app.title.as_str(), app.role), ("Local Raster", MenuRole::App));
     assert_eq!(
         ids(&app.children),
         ["help.about", "---", "[Settings]", "[Language]", "[Appearance]", "---", "<Services>", "---", HIDE, "<HideOthers>", "<ShowAll>", "---", "file.exit"]
     );
     let quit = l.bar.find("file.exit").unwrap();
-    assert_eq!((quit.label.as_str(), quit.shortcut.as_deref()), ("Quit Local Paint", Some("Cmd+Q")));
-    assert_eq!(l.bar.find("help.about").unwrap().label, "About Local Paint");
+    assert_eq!((quit.label.as_str(), quit.shortcut.as_deref()), ("Quit Local Raster", Some("Cmd+Q")));
+    assert_eq!(l.bar.find("help.about").unwrap().label, "About Local Raster");
 }
 
 #[test]
@@ -48,12 +48,12 @@ fn moved_items_leave_their_old_menus() {
     assert!(!ids(&by("Help").children).contains(&"help.about".to_string()));
     assert!(!ids(&by("Edit").children).contains(&"[Settings]".to_string()));
     let titles: Vec<&str> = l.bar.menus.iter().map(|m| m.title.as_str()).collect();
-    assert_eq!(titles, ["Local Paint", "File", "Edit", "Image", "Layer", "Type", "Select", "Filter", "View", "Window", "Help"]);
+    assert_eq!(titles, ["Local Raster", "File", "Edit", "Image", "Layer", "Type", "Select", "Filter", "View", "Window", "Help"]);
 }
 
-/// Local Paint keeps Photoshop's ⌘H, ⌘M, ⌘W and ⌘, (Hide Layers): the system items give way.
+/// Local Raster keeps Photoshop's ⌘H, ⌘M, ⌘W and ⌘, (Hide Layers): the system items give way.
 #[test]
-fn clashes_are_resolved_in_localpaints_favour() {
+fn clashes_are_resolved_in_localrasters_favour() {
     let l = layout(true);
     let clash = |sc: &str| l.clashes.iter().find(|c| c.shortcut == sc).map(|c| c.command.as_str());
     assert_eq!(clash("Cmd+H"), Some("view.extras"));
@@ -74,7 +74,7 @@ fn clashes_are_resolved_in_localpaints_favour() {
 fn themes_move_to_the_app_menus_appearance() {
     let mut a = app(false);
     a.ui.theme = crate::theme::ThemeKind::Classic;
-    let l = localpaint_layout(&crate::menus::menu_items(&a), Lang::EN, "auto");
+    let l = localraster_layout(&crate::menus::menu_items(&a), Lang::EN, "auto");
     let app_menu = l.bar.menu(MenuRole::App).unwrap();
     let Some(Node::Submenu { children, .. }) = app_menu.children.iter().find(|n| matches!(n, Node::Submenu { label, .. } if label == "Appearance")) else {
         panic!("an Appearance submenu");
@@ -89,10 +89,10 @@ fn themes_move_to_the_app_menus_appearance() {
     assert_eq!(l.bar.find("window.theme.system").unwrap().checked, Some(false));
     let window = ids(&l.bar.menu(MenuRole::Window).unwrap().children);
     assert!(!window.iter().any(|id| id.starts_with("window.theme.") || id == "[Theme]"), "{window:?}");
-    a.session.prefs.edit(|p| p.interface.appearance_mode = localpaint_engine::prefs::AppearanceMode::Auto);
+    a.session.prefs.edit(|p| p.interface.appearance_mode = localraster_engine::prefs::AppearanceMode::Auto);
     for palette in [crate::theme::ThemeKind::Classic, crate::theme::ThemeKind::ProMedium] {
         a.ui.theme = palette;
-        let automatic = localpaint_layout(&crate::menus::menu_items(&a), Lang::EN, "auto");
+        let automatic = localraster_layout(&crate::menus::menu_items(&a), Lang::EN, "auto");
         assert_eq!(automatic.bar.find("window.theme.system").unwrap().checked, Some(true));
         for kind in crate::theme::ThemeKind::ALL {
             assert_eq!(automatic.bar.find(&format!("window.theme.{}", kind.id())).unwrap().checked, Some(false));
@@ -104,7 +104,7 @@ fn themes_move_to_the_app_menus_appearance() {
 /// the preference checked; choosing one sets `interface.language`.
 #[test]
 fn the_app_menu_switches_the_ui_language() {
-    let l = localpaint_layout(&crate::menus::menu_items(&app(false)), Lang::EN, "ja");
+    let l = localraster_layout(&crate::menus::menu_items(&app(false)), Lang::EN, "ja");
     let app_menu = l.bar.menu(MenuRole::App).unwrap();
     let Some(Node::Submenu { children, .. }) = app_menu.children.iter().find(|n| matches!(n, Node::Submenu { label, .. } if label == "Language")) else {
         panic!("a Language submenu");
@@ -113,7 +113,7 @@ fn the_app_menu_switches_the_ui_language() {
     assert_eq!(l.bar.find("app.language.ja").map(|it| (it.label.as_str(), it.checked)), Some(("日本語", Some(true))));
     assert_eq!(l.bar.find("app.language.auto").and_then(|it| it.checked), Some(false));
     // Native names stay native in another UI language.
-    let de = localpaint_layout(&crate::menus::menu_items(&app(false)), Lang::from_pref("de"), "de");
+    let de = localraster_layout(&crate::menus::menu_items(&app(false)), Lang::from_pref("de"), "de");
     assert_eq!(de.bar.find("app.language.ja").map(|it| it.label.as_str()), Some("日本語"));
     let mut a = app(false);
     let ctx = egui::Context::default();
@@ -167,14 +167,14 @@ fn the_documents_follow_bring_all_to_front() {
     let mut a = app(true);
     a.run("file.new", json!({"width": 32, "height": 32})).unwrap();
     a.sync_views();
-    let bar = localpaint_layout(&crate::menus::menu_items(&a), Lang::EN, "auto").bar;
+    let bar = localraster_layout(&crate::menus::menu_items(&a), Lang::EN, "auto").bar;
     let window = ids(&bar.menu(MenuRole::Window).unwrap().children);
     assert_eq!(window[window.len() - 4..], ["<BringAllToFront>", "---", "window.document.0", "window.document.1"]);
     assert_eq!(bar.find("window.document.1").and_then(|i| i.checked), Some(true));
     assert_eq!(bar.find("window.document.0").and_then(|i| i.checked), Some(false));
 
     a.session.set_active(0);
-    let switched = localpaint_layout(&crate::menus::menu_items(&a), Lang::EN, "auto").bar;
+    let switched = localraster_layout(&crate::menus::menu_items(&a), Lang::EN, "auto").bar;
     assert_eq!(switched.find("window.document.0").and_then(|i| i.checked), Some(true));
     assert_eq!((structure_key(&switched), window_key(&switched)), (structure_key(&bar), window_key(&bar)), "a check moves in place");
 }
@@ -222,7 +222,7 @@ impl Backend for Fake {
     }
 }
 
-/// A key equivalent reaches Local Paint's own key handling as the key press it was, so the
+/// A key equivalent reaches Local Raster's own key handling as the key press it was, so the
 /// shortcut runs once, through the same rules as without a native menu.
 #[test]
 fn key_equivalents_run_through_the_normal_shortcut_path() {
@@ -261,11 +261,11 @@ fn a_paste_key_equivalent_pastes_once() {
         let ctx = egui::Context::default();
         app.run("select.rect", json!({"x": 0, "y": 0, "width": 8, "height": 4})).unwrap();
         app.run("edit.copy", json!({})).unwrap();
-        let layers = |app: &LocalPaintApp| app.session.active().unwrap().doc.layer_count();
+        let layers = |app: &LocalRasterApp| app.session.active().unwrap().doc.layer_count();
         let before = layers(&app);
         let paste = Chord::parse("Cmd+V").unwrap();
         app.services.native_menu = Some(NativeMenu::new(Box::new(Fake { synced: Default::default(), events: vec![Event::Key(paste)] })));
-        let step = |app: &mut LocalPaintApp, events: Vec<egui::Event>| {
+        let step = |app: &mut LocalRasterApp, events: Vec<egui::Event>| {
             let mut raw = egui::RawInput { events, ..Default::default() };
             eframe::App::raw_input_hook(app, &ctx, &mut raw);
             frame(&ctx, raw, |ui| {
@@ -314,7 +314,7 @@ fn an_open_dialog_blocks_menu_clicks_except_view_navigation() {
     let ctx = egui::Context::default();
     crate::menus::invoke(&mut app, &ctx, "image.imageSize", json!({})).unwrap();
     assert!(!app.ui.dialogs.is_empty(), "Image Size opened its dialog");
-    let size = |app: &LocalPaintApp| app.session.active().map(|d| (d.doc.size.width, d.doc.size.height));
+    let size = |app: &LocalRasterApp| app.session.active().map(|d| (d.doc.size.width, d.doc.size.height));
     let zoom = app.ui.views[0].zoom;
     let events = vec![Event::Click("image.imageRotation.90cw".into()), Event::Click("view.zoomIn".into())];
     app.services.native_menu = Some(NativeMenu::new(Box::new(Fake { synced: synced.clone(), events })));
@@ -344,7 +344,7 @@ fn cut_selected_type_from_native_menu_matches_keyboard_cut() {
         let synced = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
         let mut app = app(true);
         let ctx = egui::Context::default();
-        let id = localpaint_doc::LayerId(app.run("type.create", json!({"text": "Hello", "size": 12, "x": 4, "y": 24})).unwrap()["layer"].as_u64().unwrap());
+        let id = localraster_doc::LayerId(app.run("type.create", json!({"text": "Hello", "size": 12, "x": 4, "y": 24})).unwrap()["layer"].as_u64().unwrap());
         crate::menus::invoke(&mut app, &ctx, "type.editText", json!({})).unwrap();
         let edit = app.ui.text_edit.as_ref().unwrap();
         assert_eq!((edit.anchor, edit.caret), (0, 5));
@@ -365,7 +365,9 @@ fn cut_selected_type_from_native_menu_matches_keyboard_cut() {
         });
         out.textures_delta.clear();
         assert_eq!(out.platform_output.commands, [egui::OutputCommand::CopyText("Hello".into())]);
-        let localpaint_doc::LayerContent::Text(text) = &app.session.active().unwrap().doc.layer(id).unwrap().content else { panic!("type layer changed kind") };
+        let localraster_doc::LayerContent::Text(text) = &app.session.active().unwrap().doc.layer(id).unwrap().content else {
+            panic!("type layer changed kind")
+        };
         assert!(text.text.is_empty());
         let edit = app.ui.text_edit.as_ref().unwrap();
         assert_eq!((edit.anchor, edit.caret), (0, 0));
@@ -380,13 +382,13 @@ fn copy_and_paste_type_from_native_menu() {
     let synced = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
     let mut app = app(true);
     let ctx = egui::Context::default();
-    let id = localpaint_doc::LayerId(app.run("type.create", json!({"text": "Hello", "size": 12, "x": 4, "y": 24})).unwrap()["layer"].as_u64().unwrap());
+    let id = localraster_doc::LayerId(app.run("type.create", json!({"text": "Hello", "size": 12, "x": 4, "y": 24})).unwrap()["layer"].as_u64().unwrap());
     crate::menus::invoke(&mut app, &ctx, "type.editText", json!({})).unwrap();
     if let Some(e) = app.ui.text_edit.as_mut() {
         (e.anchor, e.caret) = (5, 5);
     }
     let layers = app.session.active().unwrap().doc.layers.len();
-    let click = |app: &mut LocalPaintApp, id: &str| {
+    let click = |app: &mut LocalRasterApp, id: &str| {
         app.services.native_menu = Some(NativeMenu::new(Box::new(Fake { synced: synced.clone(), events: vec![Event::Click(id.into())] })));
         let mut raw = egui::RawInput::default();
         app.services.native_menu.as_mut().unwrap().raw_input(&mut raw);
@@ -397,8 +399,8 @@ fn copy_and_paste_type_from_native_menu() {
         out.textures_delta.clear();
         out
     };
-    let text = |app: &LocalPaintApp| match &app.session.active().unwrap().doc.layer(id).unwrap().content {
-        localpaint_doc::LayerContent::Text(t) => t.text.clone(),
+    let text = |app: &LocalRasterApp| match &app.session.active().unwrap().doc.layer(id).unwrap().content {
+        localraster_doc::LayerContent::Text(t) => t.text.clone(),
         _ => panic!("type layer changed kind"),
     };
 
@@ -457,7 +459,7 @@ fn the_title_bar_hides_its_menus_with_the_mac_menu_bar() {
     use egui_kittest::{Harness, kittest::Queryable};
     let counts = |native: bool| -> Vec<usize> {
         let mut h = Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_max_steps(64).build_eframe(move |cc| {
-            LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
+            LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
             let mut app = app(true);
             if native {
                 app.services.native_menu = Some(NativeMenu::new(Box::new(Fake { synced: Default::default(), events: Vec::new() })));

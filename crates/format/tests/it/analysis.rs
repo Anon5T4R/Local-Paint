@@ -1,8 +1,8 @@
 //! Image › Analysis data and notes survive a `.pcraft` round trip; old manifests default them.
 
-use localpaint_color::{Color, ColorMode, SampleType};
-use localpaint_doc::{CountGroup, Document, MeasurementScale, Note, Ruler, Size};
-use localpaint_format::*;
+use localraster_color::{Color, ColorMode, SampleType};
+use localraster_doc::{CountGroup, Document, MeasurementScale, Note, Ruler, Size};
+use localraster_format::*;
 
 #[test]
 fn measurement_and_notes_roundtrip_and_default_when_absent() {
@@ -34,6 +34,6 @@ fn measurement_and_notes_roundtrip_and_default_when_absent() {
     let mut v = serde_json::to_value(&m.document).unwrap();
     v.as_object_mut().unwrap().remove("measurement");
     v.as_object_mut().unwrap().remove("notes");
-    let old: localpaint_format::manifest::DocM = serde_json::from_value(v).unwrap();
+    let old: localraster_format::manifest::DocM = serde_json::from_value(v).unwrap();
     assert!(old.measurement.is_empty() && old.notes.is_empty());
 }

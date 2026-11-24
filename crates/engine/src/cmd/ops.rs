@@ -113,11 +113,11 @@ pub(crate) fn translate_layer(doc: &Document, l: &mut Layer, dx: i32, dy: i32) {
     match &mut l.content {
         LayerContent::Raster(s) => *s = translate_surface(s, dx, dy),
         LayerContent::Text(t) => {
-            t.transform = localpaint_geom::Affine::translate(dx as f64, dy as f64).mul(&t.transform);
+            t.transform = localraster_geom::Affine::translate(dx as f64, dy as f64).mul(&t.transform);
             // A whole-pixel move shifts the rendered text and its PSD position as they are.
             // Re-rendering would replace Photoshop's rendering of imported type, and drop the
             // text when its font is missing (artboard export, moving type with the Move tool).
-            let raw = t.psd_raw.as_deref().map(|r| localpaint_text::psd::translate_tysh(r, f64::from(dx), f64::from(dy)));
+            let raw = t.psd_raw.as_deref().map(|r| localraster_text::psd::translate_tysh(r, f64::from(dx), f64::from(dy)));
             match (&mut t.cache, raw) {
                 (Some(c), Some(Some(r))) => {
                     *c = translate_surface(c, dx, dy);
@@ -169,17 +169,17 @@ pub(super) fn merge_group(s: &mut Session, id: LayerId) -> Result<Value> {
             return Err(EngineError::Other("the group is hidden".into()));
         }
         let fmt = doc.pixel_format();
-        let fmt = localpaint_color::PixelFormat::new(fmt.mode, fmt.sample, true);
+        let fmt = localraster_color::PixelFormat::new(fmt.mode, fmt.sample, true);
         let mut solo = group.clone();
         solo.opacity = 1.0;
-        solo.blend = localpaint_doc::BlendMode::Normal;
+        solo.blend = localraster_doc::BlendMode::Normal;
         solo.clipped = false;
         let mut tmp = doc.clone();
         tmp.layers = vec![solo];
         let mut merged = Layer::new(group.name.clone(), LayerContent::Raster(pixels::composite_layers_uncropped(&tmp, fmt)));
         merged.id = group.id;
         merged.opacity = group.opacity;
-        merged.blend = if group.blend == localpaint_doc::BlendMode::PassThrough { localpaint_doc::BlendMode::Normal } else { group.blend };
+        merged.blend = if group.blend == localraster_doc::BlendMode::PassThrough { localraster_doc::BlendMode::Normal } else { group.blend };
         merged.clipped = group.clipped;
         merged.locks = group.locks;
         *doc.layer_mut(id).ok_or(EngineError::NoLayer(id))? = merged;

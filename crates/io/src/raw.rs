@@ -1,29 +1,29 @@
-//! Camera raw files via `localpaint-raw`: developed to a 16-bit RGB document
+//! Camera raw files via `localraster-raw`: developed to a 16-bit RGB document
 //! in ProPhoto RGB (the embedded profile is the built-in ProPhoto-compatible
 //! profile), or, for raw variants not decoded yet, the camera's embedded
 //! JPEG preview with a warning.
 //!
 //! Files without colour calibration (everything but DNG) get their colour
-//! from the camera's own embedded JPEG: `localpaint-raw` cannot decode JPEG,
-//! so the preview is decoded here and handed to [`localpaint_raw::fit_look`],
+//! from the camera's own embedded JPEG: `localraster-raw` cannot decode JPEG,
+//! so the preview is decoded here and handed to [`localraster_raw::fit_look`],
 //! which fits a matrix and tone curve and keeps the neutral fallback when the
 //! fit is not clearly better.
 
 use std::borrow::Cow;
 use std::sync::Arc;
 
-use localpaint_cms::{Builtin, Intent, Profile, Transform};
-use localpaint_codecs::{self as codecs, ChannelLayout, Format, Image, SampleType};
-pub use localpaint_raw::Demosaic;
-use localpaint_raw::{CameraLook, DevelopOptions, Limits, PreviewColorSpace, RawError, Reference, Sensor, WhiteBalance};
-pub use localpaint_raw::{EXTENSIONS, Tone, retone};
+use localraster_cms::{Builtin, Intent, Profile, Transform};
+use localraster_codecs::{self as codecs, ChannelLayout, Format, Image, SampleType};
+pub use localraster_raw::Demosaic;
+use localraster_raw::{CameraLook, DevelopOptions, Limits, PreviewColorSpace, RawError, Reference, Sensor, WhiteBalance};
+pub use localraster_raw::{EXTENSIONS, Tone, retone};
 
 use crate::flat::image_to_document;
 use crate::{ImportResult, IoError};
 
-/// `true` if `bytes` are a camera raw file `localpaint-raw` recognises.
+/// `true` if `bytes` are a camera raw file `localraster-raw` recognises.
 pub fn is_raw(bytes: &[u8]) -> bool {
-    localpaint_raw::is_raw(bytes)
+    localraster_raw::is_raw(bytes)
 }
 
 /// The decode limits shared with the flat codecs.
@@ -35,8 +35,8 @@ fn limits() -> Limits {
 /// A raw file's embedded JPEG preview, turned upright. Its own EXIF orientation wins when it
 /// has one; otherwise the raw's IFD0 orientation applies (TIFF-based raws record it there, and
 /// their previews are usually stored as the sensor reads out). Developed raws are oriented by
-/// `localpaint-raw` and their EXIF carries no orientation, so nothing is turned twice.
-fn upright_preview(raw: &[u8], jpeg: &[u8], limits: &localpaint_raw::Limits) -> Result<Image, IoError> {
+/// `localraster-raw` and their EXIF carries no orientation, so nothing is turned twice.
+fn upright_preview(raw: &[u8], jpeg: &[u8], limits: &localraster_raw::Limits) -> Result<Image, IoError> {
     // Decode the embedded preview under the caller's limits, not the codec defaults: an
     // embedded JPEG can declare far more decoded pixels than the raw development the caller
     // authorized, so the preview fallback must honor the same policy.
@@ -44,7 +44,7 @@ fn upright_preview(raw: &[u8], jpeg: &[u8], limits: &localpaint_raw::Limits) -> 
         codecs::Limits { max_width: limits.max_width, max_height: limits.max_height, max_pixels: limits.max_pixels, max_alloc: limits.max_alloc };
     let img = codecs::decode_as_with(Format::Jpeg, jpeg, &codecs::DecodeOptions { keep_orientation: true, limits: codec_limits })?;
     let own = img.meta.exif.as_deref().map_or(1, codecs::exif_orientation);
-    let o = if own != 1 { own } else { localpaint_raw::orientation(raw).unwrap_or_else(|| codecs::exif_orientation(raw)) };
+    let o = if own != 1 { own } else { localraster_raw::orientation(raw).unwrap_or_else(|| codecs::exif_orientation(raw)) };
     Ok(img.oriented(o)?)
 }
 
@@ -53,7 +53,7 @@ fn upright_preview(raw: &[u8], jpeg: &[u8], limits: &localpaint_raw::Limits) -> 
 /// developed RGB pixels, and the demosaic method.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct RawTuning {
-    /// −100…100, as `localpaint_algo::camera_raw::CameraRaw::temperature`.
+    /// −100…100, as `localraster_algo::camera_raw::CameraRaw::temperature`.
     pub temperature: f32,
     /// −100…100, as `CameraRaw::tint`.
     pub tint: f32,
@@ -61,7 +61,7 @@ pub struct RawTuning {
     pub exposure: f32,
     pub demosaic: Demosaic,
     /// −100…100, as `CameraRaw::shadows`: in linear light before the tone curve, as Camera Raw
-    /// does for raw files ([`localpaint_raw::Tone`]).
+    /// does for raw files ([`localraster_raw::Tone`]).
     pub shadows: f32,
     /// −100…100, as `CameraRaw::highlights`.
     pub highlights: f32,
@@ -80,14 +80,14 @@ pub struct RawTuning {
 /// no as-shot white balance: Temperature / Tint were then not applied, and the caller keeps
 /// them as RGB adjustments.
 pub fn import_raw_tuned(name: &str, bytes: &[u8], tuning: &RawTuning) -> Result<(ImportResult, bool), IoError> {
-    let format = localpaint_raw::identify(bytes).map(|f| f.name()).unwrap_or("camera raw");
+    let format = localraster_raw::identify(bytes).map(|f| f.name()).unwrap_or("camera raw");
     let exposure = f64::from(tuning.exposure);
     if !exposure.is_finite() || !(-10.0..=10.0).contains(&exposure) {
         return Err(IoError::Raw(RawError::Malformed(format!("exposure {} EV is out of range", tuning.exposure))));
     }
-    let sensor = localpaint_raw::decode(bytes, &limits()).map_err(IoError::Raw)?;
+    let sensor = localraster_raw::decode(bytes, &limits()).map_err(IoError::Raw)?;
     let slider = |v: f32| if v.is_finite() { v.clamp(-100.0, 100.0) } else { 0.0 };
-    let tone = localpaint_raw::Tone {
+    let tone = localraster_raw::Tone {
         shadows: slider(tuning.shadows),
         highlights: slider(tuning.highlights),
         clarity: slider(tuning.clarity),
@@ -106,7 +106,7 @@ pub fn import_raw_tuned(name: &str, bytes: &[u8], tuning: &RawTuning) -> Result<
         }
         None => false,
     };
-    let dev = localpaint_raw::develop_sensor(&sensor, &opts).map_err(IoError::Raw)?;
+    let dev = localraster_raw::develop_sensor(&sensor, &opts).map_err(IoError::Raw)?;
     let wb = if wb_applied {
         format!("as-shot white balance, temperature {:+.0}, tint {:+.0}", tuning.temperature, tuning.tint)
     } else {
@@ -124,18 +124,18 @@ pub fn import_raw_tuned(name: &str, bytes: &[u8], tuning: &RawTuning) -> Result<
 /// The tone curve `bytes` develop with by default: the fitted look's for a file without colour
 /// calibration (see [`import_raw_with`]), else the camera profile's (empty: none, or not a raw
 /// this crate decodes). For previews of the open-time raw-stage sliders
-/// ([`localpaint_raw::retone`]), in linear-light knots.
+/// ([`localraster_raw::retone`]), in linear-light knots.
 pub fn tone_curve(bytes: &[u8]) -> Vec<[f32; 2]> {
-    let Ok(sensor) = localpaint_raw::decode(bytes, &limits()) else { return Vec::new() };
+    let Ok(sensor) = localraster_raw::decode(bytes, &limits()) else { return Vec::new() };
     match default_look(bytes, &sensor) {
         Some(look) => look.tone.as_ref().map(look_knots).unwrap_or_default(),
         None => sensor.tone_curve,
     }
 }
 
-/// A fitted look's tone curve as knots for [`localpaint_raw::retone`] (which reads them
+/// A fitted look's tone curve as knots for [`localraster_raw::retone`] (which reads them
 /// log-linearly): sampled densely enough that the two agree within a fraction of a code value.
-fn look_knots(t: &localpaint_raw::ToneCurve) -> Vec<[f32; 2]> {
+fn look_knots(t: &localraster_raw::ToneCurve) -> Vec<[f32; 2]> {
     const N: usize = 256;
     (1..=N).map(|i| (i as f64 / N as f64).powi(2)).map(|x| [x as f32, t.eval(x) as f32]).collect()
 }
@@ -165,24 +165,24 @@ fn camera_name(make: Option<&str>, model: Option<&str>) -> String {
 }
 
 /// Camera Raw's white-balance gains for Temperature / Tint (−100…100), the same the Camera
-/// Raw filter applies ([`localpaint_algo::camera_raw::white_balance_gains`]).
+/// Raw filter applies ([`localraster_algo::camera_raw::white_balance_gains`]).
 fn wb_gains(temperature: f32, tint: f32) -> [f64; 3] {
-    localpaint_algo::camera_raw::white_balance_gains(temperature.clamp(-100.0, 100.0), tint.clamp(-100.0, 100.0)).map(f64::from)
+    localraster_algo::camera_raw::white_balance_gains(temperature.clamp(-100.0, 100.0), tint.clamp(-100.0, 100.0)).map(f64::from)
 }
 
 /// A developed raw as a 16-bit ProPhoto document, with a note saying how it was developed.
-fn developed_document(name: &str, bytes: &[u8], format: &str, dev: localpaint_raw::Developed, summary: &str) -> Result<ImportResult, IoError> {
+fn developed_document(name: &str, bytes: &[u8], format: &str, dev: localraster_raw::Developed, summary: &str) -> Result<ImportResult, IoError> {
     let mut img = Image::from_u16(dev.width, dev.height, ChannelLayout::Rgb, &dev.rgb)?;
     // The raw's own EXIF (camera, lens, exposure, date), for File Info's Camera Data. It carries
     // no orientation: the developed image is already upright.
     img.meta.exif = codecs::raw_exif(bytes);
     let mut r = image_to_document(name, &img)?;
-    r.document.icc_profile = Some(Arc::new(localpaint_cms::Builtin::ProPhotoCompat.profile().to_bytes().to_vec()));
+    r.document.icc_profile = Some(Arc::new(localraster_cms::Builtin::ProPhotoCompat.profile().to_bytes().to_vec()));
     let camera = camera_name(dev.info.make.as_deref(), dev.info.model.as_deref());
     r.warnings.push(format!(
         "{format}{} {summary} into 16-bit {}",
         if camera.is_empty() { String::new() } else { format!(" from {camera}") },
-        localpaint_raw::OUTPUT_SPACE
+        localraster_raw::OUTPUT_SPACE
     ));
     r.warnings.extend(dev.warnings);
     Ok(r)
@@ -200,7 +200,7 @@ pub fn import_raw_demosaic(name: &str, bytes: &[u8], demosaic: Demosaic) -> Resu
 
 /// Smallest preview long edge preferred for the colour fit (a smaller preview decodes faster;
 /// the fit grid is at most `PROXY_EDGE` cells and wants about two pixels per cell).
-const FIT_PREVIEW_EDGE: u32 = 2 * localpaint_raw::PROXY_EDGE as u32;
+const FIT_PREVIEW_EDGE: u32 = 2 * localraster_raw::PROXY_EDGE as u32;
 
 /// The colour space of a raw's decoded preview when it is not sRGB: its own ICC profile, else the
 /// one the raw's EXIF states (a Sony body set to Adobe RGB writes no profile into the JPEG).
@@ -208,20 +208,20 @@ const FIT_PREVIEW_EDGE: u32 = 2 * localpaint_raw::PROXY_EDGE as u32;
 fn preview_profile(raw: &[u8], icc: Option<&[u8]>) -> Result<Option<Cow<'static, Profile>>, String> {
     let src = match icc {
         Some(icc) => Cow::Owned(Profile::parse(icc).map_err(|e| format!("the preview's ICC profile does not parse: {e}"))?),
-        None if localpaint_raw::embedded_preview_color_space(raw) == Some(PreviewColorSpace::AdobeRgb) => Cow::Borrowed(Builtin::AdobeRgbCompat.profile()),
+        None if localraster_raw::embedded_preview_color_space(raw) == Some(PreviewColorSpace::AdobeRgb) => Cow::Borrowed(Builtin::AdobeRgbCompat.profile()),
         None => return Ok(None),
     };
     Ok((!src.same_colors(Builtin::Srgb.profile())).then_some(src))
 }
 
 /// Fits the colour of a decoded raw to the camera's embedded JPEG (see
-/// [`localpaint_raw::fit_look`]): picks the smallest preview at least
+/// [`localraster_raw::fit_look`]): picks the smallest preview at least
 /// `FIT_PREVIEW_EDGE` pixels long (else the largest), decodes it, turns it upright and
 /// converts it to sRGB when it is in another colour space ([`preview_profile`]). `Err` says
 /// why there is no fit.
 pub fn fit_preview_look(raw: &[u8], sensor: &Sensor, opts: &DevelopOptions) -> Result<CameraLook, String> {
-    let previews = localpaint_raw::embedded_previews(raw);
-    let long = |p: &localpaint_raw::Preview| p.width.max(p.height);
+    let previews = localraster_raw::embedded_previews(raw);
+    let long = |p: &localraster_raw::Preview| p.width.max(p.height);
     let pick = previews
         .iter()
         .filter(|p| long(p) >= FIT_PREVIEW_EDGE)
@@ -240,12 +240,12 @@ pub fn fit_preview_look(raw: &[u8], sensor: &Sensor, opts: &DevelopOptions) -> R
         t.convert_u8(&rgb, 3, &mut out, 3, false);
         rgb = Cow::Owned(out);
     }
-    localpaint_raw::fit_look(sensor, opts, &Reference { width: w, height: h, rgb: &rgb }).map_err(|e| e.to_string())
+    localraster_raw::fit_look(sensor, opts, &Reference { width: w, height: h, rgb: &rgb }).map_err(|e| e.to_string())
 }
 
 /// Decodes and develops; a file without colour calibration gets a look fitted to its preview.
-fn develop_fitted(bytes: &[u8], opts: &DevelopOptions) -> Result<localpaint_raw::Developed, RawError> {
-    let sensor = localpaint_raw::decode(bytes, &opts.limits)?;
+fn develop_fitted(bytes: &[u8], opts: &DevelopOptions) -> Result<localraster_raw::Developed, RawError> {
+    let sensor = localraster_raw::decode(bytes, &opts.limits)?;
     let mut opts = Cow::Borrowed(opts);
     if opts.camera_look.is_none()
         && sensor.color.calibrations.is_empty()
@@ -254,7 +254,7 @@ fn develop_fitted(bytes: &[u8], opts: &DevelopOptions) -> Result<localpaint_raw:
     {
         opts.to_mut().camera_look = Some(look);
     }
-    localpaint_raw::develop_sensor(&sensor, &opts)
+    localraster_raw::develop_sensor(&sensor, &opts)
 }
 
 /// In the import note of a raw developed from its sensor data with the default settings (not of
@@ -274,18 +274,18 @@ pub fn developed_demosaic(warnings: &[String]) -> Option<Demosaic> {
 /// Develops a raw file with explicit settings. Without `opts.camera_look`, a file without
 /// colour calibration gets one fitted to its embedded JPEG when that clearly helps.
 pub fn import_raw_with(name: &str, bytes: &[u8], opts: &DevelopOptions) -> Result<ImportResult, IoError> {
-    let format = localpaint_raw::identify(bytes).map(|f| f.name()).unwrap_or("camera raw");
+    let format = localraster_raw::identify(bytes).map(|f| f.name()).unwrap_or("camera raw");
     match develop_fitted(bytes, opts) {
         Ok(dev) => {
             let summary = format!("{DEVELOPED_NOTE} ({} demosaic, as-shot white balance)", opts.demosaic.id());
             developed_document(name, bytes, format, dev, &summary)
         }
         Err(RawError::Unsupported(reason)) => {
-            let jpeg = localpaint_raw::embedded_preview(bytes);
+            let jpeg = localraster_raw::embedded_preview(bytes);
             // A DNG 1.7 converter keeps only its small thumbnail as JPEG and writes the larger
             // previews as JPEG XL, like the raw data (#8125): open the largest of either kind.
             let jpeg_area = jpeg.map_or(0, |p| u64::from(p.width) * u64::from(p.height));
-            let jxl = localpaint_raw::embedded_jxl_preview(bytes, &opts.limits).filter(|p| u64::from(p.width) * u64::from(p.height) > jpeg_area);
+            let jxl = localraster_raw::embedded_jxl_preview(bytes, &opts.limits).filter(|p| u64::from(p.width) * u64::from(p.height) > jpeg_area);
             let (img, kind, (w, h)) = match (jxl, jpeg) {
                 (Some(p), _) => {
                     let size = (p.width, p.height);
@@ -310,7 +310,7 @@ pub fn import_raw_with(name: &str, bytes: &[u8], opts: &DevelopOptions) -> Resul
 
 /// A decoded JPEG XL preview as an image: in its stated colour space (sRGB when it states
 /// none), turned upright by the raw's orientation (DNG previews are stored as the raw is).
-fn jxl_preview_image(raw: &[u8], p: localpaint_raw::DecodedPreview) -> Result<Image, IoError> {
+fn jxl_preview_image(raw: &[u8], p: localraster_raw::DecodedPreview) -> Result<Image, IoError> {
     let img = if p.bits == 8 {
         Image::from_u8(p.width, p.height, ChannelLayout::Rgb, p.rgb.iter().map(|&v| v.min(255) as u8).collect())?
     } else {
@@ -323,7 +323,7 @@ fn jxl_preview_image(raw: &[u8], p: localpaint_raw::DecodedPreview) -> Result<Im
         Some(PreviewColorSpace::ProPhoto) => Some(Builtin::ProPhotoCompat.profile().to_bytes().to_vec()),
         Some(PreviewColorSpace::Srgb) | None => None,
     };
-    Ok(img.with_icc(icc).oriented(localpaint_raw::orientation(raw).unwrap_or(1))?)
+    Ok(img.with_icc(icc).oriented(localraster_raw::orientation(raw).unwrap_or(1))?)
 }
 
 #[cfg(test)]
@@ -351,7 +351,7 @@ mod tests {
     /// its preview, which has no ICC profile, is read as Adobe RGB for the colour fit, not as sRGB.
     #[test]
     fn a_preview_without_a_profile_takes_the_raws_exif_colour_space() {
-        use localpaint_raw::testgen::{TiffBuilder, Val};
+        use localraster_raw::testgen::{TiffBuilder, Val};
         let raw = |color_space: u16, index: &str| {
             let mut t = TiffBuilder::default();
             let interop = t.ifd(vec![(0x0001, Val::Ascii(index.into()))]);

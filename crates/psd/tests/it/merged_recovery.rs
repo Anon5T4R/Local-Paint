@@ -1,6 +1,6 @@
 //! Opt-in merged-image recovery must not weaken strict parsing or lose encoded bytes.
 
-use localpaint_psd::{Compression, PsdError, PsdFile, Version, compression, testgen};
+use localraster_psd::{Compression, PsdError, PsdFile, Version, compression, testgen};
 
 #[test]
 fn recovery_is_explicit_and_preserves_the_original_file() {

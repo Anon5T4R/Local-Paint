@@ -19,11 +19,11 @@ use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 use egui::{Align2, Color32, FontId, Painter, Shape, Stroke};
-use localpaint_geom::{Rect as DRect, TILE_SIZE, TileCoord};
-use localpaint_raster::{Surface, Tile};
+use localraster_geom::{Rect as DRect, TILE_SIZE, TileCoord};
+use localraster_raster::{Surface, Tile};
 use rayon::prelude::*;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::canvas::ViewXform;
 
 /// Outline and fill of a tile whose pixels appear nowhere else in the layer.
@@ -130,7 +130,7 @@ fn quad(xf: &ViewXform, r: DRect) -> [egui::Pos2; 4] {
 }
 
 /// Draw the active layer's tiles of document `idx`. `visible` is the document area in view.
-pub fn paint(app: &LocalPaintApp, ctx: &egui::Context, painter: &Painter, xf: &ViewXform, idx: usize, visible: DRect) {
+pub fn paint(app: &LocalRasterApp, ctx: &egui::Context, painter: &Painter, xf: &ViewXform, idx: usize, visible: DRect) {
     let Some(st) = app.session.documents().get(idx) else { return };
     let Some(surface) = st.active_layer.and_then(|id| st.doc.layer(id)).and_then(|l| l.surface()) else { return };
     let revision = st.revision;
@@ -188,7 +188,7 @@ pub fn paint(app: &LocalPaintApp, ctx: &egui::Context, painter: &Painter, xf: &V
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_color::PixelFormat;
+    use localraster_color::PixelFormat;
 
     /// The document rect of tile cell (tx, ty).
     fn cell(tx: i32, ty: i32) -> DRect {
@@ -251,7 +251,7 @@ mod tests {
         }
     }
 
-    /// `cargo test --release -p localpaint-ui-egui --lib tile_grouping_36mp -- --ignored --nocapture`
+    /// `cargo test --release -p localraster-ui-egui --lib tile_grouping_36mp -- --ignored --nocapture`
     #[test]
     #[ignore = "benchmark"]
     fn tile_grouping_36mp() {

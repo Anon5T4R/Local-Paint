@@ -2,10 +2,10 @@
 //! one 64 × 64 cell per mode, a duck over a rainbow backdrop.
 #![cfg(feature = "corpus")]
 
-use localpaint_color::BlendMode;
-use localpaint_geom::Rect;
-use localpaint_io::{import, merged_composite};
-use localpaint_psd::PsdFile;
+use localraster_color::BlendMode;
+use localraster_geom::Rect;
+use localraster_io::{import, merged_composite};
+use localraster_psd::PsdFile;
 
 const CELL: i32 = 64;
 
@@ -18,7 +18,7 @@ fn cell_error(mode: BlendMode) -> (f32, f32) {
     let doc = import("rgb-blend-modes.psd", &bytes).expect("opens").document;
     let file = PsdFile::from_bytes(&bytes).expect("parses");
     let merged = merged_composite(&file).expect("merged image");
-    let ours = localpaint_compose::flatten(&doc).px;
+    let ours = localraster_compose::flatten(&doc).px;
     let width = doc.size.width as i32;
     let duck = doc.walk().into_iter().map(|(_, _, l)| l).find(|l| l.name == "rubber_duck_PNG1" && l.blend == mode).expect("the mode's duck");
     let surface = duck.surface().expect("duck pixels");

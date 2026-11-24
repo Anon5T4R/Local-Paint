@@ -1,24 +1,24 @@
-use super::{LocalPaintApp, Value, mask_thumbs_ui};
+use super::{LocalRasterApp, Value, mask_thumbs_ui};
 
 /// The active layer is an adjustment layer. It has no pixels, so painting and filling it edit its
 /// mask even when its icon thumbnail, not the mask, is the Layers panel's target, as in
 /// Photoshop (#4298).
-pub(crate) fn adjustment_layer_active(st: &localpaint_engine::DocState) -> bool {
-    st.active_layer.and_then(|id| st.doc.layer(id)).is_some_and(|l| matches!(l.content, localpaint_doc::LayerContent::Adjustment(_)))
+pub(crate) fn adjustment_layer_active(st: &localraster_engine::DocState) -> bool {
+    st.active_layer.and_then(|id| st.doc.layer(id)).is_some_and(|l| matches!(l.content, localraster_doc::LayerContent::Adjustment(_)))
 }
 
-impl LocalPaintApp {
+impl LocalRasterApp {
     /// `params` aimed at the active layer's mask (`"target":"mask"`) when the Layers panel targets
     /// it and command `id` edits the target (adjustments, filters, fills) without naming one:
     /// ⌘I then inverts the mask, as in Photoshop (#780). A targeted alpha channel or Quick Mask
     /// mode wins, as the engine routes those itself.
     pub fn with_mask_target(&self, id: &str, params: Value) -> Value {
-        if !localpaint_engine::channel_cmds::follows_target(id) || params.get("target").is_some() {
+        if !localraster_engine::channel_cmds::follows_target(id) || params.get("target").is_some() {
             return params;
         }
         // A filter mask is painted, filled and filtered in place; it doesn't float or move, and
         // Edit › Transform, Apply Image and the dialog filters act on the smart object.
-        let target = if self.filter_mask_targeted() && localpaint_engine::channel_cmds::follows_filter_mask(id) {
+        let target = if self.filter_mask_targeted() && localraster_engine::channel_cmds::follows_filter_mask(id) {
             "filterMask"
         } else if self.layer_mask_targeted() {
             "mask"
@@ -39,11 +39,11 @@ impl LocalPaintApp {
     pub fn filter_mask_targeted(&self) -> bool {
         let Some(st) = self.session.active() else { return false };
         let Some(id) = st.active_layer.filter(|id| self.ui.filter_mask_target == Some(id.0)) else { return false };
-        let composite = (st.channel_view.target == localpaint_engine::channel_cmds::ChannelTarget::Composite
-            || (matches!(st.channel_view.target, localpaint_engine::channel_cmds::ChannelTarget::Color(_))
-                && localpaint_engine::mask_view_cmds::current(st).is_some_and(|v| v.filter)))
+        let composite = (st.channel_view.target == localraster_engine::channel_cmds::ChannelTarget::Composite
+            || (matches!(st.channel_view.target, localraster_engine::channel_cmds::ChannelTarget::Color(_))
+                && localraster_engine::mask_view_cmds::current(st).is_some_and(|v| v.filter)))
             && st.doc.quick_mask.is_none();
-        composite && st.doc.layer(id).is_some_and(|l| matches!(&l.content, localpaint_doc::LayerContent::Smart(sm) if !sm.smart_filters.is_empty()))
+        composite && st.doc.layer(id).is_some_and(|l| matches!(&l.content, localraster_doc::LayerContent::Smart(sm) if !sm.smart_filters.is_empty()))
     }
 
     /// The active layer's mask is what pixel commands edit: the Layers panel targets it, the layer
@@ -51,14 +51,14 @@ impl LocalPaintApp {
     /// is the picture. An alpha channel or Quick Mask wins, as the engine routes those itself.
     pub fn layer_mask_targeted(&self) -> bool {
         let Some(st) = self.session.active() else { return false };
-        if localpaint_engine::mask_view_cmds::current(st).is_some_and(|v| v.filter) {
+        if localraster_engine::mask_view_cmds::current(st).is_some_and(|v| v.filter) {
             return false;
         }
-        let layer_mask = st.channel_view.target == localpaint_engine::channel_cmds::ChannelTarget::LayerMask;
-        let composite = (st.channel_view.target == localpaint_engine::channel_cmds::ChannelTarget::Composite || layer_mask) && st.doc.quick_mask.is_none();
+        let layer_mask = st.channel_view.target == localraster_engine::channel_cmds::ChannelTarget::LayerMask;
+        let composite = (st.channel_view.target == localraster_engine::channel_cmds::ChannelTarget::Composite || layer_mask) && st.doc.quick_mask.is_none();
         let has_mask = st.active_layer.and_then(|id| st.doc.layer(id)).is_some_and(|l| l.mask.is_some());
-        if matches!(st.channel_view.target, localpaint_engine::channel_cmds::ChannelTarget::Color(_))
-            && localpaint_engine::mask_view_cmds::current(st).is_some()
+        if matches!(st.channel_view.target, localraster_engine::channel_cmds::ChannelTarget::Color(_))
+            && localraster_engine::mask_view_cmds::current(st).is_some()
         {
             return true;
         }
@@ -68,7 +68,7 @@ impl LocalPaintApp {
         if self.ui.mask_target || layer_mask || adjustment_layer_active(st) {
             return true;
         }
-        let colors_off = st.channel_view.visible_colors(localpaint_engine::channel_cmds::color_count(&st.doc)) == 0;
+        let colors_off = st.channel_view.visible_colors(localraster_engine::channel_cmds::color_count(&st.doc)) == 0;
         let alpha_on = (0..st.doc.channels.len()).any(|i| st.channel_view.alpha_shown(i));
         colors_off && !alpha_on
     }
@@ -77,9 +77,9 @@ impl LocalPaintApp {
     /// on its thumbnail): while it shows, [`Self::sync_mask_targets`] keeps the filter mask
     /// targeted, so strokes would keep landing there.
     pub(crate) fn end_filter_mask_view(&mut self) {
-        let Some(v) = self.session.active().and_then(localpaint_engine::mask_view_cmds::current).filter(|v| v.filter) else { return };
+        let Some(v) = self.session.active().and_then(localraster_engine::mask_view_cmds::current).filter(|v| v.filter) else { return };
         let off = serde_json::json!({"layer": v.layer.0, "mode": "off", "mask": "filter"});
-        if let Err(err) = self.session.execute(localpaint_engine::mask_view_cmds::ID, off) {
+        if let Err(err) = self.session.execute(localraster_engine::mask_view_cmds::ID, off) {
             log::warn!("could not end the filter mask view: {err}");
         }
     }
@@ -97,9 +97,9 @@ impl LocalPaintApp {
                 }
                 if matches!(
                     st.channel_view.target,
-                    localpaint_engine::channel_cmds::ChannelTarget::LayerMask | localpaint_engine::channel_cmds::ChannelTarget::VectorMask
+                    localraster_engine::channel_cmds::ChannelTarget::LayerMask | localraster_engine::channel_cmds::ChannelTarget::VectorMask
                 ) {
-                    st.channel_view.target = localpaint_engine::channel_cmds::ChannelTarget::Composite;
+                    st.channel_view.target = localraster_engine::channel_cmds::ChannelTarget::Composite;
                 }
             }
             self.ui.mask_target = false;
@@ -113,11 +113,11 @@ impl LocalPaintApp {
     /// Channels panel off colour rows left selected and onto the mask, as in Photoshop, so tools,
     /// menu commands and the engine all edit the mask. A view change only: no command, no step.
     pub(crate) fn target_mask_over_colour_rows(&mut self) {
-        use localpaint_engine::channel_cmds::ChannelTarget;
+        use localraster_engine::channel_cmds::ChannelTarget;
         let Some(st) = self.session.active_mut() else { return };
         let raster_with_mask =
-            st.active_layer.and_then(|id| st.doc.layer(id)).is_some_and(|l| l.mask.is_some() && matches!(l.content, localpaint_doc::LayerContent::Raster(_)));
-        if matches!(st.channel_view.target, ChannelTarget::Color(_)) && localpaint_engine::mask_view_cmds::current(st).is_none() && raster_with_mask {
+            st.active_layer.and_then(|id| st.doc.layer(id)).is_some_and(|l| l.mask.is_some() && matches!(l.content, localraster_doc::LayerContent::Raster(_)));
+        if matches!(st.channel_view.target, ChannelTarget::Color(_)) && localraster_engine::mask_view_cmds::current(st).is_none() && raster_with_mask {
             let v = &mut st.channel_view;
             v.target = ChannelTarget::LayerMask;
             v.selected_colors.clear();
@@ -130,9 +130,9 @@ impl LocalPaintApp {
     /// pixels brings back that target's foreground/background pair, as in Photoshop (#2166).
     pub(crate) fn sync_mask_targets(&mut self) {
         if let Some(st) = self.session.active_mut() {
-            use localpaint_engine::channel_cmds::ChannelTarget;
+            use localraster_engine::channel_cmds::ChannelTarget;
             let channel = st.channel_view.target;
-            match localpaint_engine::mask_view_cmds::current(st) {
+            match localraster_engine::mask_view_cmds::current(st) {
                 Some(v) if v.filter => {
                     self.ui.filter_mask_target = Some(v.layer.0);
                     self.ui.mask_target = false;
@@ -162,8 +162,8 @@ impl LocalPaintApp {
             if self.ui.mask_target && st.active_layer.and_then(|id| st.doc.layer(id)).is_none_or(|l| l.mask.is_none()) {
                 self.ui.mask_target = false;
             }
-            if !self.ui.mask_target && st.channel_view.target == localpaint_engine::channel_cmds::ChannelTarget::LayerMask {
-                st.channel_view.target = localpaint_engine::channel_cmds::ChannelTarget::Composite;
+            if !self.ui.mask_target && st.channel_view.target == localraster_engine::channel_cmds::ChannelTarget::LayerMask {
+                st.channel_view.target = localraster_engine::channel_cmds::ChannelTarget::Composite;
             }
             if !self.ui.mask_target || self.ui.properties_layer != st.active_layer.map(|l| l.0) {
                 self.ui.properties_layer = None;

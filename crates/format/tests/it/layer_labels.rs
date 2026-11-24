@@ -1,5 +1,5 @@
-use localpaint_color::{ColorMode, SampleType};
-use localpaint_doc::{Document, LabelColor, Layer, Size};
+use localraster_color::{ColorMode, SampleType};
+use localraster_doc::{Document, LabelColor, Layer, Size};
 
 #[test]
 fn layer_labels_pcraft_roundtrip_all_colors_and_depths() {
@@ -12,8 +12,8 @@ fn layer_labels_pcraft_roundtrip_all_colors_and_depths() {
             group.label = color;
             doc.layers.push(group);
         }
-        let bytes = localpaint_format::save_to_bytes(&doc, &Default::default()).unwrap();
-        assert_eq!(localpaint_format::load_from_bytes(&bytes).unwrap(), doc, "{depth:?}");
-        assert!(localpaint_format::load_from_bytes(&bytes[..bytes.len() / 2]).is_err());
+        let bytes = localraster_format::save_to_bytes(&doc, &Default::default()).unwrap();
+        assert_eq!(localraster_format::load_from_bytes(&bytes).unwrap(), doc, "{depth:?}");
+        assert!(localraster_format::load_from_bytes(&bytes[..bytes.len() / 2]).is_err());
     }
 }

@@ -7,7 +7,7 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::state::Tool;
 use crate::theme::ThemeKind;
 
@@ -27,13 +27,13 @@ const TOOLS: [Tool; 11] = [
 ];
 
 /// The options bar for `tool` under `theme`, with a document open, after a few settled frames.
-fn options_bar(theme: ThemeKind, tool: Tool) -> Harness<'static, LocalPaintApp> {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn options_bar(theme: ThemeKind, tool: Tool) -> Harness<'static, LocalRasterApp> {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 64, "height": 64})).unwrap();
     app.sync_views();
     app.ui.tool = tool;
     let mut h = Harness::builder().with_size(egui::vec2(1600.0, 60.0)).build_ui_state(
-        |ui, app: &mut LocalPaintApp| {
+        |ui, app: &mut LocalRasterApp| {
             if !ui.ctx().fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                 return;
             }
@@ -41,14 +41,14 @@ fn options_bar(theme: ThemeKind, tool: Tool) -> Harness<'static, LocalPaintApp> 
         },
         app,
     );
-    LocalPaintApp::setup_context(&h.ctx, theme);
+    LocalRasterApp::setup_context(&h.ctx, theme);
     h.run_steps(4);
     h
 }
 
 /// Every labelled node in the bar as `role label`, sorted. The Pro themes end option labels with
 /// a colon and start the bar with a Home button; both are chrome, not tool options.
-fn controls(h: &Harness<'_, LocalPaintApp>) -> Vec<String> {
+fn controls(h: &Harness<'_, LocalRasterApp>) -> Vec<String> {
     let mut v: Vec<String> = h
         .root()
         .children_recursive()

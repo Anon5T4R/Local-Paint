@@ -4,8 +4,8 @@
 //! Reserve the sum of all possible retained tiles and the largest workspace, without credit
 //! for pruning or tile sharing. Reserving before any worker starts makes scheduling irrelevant.
 
-use localpaint_geom::TILE_SIZE;
-use localpaint_psd::{
+use localraster_geom::TILE_SIZE;
+use localraster_psd::{
     PsdFile,
     layer::{CHANNEL_REAL_USER_MASK, CHANNEL_USER_MASK, Rect},
 };
@@ -81,7 +81,7 @@ pub(crate) fn check(file: &PsdFile, limit: u64) -> Result<(), IoError> {
     let sample = u64::from(h.depth.div_ceil(8));
     let cc = match h.color_mode {
         // Unknown modes use the RGB fallback, including its alpha channel.
-        localpaint_psd::ColorMode::Unknown(_) => 3,
+        localraster_psd::ColorMode::Unknown(_) => 3,
         mode => u64::from(mode.color_channels().unwrap_or(3)),
     };
     if super::psd_import::can_recover_layers(file) {
@@ -126,15 +126,15 @@ pub(crate) fn check(file: &PsdFile, limit: u64) -> Result<(), IoError> {
         let converted = mul(pixels, mul(channels.max(cc + 1), sample * 3 + 12)?)?;
         budget.scratch(converted.checked_add(inflate_scratch(merged, 1)?).ok_or_else(overflow)?);
     }
-    let mut patterns = localpaint_psd::patterns::PatternBudget::default();
+    let mut patterns = localraster_psd::patterns::PatternBudget::default();
     for block in file.global_blocks.iter().filter(|b| crate::pattern_map::PATTERN_KEYS.contains(&b.key)) {
         // Earlier records can decode before a malformed later record discards the block.
-        let items = localpaint_psd::patterns::pattern_block_memory(&block.data, &mut patterns);
+        let items = localraster_psd::patterns::pattern_block_memory(&block.data, &mut patterns);
         for p in items {
             let pixels = mul(u64::from(p.width), u64::from(p.height))?;
             let sample = u64::from(p.depth.div_ceil(8));
-            let color = if p.mode == 2 { 3 } else { localpaint_psd::patterns::mode_channels(p.mode) as u64 };
-            let alpha = u64::from(p.planes > localpaint_psd::patterns::mode_channels(p.mode));
+            let color = if p.mode == 2 { 3 } else { localraster_psd::patterns::mode_channels(p.mode) as u64 };
+            let alpha = u64::from(p.planes > localraster_psd::patterns::mode_channels(p.mode));
             budget.surface(Rect::from_xywh(0, 0, p.width, p.height), color + alpha, sample)?;
             // The block parser returns all planes together. Count them as retained so
             // previous converted patterns and later blocks cannot reuse this allowance.

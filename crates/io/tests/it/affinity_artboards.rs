@@ -5,10 +5,10 @@
 mod fixture;
 
 use fixture::{Marker, document};
-use localpaint_affinity::synth::Method;
-use localpaint_doc::Document;
-use localpaint_geom::Rect;
-use localpaint_io::{ExportOptions, export, import};
+use localraster_affinity::synth::Method;
+use localraster_doc::Document;
+use localraster_geom::Rect;
+use localraster_io::{ExportOptions, export, import};
 
 fn boards(doc: &Document) -> Vec<(String, Rect)> {
     doc.artboards().into_iter().map(|(_, name, a)| (name.to_string(), a.rect)).collect()
@@ -16,7 +16,7 @@ fn boards(doc: &Document) -> Vec<(String, Rect)> {
 
 fn pixels(doc: &Document) -> Vec<u8> {
     let bytes = export(doc, "boards.png", &ExportOptions::default()).unwrap().bytes;
-    localpaint_codecs::decode(&bytes).unwrap().data().to_vec()
+    localraster_codecs::decode(&bytes).unwrap().data().to_vec()
 }
 
 #[test]

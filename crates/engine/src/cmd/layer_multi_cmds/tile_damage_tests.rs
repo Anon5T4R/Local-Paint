@@ -2,7 +2,7 @@
 //! checked against them.
 
 use super::*;
-use localpaint_geom::TILE_SIZE;
+use localraster_geom::TILE_SIZE;
 
 fn session(w: u32, h: u32) -> Session {
     let mut s = Session::new();
@@ -20,7 +20,7 @@ fn damage(s: &Session) -> Option<Rect> {
 
 /// The composite of `after` equals `before`'s outside `damage`.
 fn unchanged_outside(before: &Document, after: &Document, damage: Rect) -> bool {
-    let (x, y) = (localpaint_compose::render(before, before.bounds()), localpaint_compose::render(after, after.bounds()));
+    let (x, y) = (localraster_compose::render(before, before.bounds()), localraster_compose::render(after, after.bounds()));
     let w = before.bounds().width() as i32;
     x.px.iter().zip(&y.px).enumerate().all(|(i, (p, q))| p == q || damage.contains(i as i32 % w, i as i32 / w))
 }
@@ -106,7 +106,7 @@ fn a_move_still_damages_both_extents() {
     s.execute("layer.translate", json!({"layer": id.0, "dx": 300, "dy": 50})).unwrap();
     let after = doc(&s);
     let canvas = after.bounds();
-    let extents = |d: &Document| localpaint_compose::change_bounds(d.layer(id).unwrap(), canvas).unwrap();
+    let extents = |d: &Document| localraster_compose::change_bounds(d.layer(id).unwrap(), canvas).unwrap();
     let both = extents(&before).union(&extents(&after));
     assert_eq!(both, r.union(&r.translate(300, 50)));
     assert_eq!(damage(&s), Some(both));
@@ -134,7 +134,7 @@ fn a_mask_edit_damages_its_tiles_grown_by_the_feather() {
     let id = full_layer(&mut s);
     let feather = 10.0;
     s.edit("mask", |doc, _| {
-        doc.layer_mut(id).unwrap().mask = Some(localpaint_doc::LayerMask { feather, ..localpaint_doc::LayerMask::reveal_all() });
+        doc.layer_mut(id).unwrap().mask = Some(localraster_doc::LayerMask { feather, ..localraster_doc::LayerMask::reveal_all() });
         Ok(())
     })
     .unwrap();
@@ -147,7 +147,7 @@ fn a_mask_edit_damages_its_tiles_grown_by_the_feather() {
     .unwrap();
     let after = doc(&s);
     let d = step_damage(&before, &after).unwrap();
-    let grown = localpaint_vector::feather::grow(tiles_of(hole), localpaint_vector::feather::feather_sigma(feather));
+    let grown = localraster_vector::feather::grow(tiles_of(hole), localraster_vector::feather::feather_sigma(feather));
     assert_eq!(d, grown.intersect(&after.bounds()));
     assert!(d.contains_rect(&tiles_of(hole)) && d != after.bounds(), "{d:?}");
     assert!(unchanged_outside(&before, &after, d));
@@ -159,15 +159,15 @@ fn tile_damage_grows_by_the_layer_effect_margin() {
     let (a, b) = (Rect::new(50, 50, 150, 150), Rect::new(600, 400, 700, 500));
     let id = layer_with(&mut s, &[(a, [1.0, 0.0, 0.0, 1.0]), (b, [1.0, 0.0, 0.0, 1.0])]);
     s.edit("fx", |doc, _| {
-        doc.layer_mut(id).unwrap().effects.items.push(localpaint_doc::Effect::default_drop_shadow());
+        doc.layer_mut(id).unwrap().effects.items.push(localraster_doc::Effect::default_drop_shadow());
         Ok(())
     })
     .unwrap();
-    let m = localpaint_compose::effects::margin(doc(&s).layer(id).unwrap());
+    let m = localraster_compose::effects::margin(doc(&s).layer(id).unwrap());
     assert!(m > 0);
     let (before, after) = paint(&mut s, id, Rect::new(640, 440, 660, 460), [0.0, 0.0, 0.0, 0.0]);
     let d = step_damage(&before, &after).unwrap();
-    let whole = localpaint_compose::change_bounds(after.layer(id).unwrap(), after.bounds()).unwrap();
+    let whole = localraster_compose::change_bounds(after.layer(id).unwrap(), after.bounds()).unwrap();
     assert_eq!(d, tiles_of(b).inflate(m).intersect(&whole));
     assert!(d.x0 < tiles_of(b).x0 && d.y0 < tiles_of(b).y0, "the shadow reaches past the tile: {d:?}");
     assert!(unchanged_outside(&before, &after, d));
@@ -180,11 +180,11 @@ fn a_dab_inside_a_group_with_a_drop_shadow_damages_the_shadow() {
     s.execute("layer.select", json!({"layer": child.0})).unwrap();
     let g = LayerId(s.execute("layer.groupLayers", json!({})).unwrap()["layer"].as_u64().unwrap());
     s.edit("fx", |doc, _| {
-        doc.layer_mut(g).unwrap().effects.items.push(localpaint_doc::Effect::default_drop_shadow());
+        doc.layer_mut(g).unwrap().effects.items.push(localraster_doc::Effect::default_drop_shadow());
         Ok(())
     })
     .unwrap();
-    assert!(localpaint_compose::effects::margin(doc(&s).layer(g).unwrap()) > 0);
+    assert!(localraster_compose::effects::margin(doc(&s).layer(g).unwrap()) > 0);
     let dab = Rect::new(640, 440, 660, 460);
     let (before, after) = paint(&mut s, child, dab, [0.0, 0.0, 1.0, 1.0]);
     let d = damage(&s).expect("a bounded dab");
@@ -200,7 +200,7 @@ fn painting_a_clip_base_under_a_styled_clipped_layer_is_covered() {
     s.edit("clip", |doc, _| {
         let l = doc.layer_mut(top).unwrap();
         l.clipped = true;
-        l.effects.items.push(localpaint_doc::Effect::default_drop_shadow());
+        l.effects.items.push(localraster_doc::Effect::default_drop_shadow());
         Ok(())
     })
     .unwrap();
@@ -215,12 +215,12 @@ fn painting_a_clip_base_under_a_styled_clipped_layer_is_covered() {
 /// #4053: effects laid out over the layer's frame repaint it everywhere when it grows.
 #[test]
 fn a_frame_spanning_effect_still_redraws_its_whole_frame() {
-    use localpaint_doc::{Effect, FxCommon, Gradient};
+    use localraster_doc::{Effect, FxCommon, Gradient};
     let mut s = session(1024, 768);
     let id = layer_with(&mut s, &[(Rect::new(100, 100, 700, 200), [1.0, 0.0, 0.0, 1.0])]);
     s.edit("fx", |doc, _| {
         doc.layer_mut(id).unwrap().effects.items.push(Effect::GradientOverlay {
-            common: FxCommon::new(localpaint_doc::BlendMode::Normal, 1.0),
+            common: FxCommon::new(localraster_doc::BlendMode::Normal, 1.0),
             gradient: Gradient::default(),
             dither: false,
             interpolation: None,
@@ -230,7 +230,7 @@ fn a_frame_spanning_effect_still_redraws_its_whole_frame() {
     .unwrap();
     let (before, after) = paint(&mut s, id, Rect::new(700, 100, 800, 200), [0.0, 1.0, 0.0, 1.0]);
     let d = step_damage(&before, &after).unwrap();
-    let extents = |d: &Document| localpaint_compose::change_bounds(d.layer(id).unwrap(), d.bounds()).unwrap();
+    let extents = |d: &Document| localraster_compose::change_bounds(d.layer(id).unwrap(), d.bounds()).unwrap();
     let whole = extents(&before).union(&extents(&after));
     assert!(whole.contains_rect(&Rect::new(100, 100, 800, 200)), "{whole:?}");
     assert_eq!(d, whole);
@@ -247,7 +247,7 @@ fn refreshing_type_layers_damages_only_those_layers() {
     assert!(busy.is_empty());
     let after = doc(&s);
     let d = damage(&s).expect("a bounded refresh");
-    let bounds = |d: &Document, id: LayerId| localpaint_compose::change_bounds(d.layer(id).unwrap(), d.bounds()).unwrap();
+    let bounds = |d: &Document, id: LayerId| localraster_compose::change_bounds(d.layer(id).unwrap(), d.bounds()).unwrap();
     assert!(bounds(&before, one).union(&bounds(&after, one)).contains_rect(&d), "{d:?}");
     assert!(d.intersect(&bounds(&after, two)).is_empty(), "{d:?}");
     assert!(unchanged_outside(&before, &after, d));

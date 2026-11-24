@@ -2,33 +2,33 @@
 
 use egui::{Modifiers, PointerButton, Pos2, Rect, pos2, vec2};
 use egui_kittest::Harness;
-use localpaint_doc::{Document, LayerContent, LayerId};
+use localraster_doc::{Document, LayerContent, LayerId};
 use serde_json::json;
 
 use super::at;
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::layer_row_ui::{RowRects, recorded};
 
 /// Background, `a` and `b` above it.
-fn two_layers() -> (localpaint_engine::Session, LayerId, LayerId) {
-    let mut s = localpaint_engine::Session::new();
+fn two_layers() -> (localraster_engine::Session, LayerId, LayerId) {
+    let mut s = localraster_engine::Session::new();
     s.execute("file.new", json!({"width": 64, "height": 48})).unwrap();
     let a = s.execute("layer.new.layer", json!({"name": "a"})).unwrap()["layer"].as_u64().unwrap();
     let b = s.execute("layer.new.layer", json!({"name": "b"})).unwrap()["layer"].as_u64().unwrap();
     (s, LayerId(a), LayerId(b))
 }
 
-fn harness(session: localpaint_engine::Session) -> Harness<'static, LocalPaintApp> {
+fn harness(session: localraster_engine::Session) -> Harness<'static, LocalRasterApp> {
     let mut h = Harness::builder().with_size(vec2(1440.0, 900.0)).with_max_steps(64).build_eframe(move |cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        LocalPaintApp::new(session, crate::Services::default())
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        LocalRasterApp::new(session, crate::Services::default())
     });
     h.run_steps(8);
     h
 }
 
 /// A real click (press and release on separate frames), modifiers held throughout.
-fn click(h: &mut Harness<'_, LocalPaintApp>, at: Pos2, modifiers: Modifiers) {
+fn click(h: &mut Harness<'_, LocalRasterApp>, at: Pos2, modifiers: Modifiers) {
     h.event(egui::Event::ModifiersChanged(modifiers));
     h.hover_at(at);
     h.run_steps(1);
@@ -40,7 +40,7 @@ fn click(h: &mut Harness<'_, LocalPaintApp>, at: Pos2, modifiers: Modifiers) {
     h.run_steps(3);
 }
 
-fn clipped(h: &Harness<'_, LocalPaintApp>, id: LayerId) -> bool {
+fn clipped(h: &Harness<'_, LocalRasterApp>, id: LayerId) -> bool {
     h.state().session.active().unwrap().doc.layer(id).unwrap().clipped
 }
 
@@ -97,7 +97,7 @@ fn named(doc: &Document, name: &str) -> LayerId {
 #[test]
 fn only_siblings_next_to_each_other_meet_at_a_line() {
     // Background, `d`, and the group `g { c }` above it.
-    let mut s = localpaint_engine::Session::new();
+    let mut s = localraster_engine::Session::new();
     s.execute("file.new", json!({"width": 64, "height": 48})).unwrap();
     s.execute("layer.new.layer", json!({"name": "d"})).unwrap();
     s.execute("layer.new.layer", json!({"name": "c"})).unwrap();
@@ -149,8 +149,8 @@ fn the_band_reaches_three_above_and_five_below_the_line() {
 }
 
 /// Background, Layer 1, CB (Color Balance), Top; Top active.
-fn chain() -> (localpaint_engine::Session, [LayerId; 3]) {
-    let mut s = localpaint_engine::Session::new();
+fn chain() -> (localraster_engine::Session, [LayerId; 3]) {
+    let mut s = localraster_engine::Session::new();
     s.execute("file.new", json!({"width": 64, "height": 48})).unwrap();
     let l1 = s.execute("layer.new.layer", json!({"name": "Layer 1"})).unwrap()["layer"].as_u64().unwrap();
     s.execute("layer.newAdjustmentLayer.colorBalance", json!({})).unwrap();
@@ -160,16 +160,16 @@ fn chain() -> (localpaint_engine::Session, [LayerId; 3]) {
 }
 
 /// A point on the line along the top of `layer`'s row, `dy` below it, right of the eye column.
-fn on_line(h: &Harness<'_, LocalPaintApp>, layer: LayerId, dy: f32) -> Pos2 {
+fn on_line(h: &Harness<'_, LocalRasterApp>, layer: LayerId, dy: f32) -> Pos2 {
     let r = recorded(&h.ctx).into_iter().find(|r| r.layer == layer.0).unwrap().row;
     pos2(r.left() + 80.0, r.top() + dy)
 }
 
-fn active(h: &Harness<'_, LocalPaintApp>) -> Option<LayerId> {
+fn active(h: &Harness<'_, LocalRasterApp>) -> Option<LayerId> {
     h.state().session.active().unwrap().active_layer
 }
 
-fn steps(h: &Harness<'_, LocalPaintApp>) -> usize {
+fn steps(h: &Harness<'_, LocalRasterApp>) -> usize {
     h.state().session.active().unwrap().history.entries().len()
 }
 

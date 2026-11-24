@@ -1,10 +1,10 @@
-use super::{LAYOUTS, LocalPaintApp, Value, json};
+use super::{LAYOUTS, LocalRasterApp, Value, json};
 
 /// View › Fit Layer(s) on Screen: zoom and centre on the selected layers' bounds.
-pub(super) fn fit_layers(app: &mut LocalPaintApp) -> Result<Value, String> {
+pub(super) fn fit_layers(app: &mut LocalRasterApp) -> Result<Value, String> {
     let i = app.session.active_index().ok_or("no document")?;
     let st = app.session.active().ok_or("no document")?;
-    let mut b = localpaint_geom::Rect::EMPTY;
+    let mut b = localraster_geom::Rect::EMPTY;
     for id in st.selected_layers() {
         if let Some(r) = st.doc.layer(id).and_then(|l| l.surface()).map(|s| s.content_bounds()) {
             b = if b.is_empty() { r } else { b.union(&r) };
@@ -36,7 +36,7 @@ fn screen_position(v: &Value) -> Option<[f32; 2]> {
     Some([n(0)?, n(1)?])
 }
 
-pub(crate) fn float_window(app: &mut LocalPaintApp, doc: usize, offset: usize, floating: bool) -> u64 {
+pub(crate) fn float_window(app: &mut LocalRasterApp, doc: usize, offset: usize, floating: bool) -> u64 {
     let wid = app.ui.alloc_id();
     let mut view = app.ui.views.get(doc).cloned().unwrap_or_default();
     view.zoom_animating = false;
@@ -48,7 +48,7 @@ pub(crate) fn float_window(app: &mut LocalPaintApp, doc: usize, offset: usize, f
     wid
 }
 
-pub(super) fn arrange(app: &mut LocalPaintApp, k: &str, p: &Value) -> Result<Value, String> {
+pub(super) fn arrange(app: &mut LocalRasterApp, k: &str, p: &Value) -> Result<Value, String> {
     if LAYOUTS.contains(&k) {
         app.ui.view.arrange = k.to_string();
         // Each document fits its new cell.
@@ -128,7 +128,7 @@ pub(super) fn arrange(app: &mut LocalPaintApp, k: &str, p: &Value) -> Result<Val
     }
 }
 
-pub(crate) fn document_is_floating(app: &LocalPaintApp, doc: usize) -> bool {
+pub(crate) fn document_is_floating(app: &LocalRasterApp, doc: usize) -> bool {
     app.ui.windows.iter().any(|w| w.open && w.floating && w.document == doc)
 }
 

@@ -98,7 +98,7 @@ pub fn script_order(locale: Option<&str>) -> [CjkScript; 4] {
     }
 }
 
-/// The user's UI locale (cached). `LOCALPAINT_LOCALE` overrides; then macOS's preferred
+/// The user's UI locale (cached). `LOCALRASTER_LOCALE` overrides; then macOS's preferred
 /// language list, the Windows user locale, and finally `LC_ALL` / `LC_MESSAGES` / `LANG` /
 /// `LANGUAGE`. `None` on the web or when nothing is set.
 pub fn ui_locale() -> Option<&'static str> {
@@ -113,7 +113,7 @@ pub fn ui_script_order() -> [CjkScript; 4] {
 
 fn detect_locale() -> Option<String> {
     let env = |k: &str| std::env::var(k).ok().map(|v| v.trim().to_string()).filter(|v| !v.is_empty() && v != "C" && v != "POSIX" && !v.starts_with("C."));
-    if let Some(v) = env("LOCALPAINT_LOCALE") {
+    if let Some(v) = env("LOCALRASTER_LOCALE") {
         return Some(v);
     }
     if let Some(v) = os_locale() {
@@ -269,7 +269,7 @@ pub fn start_fontconfig_cjk_scan() {
     }
     let scan = fontconfig_cjk_scan();
     if std::thread::Builder::new()
-        .name("localpaint-fontconfig-cjk".into())
+        .name("localraster-fontconfig-cjk".into())
         .spawn(move || {
             let result = [CjkScript::Japanese, CjkScript::SimplifiedChinese, CjkScript::TraditionalChinese, CjkScript::Korean].map(fontconfig_match);
             *scan.result.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some(result);

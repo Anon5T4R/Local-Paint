@@ -4,7 +4,7 @@
 //! way the app creates it; the CPU compositor without an adapter).
 //!
 //! ```sh
-//! cargo run --release -p localpaint-ui-egui --example perf_scenarios -- [--quick] [--json out.json] [--only text] [--group layered] [--reps N] [--cpu] [--no-composite-reuse]
+//! cargo run --release -p localraster-ui-egui --example perf_scenarios -- [--quick] [--json out.json] [--only text] [--group layered] [--reps N] [--cpu] [--no-composite-reuse]
 //! ```
 //!
 //! `cargo xtask perf` runs this and maps the rows to scenario ids in `perf/budgets.toml`, so
@@ -16,13 +16,13 @@
 use std::time::Instant;
 
 use eframe::egui_wgpu::RenderState;
-use localpaint_algo::liquify::{LiquifyField, LiquifyStroke, LiquifyTool, ProxyImage, auto_cell};
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_engine::Session;
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
-use localpaint_testkit::perf::{RssSampler, report, row, write_report};
-use localpaint_ui_egui::gpu_canvas::GpuCanvas;
+use localraster_algo::liquify::{LiquifyField, LiquifyStroke, LiquifyTool, ProxyImage, auto_cell};
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_engine::Session;
+use localraster_geom::Rect;
+use localraster_raster::Surface;
+use localraster_testkit::perf::{RssSampler, report, row, write_report};
+use localraster_ui_egui::gpu_canvas::GpuCanvas;
 use serde_json::{Value, json};
 
 type Res<T> = Result<T, String>;
@@ -63,13 +63,13 @@ fn photo_jpeg(w: u32, h: u32) -> Res<Vec<u8>> {
         }
     });
     let img =
-        localpaint_codecs::Image::from_raw(w, h, localpaint_codecs::ChannelLayout::Rgb, localpaint_codecs::SampleType::U8, px).map_err(|e| e.to_string())?;
-    localpaint_codecs::encode(&img, localpaint_codecs::Format::Jpeg, &Default::default()).map_err(|e| e.to_string())
+        localraster_codecs::Image::from_raw(w, h, localraster_codecs::ChannelLayout::Rgb, localraster_codecs::SampleType::U8, px).map_err(|e| e.to_string())?;
+    localraster_codecs::encode(&img, localraster_codecs::Format::Jpeg, &Default::default()).map_err(|e| e.to_string())
 }
 
 fn open_photo(w: u32, h: u32) -> Res<Session> {
     let jpeg = photo_jpeg(w, h)?;
-    let doc = localpaint_io::import("photo.jpg", &jpeg).map_err(|e| e.to_string())?.document;
+    let doc = localraster_io::import("photo.jpg", &jpeg).map_err(|e| e.to_string())?.document;
     let mut s = Session::new();
     s.open_document(doc, Some("photo.jpg".into()));
     Ok(s)
@@ -77,13 +77,13 @@ fn open_photo(w: u32, h: u32) -> Res<Session> {
 
 /// How far an edit's composite change reaches beyond its damage (layer effects); mirrors
 /// `canvas::effect_reach`.
-fn reach(layers: &[localpaint_doc::Layer]) -> i32 {
+fn reach(layers: &[localraster_doc::Layer]) -> i32 {
     layers
         .iter()
         .map(|l| {
-            let own = if localpaint_compose::effects::has_effects(l) { localpaint_compose::effects::margin(l) } else { 0 };
+            let own = if localraster_compose::effects::has_effects(l) { localraster_compose::effects::margin(l) } else { 0 };
             let kids = match &l.content {
-                localpaint_doc::LayerContent::Group(g) => reach(&g.children),
+                localraster_doc::LayerContent::Group(g) => reach(&g.children),
                 _ => 0,
             };
             own + kids
@@ -116,7 +116,7 @@ impl Bench {
     /// The canvas refresh after an edit (`canvas::ensure_gpu`): the damage rect grown by the
     /// effect reach when the session reports one, else everything; waits for the GPU.
     /// Re-composite only `r` of the active document (what the canvas hadn't shown yet).
-    fn refresh_rect(&self, s: &Session, r: localpaint_geom::Rect) -> Res<f64> {
+    fn refresh_rect(&self, s: &Session, r: localraster_geom::Rect) -> Res<f64> {
         let st = s.active().ok_or("no document")?;
         let doc = &st.doc;
         let r = r.intersect(&doc.bounds());
@@ -128,7 +128,7 @@ impl Bench {
                     let _ = rs.device.poll(eframe::wgpu::PollType::Wait { submission_index: None, timeout: None });
                 }
                 None => {
-                    std::hint::black_box(localpaint_compose::render(doc, r));
+                    std::hint::black_box(localraster_compose::render(doc, r));
                 }
             }
         }
@@ -149,7 +149,7 @@ impl Bench {
                 let r = damage.unwrap_or(doc.bounds()).intersect(&doc.bounds());
                 self.last_px.set(if r.is_empty() { 0 } else { r.size().area() });
                 if !r.is_empty() {
-                    std::hint::black_box(localpaint_compose::render(doc, r));
+                    std::hint::black_box(localraster_compose::render(doc, r));
                 }
             }
         }
@@ -161,13 +161,13 @@ impl Bench {
     /// previous frame and where it is now (`move_ui::damage`).
     fn drag_frame(&self, s: &Session, layer: u64, i: usize) -> Res<f64> {
         let doc = s.active().ok_or("no document")?.doc.clone();
-        let id = localpaint_doc::LayerId(layer);
-        let all = localpaint_geom::Rect::new(i32::MIN / 2, i32::MIN / 2, i32::MAX / 2, i32::MAX / 2);
-        let was = doc.layer(id).and_then(|l| localpaint_compose::change_bounds(l, all)).ok_or("no bounds")?;
+        let id = localraster_doc::LayerId(layer);
+        let all = localraster_geom::Rect::new(i32::MIN / 2, i32::MIN / 2, i32::MAX / 2, i32::MAX / 2);
+        let was = doc.layer(id).and_then(|l| localraster_compose::change_bounds(l, all)).ok_or("no bounds")?;
         // Frame i shows offset (d, d / 2); the canvas showed the previous frame's.
         let (d, prev) = (3 * i as i32 + 1, if i == 0 { 0 } else { 3 * i as i32 - 2 });
         let t = Instant::now();
-        let shown = localpaint_engine::layer_multi_cmds::moved(&doc, &[id], d, d / 2).map_err(|e| e.to_string())?;
+        let shown = localraster_engine::layer_multi_cmds::moved(&doc, &[id], d, d / 2).map_err(|e| e.to_string())?;
         let damage = was.translate(prev, prev / 2).union(&was.translate(d, d / 2)).inflate(1).intersect(&doc.bounds());
         match &self.gpu {
             Some((g, rs)) => {
@@ -175,7 +175,7 @@ impl Bench {
                 let _ = rs.device.poll(eframe::wgpu::PollType::Wait { submission_index: None, timeout: None });
             }
             None => {
-                std::hint::black_box(localpaint_compose::render(&shown, damage));
+                std::hint::black_box(localraster_compose::render(&shown, damage));
             }
         }
         Ok(ms(t))
@@ -241,7 +241,7 @@ impl Bench {
 
 /// A headless GPU canvas on a device created like the app's.
 fn canvas() -> Option<(GpuCanvas, RenderState)> {
-    let setup = localpaint_ui_egui::gpu_canvas::wgpu_setup();
+    let setup = localraster_ui_egui::gpu_canvas::wgpu_setup();
     let rs = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| egui_kittest::wgpu::create_render_state(setup, Default::default()))).ok()?;
     eprintln!("adapter: {}", rs.adapter.get_info().name);
     Some((GpuCanvas::new(&rs), rs))
@@ -358,7 +358,7 @@ fn many_layers_doc(w: u32, h: u32, n: usize) -> Res<(Session, u64)> {
 }
 
 /// The first top-level layer of the active document, other than `except`, that `want` accepts.
-fn find_layer(s: &Session, except: u64, want: impl Fn(&localpaint_doc::Layer) -> bool) -> Option<u64> {
+fn find_layer(s: &Session, except: u64, want: impl Fn(&localraster_doc::Layer) -> bool) -> Option<u64> {
     s.active()?.doc.layers.iter().find(|l| l.id.0 != except && want(l)).map(|l| l.id.0)
 }
 
@@ -506,8 +506,8 @@ fn layered_scenarios(b: &mut Bench, sz: &Sizes) {
 
     // Advanced Blending on one layer sends the whole document to the CPU compositor (#6689):
     // opacity edits on another layer, then the knockout is cleared again.
-    let other = find_layer(&s, target, |l| matches!(l.content, localpaint_doc::LayerContent::Raster(_)) && localpaint_compose::effects::has_effects(l));
-    let adjustment = find_layer(&s, target, |l| matches!(l.content, localpaint_doc::LayerContent::Adjustment(_)));
+    let other = find_layer(&s, target, |l| matches!(l.content, localraster_doc::LayerContent::Raster(_)) && localraster_compose::effects::has_effects(l));
+    let adjustment = find_layer(&s, target, |l| matches!(l.content, localraster_doc::LayerContent::Adjustment(_)));
     match other {
         Some(other) if exec(&mut s, "layer.layerStyle.blendingOptions", json!({"layer": other, "knockout": "shallow"})).is_ok() => {
             let _ = b.refresh(&s, true);
@@ -645,8 +645,8 @@ fn full_canvas_layer_scenarios(b: &mut Bench, sz: &Sizes) {
     if let (Some((g, _)), Some(st)) = (&b.gpu, s.active()) {
         // As the app counts it (`canvas::gpu_budget`).
         let pixels = st.memory_bytes() as u64;
-        let allowance = u64::from(localpaint_engine::prefs::Performance::default().memory_usage_mb) << 20;
-        let budget = localpaint_ui_egui::gpu_canvas::memory_budget(allowance, pixels, localpaint_ui_egui::gpu_canvas::physical_memory(), g.video_memory(), 0);
+        let allowance = u64::from(localraster_engine::prefs::Performance::default().memory_usage_mb) << 20;
+        let budget = localraster_ui_egui::gpu_canvas::memory_budget(allowance, pixels, localraster_ui_egui::gpu_canvas::physical_memory(), g.video_memory(), 0);
         g.set_memory_budget(budget);
         app_budget = Some(budget);
     }
@@ -672,7 +672,7 @@ fn full_canvas_layer_scenarios(b: &mut Bench, sz: &Sizes) {
             // As #6533's repro (`performance.gpuMemoryMb = 512`): the ~3.6 GB working set no longer
             // fits, so a full refresh takes the from-scratch CPU path on every machine.
             if let Some((g, _)) = &b.gpu {
-                g.set_memory_budget(localpaint_ui_egui::gpu_canvas::MIN_GPU_BUDGET);
+                g.set_memory_budget(localraster_ui_egui::gpu_canvas::MIN_GPU_BUDGET);
             }
             let _ = b.refresh(&s, true);
             // Each run is a from-scratch CPU composite of 150 full-canvas layers. Every timed run
@@ -718,9 +718,9 @@ fn huge_document_scenarios(b: &mut Bench, sz: &Sizes) {
     // One run: each is a from-scratch reduced composite of the whole document.
     b.time(name, &mut s, 1, false, |_, s, _| {
         let doc = &s.active().ok_or("no document")?.doc;
-        let factor = w.max(h).div_ceil(localpaint_ui_egui::canvas::MAX_TEXTURE).max(1);
+        let factor = w.max(h).div_ceil(localraster_ui_egui::canvas::MAX_TEXTURE).max(1);
         let t = Instant::now();
-        let reduced = localpaint_compose::render_reduced(doc, w / factor, h / factor);
+        let reduced = localraster_compose::render_reduced(doc, w / factor, h / factor);
         let v = ms(t);
         if reduced.px.is_empty() {
             return Err("the reduced canvas is empty".into());
@@ -821,13 +821,13 @@ fn job_scenarios(b: &mut Bench, sz: &Sizes) {
         let (w, h) = sz.layered;
         match layered_doc(w, h).and_then(|(s, _)| {
             let d = s.active().ok_or("no document")?.doc.clone();
-            localpaint_io::export(&d, "layered.psd", &Default::default()).map(|o| o.bytes).map_err(|e| e.to_string())
+            localraster_io::export(&d, "layered.psd", &Default::default()).map(|o| o.bytes).map_err(|e| e.to_string())
         }) {
             Ok(psd) => {
                 let mut holder = Session::new();
                 b.time(open, &mut holder, reps, true, |b, s, _| {
                     let t = Instant::now();
-                    let d = localpaint_io::import("layered.psd", &psd).map_err(|e| e.to_string())?.document;
+                    let d = localraster_io::import("layered.psd", &psd).map_err(|e| e.to_string())?.document;
                     *s = Session::new();
                     s.open_document(d, Some("layered.psd".into()));
                     Ok(ms(t) + b.refresh(s, true)?)
@@ -866,7 +866,7 @@ fn job_scenarios(b: &mut Bench, sz: &Sizes) {
 }
 
 /// Wait (polling like the UI's frame loop) until job `id` has ended.
-fn wait_job(s: &mut Session, id: localpaint_engine::jobs::JobId) -> Res<()> {
+fn wait_job(s: &mut Session, id: localraster_engine::jobs::JobId) -> Res<()> {
     let t = Instant::now();
     loop {
         if s.poll_jobs().iter().any(|e| e.id == id) {
@@ -879,10 +879,10 @@ fn wait_job(s: &mut Session, id: localpaint_engine::jobs::JobId) -> Res<()> {
     }
 }
 
-fn start_job(s: &mut Session, id: &str, p: Value) -> Res<localpaint_engine::jobs::JobId> {
+fn start_job(s: &mut Session, id: &str, p: Value) -> Res<localraster_engine::jobs::JobId> {
     match s.start(id, p).map_err(|e| format!("{id}: {e}"))? {
-        localpaint_engine::jobs::Started::Job(j) => Ok(j),
-        localpaint_engine::jobs::Started::Done(_) => Err(format!("{id} did not run as a background job")),
+        localraster_engine::jobs::Started::Job(j) => Ok(j),
+        localraster_engine::jobs::Started::Done(_) => Err(format!("{id} did not run as a background job")),
     }
 }
 
@@ -922,7 +922,7 @@ fn background_job_scenarios(b: &mut Bench, sz: &Sizes) {
     }
     let brushes = "import 500 brushes: longest UI-thread step";
     if b.wanted(brushes) {
-        use localpaint_psd::abr::{AbrSample, LegacyBrush, LegacyTip, write_v12};
+        use localraster_psd::abr::{AbrSample, LegacyBrush, LegacyTip, write_v12};
         let list: Vec<LegacyBrush> = (0..500)
             .map(|i| {
                 let side = 40 + (i % 60) as u32;
@@ -937,7 +937,7 @@ fn background_job_scenarios(b: &mut Bench, sz: &Sizes) {
             .collect();
         match write_v12(2, &list, true) {
             Ok(abr) => {
-                let data = localpaint_engine::paint::tile::b64_encode(&abr);
+                let data = localraster_engine::paint::tile::b64_encode(&abr);
                 let mut s = Session::new();
                 b.time(brushes, &mut s, reps.min(5), true, |_, s, _| {
                     // The UI thread's work: starting the job, then each frame's poll (the last one
@@ -1006,8 +1006,8 @@ fn full_refresh_frame_scenario(b: &mut Bench, name: &str, w: u32, h: u32) {
         Err(e) => return b.errors.push((name.into(), e)),
     };
     let mut harness = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_max_steps(4).build_eframe(move |cc| {
-        localpaint_ui_egui::LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        localpaint_ui_egui::LocalPaintApp::new(s, localpaint_ui_egui::Services::default())
+        localraster_ui_egui::LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        localraster_ui_egui::LocalRasterApp::new(s, localraster_ui_egui::Services::default())
     });
     harness.run_steps(6);
     b.current = Some(name.to_string());
@@ -1043,8 +1043,8 @@ fn frame_scenario(b: &mut Bench, name: &str, w: u32, h: u32) {
     };
     let doc = std::mem::take(&mut s);
     let mut harness = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_max_steps(4).build_eframe(move |cc| {
-        localpaint_ui_egui::LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        let mut app = localpaint_ui_egui::LocalPaintApp::new(doc, localpaint_ui_egui::Services::default());
+        localraster_ui_egui::LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        let mut app = localraster_ui_egui::LocalRasterApp::new(doc, localraster_ui_egui::Services::default());
         app.background_jobs = true;
         app
     });
@@ -1156,7 +1156,7 @@ fn algorithm_scenarios(b: &mut Bench, sz: &Sizes) {
         let _ = b.refresh(&s, true);
         let reps = b.reps.min(5);
         b.time(release, &mut s, reps, false, |b, s, i| {
-            use localpaint_engine::paint::StrokePoint;
+            use localraster_engine::paint::StrokePoint;
             let (fw, fh) = (f64::from(w), f64::from(h));
             let pts: Vec<[f64; 3]> = (0..600)
                 .map(|k| {
@@ -1165,7 +1165,7 @@ fn algorithm_scenarios(b: &mut Bench, sz: &Sizes) {
                 })
                 .collect();
             let mut p = json!({"points": [pts[0]], "size": 200, "hardness": 0.0, "color": "#c03020", "smoothing": 0.0});
-            let mut live = localpaint_engine::brush_cmds::LiveStroke::begin(s, &p).map_err(|e| e.to_string())?;
+            let mut live = localraster_engine::brush_cmds::LiveStroke::begin(s, &p).map_err(|e| e.to_string())?;
             for c in pts[1..].chunks(4) {
                 let sp: Vec<StrokePoint> = c.iter().map(|q| StrokePoint::new(q[0], q[1], q[2] as f32)).collect();
                 live.push(&sp).map_err(|e| e.to_string())?;
@@ -1180,7 +1180,7 @@ fn algorithm_scenarios(b: &mut Bench, sz: &Sizes) {
                 return Err("the release rendered the stroke again".into());
             }
             // The canvas already shows every step of the stroke: nothing left to re-composite.
-            Ok(ms(t) + b.refresh_rect(s, localpaint_geom::Rect::EMPTY)?)
+            Ok(ms(t) + b.refresh_rect(s, localraster_geom::Rect::EMPTY)?)
         });
     }
 }
@@ -1198,8 +1198,8 @@ fn huge_new_scenario(b: &mut Bench, sz: &Sizes) {
         let t = Instant::now();
         exec(s, "file.new", json!({"width": w, "height": h, "resolution": 200, "background": "white"}))?;
         let doc = &s.active().ok_or("no document")?.doc;
-        let factor = w.max(h).div_ceil(localpaint_ui_egui::canvas::MAX_TEXTURE).max(1);
-        let reduced = localpaint_compose::render_reduced(doc, w / factor, h / factor);
+        let factor = w.max(h).div_ceil(localraster_ui_egui::canvas::MAX_TEXTURE).max(1);
+        let reduced = localraster_compose::render_reduced(doc, w / factor, h / factor);
         if reduced.px.first() != Some(&[1.0; 4]) {
             return Err("the new document is not white".into());
         }
@@ -1281,14 +1281,14 @@ fn liquify_preview_scenario(b: &mut Bench) {
 }
 
 /// The share of the canvas `r` covers.
-fn coverage(doc: &localpaint_doc::Document, r: Rect) -> f64 {
+fn coverage(doc: &localraster_doc::Document, r: Rect) -> f64 {
     r.intersect(&doc.bounds()).size().area() as f64 / doc.bounds().size().area().max(1) as f64
 }
 
 /// The content bounds of `layer`'s pixels.
 fn layer_bounds(s: &Session, layer: u64) -> Res<Rect> {
     let doc = &s.active().ok_or("no document")?.doc;
-    doc.layer(localpaint_doc::LayerId(layer)).and_then(|l| l.surface()).map(|p| p.content_bounds()).ok_or_else(|| "layer has no pixels".to_string())
+    doc.layer(localraster_doc::LayerId(layer)).and_then(|l| l.surface()).map(|p| p.content_bounds()).ok_or_else(|| "layer has no pixels".to_string())
 }
 
 /// A document with one painted layer covering the whole canvas; returns it and the layer.
@@ -1329,7 +1329,7 @@ fn redraw_area_scenarios(b: &mut Bench, sz: &Sizes) {
                     let took = ms(t) + b.refresh(s, false)?;
                     b.px.borrow_mut().push(b.last_px.get());
                     let after = s.active().ok_or("no document")?.doc.clone();
-                    if localpaint_engine::layer_multi_cmds::step_damage(&before, &after).is_some_and(|r| r.is_empty()) {
+                    if localraster_engine::layer_multi_cmds::step_damage(&before, &after).is_some_and(|r| r.is_empty()) {
                         return Err("path check: the undo changed no pixels".into());
                     }
                     Ok(took)
@@ -1366,7 +1366,7 @@ fn redraw_area_scenarios(b: &mut Bench, sz: &Sizes) {
                     let took = ms(t) + b.refresh(s, false)?;
                     b.px.borrow_mut().push(b.last_px.get());
                     let after = s.active().ok_or("no document")?.doc.clone();
-                    if localpaint_engine::layer_multi_cmds::step_damage(&before, &after).is_some_and(|r| r.is_empty()) {
+                    if localraster_engine::layer_multi_cmds::step_damage(&before, &after).is_some_and(|r| r.is_empty()) {
                         return Err("path check: the fill changed no pixels".into());
                     }
                     Ok(took)

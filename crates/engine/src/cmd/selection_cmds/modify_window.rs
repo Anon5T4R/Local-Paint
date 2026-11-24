@@ -1,7 +1,7 @@
 //! The command's mask read, algorithm input/output and tiled replacement share this window.
 
-use localpaint_doc::Document;
-use localpaint_geom::{Rect, TILE_SIZE};
+use localraster_doc::Document;
+use localraster_geom::{Rect, TILE_SIZE};
 
 pub(super) fn area(doc: &Document, radius: f32) -> Rect {
     let canvas = doc.bounds();

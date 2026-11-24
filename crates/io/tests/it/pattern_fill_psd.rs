@@ -1,11 +1,11 @@
 //! A Pattern Fill layer looks the same after a PSD or layered-TIFF save and reopen in every
 //! colour mode and depth (#1907): the pixels written for it are the pattern, not transparency.
 
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_doc::{Document, Fill, Layer, LayerContent, Pattern};
-use localpaint_geom::{Rect, Size};
-use localpaint_io::*;
-use localpaint_raster::Surface;
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_doc::{Document, Fill, Layer, LayerContent, Pattern};
+use localraster_geom::{Rect, Size};
+use localraster_io::*;
+use localraster_raster::Surface;
 
 /// An RGB checkerboard (as the default patterns are), whatever the document's mode.
 fn checker() -> Pattern {
@@ -28,8 +28,9 @@ fn doc(mode: ColorMode, depth: SampleType) -> Document {
 /// as Edit › Fill would paint it: an RGB pattern is grey in a Grayscale document).
 fn max_diff(d: &Document, back: &Document) -> f32 {
     let fmt = d.pixel_format();
-    let want = localpaint_compose::flatten(d).px.iter().map(|p| localpaint_raster::to_rgba(&fmt, &localpaint_raster::from_rgba(&fmt, *p))).collect::<Vec<_>>();
-    let got = localpaint_compose::flatten(back);
+    let want =
+        localraster_compose::flatten(d).px.iter().map(|p| localraster_raster::to_rgba(&fmt, &localraster_raster::from_rgba(&fmt, *p))).collect::<Vec<_>>();
+    let got = localraster_compose::flatten(back);
     want.iter().zip(&got.px).flat_map(|(p, q)| p.iter().zip(q).map(|(u, v)| (u - v).abs())).fold(0.0, f32::max)
 }
 
@@ -38,7 +39,7 @@ fn pattern_fill_survives_psd_and_layered_tiff_in_every_mode() {
     for mode in [ColorMode::Rgb, ColorMode::Grayscale, ColorMode::Cmyk, ColorMode::Lab] {
         for depth in [SampleType::U8, SampleType::U16, SampleType::F32] {
             let d = doc(mode, depth);
-            let before = localpaint_compose::flatten(&d);
+            let before = localraster_compose::flatten(&d);
             assert!(before.px.iter().all(|p| p[3] > 0.99), "{mode:?}/{depth:?}: the pattern renders before saving");
             for (path, opts) in [("x.psd", ExportOptions::default()), ("x.tif", ExportOptions { tiff_layers: true, ..Default::default() })] {
                 if mode == ColorMode::Lab && path == "x.tif" {
@@ -70,9 +71,9 @@ fn vector_masked_pattern_fill_survives_psd() {
         let mut d = doc(mode, SampleType::U8);
         let fmt = d.pixel_format();
         let mut white = Layer::raster("Background", fmt);
-        white.surface_mut().expect("raster").fill_rect(Rect::new(0, 0, 40, 24), &localpaint_raster::from_rgba(&fmt, [1.0, 1.0, 1.0, 1.0]));
+        white.surface_mut().expect("raster").fill_rect(Rect::new(0, 0, 40, 24), &localraster_raster::from_rgba(&fmt, [1.0, 1.0, 1.0, 1.0]));
         d.layers.insert(0, white);
-        d.layers[1].vector_mask = Some(localpaint_doc::VectorMask::new(localpaint_vector::shapes::rect(8.0, 4.0, 16.0, 12.0)));
+        d.layers[1].vector_mask = Some(localraster_doc::VectorMask::new(localraster_vector::shapes::rect(8.0, 4.0, 16.0, 12.0)));
         let r = export(&d, "x.psd", &ExportOptions::default()).expect("export");
         let back = import("x.psd", &r.bytes).expect("import").document;
         let l = back.layers.iter().find(|l| l.name == "Pattern Fill 1").expect("layer");

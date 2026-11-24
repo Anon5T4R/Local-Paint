@@ -7,15 +7,15 @@ use crate::canvas::tool_event;
 
 const CTRL_ALT: Modifiers = Modifiers { alt: true, ctrl: true, shift: false, mac_cmd: false, command: false };
 
-fn app(tool: Tool) -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+fn app(tool: Tool) -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 300, "height": 200, "background": "transparent"})).unwrap();
     app.run("tools.setBrush", json!({"brush": {"size": 40, "hardness": 0.2}})).unwrap();
     app.ui.tool = tool;
     app
 }
 
-fn history(app: &LocalPaintApp) -> usize {
+fn history(app: &LocalRasterApp) -> usize {
     app.session.active().unwrap().history.past_len()
 }
 
@@ -77,7 +77,7 @@ fn canvas_drag_shows_the_circle_and_readout() {
     let mut a = app(Tool::Brush);
     a.sync_views();
     let mut h = Harness::builder().with_size(vec2(1000.0, 700.0)).build_ui_state(
-        |ui, app: &mut LocalPaintApp| {
+        |ui, app: &mut LocalRasterApp| {
             let ctx = ui.ctx().clone();
             if !ctx.fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                 return;
@@ -86,10 +86,10 @@ fn canvas_drag_shows_the_circle_and_readout() {
         },
         a,
     );
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::default());
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::default());
     h.run_steps(4);
     let c = h.state().last_canvas_rect.center();
-    let press = |h: &mut Harness<'static, LocalPaintApp>, pos: Pos2, pressed: bool| {
+    let press = |h: &mut Harness<'static, LocalRasterApp>, pos: Pos2, pressed: bool| {
         h.event(egui::Event::PointerButton { pos, button: PointerButton::Primary, pressed, modifiers: CTRL_ALT });
         h.run();
     };
@@ -116,9 +116,9 @@ fn canvas_drag_shows_the_circle_and_readout() {
     assert_eq!(history(h.state()), undo0, "no undo step");
 }
 
-fn canvas(a: LocalPaintApp) -> Harness<'static, LocalPaintApp> {
+fn canvas(a: LocalRasterApp) -> Harness<'static, LocalRasterApp> {
     let mut h = Harness::builder().with_size(vec2(1000.0, 700.0)).build_ui_state(
-        |ui, app: &mut LocalPaintApp| {
+        |ui, app: &mut LocalRasterApp| {
             let ctx = ui.ctx().clone();
             if !ctx.fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                 return;
@@ -127,18 +127,18 @@ fn canvas(a: LocalPaintApp) -> Harness<'static, LocalPaintApp> {
         },
         a,
     );
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::default());
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::default());
     h.run_steps(4);
     h
 }
 
-fn button(h: &mut Harness<'static, LocalPaintApp>, pos: Pos2, button: PointerButton, pressed: bool, modifiers: Modifiers) {
+fn button(h: &mut Harness<'static, LocalRasterApp>, pos: Pos2, button: PointerButton, pressed: bool, modifiers: Modifiers) {
     h.event(egui::Event::PointerButton { pos, button, pressed, modifiers });
     h.run_steps(2);
 }
 
 /// Alt+right-drag from the canvas centre, six steps of `step` screen points.
-fn alt_right_drag(h: &mut Harness<'static, LocalPaintApp>, step: egui::Vec2) -> Pos2 {
+fn alt_right_drag(h: &mut Harness<'static, LocalRasterApp>, step: egui::Vec2) -> Pos2 {
     let c = h.state().last_canvas_rect.center();
     h.event(egui::Event::ModifiersChanged(Modifiers::ALT));
     h.event(egui::Event::PointerMoved(c));
@@ -374,10 +374,10 @@ fn the_tip_preview_follows_the_brush_falloff() {
         assert!(hard.iter().all(|(d, a)| *d <= 52.0 * zoom || *a == 0), "zoom {zoom}: and ends at its rim");
         let soft = tip_mesh(50.0, zoom, 0.0);
         for (d, a) in &soft {
-            let want = 200.0 * localpaint_paint::tip_falloff(d / zoom, 50.0, 0.0);
+            let want = 200.0 * localraster_paint::tip_falloff(d / zoom, 50.0, 0.0);
             assert!((f32::from(*a) - want).abs() <= 3.0 || *a == 0, "zoom {zoom}: at {d}: {a}, the engine {want}");
         }
-        let reach = localpaint_paint::tip_reach(50.0, 0.0);
+        let reach = localraster_paint::tip_reach(50.0, 0.0);
         assert!(soft.iter().any(|(d, a)| *d > 60.0 * zoom && *a > 0), "zoom {zoom}: a soft tip shows past its radius");
         assert!(soft.iter().all(|(d, _)| *d <= reach * zoom + 0.5), "zoom {zoom}: and no further than it reaches");
     }

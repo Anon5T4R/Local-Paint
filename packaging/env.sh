@@ -3,10 +3,10 @@
 #
 # Exports:
 #   ROOT                    workspace root
-#   VERSION                 [workspace.package] version from Cargo.toml (override: LOCALPAINT_VERSION)
+#   VERSION                 [workspace.package] version from Cargo.toml (override: LOCALRASTER_VERSION)
 #   DIST                    output directory for release artifacts (default: $ROOT/dist/release)
-#   LOCALPAINT_BUILD_SHA    git commit baked into the binaries (see crates/engine/src/build_info.rs)
-#   LOCALPAINT_BUILD_DATE   UTC build date, YYYY-MM-DD
+#   LOCALRASTER_BUILD_SHA    git commit baked into the binaries (see crates/engine/src/build_info.rs)
+#   LOCALRASTER_BUILD_DATE   UTC build date, YYYY-MM-DD
 #   CARGO_TARGET_DIR        cargo's target dir (default: $ROOT/target)
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -21,7 +21,7 @@ workspace_version() {
   ' "$ROOT/Cargo.toml"
 }
 
-VERSION="${LOCALPAINT_VERSION:-$(workspace_version)}"
+VERSION="${LOCALRASTER_VERSION:-$(workspace_version)}"
 if [[ -z "$VERSION" ]]; then
   echo "error: could not read [workspace.package] version from $ROOT/Cargo.toml" >&2
   exit 1
@@ -32,11 +32,11 @@ DIST="${DIST:-$ROOT/dist/release}"
 mkdir -p "$DIST"
 export DIST
 
-if [[ -z "${LOCALPAINT_BUILD_SHA:-}" ]]; then
-  LOCALPAINT_BUILD_SHA="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || true)"
+if [[ -z "${LOCALRASTER_BUILD_SHA:-}" ]]; then
+  LOCALRASTER_BUILD_SHA="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || true)"
 fi
-export LOCALPAINT_BUILD_SHA
-export LOCALPAINT_BUILD_DATE="${LOCALPAINT_BUILD_DATE:-$(date -u +%Y-%m-%d)}"
+export LOCALRASTER_BUILD_SHA
+export LOCALRASTER_BUILD_DATE="${LOCALRASTER_BUILD_DATE:-$(date -u +%Y-%m-%d)}"
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$ROOT/target}"
 
 # Emit a GitHub Actions warning (plain stderr outside Actions).

@@ -4,11 +4,11 @@
 
 use craft_icons::{Icon, ThemeMode};
 use egui::{Response, Role, Ui, WidgetInfo};
-use localpaint_engine::prefs::AppearanceMode;
+use localraster_engine::prefs::AppearanceMode;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
-/// The suite's mode for Local Paint's appearance setting (the ids on disk are unchanged: auto, light, dark).
+/// The suite's mode for Local Raster's appearance setting (the ids on disk are unchanged: auto, light, dark).
 pub fn theme_mode(mode: AppearanceMode) -> ThemeMode {
     match mode {
         AppearanceMode::Auto => ThemeMode::System,
@@ -39,7 +39,7 @@ fn button(ui: &mut Ui, icon: Icon, tip: &str) -> Response {
 }
 
 /// The gear: opens Settings on the Interface section (the theme and the language live there).
-pub fn settings_button(app: &mut LocalPaintApp, ui: &mut Ui) {
+pub fn settings_button(app: &mut LocalRasterApp, ui: &mut Ui) {
     if button(ui, Icon::Settings, tl!("Settings")).clicked() {
         crate::prefs_ui::open_preferences(app, "interface");
     }
@@ -47,7 +47,7 @@ pub fn settings_button(app: &mut LocalPaintApp, ui: &mut Ui) {
 
 /// The theme button: shows the mode and moves to the next (Automatic, Light, Dark); the right-click menu keeps
 /// Appearance Settings… and the favourite themes.
-pub fn theme_button(app: &mut LocalPaintApp, ui: &mut Ui) {
+pub fn theme_button(app: &mut LocalRasterApp, ui: &mut Ui) {
     let mode = theme_mode(app.session.prefs().interface.appearance_mode);
     let response = button(ui, mode.icon(), &theme_tip(mode));
     if response.clicked() {
@@ -57,7 +57,7 @@ pub fn theme_button(app: &mut LocalPaintApp, ui: &mut Ui) {
 }
 
 /// The search icon: opens the command palette (Edit › Search…).
-pub fn search_button(app: &mut LocalPaintApp, ui: &mut Ui) {
+pub fn search_button(app: &mut LocalRasterApp, ui: &mut Ui) {
     let tip = crate::shortcuts::tip_label(app, "Search commands", "edit.search");
     if button(ui, Icon::Search, &tip).clicked() {
         app.ui.palette_open = !app.ui.palette_open;

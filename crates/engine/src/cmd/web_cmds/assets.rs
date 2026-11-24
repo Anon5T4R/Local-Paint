@@ -311,7 +311,7 @@ pub fn generate_assets(doc: &Document, dir: &str) -> (Vec<String>, Vec<Value>) {
                     written.insert(key);
                     return Ok(reported);
                 }
-                let buf = localpaint_compose::flatten(&wdoc);
+                let buf = localraster_compose::flatten(&wdoc);
                 let o = optimize(&buf.px, wdoc.size.width as usize, wdoc.bounds(), &st, None, None, None, wdoc.resolution_dpi, false)?;
                 let (out, reported) = asset_output_path(dir, &rel)?;
                 write_file(&out, &o.bytes)?;
@@ -329,7 +329,7 @@ pub fn generate_assets(doc: &Document, dir: &str) -> (Vec<String>, Vec<Value>) {
 
 /// Whether any pixel of `doc` is not fully transparent.
 fn has_pixels(doc: &Document) -> bool {
-    localpaint_compose::render(doc, doc.bounds()).px.iter().any(|q| q[3] > 0.0)
+    localraster_compose::render(doc, doc.bounds()).px.iter().any(|q| q[3] > 0.0)
 }
 
 /// `<document folder>/<document name>-assets`.

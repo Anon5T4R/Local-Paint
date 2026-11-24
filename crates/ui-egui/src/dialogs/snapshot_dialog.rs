@@ -6,7 +6,7 @@
 use egui::{Align2, Sense, pos2, vec2};
 use serde_json::{Map, Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::theme::Tokens;
 
 pub const COMMAND: &str = "history.newSnapshot";
@@ -17,8 +17,8 @@ pub fn owns(fields: &Map<String, Value>) -> bool {
 }
 
 /// Open the dialog on the active document, suggesting the name the camera button would give.
-pub fn open(app: &mut LocalPaintApp) -> Option<u64> {
-    let name = localpaint_engine::history_cmds::next_snapshot_name(app.session.active()?);
+pub fn open(app: &mut LocalRasterApp) -> Option<u64> {
+    let name = localraster_engine::history_cmds::next_snapshot_name(app.session.active()?);
     let mut f = Map::new();
     f.insert(MARK.into(), json!(true));
     f.insert("__command".into(), json!(COMMAND));
@@ -28,7 +28,7 @@ pub fn open(app: &mut LocalPaintApp) -> Option<u64> {
     Some(app.ui.open_dialog(crate::state::DialogKind::Command, f))
 }
 
-pub fn confirm(app: &mut LocalPaintApp, f: &Map<String, Value>) -> Result<Value, String> {
+pub fn confirm(app: &mut LocalRasterApp, f: &Map<String, Value>) -> Result<Value, String> {
     app.run(COMMAND, json!({"name": f.get("name"), "from": f.get("from")}))
 }
 

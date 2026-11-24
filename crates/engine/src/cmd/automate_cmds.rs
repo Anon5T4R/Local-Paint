@@ -2,9 +2,9 @@
 //! and Script Events Manager, plus the session state the File-menu commands share
 //! ([`FileMenuState`]).
 //!
-//! "Scripts" are Local Paint action scripts: JSON (`[[id, params], …]`, `{"steps": …}` or a
+//! "Scripts" are Local Raster action scripts: JSON (`[[id, params], …]`, `{"steps": …}` or a
 //! droplet) or a plain-text list with one `command.id {json params}` per line (`#` comments).
-//! Droplets are JSON files (`.pcdroplet`) holding an action plus batch options; `localpaint-cli
+//! Droplets are JSON files (`.pcdroplet`) holding an action plus batch options; `localraster-cli
 //! droplet <file> <inputs…>` runs one, and on Unix a `.command` shim makes it
 //! double-clickable / drop-target-able from the shell.
 //!
@@ -12,7 +12,7 @@
 //! bound in Preferences (`scriptEvents`) and fired by [`fire_event`]: the engine fires New,
 //! Close, Print and Export itself; the app shell fires Start, Open and Save.
 
-use localpaint_doc::{DocId, Layer, LayerContent};
+use localraster_doc::{DocId, Layer, LayerContent};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
@@ -24,7 +24,7 @@ fn bad(cmd: &str, msg: impl Into<String>) -> EngineError {
     EngineError::BadParams { cmd: cmd.into(), msg: msg.into() }
 }
 
-/// Photoshop ExtendScript / UXP script suffixes — not Local Paint JSON or command lists.
+/// Photoshop ExtendScript / UXP script suffixes — not Local Raster JSON or command lists.
 fn extendscript_ext(path: &str) -> Option<&str> {
     let name = path.rsplit(['/', '\\']).next().unwrap_or(path);
     let dot = name.rfind('.')?;
@@ -35,7 +35,7 @@ fn extendscript_ext(path: &str) -> Option<&str> {
 
 fn reject_extendscript(cmd: &str, path: &str) -> Result<()> {
     match extendscript_ext(path) {
-        Some(_) => Err(bad(cmd, "Local Paint scripts are JSON or command lists (one command.id {json} per line), not Photoshop ExtendScript (.js/.jsx)")),
+        Some(_) => Err(bad(cmd, "Local Raster scripts are JSON or command lists (one command.id {json} per line), not Photoshop ExtendScript (.js/.jsx)")),
         None => Ok(()),
     }
 }
@@ -328,7 +328,7 @@ pub fn document_opened(s: &mut Session) {
 /// The script runs first and may close or reorder tabs, so asset generation resolves the saved
 /// document's identity again: a script that closed a different tab must not skip its assets, and
 /// one that closed the saved document must not generate a replacement tab's (#11121).
-pub fn document_saved(s: &mut Session, doc: localpaint_doc::DocId) -> Option<Value> {
+pub fn document_saved(s: &mut Session, doc: localraster_doc::DocId) -> Option<Value> {
     fire_event(s, "saveDocument");
     let index = s.documents().iter().position(|st| st.doc.id == doc)?;
     crate::web_cmds::on_saved(s, index)
@@ -379,15 +379,15 @@ fn write_shim(droplet: &str) -> Result<String> {
     let quoted_abs = format!("'{}'", abs.replace('\'', "'\\''"));
     let body = format!(
         r#"#!/bin/sh
-# Local Paint droplet: runs the action on the files given (or dropped).
-if [ -n "${{LOCALPAINT_CLI:-}}" ]; then
-  cli="$LOCALPAINT_CLI"
-elif [ -x /Applications/LocalPaint.app/Contents/MacOS/localpaint-cli ]; then
-  cli=/Applications/LocalPaint.app/Contents/MacOS/localpaint-cli
-elif [ -x "$HOME/Applications/LocalPaint.app/Contents/MacOS/localpaint-cli" ]; then
-  cli="$HOME/Applications/LocalPaint.app/Contents/MacOS/localpaint-cli"
+# Local Raster droplet: runs the action on the files given (or dropped).
+if [ -n "${{LOCALRASTER_CLI:-}}" ]; then
+  cli="$LOCALRASTER_CLI"
+elif [ -x /Applications/LocalRaster.app/Contents/MacOS/localraster-cli ]; then
+  cli=/Applications/LocalRaster.app/Contents/MacOS/localraster-cli
+elif [ -x "$HOME/Applications/LocalRaster.app/Contents/MacOS/localraster-cli" ]; then
+  cli="$HOME/Applications/LocalRaster.app/Contents/MacOS/localraster-cli"
 else
-  cli=localpaint-cli
+  cli=localraster-cli
 fi
 exec "$cli" droplet {quoted_abs} "$@"
 "#
@@ -409,7 +409,7 @@ fn run_droplet(s: &mut Session, p: &Value) -> Result<Value> {
     let path = p.get("droplet").or_else(|| p.get("path")).and_then(Value::as_str).ok_or_else(|| bad(cmd, "missing \"droplet\""))?;
     let v: Value = serde_json::from_slice(&read_file(path)?).map_err(|e| bad(cmd, format!("{path}: {e}")))?;
     if v.get("localpaintDroplet").is_none() {
-        return Err(bad(cmd, format!("{path} is not a Local Paint droplet")));
+        return Err(bad(cmd, format!("{path} is not a Local Raster droplet")));
     }
     let steps = v.get("action").and_then(|a| a.get("steps")).cloned().ok_or_else(|| bad(cmd, "droplet has no action"))?;
     let opts = v.get("options").cloned().unwrap_or(json!({}));
@@ -445,7 +445,7 @@ fn run_droplet(s: &mut Session, p: &Value) -> Result<Value> {
 fn statistics(s: &mut Session, p: &Value) -> Result<Value> {
     let cmd = "file.scripts.statistics";
     let mode = p.get("mode").or_else(|| p.get("stackMode")).and_then(Value::as_str).unwrap_or("median");
-    let sm = localpaint_doc::StackMode::ALL
+    let sm = localraster_doc::StackMode::ALL
         .into_iter()
         .find(|m| m.id().eq_ignore_ascii_case(mode))
         .ok_or_else(|| bad(cmd, format!("unknown stack mode `{mode}`")))?;
@@ -494,7 +494,7 @@ fn contact_sheet(s: &mut Session, p: &Value) -> Result<Value> {
     let across = p.get("placeAcrossFirst").and_then(Value::as_bool).unwrap_or(true);
     let rotate = p.get("rotateForBestFit").and_then(Value::as_bool).unwrap_or(false);
     let caption = p.get("caption").and_then(Value::as_bool).unwrap_or(true);
-    let font = p.get("font").and_then(Value::as_str).unwrap_or(localpaint_text::fonts::DEFAULT_FAMILY).to_string();
+    let font = p.get("font").and_then(Value::as_str).unwrap_or(localraster_text::fonts::DEFAULT_FAMILY).to_string();
     let font_pt = f("fontSize", 12.0);
     let flatten = p.get("flatten").and_then(Value::as_bool).unwrap_or(false);
     let mode = p.get("mode").and_then(Value::as_str).unwrap_or("rgb").to_string();
@@ -520,7 +520,7 @@ fn contact_sheet(s: &mut Session, p: &Value) -> Result<Value> {
             let (c, r) = if across { (k % cols, k / cols) } else { (k / rows, k % rows) };
             let x0 = hs + f64::from(c) * (cell_w + hs);
             let y0 = vs + f64::from(r) * (cell_h + vs);
-            let thumb = (|| -> Result<localpaint_doc::Surface> {
+            let thumb = (|| -> Result<localraster_doc::Surface> {
                 let bytes = read_file(path)?;
                 let src = import(&file_name(path), &bytes)?;
                 let mut t = Session::new();
@@ -535,16 +535,16 @@ fn contact_sheet(s: &mut Session, p: &Value) -> Result<Value> {
                 let (tw, th) = ((w * k).round().max(1.0), (h * k).round().max(1.0));
                 t.execute("image.imageSize", json!({"width": tw, "height": th, "resample": "bicubic"}))?;
                 let d = &t.active().ok_or(EngineError::NoDocument)?.doc;
-                let buf = localpaint_compose::flatten(d);
+                let buf = localraster_compose::flatten(d);
                 let ox = (x0 + (cell_w - tw) / 2.0).round() as i32;
                 let oy = (y0 + (box_h - th) / 2.0).round() as i32;
                 let n = fmt.channels();
                 let mut data = vec![0.0f32; buf.px.len() * n];
                 for (px, out) in buf.px.iter().zip(data.chunks_exact_mut(n)) {
-                    localpaint_raster::from_rgba_into(&fmt, *px, out);
+                    localraster_raster::from_rgba_into(&fmt, *px, out);
                 }
-                let mut surf = localpaint_doc::Surface::new(fmt);
-                surf.write_region(localpaint_geom::Rect::new(ox, oy, ox + tw as i32, oy + th as i32), &data);
+                let mut surf = localraster_doc::Surface::new(fmt);
+                surf.write_region(localraster_geom::Rect::new(ox, oy, ox + tw as i32, oy + th as i32), &data);
                 Ok(surf)
             })();
             let surf = match thumb {
@@ -596,7 +596,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "file.automate.createDroplet",
             "Create Droplet…",
             &["File", "Automate"],
-            r##"{"path":str (.pcdroplet),"steps":[[id,params]…] (the action),"name":str?,"output":folder?,"format":"same|png|jpg|…"?,"quality":0..12?,"shim":bool=true on Unix (writes <name>.command calling `localpaint-cli droplet`)} → {path, shim} (the actions its Play Action and Conditional steps call are saved in the droplet)"##,
+            r##"{"path":str (.pcdroplet),"steps":[[id,params]…] (the action),"name":str?,"output":folder?,"format":"same|png|jpg|…"?,"quality":0..12?,"shim":bool=true on Unix (writes <name>.command calling `localraster-cli droplet`)} → {path, shim} (the actions its Play Action and Conditional steps call are saved in the droplet)"##,
             native,
             create_droplet
         ),

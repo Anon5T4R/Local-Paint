@@ -1,7 +1,7 @@
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_doc::{Document, LayerContent, LayerId, Pattern};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_doc::{Document, LayerContent, LayerId, Pattern};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 use serde_json::{Value, json};
 
 use crate::Session;
@@ -345,7 +345,7 @@ fn a_named_duplicate_takes_the_name_in_one_step() {
 
 #[test]
 fn a_copied_group_cannot_nest_the_destination_past_the_group_depth_limit() {
-    use localpaint_doc::{Layer, MAX_GROUP_DEPTH};
+    use localraster_doc::{Layer, MAX_GROUP_DEPTH};
     let (mut s, paint) = two_docs(40, 30, 8);
     // A group in the source, and a destination whose active layer sits at the deepest legal level.
     s.execute("layer.groupLayers", json!({"layers": [paint.0]})).unwrap();
@@ -371,7 +371,7 @@ fn a_copied_group_cannot_nest_the_destination_past_the_group_depth_limit() {
 }
 
 /// The type layer `id` of document `i`.
-fn text(s: &Session, i: usize, id: LayerId) -> &localpaint_doc::TextLayer {
+fn text(s: &Session, i: usize, id: LayerId) -> &localraster_doc::TextLayer {
     match &doc(s, i).layer(id).unwrap().content {
         LayerContent::Text(t) => t,
         other => panic!("not type: {other:?}"),
@@ -477,8 +477,8 @@ fn copied_paragraph_type_keeps_its_box() {
 /// is treated as 72 rather than producing an infinite or zero size.
 #[test]
 fn retargeting_type_survives_bad_resolutions() {
-    let mut d = Document::new("", localpaint_geom::Size::new(10, 10), ColorMode::Rgb, SampleType::U8);
-    d.layers.push(localpaint_doc::Layer::new("t", LayerContent::Text(localpaint_doc::TextLayer { text: "H".into(), size_pt: 24.0, ..Default::default() })));
+    let mut d = Document::new("", localraster_geom::Size::new(10, 10), ColorMode::Rgb, SampleType::U8);
+    d.layers.push(localraster_doc::Layer::new("t", LayerContent::Text(localraster_doc::TextLayer { text: "H".into(), size_pt: 24.0, ..Default::default() })));
     let size = |d: &Document| match &d.layers[0].content {
         LayerContent::Text(t) => t.size_pt,
         _ => panic!("not type"),

@@ -1,6 +1,6 @@
 use super::*;
-use localpaint_engine::Session;
-use localpaint_engine::channel_cmds::ChannelTarget;
+use localraster_engine::Session;
+use localraster_engine::channel_cmds::ChannelTarget;
 use serde_json::json;
 
 fn session() -> Session {
@@ -16,7 +16,7 @@ fn composite_bands_keep_the_downsample_grid() {
     s.execute("edit.fill", json!({"color": "#398db2"})).unwrap();
     let doc = &s.active().unwrap().doc;
     let rect = doc.bounds();
-    let full = localpaint_compose::render(doc, rect);
+    let full = localraster_compose::render(doc, rect);
     let full_ref = &full;
     for factor in [1, 2, 3, 5] {
         let expected: Vec<_> = (0..rect.height())
@@ -35,7 +35,7 @@ fn composite_bands_keep_the_downsample_grid() {
 
 #[test]
 fn channel_eyes_reuse_composite_until_pixels_change() {
-    let mut app = LocalPaintApp::new(Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 64, "height": 32})).unwrap();
     app.run("edit.fill", json!({"color": "#4080c0"})).unwrap();
     app.sync_views();
@@ -174,7 +174,7 @@ fn layer_mask_views_show_the_feathered_mask() {
     let bounds = st.doc.bounds();
     let layer = st.doc.layer(st.active_layer.unwrap()).unwrap();
     let raw = layer.mask.as_ref().unwrap().surface.sample_channel(0, 0, 0);
-    let effective = localpaint_compose::masks::combined_mask(layer, bounds).unwrap();
+    let effective = localraster_compose::masks::combined_mask(layer, bounds).unwrap();
     let softened = effective.sample_channel(0, 0, 0);
     assert!((softened - raw).abs() > 0.01, "the fixture has a visible feather at its edge");
 
@@ -209,7 +209,7 @@ fn layer_mask_overlay_takes_its_display_options() {
     assert_eq!(render(&st.doc, &st.channel_view, b, 1, green, st.active_layer).unwrap()[0], Color32::from_rgb(0, 255, 191));
 }
 
-/// `cargo test --release -p localpaint-ui-egui --lib mask_view_switch_24mp -- --ignored --nocapture`
+/// `cargo test --release -p localraster-ui-egui --lib mask_view_switch_24mp -- --ignored --nocapture`
 #[test]
 #[ignore = "benchmark"]
 fn mask_view_switch_24mp() {
@@ -280,7 +280,7 @@ fn show_channels_in_color_lab_lightness_stays_gray() {
 /// The canvas texture cache is keyed by the preference, so toggling it rebuilds the view.
 #[test]
 fn ensure_honours_show_channels_in_color() {
-    let mut app = LocalPaintApp::new(Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
     app.sync_views();
     app.run("channel.target", json!({"channel": "green"})).unwrap();

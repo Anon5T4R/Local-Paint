@@ -238,7 +238,7 @@ impl Session {
             let bounds = st.doc.bounds();
             let n = st.color_samplers.len();
             st.color_samplers.retain_mut(|p| {
-                let q = a.apply(localpaint_geom::Point::new(p[0], p[1]));
+                let q = a.apply(localraster_geom::Point::new(p[0], p[1]));
                 *p = [q.x, q.y];
                 bounds.contains(q.x.floor() as i32, q.y.floor() as i32)
             });
@@ -299,7 +299,7 @@ impl Session {
     /// precision. The redraw area becomes the intersection of the two, so a hint can only narrow
     /// it (or bound a change `step_damage` can't). In debug and test builds, a hint that misses a
     /// tile the edit changed is counted in [`Session::damage_misses`] and logged; it never panics.
-    pub fn hint_damage(&mut self, rect: localpaint_geom::Rect) {
+    pub fn hint_damage(&mut self, rect: localraster_geom::Rect) {
         #[cfg(any(test, debug_assertions))]
         if let Some(before) = self.hint_before.take()
             && let Some(st) = self.active()

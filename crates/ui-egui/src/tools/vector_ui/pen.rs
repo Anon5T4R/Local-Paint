@@ -2,7 +2,7 @@ use super::curvature::{curvature_hit, curvature_refresh};
 use super::options::selected_shape;
 use super::path_ops::{active_shape_path, targeted_vector_mask, work_path_shown};
 use super::shapes::{fill_param, stroke_param};
-use super::{Document, LayerContent, LocalPaintApp, Path, PenPath, Resumed, Tokens, Tool, ToolOptions, Value, json, vec2};
+use super::{Document, LayerContent, LocalRasterApp, Path, PenPath, Resumed, Tokens, Tool, ToolOptions, Value, json, vec2};
 
 // ---------------------------------------------------------------------------------------------
 // Pen
@@ -25,7 +25,7 @@ fn on_closing_anchor(pen: &PenPath, x: f64, y: f64, tol: f64) -> bool {
 /// Would a click at `(x, y)` with `tool` close the path being drawn: the Pen over the first
 /// anchor, or the Curvature Pen over the first of three anchors or more? The canvas shows the
 /// close-path pointer there, as Photoshop does (#4596).
-pub fn closes_path_at(app: &LocalPaintApp, tool: Tool, x: f64, y: f64) -> bool {
+pub fn closes_path_at(app: &LocalRasterApp, tool: Tool, x: f64, y: f64) -> bool {
     let Some(pen) = app.ui.pen.as_ref().filter(|p| !p.dragging && p.moving.is_none()) else { return false };
     match tool {
         Tool::Pen => !pen.curvature && on_closing_anchor(pen, x, y, 6.0 / app.point_zoom().max(0.01) as f64),
@@ -37,7 +37,7 @@ pub fn closes_path_at(app: &LocalPaintApp, tool: Tool, x: f64, y: f64) -> bool {
 /// Pen press: close on the first anchor, reshape the last anchor's outgoing handle,
 /// or add a new anchor (dragging a new anchor pulls symmetrical handles). With ⇧ a new anchor
 /// lands on the nearest 45° ray from the previous one, at the pointer's projection onto it.
-pub fn pen_down(app: &mut LocalPaintApp, x: f64, y: f64, shift: bool) {
+pub fn pen_down(app: &mut LocalRasterApp, x: f64, y: f64, shift: bool) {
     if !cancel_stale(app) {
         return;
     }
@@ -96,7 +96,7 @@ pub fn pen_down(app: &mut LocalPaintApp, x: f64, y: f64, shift: bool) {
 
 /// Pen drag: pull out the handles of the anchor just placed. ⇧ (read live, as it is held)
 /// turns the handle to the nearest 45° direction from its anchor.
-pub fn pen_move(app: &mut LocalPaintApp, x: f64, y: f64, shift: bool) {
+pub fn pen_move(app: &mut LocalRasterApp, x: f64, y: f64, shift: bool) {
     cancel_stale_pen(app);
     if let Some(pen) = app.ui.pen.as_mut()
         && pen.dragging
@@ -137,7 +137,7 @@ pub(super) fn shift_45(origin: [f64; 2], p: [f64; 2], shift: bool) -> [f64; 2] {
 /// These knots are editor-only gesture state, not document history until Enter or
 /// clicking the first anchor commits the path. Therefore Cmd/Ctrl+Z must consume one
 /// knot rather than undoing an unrelated, already committed document operation.
-pub fn pen_undo_last_point(app: &mut LocalPaintApp) -> bool {
+pub fn pen_undo_last_point(app: &mut LocalRasterApp) -> bool {
     if cancel_stale_pen(app) {
         return false;
     }
@@ -177,7 +177,7 @@ pub fn pen_undo_last_point(app: &mut LocalPaintApp) -> bool {
     true
 }
 
-pub fn pen_up(app: &mut LocalPaintApp) {
+pub fn pen_up(app: &mut LocalRasterApp) {
     cancel_stale_pen(app);
     let jitter = 2.0 / f64::from(app.point_zoom().max(0.01));
     let Some(pen) = app.ui.pen.as_mut() else { return };
@@ -200,7 +200,7 @@ pub fn pen_up(app: &mut LocalPaintApp) {
 
 /// ⌥/Alt during a Pen drag breaks the pair of handles being pulled out: from then on only the
 /// outgoing handle follows the pointer and the incoming curve stays as it is (#3306).
-pub fn pen_break_handle(app: &mut LocalPaintApp) {
+pub fn pen_break_handle(app: &mut LocalRasterApp) {
     cancel_stale_pen(app);
     let Some(pen) = app.ui.pen.as_mut().filter(|p| p.dragging && !p.adjusting_last) else { return };
     let Some(i) = pen.knots.len().checked_sub(1) else { return };
@@ -212,7 +212,7 @@ pub fn pen_break_handle(app: &mut LocalPaintApp) {
 
 /// ⌥/Alt-press on one of the last anchor's handles while drawing grabs that handle alone: the
 /// drag turns it and the other handle stays put (#3306, #6077). False when the press misses both.
-pub fn pen_grab_handle(app: &mut LocalPaintApp, x: f64, y: f64) -> bool {
+pub fn pen_grab_handle(app: &mut LocalRasterApp, x: f64, y: f64) -> bool {
     cancel_stale_pen(app);
     let tol = 6.0 / f64::from(app.point_zoom().max(0.01));
     let Some(pen) = app.ui.pen.as_mut() else { return false };
@@ -277,24 +277,24 @@ fn fold_close(pen: &PenPath) -> Option<PenPath> {
 /// The Pen path being drawn as a document path (one open subpath), so ⌘/Ctrl (Direct Selection)
 /// can edit it in place while drawing (#4022).
 pub(crate) fn pen_path(pen: &PenPath) -> Path {
-    let pt = |q: [f64; 2]| localpaint_geom::Point::new(q[0], q[1]);
+    let pt = |q: [f64; 2]| localraster_geom::Point::new(q[0], q[1]);
     let knots = pen
         .knots
         .iter()
         .enumerate()
-        .map(|(i, k)| localpaint_doc::Knot {
+        .map(|(i, k)| localraster_doc::Knot {
             anchor: pt(k[0]),
             in_ctrl: pt(k[1]),
             out_ctrl: pt(k[2]),
             smooth: !pen.unlinked.contains(&i) && (k[1] != k[0] || k[2] != k[0]),
         })
         .collect();
-    Path::new(vec![localpaint_doc::vector::Subpath { closed: false, knots, op: Default::default() }])
+    Path::new(vec![localraster_doc::vector::Subpath { closed: false, knots, op: Default::default() }])
 }
 
 /// The Pen path being drawn becomes `path`'s first subpath, edited with ⌘/Ctrl (Direct Selection);
 /// drawing carries on from its last anchor. A Curvature Pen path keeps following its anchors.
-pub(crate) fn pen_replace(app: &mut LocalPaintApp, path: &Path) {
+pub(crate) fn pen_replace(app: &mut LocalRasterApp, path: &Path) {
     let Some(pen) = app.ui.pen.as_mut() else { return };
     let knots = path.subpaths.first().map(|s| s.knots.as_slice()).unwrap_or_default();
     pen.knots = knots.iter().map(knot_points).collect();
@@ -311,18 +311,18 @@ pub(crate) fn pen_replace(app: &mut LocalPaintApp, path: &Path) {
     }
 }
 
-pub fn cancel_stale(app: &mut LocalPaintApp) -> bool {
+pub fn cancel_stale(app: &mut LocalRasterApp) -> bool {
     cancel_stale_pen(app);
     !app.ui.pen.as_ref().is_some_and(|p| p.commit_failed && p.owner.as_ref().is_some_and(|o| !o.valid(app)))
 }
 
-pub fn pen_commit(app: &mut LocalPaintApp, closed: bool) -> bool {
+pub fn pen_commit(app: &mut LocalRasterApp, closed: bool) -> bool {
     try_pen_commit(app, closed).is_ok()
 }
 
 /// Finish the draft as [`pen_commit`] does. On failure the draft stays as it was, marked
 /// `commit_failed`, and the error is shown and returned.
-pub(super) fn try_pen_commit(app: &mut LocalPaintApp, closed: bool) -> Result<(), String> {
+pub(super) fn try_pen_commit(app: &mut LocalRasterApp, closed: bool) -> Result<(), String> {
     // This is an explicit commit request; passive frame reconciliation never clears this flag.
     if let Some(pen) = app.ui.pen.as_mut() {
         pen.commit_failed = false;
@@ -352,7 +352,7 @@ pub(super) fn try_pen_commit(app: &mut LocalPaintApp, closed: bool) -> Result<()
 }
 
 /// Another tool finishes the Pen's draft, once: a draft whose commit failed waits for the user.
-pub(crate) fn finish_pen_if_left(app: &mut LocalPaintApp) {
+pub(crate) fn finish_pen_if_left(app: &mut LocalRasterApp) {
     cancel_stale_pen(app);
     let shape_fallback =
         app.ui.pen.as_ref().is_some_and(|p| {
@@ -369,7 +369,7 @@ pub(crate) fn finish_pen_if_left(app: &mut LocalPaintApp) {
 /// document refuses that (a locked shape layer or vector mask to add to…) keep it as the Work Path
 /// instead, so what was drawn is neither lost nor retried on every frame. A draft even the Work
 /// Path refuses is dropped; the status bar says which happened.
-pub fn pen_end(app: &mut LocalPaintApp) {
+pub fn pen_end(app: &mut LocalRasterApp) {
     if pen_commit(app, false) {
         return;
     }
@@ -401,7 +401,7 @@ pub fn pen_end(app: &mut LocalPaintApp) {
 /// layer; in Path mode a subpath of the targeted vector mask, else of the selected path or a new
 /// work path. An added subpath takes the options bar's Path Operation (#1397). `false` when the
 /// document refused it, with the reason in the status bar.
-fn commit_path_current(app: &mut LocalPaintApp, pen: &PenPath, closed: bool) -> bool {
+fn commit_path_current(app: &mut LocalRasterApp, pen: &PenPath, closed: bool) -> bool {
     if pen.knots.is_empty() || (pen.knots.len() < 2 && app.ui.tool_options.vector_mode == "shape") {
         return true;
     }
@@ -431,7 +431,7 @@ fn commit_path_current(app: &mut LocalPaintApp, pen: &PenPath, closed: bool) -> 
         app.run("path.set", json!({"name": name, "path": p})).inspect(|_| app.ui.selected_path = Some(name))
     } else if let Some((id, existing)) = targeted_vector_mask(app) {
         // A targeted vector mask takes the new subpath (#196), as in Photoshop.
-        let mut p = localpaint_engine::vector_cmds::path_json(&existing);
+        let mut p = localraster_engine::vector_cmds::path_json(&existing);
         if let (Some(subs), Some(new)) = (p.get_mut("subpaths").and_then(Value::as_array_mut), path.get("subpaths").and_then(Value::as_array)) {
             subs.extend(new.iter().cloned().map(|mut sp| {
                 sp["op"] = json!(op.unwrap_or("combine"));
@@ -479,7 +479,7 @@ fn doc_path<'a>(doc: &'a Document, name: &str) -> Option<&'a Path> {
 /// layer, else of the path a new Pen path would join (the one selected in the Paths panel, else
 /// the work path). Its knots run towards that anchor: reversed, handles swapped, when it is the
 /// first.
-fn resume_at(app: &LocalPaintApp, x: f64, y: f64, tol: f64) -> Option<PenPath> {
+fn resume_at(app: &LocalRasterApp, x: f64, y: f64, tol: f64) -> Option<PenPath> {
     let st = app.session.active()?;
     let doc = st.doc.id.0;
     let (name, layer, path) = if let Some((id, p)) = targeted_vector_mask(app) {
@@ -496,7 +496,7 @@ fn resume_at(app: &LocalPaintApp, x: f64, y: f64, tol: f64) -> Option<PenPath> {
         let p = doc_path(&st.doc, &name)?.clone();
         (name, None, p)
     };
-    let near = |k: &localpaint_doc::Knot| (k.anchor.x - x).hypot(k.anchor.y - y) < tol;
+    let near = |k: &localraster_doc::Knot| (k.anchor.x - x).hypot(k.anchor.y - y) < tol;
     path.subpaths.iter().enumerate().filter(|(_, s)| !s.closed).find_map(|(i, s)| {
         let reversed = if s.knots.last().is_some_and(near) {
             false
@@ -526,7 +526,7 @@ fn with_resumed_subpath(doc: &Document, r: &Resumed, drawn: &Value) -> Option<Va
     if path.subpaths.get(r.index) != Some(&r.was) {
         return None;
     }
-    let mut p = localpaint_engine::vector_cmds::path_json(path);
+    let mut p = localraster_engine::vector_cmds::path_json(path);
     let slot = p.get_mut("subpaths")?.as_array_mut()?.get_mut(r.index)?.as_object_mut()?;
     let new = drawn.get("subpaths")?.get(0)?;
     for key in ["closed", "knots"] {
@@ -542,7 +542,7 @@ fn resumed_path<'a>(doc: &'a Document, r: &Resumed) -> Option<&'a Path> {
         return None;
     }
     let Some(id) = r.layer else { return doc_path(doc, &r.path) };
-    let l = doc.layer(localpaint_doc::LayerId(id))?;
+    let l = doc.layer(localraster_doc::LayerId(id))?;
     match &l.content {
         LayerContent::Shape(sh) => Some(&sh.path),
         _ => l.vector_mask.as_ref().map(|m| &m.path),
@@ -553,12 +553,12 @@ fn resumed_path<'a>(doc: &'a Document, r: &Resumed) -> Option<&'a Path> {
 /// takes its old place, one step. Closing the open path a shape layer was made of gives it the
 /// options bar's fill and stroke, as drawing it closed would have. `None` when the draft resumes
 /// a document path, or its subpath changed meanwhile.
-fn commit_resumed_on_layer(app: &mut LocalPaintApp, pen: &PenPath, path: &Value, closed: bool) -> Option<Result<Value, String>> {
+fn commit_resumed_on_layer(app: &mut LocalRasterApp, pen: &PenPath, path: &Value, closed: bool) -> Option<Result<Value, String>> {
     let r = pen.resumes.as_ref()?;
     let id = r.layer?;
     let st = app.session.active()?;
     let p = with_resumed_subpath(&st.doc, r, path)?;
-    let layer = st.doc.layer(localpaint_doc::LayerId(id))?;
+    let layer = st.doc.layer(localraster_doc::LayerId(id))?;
     let LayerContent::Shape(sh) = &layer.content else {
         return Some(app.run("layer.vectorMask.edit", json!({"layer": id, "path": p})));
     };
@@ -595,7 +595,7 @@ pub(crate) fn pen_path_op(o: &ToolOptions) -> Option<&'static str> {
 /// the number of shape components there: with Path Selection the path it selects in; in Shape
 /// mode the selected shape layer; in Path mode the path the Pen draws into (a targeted vector
 /// mask, the selected path, else the Work Path).
-fn merge_target(app: &LocalPaintApp) -> Option<(&'static str, Value, usize)> {
+fn merge_target(app: &LocalRasterApp) -> Option<(&'static str, Value, usize)> {
     if app.ui.tool == Tool::PathSelection {
         let (r, p) = crate::direct_select::active_paths(app).into_iter().next()?;
         return Some(("path.mergeShapeComponents", r.params(app), p.components().len()));
@@ -618,7 +618,7 @@ fn merge_target(app: &LocalPaintApp) -> Option<(&'static str, Value, usize)> {
 /// Photoshop's: the operation of the selected path components, or with none selected how the next
 /// path combines with the shape or path it is drawn into; and Merge Shape Components. Its icon
 /// shows the selected components' operation, else the tool's.
-pub(super) fn path_operations_menu(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+pub(super) fn path_operations_menu(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     // New Layer makes a shape layer: Path mode and Path Selection have none.
     let shape = app.ui.tool_options.vector_mode == "shape" && app.ui.tool != Tool::PathSelection;
     let current = crate::path_components::selected_op(app)
@@ -673,7 +673,7 @@ fn path_op_button(ui: &mut egui::Ui, glyph: &str, label: &str, checked: bool) ->
 // Freeform Pen and Curvature Pen
 
 /// Refuse a Freeform stroke before drawing when its selected shape cannot be edited.
-pub(crate) fn freeform_locked_shape(app: &LocalPaintApp) -> bool {
+pub(crate) fn freeform_locked_shape(app: &LocalRasterApp) -> bool {
     if app.ui.tool_options.vector_mode != "shape" || pen_path_op(&app.ui.tool_options).is_none() {
         return false;
     }
@@ -687,14 +687,14 @@ pub(crate) fn freeform_locked_shape(app: &LocalPaintApp) -> bool {
 /// Freeform Pen release: fit the drag's trace within the options bar's Curve Fit and commit it
 /// as the Pen does. Releasing on the start point closes the path; a click draws nothing. The
 /// points at indices `straight` were ⌥-clicked: the segment into each one stays straight.
-pub fn freeform_finish(app: &mut LocalPaintApp, points: &[[f64; 3]], straight: &[usize]) {
+pub fn freeform_finish(app: &mut LocalRasterApp, points: &[[f64; 3]], straight: &[usize]) {
     let Some(owner) = capture_pen_owner(app) else { return };
     freeform_finish_owned(app, points, straight, owner);
 }
 
 /// [`freeform_finish`] to the destination captured when the trace began. A trace of another
 /// document commits nothing; a failed commit keeps the fitted path as a draft.
-pub(crate) fn freeform_finish_owned(app: &mut LocalPaintApp, points: &[[f64; 3]], straight: &[usize], owner: PenOwner) {
+pub(crate) fn freeform_finish_owned(app: &mut LocalRasterApp, points: &[[f64; 3]], straight: &[usize], owner: PenOwner) {
     if !owner.valid(app) {
         return;
     }
@@ -705,7 +705,7 @@ pub(crate) fn freeform_finish_owned(app: &mut LocalPaintApp, points: &[[f64; 3]]
     let closed = (first[0] - last[0]).hypot(first[1] - last[1]) < tol && length > 4.0 * tol;
     let fit = f64::from(app.ui.tool_options.curve_fit);
     let pen = if straight.is_empty() {
-        let Some(sub) = localpaint_vector::trace::fit_trace(&trace, fit, closed) else { return };
+        let Some(sub) = localraster_vector::trace::fit_trace(&trace, fit, closed) else { return };
         let knots = sub.knots.iter().map(knot_points).collect();
         let unlinked = sub.knots.iter().enumerate().filter(|(_, k)| !k.smooth).map(|(i, _)| i).collect();
         (PenPath { knots, unlinked, ..Default::default() }, sub.closed)
@@ -721,7 +721,7 @@ pub(crate) fn freeform_finish_owned(app: &mut LocalPaintApp, points: &[[f64; 3]]
     }
 }
 
-fn knot_points(k: &localpaint_doc::Knot) -> [[f64; 2]; 3] {
+fn knot_points(k: &localraster_doc::Knot) -> [[f64; 2]; 3] {
     [[k.anchor.x, k.anchor.y], [k.in_ctrl.x, k.in_ctrl.y], [k.out_ctrl.x, k.out_ctrl.y]]
 }
 
@@ -738,7 +738,7 @@ fn fit_with_straight_segments(trace: &[[f64; 2]], straight: &[usize], fit: f64, 
     for end in cuts {
         let run = trace.get(start..end).unwrap_or_default();
         let first = knots.len();
-        match localpaint_vector::trace::fit_trace(run, fit, false) {
+        match localraster_vector::trace::fit_trace(run, fit, false) {
             Some(sub) => {
                 corners.extend(sub.knots.iter().enumerate().filter(|(_, k)| !k.smooth).map(|(i, _)| first + i));
                 knots.extend(sub.knots.iter().map(knot_points));
@@ -779,7 +779,7 @@ fn fit_with_straight_segments(trace: &[[f64; 2]], straight: &[usize], fit: f64, 
 
 use super::{PenOwner, cancel_stale_pen, capture_pen_owner};
 
-fn commit_path(app: &mut LocalPaintApp, pen: &PenPath, closed: bool) -> Result<(), String> {
+fn commit_path(app: &mut LocalRasterApp, pen: &PenPath, closed: bool) -> Result<(), String> {
     let Some(owner) = pen.owner.as_ref().filter(|o| o.valid(app)) else { return Err("Pen draft target is stale; no path was changed".into()) };
     let options = std::mem::replace(&mut app.ui.tool_options, owner.options.clone());
     let vector_mask = std::mem::replace(&mut app.ui.vector_mask_target, owner.vector_mask);
@@ -795,9 +795,9 @@ fn commit_path(app: &mut LocalPaintApp, pen: &PenPath, closed: bool) -> Result<(
     let channel = app.session.active().map(|st| st.channel_view.target);
     if let Some(st) = app.session.active_mut() {
         st.channel_view.target = if matches!(owner.target, super::PenTarget::VectorMask(_)) {
-            localpaint_engine::channel_cmds::ChannelTarget::VectorMask
+            localraster_engine::channel_cmds::ChannelTarget::VectorMask
         } else {
-            localpaint_engine::channel_cmds::ChannelTarget::Composite
+            localraster_engine::channel_cmds::ChannelTarget::Composite
         };
     }
     let result = commit_path_current(app, pen, closed);

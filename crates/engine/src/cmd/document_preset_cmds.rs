@@ -1,7 +1,7 @@
 //! Named New Document configurations. The existing preferences services persist these with the
 //! other presets; selecting one only returns settings, and document creation stays in `file.new`.
 
-use localpaint_color::{ColorMode, SampleType};
+use localraster_color::{ColorMode, SampleType};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
@@ -12,7 +12,7 @@ use crate::{Result, Session};
 pub(crate) const MAX_DIMENSION: u32 = 300_000;
 // What `file.new` creates must reopen: the `.pcraft` loader's default canvas budget covers it (#2935).
 const _: () =
-    assert!(localpaint_format::MAX_CANVAS_SIDE >= MAX_DIMENSION && localpaint_format::MAX_CANVAS_PIXELS >= MAX_DIMENSION as u64 * MAX_DIMENSION as u64);
+    assert!(localraster_format::MAX_CANVAS_SIDE >= MAX_DIMENSION && localraster_format::MAX_CANVAS_PIXELS >= MAX_DIMENSION as u64 * MAX_DIMENSION as u64);
 pub(crate) const MAX_RESOLUTION: f64 = 30_000.0;
 const MAX_PRESETS: usize = 256;
 /// File › New › Recent keeps this many settings, like Photoshop's Recent tab.
@@ -589,8 +589,8 @@ mod tests {
         let mut s = Session::new();
         s.execute("file.new", json!({"width": MAX_DIMENSION, "height": MAX_DIMENSION, "background": "transparent"})).unwrap();
         let doc = &s.active().unwrap().doc;
-        let bytes = localpaint_format::save_to_bytes(doc, &Default::default()).unwrap();
-        let back = localpaint_format::load_from_bytes(&bytes).unwrap();
-        assert_eq!(back.size, localpaint_geom::Size::new(MAX_DIMENSION, MAX_DIMENSION));
+        let bytes = localraster_format::save_to_bytes(doc, &Default::default()).unwrap();
+        let back = localraster_format::load_from_bytes(&bytes).unwrap();
+        assert_eq!(back.size, localraster_geom::Size::new(MAX_DIMENSION, MAX_DIMENSION));
     }
 }

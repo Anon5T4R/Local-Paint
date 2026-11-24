@@ -6,9 +6,9 @@ use std::sync::Arc;
 mod fixture;
 
 use fixture::{Fixture, assert_denied, cube, path_params};
-use localpaint_automation::{Headless, workspace::authorize_desktop_engine_step};
-use localpaint_doc::LayerContent;
-use localpaint_engine::{Session, actions_cmds::Action, jobs::Started, smart_cmds};
+use localraster_automation::{Headless, workspace::authorize_desktop_engine_step};
+use localraster_doc::LayerContent;
+use localraster_engine::{Session, actions_cmds::Action, jobs::Started, smart_cmds};
 use serde_json::json;
 
 #[test]
@@ -177,7 +177,7 @@ fn a_new_displace_map_outside_the_workspace_is_refused_before_it_is_read() {
         sm.smart_filters[0].params.clone()
     };
     let before = params(&h);
-    let map = localpaint_io::smart_map::displace_embedded_map(&before).expect("the open document's map, embedded");
+    let map = localraster_io::smart_map::displace_embedded_map(&before).expect("the open document's map, embedded");
     assert!(map.data.iter().all(|v| *v < 0.9), "the grey map");
     let doc = h.session.active().unwrap().doc.clone();
     let edit = json!({"layer": layer.0, "params": {"mapPath": f.outside("white.png")}});

@@ -282,9 +282,9 @@ pub struct DocCtx<'a> {
     pub light: GlobalLight,
     pub patterns: &'a [Pattern],
     /// Colour mode (channel restrictions name its channels).
-    pub mode: localpaint_color::ColorMode,
+    pub mode: localraster_color::ColorMode,
     /// Sample depth (adjustment results are rounded to it).
-    pub depth: localpaint_color::SampleType,
+    pub depth: localraster_color::SampleType,
     /// The document (effect geometry the CPU computes, e.g. gradient stroke frames).
     pub doc: &'a Document,
 }

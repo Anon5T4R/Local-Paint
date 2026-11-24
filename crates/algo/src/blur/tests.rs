@@ -1,6 +1,6 @@
 use super::*;
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_raster::Surface;
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_raster::Surface;
 
 /// #8544, rendered: Gaussian Blur at 0.1–0.3 px through the filter itself (the direct-kernel
 /// path) visibly softens a hard edge, more with each step, as the kernel predicts.
@@ -76,7 +76,7 @@ fn small_gaussian_radii_blur_smoothly() {
 fn radial_blur_samples_large_arcs_beyond_64_intervals() {
     let bounds = Rect::new(0, 0, 1000, 1000);
     let out = Rect::new(999, 500, 1000, 501);
-    let ctx = Ctx { bounds, mode: localpaint_color::ColorMode::Grayscale, alpha: false };
+    let ctx = Ctx { bounds, mode: localraster_color::ColorMode::Grayscale, alpha: false };
     let mut img = Image::new(bounds, 1);
     let (cx, cy) = (500.0f32, 500.0f32);
     let (x, y) = (999.5f32, 500.5f32);
@@ -438,7 +438,7 @@ fn surface_blur_ranked_declines_non_finite_samples_and_handles_empty_output() {
 }
 
 /// Release-mode timings of the direct sum and the ranked path on one 256 px tile of
-/// 16-bit-like and float noise (`cargo test -p localpaint-algo --release -- --ignored --nocapture surface_timing`).
+/// 16-bit-like and float noise (`cargo test -p localraster-algo --release -- --ignored --nocapture surface_timing`).
 #[test]
 #[ignore]
 fn surface_timing() {

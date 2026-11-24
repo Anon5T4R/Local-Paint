@@ -31,7 +31,7 @@
 
 use egui::{CursorIcon, Modifiers};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::canvas::ToolEvent;
 use crate::state::Tool;
 
@@ -54,7 +54,7 @@ pub struct CropState {
     /// The frame is being edited (pressed since it was made): the canvas shows what lies past it.
     pub editing: bool,
     /// The document the pending frame (or gesture) belongs to ([`cancel_stale`], #1918).
-    doc: Option<localpaint_doc::DocId>,
+    doc: Option<localraster_doc::DocId>,
     /// The options-bar Straighten button and ⌘-drag (`crop_straighten`).
     pub straighten: crate::crop_straighten::Straighten,
     /// The box's own Undo/Redo while a crop is pending (Photoshop keeps Edit › Undo live during a
@@ -214,7 +214,7 @@ fn size_ok(r: [f64; 4]) -> bool {
 }
 
 /// The options-bar ratio preset as width / height (W : H in W x H x Resolution mode).
-pub(crate) fn preset_ratio(app: &LocalPaintApp) -> Option<f64> {
+pub(crate) fn preset_ratio(app: &LocalRasterApp) -> Option<f64> {
     if app.ui.tool_options.crop_ratio == crate::crop_size::WHR {
         let dpi = app.session.active().map_or(72.0, |s| f64::from(s.doc.resolution_dpi));
         let pt_per_in = app.session.prefs().units_and_rulers.point_size.per_inch();
@@ -240,7 +240,7 @@ fn fitted_ratio(r: [f64; 4], ratio: f64) -> Option<[f64; 4]> {
 }
 
 /// Apply committed options to the preview now, before a resize or confirmation is needed.
-pub(crate) fn apply_ratio(app: &mut LocalPaintApp) {
+pub(crate) fn apply_ratio(app: &mut LocalRasterApp) {
     if app.ui.tool != Tool::Crop || app.crop.drag.is_some() {
         return;
     }
@@ -251,7 +251,7 @@ pub(crate) fn apply_ratio(app: &mut LocalPaintApp) {
 
 /// [`apply_ratio`] for a ratio being typed: fits from `base`, the frame the edit started with,
 /// not from the frame the last keystroke's ratio left (#7752).
-pub(crate) fn apply_ratio_from(app: &mut LocalPaintApp, base: [f64; 4]) {
+pub(crate) fn apply_ratio_from(app: &mut LocalRasterApp, base: [f64; 4]) {
     if app.ui.tool != Tool::Crop || app.crop.drag.is_some() {
         return;
     }
@@ -264,7 +264,7 @@ pub(crate) fn apply_ratio_from(app: &mut LocalPaintApp, base: [f64; 4]) {
     crate::crop_mode::sync_frame(app);
 }
 
-fn fit_frame(app: &mut LocalPaintApp) {
+fn fit_frame(app: &mut LocalRasterApp) {
     let dpi = app.session.active().map_or(72.0, |s| f64::from(s.doc.resolution_dpi));
     let pt_per_in = app.session.prefs().units_and_rulers.point_size.per_inch();
     let sized = crate::crop_size::target(&app.ui.tool_options, dpi, pt_per_in).is_some();
@@ -335,19 +335,19 @@ pub fn resized(r: [f64; 4], hx: i8, hy: i8, d: [f64; 2], ratio: Option<f64>, alt
 }
 
 /// Space is held (set by the canvas each frame, or by `ui.pointer`'s `space` flag).
-pub fn set_space(app: &mut LocalPaintApp, down: bool) {
+pub fn set_space(app: &mut LocalRasterApp, down: bool) {
     app.crop.space = down;
 }
 
 /// As in Photoshop, the Crop tool always shows a frame: on picking the tool, and after a crop is
 /// cancelled or committed, it frames the selection's bounds, or the whole canvas. In default mode
 /// the view then follows the frame being edited (`crop_mode::sync`).
-pub fn ensure_frame(app: &mut LocalPaintApp) {
+pub fn ensure_frame(app: &mut LocalRasterApp) {
     frame(app);
     crate::crop_mode::sync(app, None);
 }
 
-fn frame(app: &mut LocalPaintApp) {
+fn frame(app: &mut LocalRasterApp) {
     if app.ui.tool != Tool::Crop {
         app.crop.editing = false;
         crate::crop_straighten::reset(app);
@@ -398,14 +398,14 @@ fn frame(app: &mut LocalPaintApp) {
 /// Another tool is current but the drawn frame stays pending: a gesture on it is still in
 /// progress, or the pen's eraser end stands in for the Crop tool until the tip comes back
 /// (`stylus`). The held tools (Space, ⌘…, `hold_keys`) never change the current tool.
-fn keeps_pending(app: &LocalPaintApp) -> bool {
+fn keeps_pending(app: &LocalRasterApp) -> bool {
     app.crop.drag.is_some() || app.stylus.tool_before_eraser == Some(Tool::Crop)
 }
 
 /// Commits the drawn frame on leaving the Crop tool as ↵ would with the tool still picked (so the
 /// view goes upright too, `crop_mode::upright`), then gives the new tool back. A refused crop
 /// keeps its frame: that is cancelled, so the new tool doesn't retry it every frame.
-fn commit_on_leave(app: &mut LocalPaintApp) {
+fn commit_on_leave(app: &mut LocalRasterApp) {
     let tool = std::mem::replace(&mut app.ui.tool, Tool::Crop);
     crate::canvas::commit_crop(app);
     if app.ui.crop_rect.is_some() {
@@ -415,13 +415,13 @@ fn commit_on_leave(app: &mut LocalPaintApp) {
 }
 
 /// A crop gesture is in progress: Space repositions the frame rather than panning.
-pub fn active(app: &LocalPaintApp) -> bool {
+pub fn active(app: &LocalRasterApp) -> bool {
     app.ui.tool == Tool::Crop && app.crop.drag.is_some()
 }
 
 /// Cancel the pending crop: the frame, any gesture on it and the default-frame state. With the
 /// Crop tool still picked, [`ensure_frame`] then makes the active document a new default frame.
-pub fn cancel(app: &mut LocalPaintApp) {
+pub fn cancel(app: &mut LocalRasterApp) {
     crate::crop_mode::upright(app);
     app.ui.crop_rect = None;
     app.ui.crop_angle = 0.0;
@@ -434,19 +434,19 @@ pub fn cancel(app: &mut LocalPaintApp) {
 }
 
 /// Drop the box's own Undo/Redo (leaving the tool, cancelling or committing a crop).
-pub fn clear_history(app: &mut LocalPaintApp) {
+pub fn clear_history(app: &mut LocalRasterApp) {
     app.crop.undo.clear();
     app.crop.redo.clear();
     app.crop.press_step = None;
 }
 
 /// The frame's current state, as an undo step.
-fn step_of(app: &LocalPaintApp) -> CropStep {
+fn step_of(app: &LocalRasterApp) -> CropStep {
     CropStep { rect: app.ui.crop_rect, angle: app.ui.crop_angle, default_frame: app.crop.default_frame }
 }
 
 /// Put a frame state back.
-fn apply_step(app: &mut LocalPaintApp, s: CropStep) {
+fn apply_step(app: &mut LocalRasterApp, s: CropStep) {
     app.ui.crop_rect = s.rect;
     app.ui.crop_angle = s.angle;
     app.crop.default_frame = s.default_frame;
@@ -461,12 +461,12 @@ pub(crate) struct Kept {
     view: Option<(f32, [f32; 2])>,
 }
 
-pub(crate) fn keep(app: &LocalPaintApp) -> Kept {
+pub(crate) fn keep(app: &LocalRasterApp) -> Kept {
     let view = app.session.active_index().and_then(|i| app.ui.views.get(i)).map(|v| (v.rotation, v.center));
     Kept { step: step_of(app), undo: app.crop.undo.clone(), redo: app.crop.redo.clone(), view }
 }
 
-pub(crate) fn restore(app: &mut LocalPaintApp, k: Kept) {
+pub(crate) fn restore(app: &mut LocalRasterApp, k: Kept) {
     apply_step(app, k.step);
     (app.crop.undo, app.crop.redo) = (k.undo, k.redo);
     if let Some((rotation, center)) = k.view
@@ -480,7 +480,7 @@ pub(crate) fn restore(app: &mut LocalPaintApp, k: Kept) {
 /// Edit › Undo live during a crop, #1918/#3145). `Some(enabled)` for those commands, else `None` so
 /// the caller falls back to document history. While either box stack has a step, `intercept` takes
 /// both commands, so one with nothing left to step greys out rather than offering the document's.
-pub fn is_enabled(app: &LocalPaintApp, id: &str) -> Option<bool> {
+pub fn is_enabled(app: &LocalRasterApp, id: &str) -> Option<bool> {
     if app.ui.tool != Tool::Crop || (app.crop.undo.is_empty() && app.crop.redo.is_empty()) {
         return None;
     }
@@ -494,7 +494,7 @@ pub fn is_enabled(app: &LocalPaintApp, id: &str) -> Option<bool> {
 
 /// Intercept Undo/Redo/Toggle Last State while the Crop tool owns box history, for every caller
 /// (menus, shortcuts, the control channel, MCP) — as `transform_tool::intercept` does.
-pub fn intercept(app: &mut LocalPaintApp, id: &str) -> Option<Result<serde_json::Value, String>> {
+pub fn intercept(app: &mut LocalRasterApp, id: &str) -> Option<Result<serde_json::Value, String>> {
     if app.ui.tool != Tool::Crop || (app.crop.undo.is_empty() && app.crop.redo.is_empty()) {
         return None;
     }
@@ -507,7 +507,7 @@ pub fn intercept(app: &mut LocalPaintApp, id: &str) -> Option<Result<serde_json:
 }
 
 /// Undo (or redo) one box step.
-fn step(app: &mut LocalPaintApp, redo: bool) -> serde_json::Value {
+fn step(app: &mut LocalRasterApp, redo: bool) -> serde_json::Value {
     let s = if redo { app.crop.redo.pop() } else { app.crop.undo.pop() };
     let Some(s) = s else { return serde_json::Value::Null };
     let now = step_of(app);
@@ -534,13 +534,13 @@ fn step(app: &mut LocalPaintApp, redo: bool) -> serde_json::Value {
 }
 
 /// The pending frame belongs to the active document.
-fn claim(app: &mut LocalPaintApp) {
+fn claim(app: &mut LocalRasterApp) {
     app.crop.doc = app.session.active().map(|st| st.doc.id);
 }
 
 /// A crop is pending: the Crop tool's frame on the active document has been set (drawn, moved,
 /// resized or turned), not just the untouched default frame the tool shows.
-pub fn pending(app: &LocalPaintApp) -> bool {
+pub fn pending(app: &LocalRasterApp) -> bool {
     app.ui.tool == Tool::Crop
         && app.ui.crop_rect.is_some()
         && !app.crop.default_frame
@@ -552,7 +552,7 @@ pub fn pending(app: &LocalPaintApp) -> bool {
 /// Save a Copy; Undo, Redo, Toggle Last State, Search; Image › Crop (which commits the frame); the
 /// View menu but Proof Setup, Pixel Aspect Ratio (Correction), 32-bit Preview Options, Flip
 /// Horizontal and Screen Mode; the Window menu but Workspace and Adjustments; Help but System Info.
-pub fn blocks(app: &LocalPaintApp, id: &str) -> bool {
+pub fn blocks(app: &LocalRasterApp, id: &str) -> bool {
     pending(app) && !available_while_pending(id)
 }
 
@@ -587,7 +587,7 @@ fn available_while_pending(id: &str) -> bool {
 /// shows on or crops another document. (As in Photoshop: switching to another document discards
 /// the pending crop, and that document gets the tool's own frame.) Run on every frame and command
 /// (`sync_views`) and before a commit.
-pub fn cancel_stale(app: &mut LocalPaintApp) {
+pub fn cancel_stale(app: &mut LocalRasterApp) {
     let active = app.session.active().map(|st| st.doc.id);
     let pending = app.ui.crop_rect.is_some() || app.crop.drag.is_some();
     // A frame made before any document was claimed (control channel, tests) is the active one's.
@@ -599,13 +599,13 @@ pub fn cancel_stale(app: &mut LocalPaintApp) {
 
 /// The frame is being edited, so the canvas shows the pixels past its edges (Photoshop's crop
 /// preview): from the first press with the tool until the crop is committed or cancelled.
-pub fn shows_beyond_canvas(app: &LocalPaintApp) -> bool {
+pub fn shows_beyond_canvas(app: &LocalRasterApp) -> bool {
     app.ui.tool == Tool::Crop && app.ui.crop_rect.is_some() && (app.crop.editing || app.crop.drag.is_some())
 }
 
 /// The button went down on the canvas with the Crop tool: the frame is being edited from now on.
 /// Returns true when that is new.
-pub fn press(app: &mut LocalPaintApp) -> bool {
+pub fn press(app: &mut LocalRasterApp) -> bool {
     let new = app.ui.tool == Tool::Crop && app.ui.crop_rect.is_some() && !app.crop.editing;
     if new {
         app.crop.editing = true;
@@ -613,25 +613,25 @@ pub fn press(app: &mut LocalPaintApp) -> bool {
     new
 }
 
-pub(crate) fn tolerance(app: &LocalPaintApp) -> f64 {
+pub(crate) fn tolerance(app: &LocalRasterApp) -> f64 {
     HANDLE_PX / (app.point_zoom() as f64).max(0.01)
 }
 
 /// The pending frame's angle (degrees), 0 when it isn't a finite number.
-pub fn angle(app: &LocalPaintApp) -> f64 {
+pub fn angle(app: &LocalRasterApp) -> f64 {
     normalized_angle(app.ui.crop_angle)
 }
 
 /// A press at document point `p` would turn the frame (Crop tool, outside the frame and its
 /// handles) rather than draw, move or resize one.
-pub fn turns_at(app: &LocalPaintApp, p: [f64; 2]) -> bool {
+pub fn turns_at(app: &LocalRasterApp, p: [f64; 2]) -> bool {
     app.ui.tool == Tool::Crop
         && app.ui.crop_rect.filter(|r| r.iter().all(|v| v.is_finite())).is_some_and(|r| hit_turned(r, angle(app), p, tolerance(app)) == Hit::Outside)
 }
 
 /// A double-click at document point `p` commits the crop (Photoshop: double-click inside the box,
 /// like ↵): Crop tool, a pending frame, and `p` inside it (not on a handle, not outside).
-pub fn commits_at(app: &LocalPaintApp, p: [f64; 2]) -> bool {
+pub fn commits_at(app: &LocalRasterApp, p: [f64; 2]) -> bool {
     app.ui.tool == Tool::Crop
         && app.crop.drag.is_none()
         && app.ui.crop_rect.filter(|r| r.iter().all(|v| v.is_finite())).is_some_and(|r| hit_turned(r, angle(app), p, tolerance(app)) == Hit::Inside)
@@ -639,7 +639,7 @@ pub fn commits_at(app: &LocalPaintApp, p: [f64; 2]) -> bool {
 
 /// The frame is being turned: the angle for the readout beside the pointer. Classic Mode shows
 /// the frame's turn; the default mode the image's (clockwise positive, as Photoshop 25.1 does).
-pub fn turning(app: &LocalPaintApp) -> Option<f64> {
+pub fn turning(app: &LocalRasterApp) -> Option<f64> {
     match app.crop.drag {
         Some(CropDrag::Rotate { .. }) => Some(angle(app)),
         Some(CropDrag::TurnImage { .. }) => Some(crate::crop_mode::image_turn(angle(app))),
@@ -656,7 +656,7 @@ pub fn frame_size(r: [f64; 4]) -> Option<[f64; 2]> {
 
 /// The frame is being drawn or resized: its W × H, for the readout beside the pointer (as the
 /// marquee's, in px).
-pub fn sizing(app: &LocalPaintApp) -> Option<[f64; 2]> {
+pub fn sizing(app: &LocalRasterApp) -> Option<[f64; 2]> {
     match app.crop.drag {
         // Until the pointer moves, the frame shown is still the previous one.
         Some(CropDrag::Draw { anchor, cur, .. }) if anchor != cur => {}
@@ -667,12 +667,12 @@ pub fn sizing(app: &LocalPaintApp) -> Option<[f64; 2]> {
 }
 
 /// The Crop tool owns the arrow keys and X: a pending frame and no gesture in progress.
-pub fn takes_keys(app: &LocalPaintApp) -> bool {
+pub fn takes_keys(app: &LocalRasterApp) -> bool {
     app.ui.tool == Tool::Crop && app.crop.drag.is_none() && app.ui.transform.is_none() && app.ui.crop_rect.is_some_and(|r| r.iter().all(|v| v.is_finite()))
 }
 
 /// The frame now set by the keys: a real frame (no longer the default), being edited.
-fn keyed(app: &mut LocalPaintApp, r: [f64; 4]) {
+fn keyed(app: &mut LocalRasterApp, r: [f64; 4]) {
     if r.iter().all(|v| v.is_finite()) {
         app.ui.crop_rect = Some(r);
         app.crop.default_frame = false;
@@ -683,7 +683,7 @@ fn keyed(app: &mut LocalPaintApp, r: [f64; 4]) {
 /// Moves the pending frame by (`dx`, `dy`) document px (a turned frame moves on the page, keeping
 /// its angle); in default mode the image moves that way on screen under the box instead. Returns
 /// false when the Crop tool doesn't take the keys ([`takes_keys`]).
-pub fn nudge(app: &mut LocalPaintApp, dx: f64, dy: f64) -> bool {
+pub fn nudge(app: &mut LocalRasterApp, dx: f64, dy: f64) -> bool {
     let Some(r) = app.ui.crop_rect.filter(|_| takes_keys(app)) else { return false };
     if crate::crop_mode::moves_image(app) {
         if dx.is_finite() && dy.is_finite() {
@@ -718,7 +718,7 @@ pub fn swapped_ratio(key: &str, doc_w: f64, doc_h: f64) -> Option<String> {
 /// X: swaps the pending frame between portrait and landscape about its centre, keeping its angle,
 /// and swaps the options-bar ratio with it, as in Photoshop. Returns false when the Crop tool
 /// doesn't take the keys ([`takes_keys`]), so X swaps the colours as usual.
-pub fn swap_orientation(app: &mut LocalPaintApp) -> bool {
+pub fn swap_orientation(app: &mut LocalRasterApp) -> bool {
     let Some(r) = app.ui.crop_rect.filter(|_| takes_keys(app)) else { return false };
     let size = app.session.active().map_or((0.0, 0.0), |s| (f64::from(s.doc.size.width), f64::from(s.doc.size.height)));
     // W x H x Resolution swaps W and H instead of a ratio.
@@ -740,7 +740,7 @@ pub fn swap_orientation(app: &mut LocalPaintApp) -> bool {
 
 /// Crop tool keys with a pending frame: arrows nudge it 1 px (⇧ 10 px) instead of the selection
 /// or layer, and X swaps its orientation instead of the colours. Returns true when a key was used.
-pub fn keys(app: &mut LocalPaintApp, ctx: &egui::Context) -> bool {
+pub fn keys(app: &mut LocalRasterApp, ctx: &egui::Context) -> bool {
     if !takes_keys(app) {
         return false;
     }
@@ -759,7 +759,7 @@ pub fn keys(app: &mut LocalPaintApp, ctx: &egui::Context) -> bool {
 }
 
 /// Pointer input for the Crop tool. Returns true when the event was its.
-pub fn pointer(app: &mut LocalPaintApp, ev: ToolEvent, mods: Modifiers) -> bool {
+pub fn pointer(app: &mut LocalRasterApp, ev: ToolEvent, mods: Modifiers) -> bool {
     if app.ui.tool != Tool::Crop {
         app.crop.drag = None;
         return false;
@@ -777,7 +777,7 @@ pub fn pointer(app: &mut LocalPaintApp, ev: ToolEvent, mods: Modifiers) -> bool 
 }
 
 /// Press, drag and release of the frame. Returns true when the frame needs syncing to the view.
-fn track(app: &mut LocalPaintApp, ev: ToolEvent, p: [f64; 2], mods: Modifiers) -> bool {
+fn track(app: &mut LocalRasterApp, ev: ToolEvent, p: [f64; 2], mods: Modifiers) -> bool {
     match ev {
         ToolEvent::Down { .. } => begin_drag(app, p),
         ToolEvent::Move { .. } => update(app, p, mods),
@@ -791,7 +791,7 @@ fn track(app: &mut LocalPaintApp, ev: ToolEvent, p: [f64; 2], mods: Modifiers) -
 }
 
 /// The Straighten line drag. Returns true when it took the event.
-fn straighten(app: &mut LocalPaintApp, ev: ToolEvent, mods: Modifiers, p: [f64; 2]) -> bool {
+fn straighten(app: &mut LocalRasterApp, ev: ToolEvent, mods: Modifiers, p: [f64; 2]) -> bool {
     // Straighten button or ⌘: the drag draws a line to level the frame on.
     if !crate::crop_straighten::pointer(app, ev, mods) {
         return false;
@@ -814,7 +814,7 @@ fn straighten(app: &mut LocalPaintApp, ev: ToolEvent, mods: Modifiers, p: [f64; 
 }
 
 /// Starts the drag a press at `p` selects: resize, move, turn or draw.
-fn begin_drag(app: &mut LocalPaintApp, p: [f64; 2]) {
+fn begin_drag(app: &mut LocalRasterApp, p: [f64; 2]) {
     claim(app);
     app.crop.editing = true;
     app.crop.press_step = Some(step_of(app));
@@ -837,7 +837,7 @@ fn begin_drag(app: &mut LocalPaintApp, p: [f64; 2]) {
 }
 
 /// A press inside the frame: moves the image in default mode, else the frame.
-fn inside_drag(app: &LocalPaintApp, p: [f64; 2], rect: [f64; 4]) -> CropDrag {
+fn inside_drag(app: &LocalRasterApp, p: [f64; 2], rect: [f64; 4]) -> CropDrag {
     // Default mode moves the image and keeps the box in place on screen, as in Photoshop.
     if crate::crop_mode::moves_image(app) {
         CropDrag::MoveImage { start: p, rect, view: crate::crop_mode::press_view(app) }
@@ -847,7 +847,7 @@ fn inside_drag(app: &LocalPaintApp, p: [f64; 2], rect: [f64; 4]) -> CropDrag {
 }
 
 /// A press outside the frame: turns the image in default mode, else the frame.
-fn outside_drag(app: &LocalPaintApp, p: [f64; 2], rect: [f64; 4], deg: f64) -> CropDrag {
+fn outside_drag(app: &LocalRasterApp, p: [f64; 2], rect: [f64; 4], deg: f64) -> CropDrag {
     let c = center(rect);
     let grab = (p[1] - c[1]).atan2(p[0] - c[0]);
     if crate::crop_mode::moves_image(app) {
@@ -859,7 +859,7 @@ fn outside_drag(app: &LocalPaintApp, p: [f64; 2], rect: [f64; 4], deg: f64) -> C
 }
 
 /// Ends `drag`: keeps a valid frame or restores the previous one, and records an undo step when it changed.
-fn release(app: &mut LocalPaintApp, drag: CropDrag) {
+fn release(app: &mut LocalRasterApp, drag: CropDrag) {
     let ok = app.ui.crop_rect.is_some_and(size_ok);
     // A click outside the untouched default frame (no turn) leaves it the default.
     let changed = !matches!(drag, CropDrag::Rotate { from, .. } | CropDrag::TurnImage { from, .. } if from == angle(app))
@@ -876,7 +876,7 @@ fn release(app: &mut LocalPaintApp, drag: CropDrag) {
 }
 
 /// On release: the frame state at the press becomes a box Undo step when the gesture changed it.
-fn push_press_step(app: &mut LocalPaintApp) {
+fn push_press_step(app: &mut LocalRasterApp) {
     if let Some(before) = app.crop.press_step.take()
         && step_of(app) != before
     {
@@ -886,7 +886,7 @@ fn push_press_step(app: &mut LocalPaintApp) {
 }
 
 /// Puts back the frame a too-small drag started from.
-fn restore_frame(app: &mut LocalPaintApp, drag: CropDrag) {
+fn restore_frame(app: &mut LocalRasterApp, drag: CropDrag) {
     match drag {
         CropDrag::Draw { prev, .. } => app.ui.crop_rect = prev,
         CropDrag::Move { rect, .. } | CropDrag::Resize { rect, view: None, .. } => app.ui.crop_rect = Some(rect),
@@ -897,7 +897,7 @@ fn restore_frame(app: &mut LocalPaintApp, drag: CropDrag) {
 }
 
 /// Centres a newly drawn frame in default mode.
-fn finish_frame(app: &mut LocalPaintApp, drag: CropDrag) {
+fn finish_frame(app: &mut LocalRasterApp, drag: CropDrag) {
     // Auto Center Preview moves a box drawn in default mode to the middle.
     if let CropDrag::Draw { .. } = drag {
         crate::crop_mode::sync_frame(app);
@@ -906,7 +906,7 @@ fn finish_frame(app: &mut LocalPaintApp, drag: CropDrag) {
 }
 
 /// The frame follows the pointer at `p`.
-fn update(app: &mut LocalPaintApp, p: [f64; 2], mods: Modifiers) {
+fn update(app: &mut LocalRasterApp, p: [f64; 2], mods: Modifiers) {
     if follow_view_drag(app, p, mods) {
         return;
     }
@@ -916,7 +916,7 @@ fn update(app: &mut LocalPaintApp, p: [f64; 2], mods: Modifiers) {
 }
 
 /// Follows rotate, turn, move-image and live-centred resize drags. Returns false for the other drags.
-fn follow_view_drag(app: &mut LocalPaintApp, p: [f64; 2], mods: Modifiers) -> bool {
+fn follow_view_drag(app: &mut LocalRasterApp, p: [f64; 2], mods: Modifiers) -> bool {
     match app.crop.drag {
         Some(CropDrag::Rotate { center, grab, from }) => app.ui.crop_angle = turned_angle(center, grab, from, p, mods.shift),
         Some(CropDrag::TurnImage { center, grab, from, view }) => {
@@ -946,7 +946,7 @@ fn follow_view_drag(app: &mut LocalPaintApp, p: [f64; 2], mods: Modifiers) -> bo
 }
 
 /// The frame a draw, move or resize drag gives at `p`, or None for the other drags.
-fn dragged_frame(app: &mut LocalPaintApp, p: [f64; 2], mods: Modifiers) -> Option<[f64; 4]> {
+fn dragged_frame(app: &mut LocalRasterApp, p: [f64; 2], mods: Modifiers) -> Option<[f64; 4]> {
     let ratio = preset_ratio(app);
     let space = app.crop.space;
     let deg = angle(app);
@@ -980,14 +980,14 @@ fn dragged_frame(app: &mut LocalPaintApp, p: [f64; 2], mods: Modifiers) -> Optio
 }
 
 /// Geometry and snapping must use the same ratio so constrained handles stay aligned.
-pub(crate) fn resize_ratio(app: &LocalPaintApp, rect: [f64; 4], mods: Modifiers) -> Option<f64> {
+pub(crate) fn resize_ratio(app: &LocalRasterApp, rect: [f64; 4], mods: Modifiers) -> Option<f64> {
     let keep = (rect[2] - rect[0] > 0.0 && rect[3] - rect[1] > 0.0).then(|| (rect[2] - rect[0]) / (rect[3] - rect[1]));
     preset_ratio(app).or(if mods.shift { keep } else { None })
 }
 
 /// Cursor over the canvas at document point `p`: resize arrows on the edges, move inside (the
 /// crosshair inside the untouched default frame, where a drag draws a new one).
-pub fn cursor(app: &LocalPaintApp, p: [f64; 2]) -> Option<CursorIcon> {
+pub fn cursor(app: &LocalRasterApp, p: [f64; 2]) -> Option<CursorIcon> {
     if app.ui.tool != Tool::Crop {
         return None;
     }
@@ -1017,7 +1017,7 @@ pub fn cursor(app: &LocalPaintApp, p: [f64; 2]) -> Option<CursorIcon> {
 /// Where the turn cursor's arc bends at document point `p` (pointer outside the frame, or turning
 /// it): towards the frame corner of `p`'s quadrant, along the diagonal of the frame's own axes.
 /// As in Photoshop that gives four cursors, one per corner; they turn with the frame.
-pub fn turn_cursor_dir(app: &LocalPaintApp, p: [f64; 2]) -> Option<[f64; 2]> {
+pub fn turn_cursor_dir(app: &LocalRasterApp, p: [f64; 2]) -> Option<[f64; 2]> {
     if app.ui.tool != Tool::Crop || crate::crop_straighten::mode(app) {
         return None;
     }

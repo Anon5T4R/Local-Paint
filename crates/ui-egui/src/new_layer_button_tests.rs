@@ -6,20 +6,20 @@ use egui::Modifiers;
 use egui_kittest::kittest::Queryable;
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
-fn panel() -> egui_kittest::Harness<'static, LocalPaintApp> {
-    let mut s = localpaint_engine::Session::new();
+fn panel() -> egui_kittest::Harness<'static, LocalRasterApp> {
+    let mut s = localraster_engine::Session::new();
     s.execute("file.new", json!({"width": 8, "height": 8})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1200.0, 800.0)).with_max_steps(64).build_eframe(|cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        LocalPaintApp::new(s, crate::Services::default())
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        LocalRasterApp::new(s, crate::Services::default())
     });
     h.run_steps(4);
     h
 }
 
-fn layers(h: &egui_kittest::Harness<'static, LocalPaintApp>) -> usize {
+fn layers(h: &egui_kittest::Harness<'static, LocalRasterApp>) -> usize {
     h.state().session.active().unwrap().doc.layers.len()
 }
 
@@ -43,7 +43,7 @@ fn alt_click_opens_the_new_layer_dialog() {
     assert_eq!(layers(&h), 2);
 }
 
-fn dialog_open(h: &egui_kittest::Harness<'static, LocalPaintApp>) -> bool {
+fn dialog_open(h: &egui_kittest::Harness<'static, LocalRasterApp>) -> bool {
     h.state().ui.dialogs.iter().any(|d| crate::new_layer_ui::owns(&d.fields))
 }
 

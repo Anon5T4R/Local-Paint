@@ -1,10 +1,10 @@
 use super::begin::moves_kind;
 use super::pointer::{Gesture, Hit, carry_pivot};
-use super::{Homography, LayerContent, LocalPaintApp, TransformMode, TransformSession};
+use super::{Homography, LayerContent, LocalRasterApp, TransformMode, TransformSession};
 
 /// The same effective modifiers drive the geometry and decide whether Ctrl is a distortion
 /// gesture rather than the ordinary snap override. Keep type and Content-Aware Scale refusals.
-pub(super) fn drag_mods(app: &LocalPaintApp, t: &TransformSession, hit: Hit, mods: egui::Modifiers) -> (TransformMode, egui::Modifiers) {
+pub(super) fn drag_mods(app: &LocalRasterApp, t: &TransformSession, hit: Hit, mods: egui::Modifiers) -> (TransformMode, egui::Modifiers) {
     let (mode, mods) = if distort_refused(app, t) { scale_not_distort(t.mode, hit, mods) } else { (t.mode, mods) };
     let legacy = app.session.prefs().general.use_legacy_free_transform;
     (mode, legacy_mods(legacy, hit, unlinked_mods(app.ui.transform_unlinked, legacy, hit, mods)))
@@ -12,7 +12,7 @@ pub(super) fn drag_mods(app: &LocalPaintApp, t: &TransformSession, hit: Hit, mod
 
 /// Only a freely distorted corner can snap its proposed position. Perspective moves paired
 /// corners on one axis; Skew, Warp and Content-Aware Scale have their own constrained geometry.
-pub(crate) fn corner_distorts(app: &LocalPaintApp, index: usize, mods: egui::Modifiers) -> bool {
+pub(crate) fn corner_distorts(app: &LocalRasterApp, index: usize, mods: egui::Modifiers) -> bool {
     let Some(t) = app.ui.transform.as_ref() else { return false };
     if t.quad.get(index).is_none() || t.warp.is_some() || t.content_aware.is_some() || t.mode == TransformMode::Skew {
         return false;
@@ -35,7 +35,7 @@ pub(super) enum HandleIndicator {
 /// perspective) and on an edge skews, Distort and Perspective modes distort from the corners,
 /// Skew mode skews from the edges. Rotate mode turns the box whatever the keys, a Skew-mode corner
 /// slides along an edge, editable type refuses Distort and Content-Aware Scale only scales: `None`.
-pub(super) fn handle_indicator(app: &LocalPaintApp, t: &TransformSession, h: Hit, mods: egui::Modifiers) -> Option<HandleIndicator> {
+pub(super) fn handle_indicator(app: &LocalRasterApp, t: &TransformSession, h: Hit, mods: egui::Modifiers) -> Option<HandleIndicator> {
     if t.warp.is_some() || t.content_aware.is_some() || !mode_allows(t.mode, h) {
         return None;
     }
@@ -52,7 +52,7 @@ pub(super) fn handle_indicator(app: &LocalPaintApp, t: &TransformSession, h: Hit
 /// Editable type can be scaled, rotated and skewed but not distorted (#2630): the rule that greys
 /// Distort and Perspective in `enable_rules::disabled`, for the box's own layer. A box on a path,
 /// on the selection outline or on a lone mask or channel moves no type.
-fn distort_refused(app: &LocalPaintApp, t: &TransformSession) -> bool {
+fn distort_refused(app: &LocalRasterApp, t: &TransformSession) -> bool {
     t.path.is_none() && !t.selection && t.target.is_none() && moves_kind(app, t, |c| matches!(c, LayerContent::Text(_)))
 }
 

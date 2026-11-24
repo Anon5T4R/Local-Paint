@@ -118,11 +118,11 @@ From the PR checkout, create a base worktree and copy only the benchmark fixture
 
 ```sh
 base=7722172585a01cbdb93c06f0f5ff2634fcb17999
-git worktree add --detach ../localpaint-five-base "$base"
-cp crates/algo/examples/bench_algorithms.rs ../localpaint-five-base/crates/algo/examples/
-CARGO_TARGET_DIR="$PWD/target/five-after" cargo build --release -p localpaint-algo --example bench_algorithms
-(cd ../localpaint-five-base && CARGO_TARGET_DIR="$PWD/target/five-before" cargo build --release -p localpaint-algo --example bench_algorithms)
-before="$PWD/../localpaint-five-base/target/five-before/release/examples/bench_algorithms"
+git worktree add --detach ../localraster-five-base "$base"
+cp crates/algo/examples/bench_algorithms.rs ../localraster-five-base/crates/algo/examples/
+CARGO_TARGET_DIR="$PWD/target/five-after" cargo build --release -p localraster-algo --example bench_algorithms
+(cd ../localraster-five-base && CARGO_TARGET_DIR="$PWD/target/five-before" cargo build --release -p localraster-algo --example bench_algorithms)
+before="$PWD/../localraster-five-base/target/five-before/release/examples/bench_algorithms"
 after="$PWD/target/five-after/release/examples/bench_algorithms"
 export RAYON_NUM_THREADS=16
 

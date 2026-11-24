@@ -1,9 +1,9 @@
 //! Filters refuse a pixel-locked (or fully locked) layer and leave it unchanged, as painting
 //! does (#1102).
 
-use localpaint_doc::LayerId;
-use localpaint_engine::Session;
-use localpaint_geom::Rect;
+use localraster_doc::LayerId;
+use localraster_engine::Session;
+use localraster_geom::Rect;
 use serde_json::json;
 
 fn layered() -> Session {

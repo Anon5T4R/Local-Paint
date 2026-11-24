@@ -3,23 +3,23 @@
 //! * parameter parsing for Selective Color and Color Lookup (both also adjustment layers; their
 //!   commands are generated with the other kinds in `commands.rs`),
 //! * the destructive-only adjustments: Shadows/Highlights, Replace Color, Match Color and HDR
-//!   Toning (maths in `localpaint_algo::tone`).
+//!   Toning (maths in `localraster_algo::tone`).
 //!
 //! Destructive adjustments convert the target (layer pixels, or a targeted alpha channel /
 //! Quick Mask) to straight RGBA, so every colour model and bit depth is handled, and blend the
 //! result through the selection like the other Image › Adjustments commands.
 
-use localpaint_algo::tone::{self, HdrToning, MatchColor, ShadowsHighlights};
-use localpaint_doc::adjust::{LutFormat, LutSource};
-use localpaint_doc::{Adjustment, Document, Layer, LayerContent, Rect};
-use localpaint_raster::{Surface, to_rgba};
+use localraster_algo::tone::{self, HdrToning, MatchColor, ShadowsHighlights};
+use localraster_doc::adjust::{LutFormat, LutSource};
+use localraster_doc::{Adjustment, Document, Layer, LayerContent, Rect};
+use localraster_raster::{Surface, to_rgba};
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;
 use crate::{EngineError, Result, Session};
 
 /// Built-in Color Lookup looks `(id, label)`.
-pub use localpaint_cms::lutfile::BUILTIN as LOOKS;
+pub use localraster_cms::lutfile::BUILTIN as LOOKS;
 
 /// Selective Color range keys in storage order.
 pub const RANGES: [&str; 9] = ["reds", "yellows", "greens", "cyans", "blues", "magentas", "whites", "neutrals", "blacks"];
@@ -112,7 +112,7 @@ pub fn lookup_from_params(p: &Value, base: Option<&Adjustment>) -> Result<Adjust
         _ => (String::new(), None, 0, false, false, None),
     };
     // The parsed table, its label and (for a file) the file as loaded, which a PSD save embeds.
-    let mut loaded: Option<(localpaint_cms::lutfile::LutFile, String, Option<LutSource>)> = None;
+    let mut loaded: Option<(localraster_cms::lutfile::LutFile, String, Option<LutSource>)> = None;
     if let Some(id) = opt_str(CMD, p, "lut")? {
         if id == "none" || id.is_empty() {
             name.clear();
@@ -120,7 +120,7 @@ pub fn lookup_from_params(p: &Value, base: Option<&Adjustment>) -> Result<Adjust
             size = 0;
             source = None;
         } else {
-            let f = localpaint_cms::lutfile::builtin(id).ok_or_else(|| bad(CMD, format!("unknown look `{id}` (built-ins: {})", builtin_ids())))?;
+            let f = localraster_cms::lutfile::builtin(id).ok_or_else(|| bad(CMD, format!("unknown look `{id}` (built-ins: {})", builtin_ids())))?;
             let label = f.title.clone();
             loaded = Some((f, label, None));
         }
@@ -128,12 +128,12 @@ pub fn lookup_from_params(p: &Value, base: Option<&Adjustment>) -> Result<Adjust
     let file_name = opt_str(CMD, p, "fileName")?;
     if let Some(text) = opt_str(CMD, p, "data")? {
         let file_name = file_name.unwrap_or("lut.cube");
-        let f = localpaint_cms::lutfile::parse(file_name, text.as_bytes()).map_err(|e| bad(CMD, e.0))?;
+        let f = localraster_cms::lutfile::parse(file_name, text.as_bytes()).map_err(|e| bad(CMD, e.0))?;
         loaded = Some((f, base_name(file_name), Some(lut_source(file_name, text.as_bytes().to_vec()))));
     }
     if let Some(path) = opt_str(CMD, p, "file")?.filter(|s| !s.is_empty()) {
         let bytes = read_file(path).ok_or_else(|| bad(CMD, format!("can't read {path}")))?;
-        let f = localpaint_cms::lutfile::parse(path, &bytes).map_err(|e| bad(CMD, format!("{path}: {}", e.0)))?;
+        let f = localraster_cms::lutfile::parse(path, &bytes).map_err(|e| bad(CMD, format!("{path}: {}", e.0)))?;
         loaded = Some((f, base_name(path), Some(lut_source(path, bytes))));
     }
     if let Some((f, label, src)) = loaded {
@@ -166,18 +166,18 @@ pub fn lookup_from_params(p: &Value, base: Option<&Adjustment>) -> Result<Adjust
     Ok(Adjustment::ColorLookup { name, lut, size, tetrahedral, dither, source })
 }
 
-/// A loaded LUT file, tagged with the format [`localpaint_cms::lutfile::parse`] read it as.
+/// A loaded LUT file, tagged with the format [`localraster_cms::lutfile::parse`] read it as.
 fn lut_source(file_name: &str, bytes: Vec<u8>) -> LutSource {
-    let format = match localpaint_cms::lutfile::Format::detect(file_name, &bytes) {
-        localpaint_cms::lutfile::Format::Cube => LutFormat::Cube,
-        localpaint_cms::lutfile::Format::ThreeDl => LutFormat::ThreeDl,
-        localpaint_cms::lutfile::Format::Look => LutFormat::Look,
+    let format = match localraster_cms::lutfile::Format::detect(file_name, &bytes) {
+        localraster_cms::lutfile::Format::Cube => LutFormat::Cube,
+        localraster_cms::lutfile::Format::ThreeDl => LutFormat::ThreeDl,
+        localraster_cms::lutfile::Format::Look => LutFormat::Look,
     };
     LutSource { format, bytes: std::sync::Arc::new(bytes) }
 }
 
 fn builtin_ids() -> String {
-    localpaint_cms::lutfile::BUILTIN.iter().map(|b| b.0).collect::<Vec<_>>().join(", ")
+    localraster_cms::lutfile::BUILTIN.iter().map(|b| b.0).collect::<Vec<_>>().join(", ")
 }
 
 fn base_name(path: &str) -> String {
@@ -319,10 +319,10 @@ pub(crate) fn adjust_as_smart_filter(s: &mut Session, kind: &str, label: &str, p
     if let Value::Object(m) = &mut params {
         m.remove("__kind");
     }
-    let sf = localpaint_doc::SmartFilter {
+    let sf = localraster_doc::SmartFilter {
         command: format!("image.adjustments.{kind}"),
         params,
-        blend: localpaint_color::BlendMode::Normal,
+        blend: localraster_color::BlendMode::Normal,
         opacity: 1.0,
         visible: true,
     };
@@ -410,9 +410,9 @@ fn replace_color(s: &mut Session, p: &Value) -> Result<Value> {
         Some(radius) => {
             let samples: Vec<_> = points
                 .iter()
-                .map(|&(x, y)| localpaint_algo::selection::RangeSample { color: [c[0], c[1], c[2]], at: Some((x - r.x0 as f32, y - r.y0 as f32)) })
+                .map(|&(x, y)| localraster_algo::selection::RangeSample { color: [c[0], c[1], c[2]], at: Some((x - r.x0 as f32, y - r.y0 as f32)) })
                 .collect();
-            let mask = localpaint_algo::selection::color_range_samples(px, r.width() as usize, &samples, fuzz, Some(radius));
+            let mask = localraster_algo::selection::color_range_samples(px, r.width() as usize, &samples, fuzz, Some(radius));
             tone::replace_color_masked(px, &mask, h, sat, l);
         }
         None => {
@@ -446,12 +446,12 @@ fn stats_pixels(doc: &Document, layer: Option<u64>, use_selection: bool) -> Resu
     let area = doc.bounds();
     let px: Vec<[f32; 4]> = match layer {
         Some(id) => {
-            let l = doc.layer(localpaint_doc::LayerId(id)).ok_or(EngineError::NoLayer(localpaint_doc::LayerId(id)))?;
-            localpaint_compose::render_layer(l, area).px
+            let l = doc.layer(localraster_doc::LayerId(id)).ok_or(EngineError::NoLayer(localraster_doc::LayerId(id)))?;
+            localraster_compose::render_layer(l, area).px
         }
-        None => localpaint_compose::flatten(doc).px,
+        None => localraster_compose::flatten(doc).px,
     };
-    let mask = doc.selection.as_ref().filter(|_| use_selection).map(|sel| localpaint_algo::selection::mask_from_surface(Some(sel), area));
+    let mask = doc.selection.as_ref().filter(|_| use_selection).map(|sel| localraster_algo::selection::mask_from_surface(Some(sel), area));
     Ok((px, mask))
 }
 
@@ -478,7 +478,7 @@ fn match_color(s: &mut Session, p: &Value) -> Result<Value> {
     let target_sel = p.get("useSelectionInTarget").and_then(Value::as_bool).unwrap_or(false);
     let sel = s.active().and_then(|d| d.doc.selection.clone());
     rgba_edit(s, "Match Color", p, |px, r| {
-        let mask: Option<Vec<f32>> = sel.as_ref().filter(|_| target_sel).map(|sel| localpaint_algo::selection::mask_from_surface(Some(sel), r));
+        let mask: Option<Vec<f32>> = sel.as_ref().filter(|_| target_sel).map(|sel| localraster_algo::selection::mask_from_surface(Some(sel), r));
         let Some(target) = tone::lab_stats(px, mask.as_deref()) else {
             return;
         };
@@ -507,12 +507,12 @@ fn hdr_toning(s: &mut Session, p: &Value) -> Result<Value> {
     };
     // Like Photoshop, HDR Toning flattens the image first (one history step).
     s.edit("HDR Toning", |doc, active| {
-        let buf = localpaint_compose::flatten(doc).over_background([1.0, 1.0, 1.0]);
+        let buf = localraster_compose::flatten(doc).over_background([1.0, 1.0, 1.0]);
         let (w, hgt) = (buf.rect.width() as usize, buf.rect.height() as usize);
         let mut px = buf.px;
         tone::hdr_toning(&mut px, w, hgt, &h);
         let fmt = doc.pixel_format();
-        let data: Vec<f32> = px.iter().flat_map(|q| localpaint_raster::from_rgba(&fmt, *q)).collect();
+        let data: Vec<f32> = px.iter().flat_map(|q| localraster_raster::from_rgba(&fmt, *q)).collect();
         let mut bg = Layer::raster("Background", fmt);
         bg.locks.transparency = true;
         bg.locks.position = true;
@@ -527,7 +527,7 @@ fn hdr_toning(s: &mut Session, p: &Value) -> Result<Value> {
 
 /// The Color Lookup built-ins (id, label) for UIs and agents.
 fn list_looks(_: &mut Session, _: &Value) -> Result<Value> {
-    Ok(json!(localpaint_cms::lutfile::BUILTIN.iter().map(|(id, label)| json!({"id": id, "label": label})).collect::<Vec<_>>()))
+    Ok(json!(localraster_cms::lutfile::BUILTIN.iter().map(|(id, label)| json!({"id": id, "label": label})).collect::<Vec<_>>()))
 }
 
 macro_rules! spec {

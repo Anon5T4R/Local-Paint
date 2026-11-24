@@ -3,7 +3,7 @@ use digest::Digest;
 use paste::paste;
 use pki_types::{AlgorithmIdentifier, InvalidSignature, SignatureVerificationAlgorithm};
 use signature::hazmat::PrehashVerifier;
-// // local-paint: `alg_id` vem do `rustls-pki-types` 1.14 — o `rustls-webpki`
+// // local-raster: `alg_id` vem do `rustls-pki-types` 1.14 — o `rustls-webpki`
 // // 0.102 (só por causa destas constantes) saiu do fork. Os bytes DER são os
 // // mesmos (`data/alg-*.der` idênticos entre os dois crates).
 use pki_types::alg_id;

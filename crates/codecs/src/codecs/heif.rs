@@ -1,6 +1,6 @@
 //! HEIF / HEIC (the iPhone and Mac photo format), read-only: see [`crate::ASYMMETRIC_EXCEPTIONS`].
 //!
-//! Decoding lives in the optional `localpaint-heif` crate (heic-rs, a pure-Rust HEVC
+//! Decoding lives in the optional `localraster-heif` crate (heic-rs, a pure-Rust HEVC
 //! still-picture decoder), enabled by this crate's `heif` feature. Without it, HEIF files are
 //! still detected and opening one is an [`CodecError::Unsupported`] error, never a panic.
 //!
@@ -18,7 +18,7 @@ const F: Format = Format::Heif;
 
 /// The reason given when this build has no HEIF decoder.
 #[cfg(not(feature = "heif"))]
-pub(crate) const NOT_IN_BUILD: &str = "HEIC/HEIF support isn't included in this build of Local Paint";
+pub(crate) const NOT_IN_BUILD: &str = "HEIC/HEIF support isn't included in this build of Local Raster";
 
 #[cfg(not(feature = "heif"))]
 pub(crate) fn decode(_bytes: &[u8], _limits: &Limits, _keep_orientation: bool) -> Result<Image, CodecError> {
@@ -26,11 +26,11 @@ pub(crate) fn decode(_bytes: &[u8], _limits: &Limits, _keep_orientation: bool) -
 }
 
 #[cfg(feature = "heif")]
-fn err(e: localpaint_heif::Error) -> CodecError {
+fn err(e: localraster_heif::Error) -> CodecError {
     match e {
-        localpaint_heif::Error::Unsupported(what) => CodecError::unsupported(F, what),
-        localpaint_heif::Error::Limit(what) => CodecError::LimitExceeded(what),
-        localpaint_heif::Error::Malformed(what) => CodecError::malformed(F, what),
+        localraster_heif::Error::Unsupported(what) => CodecError::unsupported(F, what),
+        localraster_heif::Error::Limit(what) => CodecError::LimitExceeded(what),
+        localraster_heif::Error::Malformed(what) => CodecError::malformed(F, what),
     }
 }
 
@@ -40,7 +40,7 @@ pub(crate) fn decode(bytes: &[u8], limits: &Limits, keep_orientation: bool) -> R
     use crate::image::{ChannelLayout, Metadata, SampleType};
 
     // The container alone: the declared size is checked before any pixel is decoded.
-    let info = localpaint_heif::probe(bytes).map_err(err)?;
+    let info = localraster_heif::probe(bytes).map_err(err)?;
     let layout = if info.has_alpha { ChannelLayout::Rgba } else { ChannelLayout::Rgb };
     let sample = if info.sixteen_bit { SampleType::U16 } else { SampleType::U8 };
     let (w, h) = if keep_orientation { (info.coded_width, info.coded_height) } else { (info.width, info.height) };
@@ -52,8 +52,8 @@ pub(crate) fn decode(bytes: &[u8], limits: &Limits, keep_orientation: bool) -> R
     if !keep_orientation && (info.coded_width, info.coded_height) != (w, h) {
         limits.check(info.coded_width, info.coded_height, layout, sample)?;
     }
-    let options = localpaint_heif::Options { max_pixels: limits.max_pixels, apply_transforms: !keep_orientation };
-    let decoded = localpaint_heif::decode(bytes, &options).map_err(err)?;
+    let options = localraster_heif::Options { max_pixels: limits.max_pixels, apply_transforms: !keep_orientation };
+    let decoded = localraster_heif::decode(bytes, &options).map_err(err)?;
     // The decoder re-reads the container; trust its output's shape, not the probe's.
     let layout = if decoded.has_alpha { ChannelLayout::Rgba } else { ChannelLayout::Rgb };
     let sample = if decoded.sixteen_bit { SampleType::U16 } else { SampleType::U8 };

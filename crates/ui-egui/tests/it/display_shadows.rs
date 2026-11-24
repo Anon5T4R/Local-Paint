@@ -6,13 +6,13 @@
 
 use std::sync::Arc;
 
-use localpaint_cms::{Builtin, Profile, curve::Curve};
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_doc::{Document, Layer, LayerContent, Size};
-use localpaint_engine::display_color::Display;
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
-use localpaint_ui_egui::{LocalPaintApp, canvas::ViewXform, gpu_canvas};
+use localraster_cms::{Builtin, Profile, curve::Curve};
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_doc::{Document, Layer, LayerContent, Size};
+use localraster_engine::display_color::Display;
+use localraster_geom::Rect;
+use localraster_raster::Surface;
+use localraster_ui_egui::{LocalRasterApp, canvas::ViewXform, gpu_canvas};
 
 // D50-adapted sRGB and Display P3 colourants. ICC stores them as signed 15.16 values.
 const SOURCE_MATRIX: [[f64; 3]; 3] =
@@ -82,7 +82,7 @@ fn profiles() -> (Arc<Vec<u8>>, Arc<Vec<u8>>) {
     (source.with_encoded_bytes().to_bytes(), monitor.with_encoded_bytes().to_bytes())
 }
 
-/// Solve the monitor matrix without using any localpaint-cms transform/math/curve evaluator.
+/// Solve the monitor matrix without using any localraster-cms transform/math/curve evaluator.
 fn solve(mut m: [[f64; 3]; 3], mut xyz: [f64; 3]) -> [f64; 3] {
     for column in 0..3 {
         let pivot = (column..3).max_by(|&a, &b| m[a][column].abs().total_cmp(&m[b][column].abs())).unwrap();
@@ -137,7 +137,7 @@ fn chart(depth: SampleType, icc: Arc<Vec<u8>>) -> Document {
 
 #[test]
 fn gpu_display_shadows_match_independent_icc_reference_at_all_depths() {
-    let _gpu = localpaint_testkit::gpu_lock();
+    let _gpu = localraster_testkit::gpu_lock();
     // Catch only device discovery: a shader or application failure must fail the regression.
     let Ok(rs) =
         std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| egui_kittest::wgpu::create_render_state(gpu_canvas::wgpu_setup(), Default::default())))
@@ -145,7 +145,7 @@ fn gpu_display_shadows_match_independent_icc_reference_at_all_depths() {
         eprintln!("skipping: no GPU adapter");
         return;
     };
-    if !gpu_canvas::supports_f16_canvas(&rs.adapter) || std::env::var("LOCALPAINT_CANVAS_F16").as_deref() == Ok("0") {
+    if !gpu_canvas::supports_f16_canvas(&rs.adapter) || std::env::var("LOCALRASTER_CANVAS_F16").as_deref() == Ok("0") {
         eprintln!("skipping: adapter can't render/filter Rgba16Float");
         return;
     }
@@ -157,8 +157,8 @@ fn gpu_display_shadows_match_independent_icc_reference_at_all_depths() {
     let mut harness =
         egui_kittest::Harness::builder().with_size(egui::vec2(1000.0, 700.0)).with_pixels_per_point(1.0).with_max_steps(64).renderer(renderer).build_eframe(
             move |cc| {
-                LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-                let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+                LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+                let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
                 app.set_wgpu(cc.wgpu_render_state.as_ref().expect("render state").clone());
                 app.session.color.set_displays(Ok(vec![Display {
                     id: 1,
@@ -179,7 +179,7 @@ fn gpu_display_shadows_match_independent_icc_reference_at_all_depths() {
         let xform = ViewXform::active(harness.state()).expect("canvas mapping");
         let image = harness.render().expect("render GPU canvas");
         // Optional local diagnostic artifact: entirely synthetic, never a user's document.
-        if let Some(dir) = std::env::var_os("LOCALPAINT_DISPLAY_TEST_OUTPUT") {
+        if let Some(dir) = std::env::var_os("LOCALRASTER_DISPLAY_TEST_OUTPUT") {
             let path = std::path::PathBuf::from(dir).join(format!("display-shadows-{depth:?}.png"));
             image.save(&path).expect("save requested synthetic chart");
             eprintln!("synthetic chart: {}", path.display());
@@ -203,11 +203,11 @@ fn gpu_display_shadows_match_independent_icc_reference_at_all_depths() {
 #[test]
 #[ignore = "manual 24 MP GPU timing; run with --release --ignored --nocapture"]
 fn compare_display_paths_24mp() {
-    use localpaint_cms::{Intent, Lut3d, Transform};
-    use localpaint_ui_egui::gpu_canvas::{GpuCanvas, ViewParams};
+    use localraster_cms::{Intent, Lut3d, Transform};
+    use localraster_ui_egui::gpu_canvas::{GpuCanvas, ViewParams};
     use std::time::Instant;
 
-    let _gpu = localpaint_testkit::gpu_lock();
+    let _gpu = localraster_testkit::gpu_lock();
     let rs = egui_kittest::wgpu::create_render_state(gpu_canvas::wgpu_setup(), Default::default());
     let info = rs.adapter.get_info();
     let gpu = GpuCanvas::new(&rs);

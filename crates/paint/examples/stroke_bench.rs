@@ -2,11 +2,11 @@
 //! the whole page, `push` then `composite` after every point, as painting does per frame. Small
 //! tips are the everyday case; a long stroke grows the stroke's tile map to thousands of tiles,
 //! and the time per dab must not grow with it.
-//! `cargo run --release -p localpaint-paint --example stroke_bench -- [size] [hardness] [dabs]`
-use localpaint_color::PixelFormat;
-use localpaint_geom::Rect;
-use localpaint_paint::{BrushSettings, StrokePoint, StrokeRenderer};
-use localpaint_raster::Surface;
+//! `cargo run --release -p localraster-paint --example stroke_bench -- [size] [hardness] [dabs]`
+use localraster_color::PixelFormat;
+use localraster_geom::Rect;
+use localraster_paint::{BrushSettings, StrokePoint, StrokeRenderer};
+use localraster_raster::Surface;
 use std::time::Instant;
 
 fn main() {

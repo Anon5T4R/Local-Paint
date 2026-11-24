@@ -1,15 +1,15 @@
 //! `import_file` parses a PSD/PSB from the open file (channel data read as it is decoded) and must
 //! open the same document, with the same warnings, as importing the file's bytes.
 
-use localpaint_io::{ImportResult, import, import_file};
-use localpaint_psd::testgen;
-use localpaint_raster::Interrupt;
+use localraster_io::{ImportResult, import, import_file};
+use localraster_psd::testgen;
+use localraster_raster::Interrupt;
 
 struct TempDir(std::path::PathBuf);
 
 impl TempDir {
     fn new(tag: &str) -> Self {
-        let dir = std::env::temp_dir().join(format!("localpaint-import-file-{tag}-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("localraster-import-file-{tag}-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         TempDir(dir)
     }
@@ -28,7 +28,7 @@ impl Drop for TempDir {
 }
 
 /// The document's debug form with every `…Id(n)` number blanked.
-fn without_ids(doc: &localpaint_doc::Document) -> String {
+fn without_ids(doc: &localraster_doc::Document) -> String {
     let s = format!("{doc:?}");
     let mut out = String::with_capacity(s.len());
     let mut rest = s.as_str();
@@ -40,8 +40,8 @@ fn without_ids(doc: &localpaint_doc::Document) -> String {
     out
 }
 
-fn open(name: &str, path: &std::path::Path) -> Result<ImportResult, localpaint_io::IoError> {
-    import_file(name, path, &localpaint_io::ImportOptions::default(), &Interrupt::NONE)
+fn open(name: &str, path: &std::path::Path) -> Result<ImportResult, localraster_io::IoError> {
+    import_file(name, path, &localraster_io::ImportOptions::default(), &Interrupt::NONE)
 }
 
 // Every generated case still runs once, with the same document and warning comparisons.
@@ -96,8 +96,8 @@ fn import_file_opens_what_importing_the_bytes_opens_part_3() {
 #[test]
 fn import_file_reads_other_formats_whole() {
     let dir = TempDir::new("other");
-    let doc = localpaint_doc::Document::new("x", localpaint_geom::Size::new(3, 2), localpaint_color::ColorMode::Rgb, localpaint_color::SampleType::U8);
-    let png = localpaint_io::export(&doc, "x.png", &Default::default()).unwrap().bytes;
+    let doc = localraster_doc::Document::new("x", localraster_geom::Size::new(3, 2), localraster_color::ColorMode::Rgb, localraster_color::SampleType::U8);
+    let png = localraster_io::export(&doc, "x.png", &Default::default()).unwrap().bytes;
     let path = dir.write("x.png", &png);
     let r = open("x.png", &path).unwrap();
     assert_eq!(r.document.size, doc.size);
@@ -107,7 +107,7 @@ fn import_file_reads_other_formats_whole() {
 fn import_file_fails_cleanly() {
     let dir = TempDir::new("fail");
     assert!(open("missing.psd", &dir.0.join("missing.psd")).is_err());
-    let bytes = testgen::small(localpaint_psd::Version::Psd, localpaint_psd::Compression::Rle).to_bytes().unwrap();
+    let bytes = testgen::small(localraster_psd::Version::Psd, localraster_psd::Compression::Rle).to_bytes().unwrap();
     // Cut inside the layer records, inside the channel data, and inside the merged image.
     for cut in [10, 60, bytes.len() / 2, bytes.len() - 5] {
         let name = format!("cut{cut}.psd");
@@ -125,18 +125,18 @@ fn import_file_fails_cleanly() {
 #[test]
 fn a_cancelled_import_file_reports_cancelled() {
     let dir = TempDir::new("cancel");
-    let bytes = testgen::small(localpaint_psd::Version::Psd, localpaint_psd::Compression::Zip).to_bytes().unwrap();
+    let bytes = testgen::small(localraster_psd::Version::Psd, localraster_psd::Compression::Zip).to_bytes().unwrap();
     let path = dir.write("c.psd", &bytes);
     let cancel = || true;
     let ctl = Interrupt::cancel_only(&cancel);
-    assert!(matches!(import_file("c.psd", &path, &localpaint_io::ImportOptions::default(), &ctl), Err(localpaint_io::IoError::Cancelled)));
+    assert!(matches!(import_file("c.psd", &path, &localraster_io::ImportOptions::default(), &ctl), Err(localraster_io::IoError::Cancelled)));
 }
 
 /// A read that fails while the layers are decoded from the file (it is truncated or rewritten,
 /// its drive goes away) fails the open: no layer is left empty for a save to lose.
 #[test]
 fn a_read_failing_while_layers_decode_fails_the_open() {
-    use localpaint_psd::ReadAt;
+    use localraster_psd::ReadAt;
     /// The file's bytes, failing every read of channel data (as a dropped network share or a
     /// truncated file would) except the 2-byte compression fields the parse reads.
     struct Failing {
@@ -147,18 +147,18 @@ fn a_read_failing_while_layers_decode_fails_the_open() {
         fn len(&self) -> u64 {
             self.bytes.len() as u64
         }
-        fn read_at(&self, offset: u64, buf: &mut [u8]) -> localpaint_psd::Result<()> {
+        fn read_at(&self, offset: u64, buf: &mut [u8]) -> localraster_psd::Result<()> {
             let end = offset + buf.len() as u64;
             if self.data.iter().any(|&(a, b)| offset < b && end > a) {
-                return Err(localpaint_psd::PsdError::Read("the drive went away".into()));
+                return Err(localraster_psd::PsdError::Read("the drive went away".into()));
             }
             self.bytes.as_slice().read_at(offset, buf)
         }
     }
-    for c in [localpaint_psd::Compression::Rle, localpaint_psd::Compression::Raw, localpaint_psd::Compression::Zip] {
-        let file = testgen::layered(localpaint_psd::Version::Psd, localpaint_psd::ColorMode::Rgb, 8, c);
+    for c in [localraster_psd::Compression::Rle, localraster_psd::Compression::Raw, localraster_psd::Compression::Zip] {
+        let file = testgen::layered(localraster_psd::Version::Psd, localraster_psd::ColorMode::Rgb, 8, c);
         let bytes = file.to_bytes().unwrap();
-        let lazy = localpaint_psd::PsdFile::from_source(localpaint_psd::Source::new(bytes.clone())).unwrap();
+        let lazy = localraster_psd::PsdFile::from_source(localraster_psd::Source::new(bytes.clone())).unwrap();
         let data: Vec<(u64, u64)> = lazy
             .layers()
             .iter()
@@ -170,9 +170,9 @@ fn a_read_failing_while_layers_decode_fails_the_open() {
         assert!(!data.is_empty());
         // Opening the same file whole succeeds: only the failed reads fail the open.
         assert!(import("x.psd", &bytes).is_ok());
-        let r = localpaint_io::import_source_for_open_with("x.psd", localpaint_psd::Source::new(Failing { bytes, data }), &Interrupt::NONE);
+        let r = localraster_io::import_source_for_open_with("x.psd", localraster_psd::Source::new(Failing { bytes, data }), &Interrupt::NONE);
         match r {
-            Err(localpaint_io::IoError::Read(msg)) => assert!(msg.contains("the drive went away"), "{c:?}: {msg}"),
+            Err(localraster_io::IoError::Read(msg)) => assert!(msg.contains("the drive went away"), "{c:?}: {msg}"),
             r => panic!("{c:?}: the open didn't fail: {:?}", r.map(|(r, damaged)| (r.warnings, damaged))),
         }
     }

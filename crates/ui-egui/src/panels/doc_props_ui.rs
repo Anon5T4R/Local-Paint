@@ -3,12 +3,12 @@
 //! Rulers & Grids toggles. Every edit dispatches an engine or view command, so the panel stays thin.
 
 use egui::{Align2, Rect, RichText, Sense, Stroke, StrokeKind, pos2, vec2};
-use localpaint_doc::{ColorMode, Document, Layer, LayerId, SampleType};
+use localraster_doc::{ColorMode, Document, Layer, LayerId, SampleType};
 use serde_json::{Value, json};
 
 use crate::props_layout::stacked_label;
 use crate::theme::Tokens;
-use crate::{LocalPaintApp, icons, widgets};
+use crate::{LocalRasterApp, icons, widgets};
 
 /// Photoshop's Background layer: the locked, opaque raster layer at the bottom of the stack,
 /// whatever its (localized) name ([`Document::background`]).
@@ -122,7 +122,7 @@ fn dim_field(ui: &mut egui::Ui, text: &str) {
     ui.painter().text(r.left_center() + vec2(6.0, 0.0), Align2::LEFT_CENTER, text, crate::theme::mono(12.0), t.text_faint);
 }
 
-pub fn properties(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+pub fn properties(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
     let Some(st) = app.session.active() else { return };
     let (w, h, mode, depth, dpi) = (st.doc.size.width, st.doc.size.height, st.doc.mode, st.doc.depth, st.doc.resolution_dpi);
@@ -279,10 +279,10 @@ pub fn properties(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_doc::Document;
+    use localraster_doc::Document;
 
-    fn doc_with_background() -> localpaint_engine::Session {
-        let mut s = localpaint_engine::Session::new();
+    fn doc_with_background() -> localraster_engine::Session {
+        let mut s = localraster_engine::Session::new();
         s.execute("file.new", json!({"width": 40, "height": 20, "background": "white"})).unwrap();
         s
     }
@@ -304,7 +304,7 @@ mod tests {
 
     #[test]
     fn transparent_documents_have_no_background() {
-        let mut s = localpaint_engine::Session::new();
+        let mut s = localraster_engine::Session::new();
         s.execute("file.new", json!({"width": 40, "height": 20, "background": "transparent"})).unwrap();
         let st = s.active().unwrap();
         let d: &Document = &st.doc;
@@ -324,19 +324,19 @@ mod tests {
     #[test]
     fn tiny_document_in_inches_is_not_resized_by_showing_it() {
         use egui_kittest::Harness;
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 1, "height": 1, "resolution": 300, "background": "white"})).unwrap();
-        app.session.prefs.edit(|p| p.units_and_rulers.rulers = localpaint_engine::prefs::Unit::Inches);
+        app.session.prefs.edit(|p| p.units_and_rulers.rulers = localraster_engine::prefs::Unit::Inches);
         let undo = app.session.active().unwrap().history.entries().len();
         let mut h = Harness::builder().with_size(vec2(320.0, 600.0)).build_ui_state(
-            |ui, app: &mut LocalPaintApp| {
+            |ui, app: &mut LocalRasterApp| {
                 if ui.ctx().fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                     properties(app, ui);
                 }
             },
             app,
         );
-        LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
+        LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
         h.run_steps(3);
         let st = h.state().session.active().unwrap();
         assert_eq!((st.doc.size.width, st.doc.size.height), (1, 1));
@@ -344,7 +344,7 @@ mod tests {
     }
 
     /// Horizontal centre of every single-letter label the panel drew, by letter.
-    fn letter_centres(h: &egui_kittest::Harness<'_, LocalPaintApp>) -> Vec<(String, f32)> {
+    fn letter_centres(h: &egui_kittest::Harness<'_, LocalRasterApp>) -> Vec<(String, f32)> {
         h.output()
             .shapes
             .iter()
@@ -359,17 +359,17 @@ mod tests {
     #[test]
     fn canvas_size_labels_are_centred_on_each_other() {
         use egui_kittest::Harness;
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 40, "height": 20, "background": "white"})).unwrap();
         let mut h = Harness::builder().with_size(vec2(320.0, 600.0)).build_ui_state(
-            |ui, app: &mut LocalPaintApp| {
+            |ui, app: &mut LocalRasterApp| {
                 if ui.ctx().fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                     properties(app, ui);
                 }
             },
             app,
         );
-        LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
+        LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
         h.run_steps(3);
         let centres = letter_centres(&h);
         let at = |l: &str| centres.iter().find(|(s, _)| s == l).map(|(_, x)| *x).unwrap_or_else(|| panic!("no {l} label in {centres:?}"));
@@ -380,7 +380,7 @@ mod tests {
     #[test]
     fn document_dropdowns_map_to_live_mode_commands() {
         for id in MODES.iter().map(|m| m.2).chain(DEPTHS.iter().map(|d| d.2)) {
-            assert!(localpaint_engine::commands::find(id).is_some(), "{id} is not an engine command");
+            assert!(localraster_engine::commands::find(id).is_some(), "{id} is not an engine command");
         }
     }
 

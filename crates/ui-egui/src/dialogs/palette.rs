@@ -4,7 +4,7 @@
 
 use craft_palette::{Command, Labels};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
 /// How many recently run commands the palette remembers.
 const RECENT_CAP: usize = 8;
@@ -39,7 +39,7 @@ fn push_recent(list: &mut Vec<String>, id: &str, cap: usize) {
 /// What the palette lists: the menu commands (separators are not commands: they would list as blank rows, #2479)
 /// and the tools, with the menu path as the group. The recently run commands come first, so an empty query lists
 /// them (UI-217-7) and a query ranks them ahead of equal matches.
-pub(crate) fn commands(app: &LocalPaintApp, recents: &[String], lang: crate::i18n::Lang) -> Vec<Command> {
+pub(crate) fn commands(app: &LocalRasterApp, recents: &[String], lang: crate::i18n::Lang) -> Vec<Command> {
     let mut seen = std::collections::HashSet::new();
     let mut list: Vec<Command> = crate::menus::menu_items(app)
         .into_iter()
@@ -66,7 +66,7 @@ pub(crate) fn commands(app: &LocalPaintApp, recents: &[String], lang: crate::i18
 }
 
 /// The palette, when open: runs what the user picked.
-pub fn show(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub fn show(app: &mut LocalRasterApp, ctx: &egui::Context) {
     // `ui.palette_open` is the flag the menus, the shortcuts and the control channel set; the box follows it.
     if app.ui.palette_open != app.palette_box.is_open() {
         if app.ui.palette_open {
@@ -101,11 +101,11 @@ mod tests {
     use serde_json::json;
 
     use super::push_recent;
-    use crate::LocalPaintApp;
+    use crate::LocalRasterApp;
 
     #[test]
     fn open_palette_interrupts_the_ime_only_when_it_takes_focus() {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         let ctx = egui::Context::default();
         crate::theme::install_fonts(&ctx);
         // Fonts bind on the next pass; this one opens nothing.
@@ -138,8 +138,8 @@ mod tests {
     #[test]
     fn the_palette_records_and_replays_recent_commands_on_an_empty_query() {
         let mut h = Harness::builder().with_size(vec2(1200.0, 800.0)).with_max_steps(64).build_eframe(|cc| {
-            LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-            LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default())
+            LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+            LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default())
         });
         h.state_mut().run("file.new", json!({"width": 64, "height": 64})).unwrap();
         h.state_mut().sync_views();
@@ -179,7 +179,7 @@ mod tests {
     /// "---" rows. Every row the palette lists has a name, a menu and the menu's own enabled state.
     #[test]
     fn separators_are_not_palette_commands() {
-        let app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         assert!(crate::menus::menu_items(&app).iter().any(|m| m.label == "---"), "the menus have separators to filter");
         let list = super::commands(&app, &[], crate::i18n::Lang::EN);
         assert!(!list.is_empty());
@@ -194,7 +194,7 @@ mod tests {
     /// enabled state, and the tools next to them; the recent commands come first.
     #[test]
     fn the_palette_lists_the_menus_the_shortcut_and_the_enabled_state() {
-        let app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         let list = super::commands(&app, &[], crate::i18n::Lang::EN);
         let find = |id: &str| list.iter().find(|c| c.id == id).unwrap_or_else(|| panic!("{id} is listed"));
         let settings = find("edit.preferences.general");
@@ -214,8 +214,8 @@ mod tests {
     fn palette_opens_the_keyboard_shortcuts_dialog() {
         for with_doc in [false, true] {
             let mut h = Harness::builder().with_size(vec2(1200.0, 800.0)).with_max_steps(64).build_eframe(|cc| {
-                LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-                LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default())
+                LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+                LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default())
             });
             if with_doc {
                 h.state_mut().run("file.new", json!({"width": 64, "height": 64})).unwrap();

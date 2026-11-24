@@ -1,5 +1,5 @@
 //! `manifest.json` schema. This is a *separate* serde model from
-//! `localpaint-doc` on purpose: the on-disk schema is versioned and migrated
+//! `localraster-doc` on purpose: the on-disk schema is versioned and migrated
 //! independently of in-memory refactors.
 //!
 //! Binary payloads never live in JSON. Surfaces reference tiles
@@ -7,11 +7,11 @@
 //! (`blobs/<blake3>.zst`), both by the BLAKE3 hash of their uncompressed
 //! bytes (little-endian samples for tiles).
 
-use localpaint_color::{BlendMode, Color, ColorMode, PixelFormat, SampleType};
-use localpaint_doc::{
+use localraster_color::{BlendMode, Color, ColorMode, PixelFormat, SampleType};
+use localraster_doc::{
     Adjustment, ClippingPath, Effect, Fill, GlobalLight, Guides, LabelColor, LiveShape, Locks, Path, ShapeStroke, SmartFilter, VectorMask, text,
 };
-use localpaint_geom::{Affine, Size};
+use localraster_geom::{Affine, Size};
 use serde::{Deserialize, Serialize};
 
 /// Current manifest version written by this build.
@@ -23,7 +23,7 @@ pub type Hash = String;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Manifest {
     pub format_version: u32,
-    /// Free-form writer identification, e.g. `localpaint-format 0.1.0`.
+    /// Free-form writer identification, e.g. `localraster-format 0.1.0`.
     pub generator: String,
     pub document: DocM,
     /// Optional previews present in the bundle.
@@ -70,10 +70,10 @@ pub struct DocM {
     pub patterns: Vec<PatternM>,
     /// Indexed Color palette.
     #[serde(default)]
-    pub color_table: Option<localpaint_doc::ColorTable>,
+    pub color_table: Option<localraster_doc::ColorTable>,
     /// Duotone inks.
     #[serde(default)]
-    pub duotone: Option<localpaint_doc::Duotone>,
+    pub duotone: Option<localraster_doc::Duotone>,
     /// Window › Layer Comps.
     #[serde(default)]
     pub layer_comps: Vec<LayerCompM>,
@@ -83,25 +83,25 @@ pub struct DocM {
     pub last_document_state: Option<LayerCompM>,
     /// Image › Variables and Data Sets.
     #[serde(default)]
-    pub variables: localpaint_doc::Variables,
+    pub variables: localraster_doc::Variables,
     /// Window › Timeline.
     #[serde(default)]
-    pub timeline: Option<localpaint_doc::Timeline>,
+    pub timeline: Option<localraster_doc::Timeline>,
     /// The JPEG quality / WebP encoding File › Save reuses.
-    #[serde(default, skip_serializing_if = "localpaint_doc::FileEncoding::is_empty")]
-    pub file_encoding: localpaint_doc::FileEncoding,
+    #[serde(default, skip_serializing_if = "localraster_doc::FileEncoding::is_empty")]
+    pub file_encoding: localraster_doc::FileEncoding,
     /// Image › Analysis: measurement scale, count groups, ruler.
     #[serde(default)]
-    pub measurement: localpaint_doc::Measurement,
+    pub measurement: localraster_doc::Measurement,
     /// Note tool annotations.
     #[serde(default)]
-    pub notes: Vec<localpaint_doc::Note>,
+    pub notes: Vec<localraster_doc::Note>,
     /// Character and paragraph styles.
     #[serde(default)]
-    pub text_styles: localpaint_doc::TextStyles,
+    pub text_styles: localraster_doc::TextStyles,
     /// Web slices (user and layer-based; layer ids are remapped on load).
-    #[serde(default, skip_serializing_if = "localpaint_doc::Slices::is_empty")]
-    pub slices: localpaint_doc::Slices,
+    #[serde(default, skip_serializing_if = "localraster_doc::Slices::is_empty")]
+    pub slices: localraster_doc::Slices,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -177,7 +177,7 @@ pub struct VideoDataM {
     /// frame snapshots were stored.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub original_frames: Option<Vec<SurfaceM>>,
-    pub source: localpaint_doc::VideoSource,
+    pub source: localraster_doc::VideoSource,
     pub fps: f32,
     #[serde(default)]
     pub show_altered: bool,
@@ -234,12 +234,12 @@ pub struct LayerM {
     #[serde(default, skip_serializing_if = "is_zero_u32")]
     pub excluded_channels: u32,
     /// Blend If ranges (empty = everything blends).
-    #[serde(default, skip_serializing_if = "localpaint_doc::BlendIf::is_default")]
-    pub blend_if: localpaint_doc::BlendIf,
+    #[serde(default, skip_serializing_if = "localraster_doc::BlendIf::is_default")]
+    pub blend_if: localraster_doc::BlendIf,
     /// Advanced Blending switches (knockout, as-group, transparency shapes, masks hide effects);
     /// omitted at Photoshop's defaults, and missing in older files = the defaults.
-    #[serde(default, skip_serializing_if = "localpaint_doc::AdvancedBlending::is_default")]
-    pub advanced: localpaint_doc::AdvancedBlending,
+    #[serde(default, skip_serializing_if = "localraster_doc::AdvancedBlending::is_default")]
+    pub advanced: localraster_doc::AdvancedBlending,
     #[serde(default)]
     pub video: Option<VideoDataM>,
     /// The layer's own XMP packet (missing in older files = none).
@@ -258,7 +258,7 @@ pub enum ContentM {
         expanded: bool,
         /// Artboard (Layer › New › Artboard).
         #[serde(default)]
-        artboard: Option<localpaint_doc::Artboard>,
+        artboard: Option<localraster_doc::Artboard>,
         /// A Photoshop Frame's stroke, drawn along the group's vector mask.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         frame_stroke: Option<ShapeStroke>,
@@ -301,7 +301,7 @@ pub enum ContentM {
         #[serde(default)]
         live: Option<LiveShape>,
         /// Arrow parameters stored separately for backward compatibility.
-        /// Older Local Paint versions ignore this optional field.
+        /// Older Local Raster versions ignore this optional field.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         arrow_live: Option<LiveShape>,
         /// The path's density as the fill's mask; older files have none (100 %).
@@ -327,9 +327,9 @@ pub enum ContentM {
         #[serde(default)]
         filter_mask: Option<MaskM>,
         #[serde(default)]
-        warp: Option<localpaint_geom::warp::Warp>,
+        warp: Option<localraster_geom::warp::Warp>,
         #[serde(default)]
-        stack_mode: Option<localpaint_doc::StackMode>,
+        stack_mode: Option<localraster_doc::StackMode>,
         /// Distort / Perspective placement (row-major 3×3); absent for affine placements.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         perspective: Option<[f64; 9]>,
@@ -369,7 +369,7 @@ pub struct ChannelM {
     #[serde(default = "default_channel_opacity")]
     pub opacity: f32,
     #[serde(default)]
-    pub indicates: localpaint_doc::ColorIndicates,
+    pub indicates: localraster_doc::ColorIndicates,
 }
 
 fn is_zero_u32(v: &u32) -> bool {
@@ -377,7 +377,7 @@ fn is_zero_u32(v: &u32) -> bool {
 }
 
 fn default_channel_color() -> Color {
-    localpaint_doc::AlphaChannel::DEFAULT_COLOR
+    localraster_doc::AlphaChannel::DEFAULT_COLOR
 }
 
 fn default_channel_opacity() -> f32 {
@@ -409,9 +409,9 @@ mod channel_tests {
             "spot": null
         });
         let c: ChannelM = serde_json::from_value(old).unwrap();
-        assert_eq!(c.color, localpaint_doc::AlphaChannel::DEFAULT_COLOR);
+        assert_eq!(c.color, localraster_doc::AlphaChannel::DEFAULT_COLOR);
         assert_eq!(c.opacity, 0.5);
-        assert_eq!(c.indicates, localpaint_doc::ColorIndicates::MaskedAreas);
+        assert_eq!(c.indicates, localraster_doc::ColorIndicates::MaskedAreas);
     }
 }
 

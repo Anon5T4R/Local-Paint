@@ -1,7 +1,7 @@
 //! Synthetic CR2 and TIFF/EP (NEF / ARW-like) files.
 
-use localpaint_raw::testgen::{Cr2Spec, Val, mosaic, scene, tiff_ep};
-use localpaint_raw::*;
+use localraster_raw::testgen::{Cr2Spec, Val, mosaic, scene, tiff_ep};
+use localraster_raw::*;
 
 fn cr2_spec(w: usize, h: usize, comps: usize, slices: Vec<usize>) -> Cr2Spec {
     // Left / top borders of 16 / 4 masked pixels at black level 512.

@@ -113,7 +113,7 @@ pub const F_LAYER_SHAPE: u32 = 1_048_576;
 /// [this layer, underlying layer]; every range as two floats, `black low × 256 + black high` and
 /// `white low × 256 + white high` (exact in f32), so entry `e`, side `s` starts at float
 /// `(e × 2 + s) × 2`. Entries past the fourth never apply (RGB has four, one-channel modes two).
-pub(super) fn blend_if_params(bi: &localpaint_doc::BlendIf) -> [[f32; 4]; 4] {
+pub(super) fn blend_if_params(bi: &localraster_doc::BlendIf) -> [[f32; 4]; 4] {
     let mut f = [0.0f32; 16];
     for e in 0..4 {
         for (s, r) in bi.get(e).iter().enumerate() {
@@ -127,7 +127,7 @@ pub(super) fn blend_if_params(bi: &localpaint_doc::BlendIf) -> [[f32; 4]; 4] {
 
 /// `F_TEXT_GAMMA` for type layers while text gamma blending is on; the gamma goes in `p4.w`.
 fn gamma_flag(layer: &Layer) -> u32 {
-    if localpaint_compose::text_gamma(layer) != 1.0 { F_TEXT_GAMMA } else { 0 }
+    if localraster_compose::text_gamma(layer) != 1.0 { F_TEXT_GAMMA } else { 0 }
 }
 
 /// `FxInit` kinds: A at `opacity` × alpha; an opaque copy of A; A's colour with alpha `opacity`
@@ -209,10 +209,10 @@ impl<'a> Planner<'a> {
     fn emit(&mut self, mut pass: Pass<'a>) -> Slot {
         let dst = self.alloc();
         pass.dst = dst;
-        if self.cx.mode == localpaint_color::ColorMode::Lab {
+        if self.cx.mode == localraster_color::ColorMode::Lab {
             pass.flags |= F_LAB;
         }
-        if self.cx.depth == localpaint_color::SampleType::F32 {
+        if self.cx.depth == localraster_color::SampleType::F32 {
             pass.flags |= F_HDR;
         }
         let (a, b, c, d) = (pass.a, pass.b, pass.c, pass.d);
@@ -242,7 +242,7 @@ impl<'a> Planner<'a> {
             let clipped = &layers[i + 1..j];
             if base.visible {
                 backdrop = self.layer(base, clipped, backdrop)?;
-                if let (LayerContent::Adjustment(_), Some(q)) = (&base.content, localpaint_compose::adjustment_quantum(self.cx.depth)) {
+                if let (LayerContent::Adjustment(_), Some(q)) = (&base.content, localraster_compose::adjustment_quantum(self.cx.depth)) {
                     // compose: adjustment results are rounded to the document's depth.
                     let mut p = Pass::new(Kernel::Lerp, 0);
                     p.a = Some(backdrop);
@@ -262,7 +262,7 @@ impl<'a> Planner<'a> {
     }
 
     fn mask_use(&self, layer: &'a Layer) -> Option<MaskUse<'a>> {
-        if let Some(c) = localpaint_compose::masks::combined_mask(layer, self.cx.canvas) {
+        if let Some(c) = localraster_compose::masks::combined_mask(layer, self.cx.canvas) {
             let default = c.default_pixel().first().copied().unwrap_or(1.0);
             return Some(MaskUse { layer: layer.id, surface: SurfaceRef::Derived(std::sync::Arc::new(c)), density: 1.0, default });
         }
@@ -297,7 +297,7 @@ impl<'a> Planner<'a> {
         p.c = own;
         p.flags = F_BLEND_IF;
         p.params = blend_if_params(&layer.blend_if);
-        let one_channel = self.cx.mode != localpaint_color::ColorMode::Rgb;
+        let one_channel = self.cx.mode != localraster_color::ColorMode::Rgb;
         p.extra = [f32::from(u8::from(one_channel)), f32::from(u8::from(own.is_none())), 0.0, 0.0];
         Ok(self.emit(p))
     }
@@ -305,8 +305,8 @@ impl<'a> Planner<'a> {
     /// Channel restrictions and Blend If around `draw`, which composites `layer` onto `backdrop`
     /// (`compose::composite_layer` / `composite_atop`: both are relative to the same backdrop).
     fn restricted(&mut self, layer: &'a Layer, backdrop: Slot, draw: impl FnOnce(&mut Self, Slot) -> Result<Slot, Unsupported>) -> Result<Slot, Unsupported> {
-        let w = localpaint_compose::channel_weights(layer, self.cx.mode);
-        let blend_if = localpaint_compose::blend_if_active(layer, self.cx.mode);
+        let w = localraster_compose::channel_weights(layer, self.cx.mode);
+        let blend_if = localraster_compose::blend_if_active(layer, self.cx.mode);
         if w.is_none() && !blend_if {
             return draw(self, backdrop);
         }
@@ -324,10 +324,10 @@ impl<'a> Planner<'a> {
 
     /// Blending Options › Advanced Blending (knockout, clipped layers blended individually, blend
     /// interior effects as group, transparency shapes off, masks hiding effects) has no GPU pass:
-    /// documents using it are composited on the CPU (`localpaint_compose::advanced`). Layers at
+    /// documents using it are composited on the CPU (`localraster_compose::advanced`). Layers at
     /// Photoshop's defaults pass this check for free.
     fn check_advanced(&self, layer: &Layer, clipped: &[Layer]) -> Result<(), Unsupported> {
-        if localpaint_compose::advanced_active(layer, clipped) {
+        if localraster_compose::advanced_active(layer, clipped) {
             return Err(Unsupported(format!("Advanced Blending on `{}` (composited on the CPU)", layer.name)));
         }
         Ok(())
@@ -363,7 +363,7 @@ impl<'a> Planner<'a> {
 
     /// compose::composite_artboard: the board's background and the group composited over the
     /// backdrop, kept only inside the board (contents and effects outside it are clipped away).
-    fn artboard(&mut self, layer: &'a Layer, ab: &localpaint_doc::Artboard, clipped: &'a [Layer], backdrop: Slot) -> Result<Slot, Unsupported> {
+    fn artboard(&mut self, layer: &'a Layer, ab: &localraster_doc::Artboard, clipped: &'a [Layer], backdrop: Slot) -> Result<Slot, Unsupported> {
         let board = ab.rect.intersect(&self.cx.canvas);
         if board.is_empty() {
             return Ok(backdrop);
@@ -412,7 +412,7 @@ impl<'a> Planner<'a> {
             && layer.fill_opacity >= 1.0
             && !has_effects(layer)
             && !clip_base_adjusts
-            && !localpaint_compose::blend_if_active(layer, self.cx.mode)
+            && !localraster_compose::blend_if_active(layer, self.cx.mode)
         {
             let before = self.retain(backdrop);
             let mut after = self.stack(&g.children, backdrop)?;
@@ -425,7 +425,7 @@ impl<'a> Planner<'a> {
                 after = self.emit(p);
             }
             // A Frame's stroke over the frame's content, at the group's opacity (compose).
-            if let Some(stroke) = localpaint_compose::shape_split::frame_stroke(layer, self.cx.canvas, self.cx.depth) {
+            if let Some(stroke) = localraster_compose::shape_split::frame_stroke(layer, self.cx.canvas, self.cx.depth) {
                 let stroke = self.shape_part(layer, Role::Stroke, stroke);
                 let mut p = Pass::new(Kernel::Blend, 0);
                 p.a = Some(after);
@@ -485,7 +485,7 @@ impl<'a> Planner<'a> {
 
         if let LayerContent::Shape(sh) = &layer.content
             && !visible_clipped.is_empty()
-            && let Some((fill, stroke)) = localpaint_compose::shape_split::split(sh, self.cx.canvas, self.cx.depth)
+            && let Some((fill, stroke)) = localraster_compose::shape_split::split(sh, self.cx.canvas, self.cx.depth)
         {
             // The vector stroke goes above the clipped layers: the fill is the clipping base,
             // the stroke is laid over the clipped result, then the masks apply to both
@@ -555,7 +555,7 @@ impl<'a> Planner<'a> {
         p.opacity = layer.opacity;
         p.fill = layer.fill_opacity;
         p.flags |= gamma_flag(layer);
-        p.extra[3] = localpaint_compose::text_gamma(layer);
+        p.extra[3] = localraster_compose::text_gamma(layer);
         p.clip = clip;
         let merged = self.emit(p);
         match clip {
@@ -601,7 +601,7 @@ impl<'a> Planner<'a> {
     /// A stroked shape's fill or vector stroke alone (`compose::shape_split`), unmasked.
     fn shape_part(&mut self, layer: &'a Layer, role: Role, surface: Surface) -> Slot {
         let mut p = Pass::new(Kernel::Content, 0);
-        p.color = localpaint_raster::to_rgba(&surface.format(), &surface.default_pixel());
+        p.color = localraster_raster::to_rgba(&surface.format(), &surface.default_pixel());
         if surface.tile_count() > 0 {
             p.tex = Some(TexUse { layer: layer.id, role, surface: SurfaceRef::Derived(std::sync::Arc::new(surface)) });
         }
@@ -621,7 +621,7 @@ impl<'a> Planner<'a> {
                     s = self.emit(p);
                 }
                 // A Frame's stroke over its masked content (compose::render_content).
-                if let Some(stroke) = localpaint_compose::shape_split::frame_stroke(layer, self.cx.canvas, self.cx.depth) {
+                if let Some(stroke) = localraster_compose::shape_split::frame_stroke(layer, self.cx.canvas, self.cx.depth) {
                     let stroke = self.shape_part(layer, Role::Stroke, stroke);
                     let mut p = Pass::new(Kernel::Blend, 0);
                     p.a = Some(s);
@@ -636,8 +636,8 @@ impl<'a> Planner<'a> {
                 // compose::render_fill: the pattern tiled from the layer's frame (transparent
                 // when missing), then the layer's masks.
                 let empty = self.clear();
-                let Some(pat) = localpaint_doc::pattern::find(self.cx.patterns, id, name).filter(|p| p.is_paintable()) else { return Ok(empty) };
-                let frame = localpaint_compose::fill_frame(layer, self.cx.canvas);
+                let Some(pat) = localraster_doc::pattern::find(self.cx.patterns, id, name).filter(|p| p.is_paintable()) else { return Ok(empty) };
+                let frame = localraster_compose::fill_frame(layer, self.cx.canvas);
                 let anchor = if frame.is_empty() { (0.0, 0.0) } else { (f64::from(frame.x0), f64::from(frame.y0)) };
                 let paint = Paint::Pattern(pat, placement(anchor, *link, *phase, *scale, *angle));
                 let canvas = self.cx.canvas;
@@ -664,7 +664,7 @@ impl<'a> Planner<'a> {
         match &layer.content {
             LayerContent::Fill(f) => match &layer.fill_cache {
                 Some(c) if c.fill == *f => self.surface_tex(&mut p, layer.id, &c.surface),
-                _ => self.fill(&mut p, f, localpaint_compose::fill_frame(layer, self.cx.canvas))?,
+                _ => self.fill(&mut p, f, localraster_compose::fill_frame(layer, self.cx.canvas))?,
             },
             _ => {
                 if let Some(s) = layer.surface() {
@@ -677,15 +677,15 @@ impl<'a> Planner<'a> {
 
     fn surface_tex(&self, p: &mut Pass<'a>, id: LayerId, s: &'a Surface) {
         let dp = s.default_pixel();
-        p.color = localpaint_raster::to_rgba(&s.format(), &dp);
+        p.color = localraster_raster::to_rgba(&s.format(), &dp);
         if s.tile_count() > 0 {
             p.tex = Some(TexUse { layer: id, role: Role::Content, surface: SurfaceRef::Doc(s) });
         }
     }
 
-    fn fill(&self, p: &mut Pass<'a>, f: &Fill, frame: localpaint_geom::Rect) -> Result<(), Unsupported> {
+    fn fill(&self, p: &mut Pass<'a>, f: &Fill, frame: localraster_geom::Rect) -> Result<(), Unsupported> {
         // The RGB shader cannot interpolate or dither native ink channels.
-        if self.cx.mode == localpaint_color::ColorMode::Cmyk && !matches!(f, Fill::Pattern { .. }) {
+        if self.cx.mode == localraster_color::ColorMode::Cmyk && !matches!(f, Fill::Pattern { .. }) {
             return Err(Unsupported("native CMYK fill (composited on the CPU)".into()));
         }
         match f {
@@ -698,16 +698,16 @@ impl<'a> Planner<'a> {
                 check_gradient_stops(opacity_stops)?;
                 p.gradient = true;
                 // compose::render_fill: whole-pixel end points (fill_layout).
-                let (angle, scale, offset) = localpaint_compose::fill_layout::gradient_layout(*style, *angle, *scale, *offset, frame);
+                let (angle, scale, offset) = localraster_compose::fill_layout::gradient_layout(*style, *angle, *scale, *offset, frame);
                 p.params[0] = [angle, scale, if *reverse { 1.0 } else { 0.0 }, style_index(*style)];
                 let c = frame;
                 p.params[1] = [c.x0 as f32, c.y0 as f32, c.width() as f32, c.height() as f32];
                 // p2.xy: centre offset; p2.z: the depth's levels a dithered pixel is rounded to
                 // (0: float, compose::gradient_fill::render_quantized); p2.w: dither (the shared
                 // position hash, see the shader).
-                let quantum = localpaint_compose::adjustment_quantum(self.cx.depth).unwrap_or(0.0);
+                let quantum = localraster_compose::adjustment_quantum(self.cx.depth).unwrap_or(0.0);
                 p.params[2] = [offset.0, offset.1, quantum, if *dither { 1.0 } else { 0.0 }];
-                let ramp = localpaint_compose::gradient_fill::Ramp::new(f);
+                let ramp = localraster_compose::gradient_fill::Ramp::new(f);
                 let mut rows = vec![[0.0f32; 4096]; 4];
                 for k in 0..4096 {
                     let v = ramp.as_ref().map_or([0.0; 4], |r| r.sample(k as f32 / 4095.0));
@@ -754,7 +754,7 @@ impl<'a> Planner<'a> {
         p.mode = layer.blend;
         p.opacity = opacity;
         p.flags = gamma_flag(layer);
-        p.extra[3] = localpaint_compose::text_gamma(layer);
+        p.extra[3] = localraster_compose::text_gamma(layer);
         Ok(self.emit(p))
     }
 
@@ -782,12 +782,12 @@ impl<'a> Planner<'a> {
         check_effect_gradients(&items)?;
         let canvas = self.cx.canvas;
         let region = bounds::effect_region(layer, canvas);
-        let sb = localpaint_compose::paint_bounds(layer).unwrap_or_else(|| bounds::layer_bounds(layer, canvas));
+        let sb = localraster_compose::paint_bounds(layer).unwrap_or_else(|| bounds::layer_bounds(layer, canvas));
         let clip = if bounds::transparent_outside(layer) { region } else { canvas };
         // A stroked shape's vector stroke goes above its clipped layers and interior effects
         // (compose::split_parts): the fill and the stroke unmasked, the masks applied after.
         let split = match &layer.content {
-            LayerContent::Shape(sh) if sh.stroke.is_some() => localpaint_compose::shape_split::split(sh, canvas, self.cx.depth),
+            LayerContent::Shape(sh) if sh.stroke.is_some() => localraster_compose::shape_split::split(sh, canvas, self.cx.depth),
             _ => None,
         };
         let (mut content, vstroke) = match split {
@@ -808,7 +808,7 @@ impl<'a> Planner<'a> {
         }
         let fx = self.fx.len();
         self.fx.push(FxLayer { layer, region, bounds: sb });
-        let outline = localpaint_compose::effect_outline(layer).is_some();
+        let outline = localraster_compose::effect_outline(layer).is_some();
         let relative = outline || vstroke.is_some();
         // `content` becomes the effect shape (B of every effect pass); `lay_src` the layer's colour.
         let (lay_src, vstroke) = match vstroke {
@@ -845,7 +845,7 @@ impl<'a> Planner<'a> {
         }
 
         // Linked patterns tile from the effects reference point (else the layer's top-left).
-        let premerge = localpaint_compose::effects::premerges_layer(layer);
+        let premerge = localraster_compose::effects::premerges_layer(layer);
         let anchor = layer.effects.reference.unwrap_or((f64::from(sb.x0), f64::from(sb.y0)));
         let vector_shape = matches!(layer.content, LayerContent::Shape(_)) && !outline;
         let rev = items.iter().copied().enumerate().rev().collect();
@@ -913,7 +913,7 @@ impl<'a> Planner<'a> {
                 // The layer hides the shadow beneath it where its fill is see-through, and wholly
                 // in a mode that blends with it (as the CPU renderer: `shadow_see_through`).
                 let flags = if s.knocks_out { F_KNOCKOUT } else { 0 };
-                let see_through = localpaint_compose::effects::shadow_see_through(layer);
+                let see_through = localraster_compose::effects::shadow_see_through(layer);
                 w = self.paint_k(
                     w,
                     content,
@@ -950,7 +950,7 @@ impl<'a> Planner<'a> {
             p.opacity = layer.opacity;
             p.flags = if atop { F_ATOP } else { 0 } | gamma_flag(layer) | F_LAYER_SHAPE;
             p.params[0][0] = layer.fill_opacity;
-            p.extra[3] = localpaint_compose::text_gamma(layer);
+            p.extra[3] = localraster_compose::text_gamma(layer);
             p.clip = Some(clip);
             let merged = self.emit(p);
             let merged = self.write_back(backdrop, merged, clip);
@@ -984,7 +984,7 @@ impl<'a> Planner<'a> {
             p.b = Some(l);
             p.mode = layer.blend;
             p.flags = gamma_flag(layer);
-            p.extra[3] = localpaint_compose::text_gamma(layer);
+            p.extra[3] = localraster_compose::text_gamma(layer);
             p.clip = Some(clip);
             l = self.emit(p);
         }
@@ -1002,7 +1002,7 @@ impl<'a> Planner<'a> {
         let map = |item: usize, map: usize| MapRef { fx, item, map };
         for &(_, e) in &rev {
             if let Effect::PatternOverlay { common, name, id, scale, angle, link, phase } = e
-                && let Some(pat) = localpaint_doc::pattern::find(self.cx.patterns, id, name).filter(|p| p.is_paintable())
+                && let Some(pat) = localraster_doc::pattern::find(self.cx.patterns, id, name).filter(|p| p.is_paintable())
             {
                 let paint = Paint::Pattern(pat, placement(anchor, *link, *phase, *scale, *angle));
                 l = self.paint(l, content, Cov::One, &paint, common.blend, common.opacity, F_GATE, clip, sb);
@@ -1081,7 +1081,7 @@ impl<'a> Planner<'a> {
                         st.common.opacity,
                         F_GATE,
                         clip,
-                        localpaint_compose::stroke_frame(self.cx.doc, layer, st).unwrap_or(sb),
+                        localraster_compose::stroke_frame(self.cx.doc, layer, st).unwrap_or(sb),
                     );
                 }
             }
@@ -1097,10 +1097,10 @@ impl<'a> Planner<'a> {
         let clip = work.clip;
         let sb = work.sb;
         let map = |item: usize, map: usize| MapRef { fx, item, map };
-        let bevel_paint = |b: &localpaint_doc::Bevel| localpaint_compose::effects::bevel_geom(b).paint;
+        let bevel_paint = |b: &localraster_doc::Bevel| localraster_compose::effects::bevel_geom(b).paint;
         for &(i, e) in &rev {
             if let Effect::BevelEmboss(b) = e
-                && bevel_paint(b) == localpaint_compose::effects::BevelPaint::Inner
+                && bevel_paint(b) == localraster_compose::effects::BevelPaint::Inner
             {
                 l = self.paint(
                     l,
@@ -1145,7 +1145,7 @@ impl<'a> Planner<'a> {
         // Outside stroke parts lie beneath the layer and blend onto the exterior result with their
         // own mode; a higher stroke covers the ones below it (each takes its coverage × opacity
         // not yet taken above it, blended over the result as it was before the strokes).
-        let outs: Vec<(usize, &localpaint_doc::StrokeFx)> = items
+        let outs: Vec<(usize, &localraster_doc::StrokeFx)> = items
             .iter()
             .copied()
             .enumerate()
@@ -1173,7 +1173,7 @@ impl<'a> Planner<'a> {
                     st.common.opacity,
                     flags,
                     clip,
-                    localpaint_compose::stroke_frame(self.cx.doc, layer, st).unwrap_or(sb),
+                    localraster_compose::stroke_frame(self.cx.doc, layer, st).unwrap_or(sb),
                 );
                 if matches!(paint, Paint::None) {
                     // A missing pattern paints nothing: the stroke's share keeps the result as is.
@@ -1205,7 +1205,7 @@ impl<'a> Planner<'a> {
 
     fn effect_outer_bevel(&mut self, work: &mut EffectState<'a>) {
         let rev = work.rev.clone();
-        let bevel_paint = |b: &localpaint_doc::Bevel| localpaint_compose::effects::bevel_geom(b).paint;
+        let bevel_paint = |b: &localraster_doc::Bevel| localraster_compose::effects::bevel_geom(b).paint;
         let fx = work.fx;
         let content = work.content;
         let mut w = work.w;
@@ -1214,7 +1214,7 @@ impl<'a> Planner<'a> {
         let map = |item: usize, map: usize| MapRef { fx, item, map };
         for &(i, e) in &rev {
             if let Effect::BevelEmboss(b) = e
-                && bevel_paint(b) == localpaint_compose::effects::BevelPaint::Outer
+                && bevel_paint(b) == localraster_compose::effects::BevelPaint::Outer
             {
                 let k = 0;
                 w = self.paint(
@@ -1247,13 +1247,13 @@ impl<'a> Planner<'a> {
         let sb = work.sb;
         let atop = work.atop;
         let premerge = work.premerge;
-        let bevel_paint = |b: &localpaint_doc::Bevel| localpaint_compose::effects::bevel_geom(b).paint;
+        let bevel_paint = |b: &localraster_doc::Bevel| localraster_compose::effects::bevel_geom(b).paint;
         let map = |item: usize, map: usize| MapRef { fx, item, map };
         let mode = if premerge || layer.blend == BlendMode::PassThrough { BlendMode::Normal } else { layer.blend };
-        let late: Vec<(usize, &'a localpaint_doc::Bevel)> = rev
+        let late: Vec<(usize, &'a localraster_doc::Bevel)> = rev
             .iter()
             .filter_map(|&(i, e)| if let Effect::BevelEmboss(b) = e { Some((i, b)) } else { None })
-            .filter(|(_, b)| bevel_paint(b) == localpaint_compose::effects::BevelPaint::Both)
+            .filter(|(_, b)| bevel_paint(b) == localraster_compose::effects::BevelPaint::Both)
             .collect();
         if late.is_empty() {
             let mut p = Pass::new(Kernel::FxMerge, 0);
@@ -1263,7 +1263,7 @@ impl<'a> Planner<'a> {
             p.mode = mode;
             p.opacity = layer.opacity;
             p.flags = if atop { F_ATOP } else { 0 } | gamma_flag(layer);
-            p.extra[3] = localpaint_compose::text_gamma(layer);
+            p.extra[3] = localraster_compose::text_gamma(layer);
             p.clip = Some(clip);
             self.emit(p)
         } else {
@@ -1276,7 +1276,7 @@ impl<'a> Planner<'a> {
             p.mode = mode;
             p.opacity = 1.0;
             p.flags = gamma_flag(layer);
-            p.extra[3] = localpaint_compose::text_gamma(layer);
+            p.extra[3] = localraster_compose::text_gamma(layer);
             p.clip = Some(clip);
             let mut m = self.emit(p);
             for (i, b) in late {
@@ -1310,7 +1310,7 @@ impl<'a> Planner<'a> {
         match p {
             FxPaint::Color(c) => Paint::Color(c.to_rgb()),
             FxPaint::Gradient(g) => Paint::Gradient(g),
-            FxPaint::Pattern { name, id, scale } => match localpaint_doc::pattern::find(self.cx.patterns, id, name).filter(|p| p.is_paintable()) {
+            FxPaint::Pattern { name, id, scale } => match localraster_doc::pattern::find(self.cx.patterns, id, name).filter(|p| p.is_paintable()) {
                 Some(pat) => Paint::Pattern(pat, placement(anchor, true, (0.0, 0.0), *scale, 0.0)),
                 None => Paint::None,
             },
@@ -1319,7 +1319,7 @@ impl<'a> Planner<'a> {
 
     fn glow_paint(&self, g: &'a Glow, anchor: (f64, f64)) -> Paint<'a> {
         match &g.paint {
-            FxPaint::Gradient(gradient) => Paint::GlowGradient(gradient, localpaint_compose::effects::glow_gradient_gain(g.range)),
+            FxPaint::Gradient(gradient) => Paint::GlowGradient(gradient, localraster_compose::effects::glow_gradient_gain(g.range)),
             p => self.fx_paint(p, anchor),
         }
     }
@@ -1356,7 +1356,7 @@ impl<'a> Planner<'a> {
             Paint::Color(c) => p.color = [c[0], c[1], c[2], 1.0],
             Paint::Gradient(g) => {
                 // effects::paint_fx: whole-pixel end points (fill_layout::gradient_layout).
-                let (angle, scale, offset) = localpaint_compose::fill_layout::gradient_layout(g.style, g.angle, g.scale, g.offset, sb);
+                let (angle, scale, offset) = localraster_compose::fill_layout::gradient_layout(g.style, g.angle, g.scale, g.offset, sb);
                 p.params[0] = [angle, scale, if g.reverse { 1.0 } else { 0.0 }, style_index(g.style)];
                 p.params[1] = [sb.x0 as f32, sb.y0 as f32, sb.width() as f32, sb.height() as f32];
                 p.params[2][0] = offset.0;
@@ -1422,5 +1422,5 @@ impl<'a> Planner<'a> {
 
 /// Adjustment Fill belongs inside the special blend modes; other modes use it as coverage.
 fn adjustment_fill(layer: &Layer, opacity: f32) -> (f32, f32) {
-    if layer.fill_opacity < 1.0 && localpaint_compose::psblend::fill_is_special(layer.blend) { (layer.opacity, layer.fill_opacity) } else { (opacity, 1.0) }
+    if layer.fill_opacity < 1.0 && localraster_compose::psblend::fill_is_special(layer.blend) { (layer.opacity, layer.fill_opacity) } else { (opacity, 1.0) }
 }

@@ -3,19 +3,19 @@
 
 use egui::{Key, Modifiers, vec2};
 use egui_kittest::{Harness, kittest::Queryable};
-use localpaint_engine::prefs::AppearanceMode;
+use localraster_engine::prefs::AppearanceMode;
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
-fn harness() -> Harness<'static, LocalPaintApp> {
+fn harness() -> Harness<'static, LocalRasterApp> {
     sized(vec2(1280.0, 800.0))
 }
 
-fn sized(size: egui::Vec2) -> Harness<'static, LocalPaintApp> {
+fn sized(size: egui::Vec2) -> Harness<'static, LocalRasterApp> {
     let mut h = Harness::builder().with_size(size).with_max_steps(64).build_eframe(|cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("prefs.set", json!({"values": {"interface.language": "en", "interface.appearanceMode": "auto"}})).unwrap();
         app.run("file.new", json!({"width": 64, "height": 64})).unwrap();
         app.sync_views();
@@ -25,11 +25,11 @@ fn sized(size: egui::Vec2) -> Harness<'static, LocalPaintApp> {
     h
 }
 
-fn mode(h: &Harness<'_, LocalPaintApp>) -> AppearanceMode {
+fn mode(h: &Harness<'_, LocalRasterApp>) -> AppearanceMode {
     h.state().session.prefs().interface.appearance_mode
 }
 
-fn settings_dialog(h: &Harness<'_, LocalPaintApp>) -> Option<(String, String)> {
+fn settings_dialog(h: &Harness<'_, LocalRasterApp>) -> Option<(String, String)> {
     h.state().ui.dialogs.iter().find(|d| crate::prefs_ui::is_preferences(&d.fields)).map(|d| {
         let label = d.fields.get("__label").and_then(|v| v.as_str()).unwrap_or_default().to_string();
         let section = d.fields.get("section").and_then(|v| v.as_str()).unwrap_or_default().to_string();
@@ -103,7 +103,7 @@ fn choosing_window_theme_dark_in_the_menu_turns_the_theme_dark() {
     h.run_steps(3);
     h.get_by_label("Window").click();
     h.run_steps(4);
-    let key = |h: &mut Harness<'static, LocalPaintApp>, k: Key| {
+    let key = |h: &mut Harness<'static, LocalRasterApp>, k: Key| {
         h.key_press(k);
         h.run_steps(3);
     };
@@ -201,14 +201,14 @@ fn a_command_the_menu_disables_does_not_run_from_the_palette() {
     assert!(!crate::menus::menu_items(h.state()).iter().find(|i| i.id == disabled.id).is_some_and(|i| i.enabled));
 }
 
-/// Screenshots of the top bar for review: `cargo test -p localpaint-ui-egui casca_shots -- --ignored`.
+/// Screenshots of the top bar for review: `cargo test -p localraster-ui-egui casca_shots -- --ignored`.
 /// They land in `target/qa-casca/`.
 #[test]
 #[ignore = "QA: writes PNGs of the top bar to target/qa-casca"]
 fn casca_shots() {
     let directory = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/qa-casca");
     std::fs::create_dir_all(&directory).unwrap();
-    let shot = |h: &mut Harness<'_, LocalPaintApp>, name: &str| {
+    let shot = |h: &mut Harness<'_, LocalRasterApp>, name: &str| {
         h.run_steps(4);
         let image = h.render().unwrap();
         image.save(directory.join(format!("{name}.png"))).unwrap();

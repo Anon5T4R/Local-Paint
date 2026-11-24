@@ -1,7 +1,7 @@
 //! Closed-path regression fixtures use the same four cubic knots as the shape ellipse.
 use super::*;
-use localpaint_doc::Knot;
-use localpaint_geom::Point;
+use localraster_doc::Knot;
+use localraster_geom::Point;
 
 fn ellipse() -> Subpath {
     let k = 0.552_284_749_830_793_4;

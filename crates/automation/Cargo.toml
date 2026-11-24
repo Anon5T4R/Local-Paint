@@ -1,6 +1,6 @@
 [package]
-name = "localpaint-automation"
-description = "MCP server (rmcp) over the Local Paint engine, plus a bridge to a running GUI"
+name = "localraster-automation"
+description = "MCP server (rmcp) over the Local Raster engine, plus a bridge to a running GUI"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -11,13 +11,13 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
-localpaint-doc = { workspace = true }
-localpaint-raster = { workspace = true }
-localpaint-compose = { workspace = true }
-localpaint-codecs = { workspace = true }
-localpaint-io = { workspace = true }
-localpaint-format = { path = "../format" }
-localpaint-engine = { workspace = true }
+localraster-doc = { workspace = true }
+localraster-raster = { workspace = true }
+localraster-compose = { workspace = true }
+localraster-codecs = { workspace = true }
+localraster-io = { workspace = true }
+localraster-format = { path = "../format" }
+localraster-engine = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
@@ -31,7 +31,7 @@ clap = { workspace = true }
 
 [dev-dependencies]
 # Synthetic camera raws (#7789).
-localpaint-raw = { workspace = true, features = ["testgen"] }
+localraster-raw = { workspace = true, features = ["testgen"] }
 rmcp = { version = "3.5", default-features = false, features = ["client", "server", "macros", "transport-io"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-std", "sync", "net", "io-util", "time"] }
 

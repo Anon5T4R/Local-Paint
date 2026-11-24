@@ -1,7 +1,7 @@
 use super::*;
 
 fn tmp(name: &str) -> String {
-    let d = std::env::temp_dir().join(format!("localpaint-file-cmds-{}-{name}", std::process::id()));
+    let d = std::env::temp_dir().join(format!("localraster-file-cmds-{}-{name}", std::process::id()));
     let _ = std::fs::remove_dir_all(&d);
     std::fs::create_dir_all(&d).unwrap();
     d.to_string_lossy().into_owned()
@@ -27,7 +27,7 @@ fn png(dir: &str, name: &str, w: u32, h: u32, color: &str) -> String {
 }
 
 fn composite(s: &Session, x: i32, y: i32) -> [f32; 4] {
-    let b = localpaint_compose::render(doc(s), Rect::new(x, y, x + 1, y + 1));
+    let b = localraster_compose::render(doc(s), Rect::new(x, y, x + 1, y + 1));
     b.px[0]
 }
 
@@ -50,7 +50,7 @@ fn close_all_and_close_others() {
 
 #[test]
 fn camera_raw_opens_as_16_bit_with_notes() {
-    use localpaint_raw::testgen::{DngSpec, mosaic, scene};
+    use localraster_raw::testgen::{DngSpec, mosaic, scene};
     let (w, h) = (24, 16);
     let mut spec = DngSpec::cfa(w, h, mosaic(&scene(w, h), w, [0, 1, 1, 2], 0, 65535));
     spec.as_shot_neutral = Some([0.5, 1.0, 0.7]);
@@ -58,7 +58,7 @@ fn camera_raw_opens_as_16_bit_with_notes() {
     let r = open_bytes_as(&mut s, "IMG_0001.dng", &spec.build(), None, None).unwrap();
     assert!(r["warnings"].as_array().is_some_and(|w| w.iter().any(|m| m.as_str().is_some_and(|m| m.contains("DNG")))), "{r}");
     assert_eq!((doc(&s).size.width, doc(&s).size.height), (24, 16));
-    assert_eq!(doc(&s).depth, localpaint_color::SampleType::U16);
+    assert_eq!(doc(&s).depth, localraster_color::SampleType::U16);
     // Damaged raw data is an error, not a crash.
     let mut bad = spec.build();
     bad.truncate(bad.len() / 2);
@@ -66,10 +66,10 @@ fn camera_raw_opens_as_16_bit_with_notes() {
 }
 
 /// #5799: Batch with Format "Same" over a folder of camera raws saved nothing (every output was
-/// a raw Local Paint can't write). Raws are saved as PSD; other inputs keep their format.
+/// a raw Local Raster can't write). Raws are saved as PSD; other inputs keep their format.
 #[test]
 fn batch_same_format_saves_camera_raws_as_psd() {
-    use localpaint_raw::testgen::{DngSpec, mosaic, scene};
+    use localraster_raw::testgen::{DngSpec, mosaic, scene};
     let dir = tmp("batch-same-raw");
     let (w, h) = (24, 16);
     std::fs::write(join(&dir, "IMG_0001.dng"), DngSpec::cfa(w, h, mosaic(&scene(w, h), w, [0, 1, 1, 2], 0, 65535)).build()).unwrap();
@@ -87,7 +87,7 @@ fn batch_same_format_saves_camera_raws_as_psd() {
         files.sort();
         assert_eq!(files.len(), 2, "{r}");
         assert!(files[0].contains("/IMG_0001") && files[0].ends_with(".psd") && files[1].contains("/b") && files[1].ends_with(".png"), "{files:?}");
-        let psd = localpaint_io::import("IMG_0001.psd", &std::fs::read(&files[0]).unwrap()).unwrap().document;
+        let psd = localraster_io::import("IMG_0001.psd", &std::fs::read(&files[0]).unwrap()).unwrap().document;
         assert_eq!((psd.size.width, psd.size.height), (w as u32, h as u32));
     }
 }
@@ -96,7 +96,7 @@ fn batch_same_format_saves_camera_raws_as_psd() {
 /// File › Open (the background open job) and through opening bytes; other files keep their own.
 #[test]
 fn a_developed_raw_opens_at_the_raw_defaults_resolution() {
-    use localpaint_raw::testgen::{DngSpec, mosaic, scene};
+    use localraster_raw::testgen::{DngSpec, mosaic, scene};
     let (w, h) = (24, 16);
     let raw = DngSpec::cfa(w, h, mosaic(&scene(w, h), w, [0, 1, 1, 2], 0, 65535)).build();
     let dir = tmp("raw-defaults");
@@ -125,7 +125,7 @@ fn a_developed_raw_opens_at_the_raw_defaults_resolution() {
 /// File › Revert, Batch and Load Files into Stack (all of them opened a raw at 72 ppi).
 #[test]
 fn revert_batch_and_stack_open_a_raw_at_the_raw_defaults_resolution() {
-    use localpaint_raw::testgen::{DngSpec, mosaic, scene};
+    use localraster_raw::testgen::{DngSpec, mosaic, scene};
     let (w, h) = (24, 16);
     let dir = tmp("raw-defaults-siblings");
     let path = join(&dir, "IMG_0003.dng");
@@ -141,7 +141,7 @@ fn revert_batch_and_stack_open_a_raw_at_the_raw_defaults_resolution() {
     let r = s.execute("file.automate.batch", json!({"steps": [], "input": [path.clone()], "output": out, "format": "psd"})).unwrap();
     let files = r["files"].as_array().unwrap();
     assert_eq!(files.len(), 1, "{r}");
-    let psd = localpaint_io::import("IMG_0003.psd", &std::fs::read(files[0].as_str().unwrap()).unwrap()).unwrap().document;
+    let psd = localraster_io::import("IMG_0003.psd", &std::fs::read(files[0].as_str().unwrap()).unwrap()).unwrap().document;
     assert_eq!(psd.resolution_dpi, 240.0, "Batch");
     s.execute("file.scripts.loadFilesIntoStack", json!({"paths": [path]})).unwrap();
     assert_eq!(doc(&s).resolution_dpi, 240.0, "Load Files into Stack");
@@ -207,13 +207,13 @@ fn save_a_copy_keeps_path_and_dirty_state() {
     assert_eq!(s.active().unwrap().path, None);
     assert_eq!(s.active().unwrap().revision, rev);
     assert!(s.active().unwrap().is_dirty());
-    let back = localpaint_io::import("copy.psd", &std::fs::read(&out).unwrap()).unwrap().document;
+    let back = localraster_io::import("copy.psd", &std::fs::read(&out).unwrap()).unwrap().document;
     assert_eq!(back.layers.len(), 2);
-    assert_eq!(back.depth, localpaint_color::SampleType::U16);
+    assert_eq!(back.depth, localraster_color::SampleType::U16);
     // Flattened copy.
     let flat = join(&dir, "flat.psd");
     s.execute("file.saveACopy", json!({"path": flat, "layers": false})).unwrap();
-    assert_eq!(localpaint_io::import("flat.psd", &std::fs::read(&flat).unwrap()).unwrap().document.layers.len(), 1);
+    assert_eq!(localraster_io::import("flat.psd", &std::fs::read(&flat).unwrap()).unwrap().document.layers.len(), 1);
     assert!(s.execute("file.saveACopy", json!({})).is_err());
 }
 
@@ -270,7 +270,7 @@ fn save_a_copy_writes_the_targa_bits_asked_for() {
         s.execute("file.saveACopy", p).unwrap();
         let bytes = std::fs::read(&out).unwrap();
         assert_eq!(bytes[16], bpp, "{params}");
-        let back = localpaint_io::import("a.tga", &bytes).unwrap().document;
+        let back = localraster_io::import("a.tga", &bytes).unwrap().document;
         assert_eq!(back.channels.len(), usize::from(bpp == 32), "{params}: the selection reopens as Alpha 1");
     }
 }
@@ -290,7 +290,7 @@ fn save_a_copy_writes_the_dpx_bits_asked_for() {
         s.execute("file.saveACopy", p).unwrap();
         let bytes = std::fs::read(&out).unwrap();
         assert_eq!((&bytes[..4], bytes[803]), (&b"SDPX"[..], bits), "{depth}-bit {params}");
-        assert_eq!(localpaint_io::import("a.dpx", &bytes).unwrap().document.size, localpaint_geom::Size::new(12, 6));
+        assert_eq!(localraster_io::import("a.dpx", &bytes).unwrap().document.size, localraster_geom::Size::new(12, 6));
     }
     let mut s = session(8, 8, 8);
     for bad in [json!(24), json!(0), json!("10"), json!(10.5)] {
@@ -323,7 +323,7 @@ fn save_a_copy_writes_the_dds_options_asked_for() {
         s.execute("file.saveACopy", p).unwrap();
         let bytes = std::fs::read(&out).unwrap();
         assert_eq!((&bytes[..4], &bytes[84..88], le32(&bytes, 28)), (&b"DDS "[..], &fourcc[..], mips), "{params}");
-        assert_eq!(localpaint_io::import("a.dds", &bytes).unwrap().document.size, localpaint_geom::Size::new(16, 12), "{params}");
+        assert_eq!(localraster_io::import("a.dds", &bytes).unwrap().document.size, localraster_geom::Size::new(16, 12), "{params}");
     }
     let mut s = session(8, 8, 8);
     let state = |s: &Session| s.active().map(|st| (st.revision, st.path.clone(), st.is_dirty()));
@@ -341,7 +341,7 @@ fn save_a_copy_writes_the_dds_options_asked_for() {
 
 #[test]
 fn dds_params_are_none_until_one_is_given() {
-    use localpaint_io::{DdsCompression, DdsOptions};
+    use localraster_io::{DdsCompression, DdsOptions};
     assert_eq!(dds_param(&json!({}), "file.saveAs").unwrap(), None);
     assert_eq!(dds_param(&json!({"ddsCompression": null}), "file.saveAs").unwrap(), None);
     assert_eq!(dds_param(&json!({"ddsMipmaps": true}), "file.saveAs").unwrap(), Some(DdsOptions { compression: DdsCompression::None, mipmaps: true }));
@@ -385,7 +385,7 @@ fn save_a_copy_writes_the_jpeg_format_asked_for() {
         let bytes = std::fs::read(&out).unwrap();
         assert_eq!(marker(&bytes, 0xC2), progressive, "{params}");
         assert_eq!(marker(&bytes, 0xC0), !progressive, "{params}");
-        assert_eq!(localpaint_io::import("a.jpg", &bytes).unwrap().document.size.width, 40, "{params}");
+        assert_eq!(localraster_io::import("a.jpg", &bytes).unwrap().document.size.width, 40, "{params}");
     }
     // Layers to Files takes it too.
     s.execute("file.export.layersToFiles", json!({"dir": dir, "format": "jpg", "jpegFormat": "progressive"})).unwrap();
@@ -423,8 +423,8 @@ fn image_previews_preference_controls_the_psd_thumbnail() {
     let dir = tmp("previews");
     let mut s = session(300, 200, 16);
     let has_thumbnail = |path: &str| {
-        let file = localpaint_psd::PsdFile::from_bytes(&std::fs::read(path).unwrap()).unwrap();
-        file.resources.iter().any(|r| r.id == localpaint_psd::resources::ids::THUMBNAIL)
+        let file = localraster_psd::PsdFile::from_bytes(&std::fs::read(path).unwrap()).unwrap();
+        file.resources.iter().any(|r| r.id == localraster_psd::resources::ids::THUMBNAIL)
     };
     for (ask, expect) in [(Ask::Always, true), (Ask::Never, false), (Ask::Ask, true)] {
         s.edit_prefs(|p| p.file_handling.image_previews = ask);
@@ -445,7 +445,7 @@ fn maximize_compatibility_preference_controls_the_psd_merged_image() {
     let dir = tmp("maximize");
     let mut s = session(300, 200, 16);
     s.execute("layer.new.layer", json!({})).unwrap();
-    let real_merged = |path: &str| localpaint_psd::PsdFile::from_bytes(&std::fs::read(path).unwrap()).unwrap().has_real_merged_data();
+    let real_merged = |path: &str| localraster_psd::PsdFile::from_bytes(&std::fs::read(path).unwrap()).unwrap().has_real_merged_data();
     for (ask, expect) in [(Ask::Always, true), (Ask::Never, false), (Ask::Ask, true)] {
         s.edit_prefs(|p| p.file_handling.maximize_psd_compatibility = ask);
         for ext in ["psd", "psb"] {
@@ -544,8 +544,8 @@ fn resize_image_during_place_preference_controls_the_fit() {
 /// is 20×40, red on top.
 fn rotated_jpeg(dir: &str) -> String {
     let px: Vec<u8> = (0..20).flat_map(|_| (0..40).flat_map(|x| if x < 20 { [230, 20, 20] } else { [20, 20, 230] })).collect();
-    let img = localpaint_codecs::Image::from_u8(40, 20, localpaint_codecs::ChannelLayout::Rgb, px).unwrap();
-    let jpeg = localpaint_codecs::encode(&img, localpaint_codecs::Format::Jpeg, &Default::default()).unwrap();
+    let img = localraster_codecs::Image::from_u8(40, 20, localraster_codecs::ChannelLayout::Rgb, px).unwrap();
+    let jpeg = localraster_codecs::encode(&img, localraster_codecs::Format::Jpeg, &Default::default()).unwrap();
     let mut seg = b"Exif\0\0II*\0\x08\0\0\0\x01\0\x12\x01\x03\0\x01\0\0\0\x06\0\0\0\0\0\0\0".to_vec();
     let mut file = vec![0xFF, 0xD8, 0xFF, 0xE1];
     file.extend_from_slice(&((seg.len() + 2) as u16).to_be_bytes());
@@ -591,7 +591,7 @@ fn file_info_round_trips_through_xmp_and_psd() {
     assert_eq!(read_file_info(Some(&xmp))["author"], "V. van Gogh");
     // PSD round trip.
     let (bytes, _) = encode(doc(&s), "x.psd", None).unwrap();
-    let back = localpaint_io::import("x.psd", &bytes).unwrap().document;
+    let back = localraster_io::import("x.psd", &bytes).unwrap().document;
     let info = read_file_info(back.metadata.xmp.as_deref());
     assert_eq!(info["title"], "The Starry Night");
     assert_eq!(info["keywords"], json!(["stars", "night"]));
@@ -604,7 +604,7 @@ fn file_info_round_trips_through_xmp_and_psd() {
 }
 
 fn camera_exif() -> Vec<u8> {
-    localpaint_algo::exif::build(&localpaint_algo::exif::CameraInfo {
+    localraster_algo::exif::build(&localraster_algo::exif::CameraInfo {
         make: Some("SONY".into()),
         model: Some("ILCE-7RM5".into()),
         lens: Some("24-70mm F2.8".into()),
@@ -632,7 +632,7 @@ fn file_info_reads_camera_data_from_jpeg_and_psd_exif() {
     });
     for name in ["x.jpg", "x.psd"] {
         let (bytes, _) = encode(doc(&s), name, None).unwrap();
-        let back = localpaint_io::import(name, &bytes).unwrap().document;
+        let back = localraster_io::import(name, &bytes).unwrap().document;
         let mut t = Session::new();
         t.add_document(back, None);
         assert_eq!(t.execute("file.fileInfo", json!({})).unwrap()["camera"], want, "{name}");
@@ -645,7 +645,7 @@ fn file_info_reads_camera_data_from_jpeg_and_psd_exif() {
 #[test]
 fn camera_data_formats_like_photoshop_and_falls_back_to_xmp() {
     let info = |t: Option<f64>, n: Option<f64>, f: Option<f64>| {
-        let exif = localpaint_algo::exif::build(&localpaint_algo::exif::CameraInfo { exposure_time: t, f_number: n, focal_length: f, ..Default::default() });
+        let exif = localraster_algo::exif::build(&localraster_algo::exif::CameraInfo { exposure_time: t, f_number: n, focal_length: f, ..Default::default() });
         camera_data(Some(&exif), None)
     };
     assert_eq!(info(Some(2.0), Some(2.8), Some(35.0)), json!({"exposure": "2 s", "fNumber": "f/2.8", "focalLength": "35 mm"}));
@@ -666,7 +666,7 @@ fn camera_data_formats_like_photoshop_and_falls_back_to_xmp() {
     });
     assert_eq!(camera_data(None, Some(xmp)), want);
     // EXIF wins; XMP only fills what EXIF lacks.
-    let exif = localpaint_algo::exif::build(&localpaint_algo::exif::CameraInfo { make: Some("Other".into()), ..Default::default() });
+    let exif = localraster_algo::exif::build(&localraster_algo::exif::CameraInfo { make: Some("Other".into()), ..Default::default() });
     let both = camera_data(Some(&exif), Some(xmp));
     assert_eq!(both["make"], "Other");
     assert_eq!(both["exposure"], "1/250 s");
@@ -713,7 +713,7 @@ fn camera_data_prints_a_slow_exposure_as_the_fraction_a_camera_writes() {
     assert_ne!(exposure_text(f64::MAX), None);
     // The same through a real EXIF block, so the round trip to File Info is covered too.
     let camera = |t: f64| {
-        let exif = localpaint_algo::exif::build(&localpaint_algo::exif::CameraInfo { exposure_time: Some(t), ..Default::default() });
+        let exif = localraster_algo::exif::build(&localraster_algo::exif::CameraInfo { exposure_time: Some(t), ..Default::default() });
         camera_data(Some(&exif), None)["exposure"].as_str().map(str::to_owned)
     };
     assert_eq!(camera(0.031_714), Some("1/32 s".to_owned()));
@@ -783,7 +783,7 @@ fn file_info_translations_survive_undo_and_psd_round_trip() {
         assert!(s.redo());
         assert_eq!(doc(&s).metadata.xmp.as_deref(), Some(&*edited));
         let (bytes, _) = encode(doc(&s), "x.psd", None).unwrap();
-        let back = localpaint_io::import("x.psd", &bytes).unwrap().document;
+        let back = localraster_io::import("x.psd", &bytes).unwrap().document;
         assert_translations_kept(back.metadata.xmp.as_deref().unwrap());
         assert_eq!(read_file_info(back.metadata.xmp.as_deref())["keywords"], json!(["sunrise"]));
     }
@@ -871,9 +871,9 @@ fn flatten_all_layer_effects_and_masks() {
         s.edit("fx", |doc, _| {
             let l = doc.layer_mut(id).unwrap();
             l.effects.enabled = true;
-            l.effects.items.push(localpaint_doc::Effect::ColorOverlay {
-                common: localpaint_doc::effects::FxCommon::new(localpaint_color::BlendMode::Normal, 1.0),
-                color: localpaint_color::Color::rgb(0.0, 1.0, 0.0),
+            l.effects.items.push(localraster_doc::Effect::ColorOverlay {
+                common: localraster_doc::effects::FxCommon::new(localraster_color::BlendMode::Normal, 1.0),
+                color: localraster_color::Color::rgb(0.0, 1.0, 0.0),
             });
             Ok(())
         })
@@ -920,11 +920,11 @@ fn flatten_all_layer_effects_keeps_masks() {
         s.edit("fx", |doc, _| {
             let l = doc.layer_mut(id1).unwrap();
             l.effects.enabled = true;
-            l.effects.items.push(localpaint_doc::Effect::ColorOverlay {
-                common: localpaint_doc::effects::FxCommon::new(localpaint_color::BlendMode::Normal, 1.0),
-                color: localpaint_color::Color::rgb(0.0, 1.0, 0.0),
+            l.effects.items.push(localraster_doc::Effect::ColorOverlay {
+                common: localraster_doc::effects::FxCommon::new(localraster_color::BlendMode::Normal, 1.0),
+                color: localraster_color::Color::rgb(0.0, 1.0, 0.0),
             });
-            l.vector_mask = Some(localpaint_doc::VectorMask::new(localpaint_doc::Path::new(vec![localpaint_doc::Subpath::polygon(&[
+            l.vector_mask = Some(localraster_doc::VectorMask::new(localraster_doc::Path::new(vec![localraster_doc::Subpath::polygon(&[
                 (15.0, 15.0),
                 (30.0, 15.0),
                 (30.0, 30.0),
@@ -944,9 +944,9 @@ fn flatten_all_layer_effects_keeps_masks() {
         s.edit("fx", |doc, _| {
             let l = doc.layer_mut(id2).unwrap();
             l.effects.enabled = true;
-            l.effects.items.push(localpaint_doc::Effect::ColorOverlay {
-                common: localpaint_doc::effects::FxCommon::new(localpaint_color::BlendMode::Normal, 1.0),
-                color: localpaint_color::Color::rgb(0.0, 1.0, 0.0),
+            l.effects.items.push(localraster_doc::Effect::ColorOverlay {
+                common: localraster_doc::effects::FxCommon::new(localraster_color::BlendMode::Normal, 1.0),
+                color: localraster_color::Color::rgb(0.0, 1.0, 0.0),
             });
             Ok(())
         })
@@ -1014,7 +1014,7 @@ fn flatten_all_layer_effects_keeps_masks() {
 
 /// Flattens all layer effects on a red square carrying `fx` (in a document prepared by `setup`)
 /// and asserts the composite did not change: the bake uses the document's own context (#5719).
-fn assert_flatten_effects_is_a_no_op(depth: u32, setup: impl FnOnce(&mut Document), fx: localpaint_doc::Effect) {
+fn assert_flatten_effects_is_a_no_op(depth: u32, setup: impl FnOnce(&mut Document), fx: localraster_doc::Effect) {
     let mut s = session(40, 40, depth);
     s.execute("layer.new.layer", json!({})).unwrap();
     s.execute("select.rect", json!({"x": 14, "y": 14, "width": 12, "height": 12})).unwrap();
@@ -1029,9 +1029,9 @@ fn assert_flatten_effects_is_a_no_op(depth: u32, setup: impl FnOnce(&mut Documen
         Ok(())
     })
     .unwrap();
-    let before = localpaint_compose::flatten(doc(&s));
+    let before = localraster_compose::flatten(doc(&s));
     assert_eq!(s.execute("file.scripts.flattenAllLayerEffects", json!({})).unwrap()["flattened"], 1);
-    let after = localpaint_compose::flatten(doc(&s));
+    let after = localraster_compose::flatten(doc(&s));
     for (i, (a, b)) in after.px.iter().zip(&before.px).enumerate() {
         for k in 0..4 {
             assert!((a[k] - b[k]).abs() < 0.02, "depth {depth}: pixel ({}, {}) changed: {b:?} -> {a:?}", i % 40, i / 40);
@@ -1043,15 +1043,15 @@ fn assert_flatten_effects_is_a_no_op(depth: u32, setup: impl FnOnce(&mut Documen
 #[test]
 fn flatten_all_layer_effects_uses_the_documents_global_light() {
     for depth in [8, 16, 32] {
-        let shadow = localpaint_doc::Effect::DropShadow(localpaint_doc::effects::Shadow {
-            common: localpaint_doc::effects::FxCommon::new(localpaint_color::BlendMode::Normal, 1.0),
-            color: localpaint_color::Color::rgb(0.0, 0.0, 1.0),
+        let shadow = localraster_doc::Effect::DropShadow(localraster_doc::effects::Shadow {
+            common: localraster_doc::effects::FxCommon::new(localraster_color::BlendMode::Normal, 1.0),
+            color: localraster_color::Color::rgb(0.0, 0.0, 1.0),
             angle: 120.0,
             use_global_light: true,
             distance: 10.0,
             spread: 0.0,
             size: 0.0,
-            contour: localpaint_doc::effects::Contour::Linear,
+            contour: localraster_doc::effects::Contour::Linear,
             anti_alias: false,
             noise: 0.0,
             knocks_out: true,
@@ -1064,11 +1064,11 @@ fn flatten_all_layer_effects_uses_the_documents_global_light() {
 #[test]
 fn flatten_all_layer_effects_keeps_a_pattern_overlay() {
     for depth in [8, 16, 32] {
-        let mut tile = localpaint_raster::Surface::new(PixelFormat::new(ColorMode::Rgb, localpaint_color::SampleType::U8, true));
+        let mut tile = localraster_raster::Surface::new(PixelFormat::new(ColorMode::Rgb, localraster_color::SampleType::U8, true));
         tile.fill_rect(Rect::new(0, 0, 2, 2), &[0.0, 1.0, 0.0, 1.0]);
-        let pat = localpaint_doc::Pattern::new("green", tile, 2, 2);
-        let overlay = localpaint_doc::Effect::PatternOverlay {
-            common: localpaint_doc::effects::FxCommon::new(localpaint_color::BlendMode::Normal, 1.0),
+        let pat = localraster_doc::Pattern::new("green", tile, 2, 2);
+        let overlay = localraster_doc::Effect::PatternOverlay {
+            common: localraster_doc::effects::FxCommon::new(localraster_color::BlendMode::Normal, 1.0),
             name: pat.name.clone(),
             id: pat.id.clone(),
             scale: 1.0,
@@ -1172,14 +1172,14 @@ fn layers_to_files_can_trim_transparent_margins_without_changing_the_document() 
         let before = doc(&s).clone();
         let regular = s.execute("file.export.layersToFiles", json!({"dir": dir, "prefix": format!("full-{depth}"), "format": "png"})).unwrap();
         let full = std::fs::read(regular["files"][0].as_str().unwrap()).unwrap();
-        let full = localpaint_io::import("full.png", &full).unwrap().document;
+        let full = localraster_io::import("full.png", &full).unwrap().document;
         assert_eq!((full.size.width, full.size.height), (12, 11), "default is unchanged");
 
         let trimmed = s.execute("file.export.layersToFiles", json!({"dir": dir, "prefix": format!("trim-{depth}"), "format": "png", "trim": true})).unwrap();
         let image = std::fs::read(trimmed["files"][0].as_str().unwrap()).unwrap();
-        let cropped = localpaint_io::import("trim.png", &image).unwrap().document;
+        let cropped = localraster_io::import("trim.png", &image).unwrap().document;
         assert_eq!((cropped.size.width, cropped.size.height), (4, 5), "depth {depth}");
-        let px = localpaint_compose::render(&cropped, Rect::new(0, 0, 1, 1)).px[0];
+        let px = localraster_compose::render(&cropped, Rect::new(0, 0, 1, 1)).px[0];
         assert!(px[0] > 0.95 && px[1] < 0.05 && px[2] < 0.05, "depth {depth}: {px:?}");
         assert_eq!(*doc(&s), before, "export must not crop the original document");
     }
@@ -1199,7 +1199,7 @@ fn streamed_layer_export_respects_trim() {
     })
     .unwrap();
     assert_eq!(names.len(), encoded.len());
-    let cropped = localpaint_io::import(&encoded[0].0, &encoded[0].1).unwrap().document;
+    let cropped = localraster_io::import(&encoded[0].0, &encoded[0].1).unwrap().document;
     assert_eq!((cropped.size.width, cropped.size.height), (4, 5));
 }
 
@@ -1210,7 +1210,7 @@ fn trimming_an_empty_layer_keeps_a_valid_nonzero_canvas() {
     s.execute("layer.new.layer", json!({"name": "Empty"})).unwrap();
     let result = s.execute("file.export.layersToFiles", json!({"dir": dir, "format": "png", "trim": true})).unwrap();
     let bytes = std::fs::read(result["files"][0].as_str().unwrap()).unwrap();
-    let back = localpaint_io::import("empty.png", &bytes).unwrap().document;
+    let back = localraster_io::import("empty.png", &bytes).unwrap().document;
     assert_eq!((back.size.width, back.size.height), (6, 7));
 }
 
@@ -1232,15 +1232,15 @@ fn load_files_into_stack_and_image_processor_and_batch() {
     let r = s.execute("file.scripts.imageProcessor", json!({"input": input, "output": out, "format": "jpg", "width": 20, "height": 20})).unwrap();
     let files = r["files"].as_array().unwrap();
     assert_eq!(files.len(), 2, "{r}");
-    let back = localpaint_io::import("a.jpg", &std::fs::read(files[0].as_str().unwrap()).unwrap()).unwrap().document;
+    let back = localraster_io::import("a.jpg", &std::fs::read(files[0].as_str().unwrap()).unwrap()).unwrap().document;
     assert_eq!((back.size.width, back.size.height), (20, 10));
     // Batch: run an action (invert) over the folder, save PNGs.
     let out = join(&dir, "png");
     let r = s.execute("file.automate.batch", json!({"steps": [["image.adjustments.invert", {}]], "input": input, "output": out, "format": "png"})).unwrap();
     assert_eq!(r["files"].as_array().unwrap().len(), 2, "{r}");
     assert!(r["errors"].as_array().unwrap().is_empty());
-    let inv = localpaint_io::import("a.png", &std::fs::read(join(&out, "a.png")).unwrap()).unwrap().document;
-    let px = localpaint_compose::render(&inv, Rect::new(1, 1, 2, 2)).px[0];
+    let inv = localraster_io::import("a.png", &std::fs::read(join(&out, "a.png")).unwrap()).unwrap().document;
+    let px = localraster_compose::render(&inv, Rect::new(1, 1, 2, 2)).px[0];
     assert!(px[0] < 0.01 && px[1] > 0.99 && px[2] > 0.99, "red inverted to cyan: {px:?}");
     // A recorded Quick Export writes to the current document path, but Batch owns
     // the destination. Replaying it would fail for scratch documents with no save path.
@@ -1285,14 +1285,14 @@ fn cube_export_uses_only_selected_adjustments_in_document_order() {
     let first = s.execute("layer.newAdjustmentLayer.invert", json!({})).unwrap()["layer"].as_u64().unwrap();
     let second = s.execute("layer.newAdjustmentLayer.invert", json!({})).unwrap()["layer"].as_u64().unwrap();
     let both = s.execute("file.export.colorLookupTables", json!({"size": 3})).unwrap();
-    let all = localpaint_cms::lutfile::parse_cube(both["cube"].as_str().unwrap()).unwrap();
+    let all = localraster_cms::lutfile::parse_cube(both["cube"].as_str().unwrap()).unwrap();
     assert_eq!(both["layerCount"], 2);
     assert!(all.data[0] < 0.001, "two Invert adjustments produce identity");
 
     // Selection comes from the Layers panel rather than the active layer alone.
     s.execute("layer.select", json!({"layer": first})).unwrap();
     let selected = s.execute("file.export.colorLookupTables", json!({"size": 3, "scope": "selected"})).unwrap();
-    let one = localpaint_cms::lutfile::parse_cube(selected["cube"].as_str().unwrap()).unwrap();
+    let one = localraster_cms::lutfile::parse_cube(selected["cube"].as_str().unwrap()).unwrap();
     assert_eq!(selected["layerCount"], 1);
     assert!(one.data[0] > 0.999, "one invert maps black to white");
     assert_eq!(all.size, one.size);
@@ -1351,7 +1351,7 @@ fn exported_selected_cube_round_trips_through_lookup_importer() {
     assert_eq!(r["size"], 17);
     assert_eq!(r["layerCount"], 1);
     let text = std::fs::read_to_string(&path).unwrap();
-    let parsed = localpaint_cms::lutfile::parse_cube(&text).unwrap();
+    let parsed = localraster_cms::lutfile::parse_cube(&text).unwrap();
     assert_eq!(parsed.size, 17);
     assert_eq!(parsed.data.len(), 17 * 17 * 17 * 3);
     assert!(parsed.data[..3].iter().all(|v| *v > 0.999));
@@ -1498,8 +1498,8 @@ fn batch_naming_serial_keeps_same_named_inputs_and_their_pixels() {
     assert_eq!(result["errors"], json!([]), "{result}");
     assert_eq!(result["files"], json!([join(&out, "photo_007.png"), join(&out, "photo_008.png")]));
     for (name, expected) in [("photo_007.png", [1.0, 0.0, 0.0, 1.0]), ("photo_008.png", [0.0, 0.0, 1.0, 1.0])] {
-        let saved = localpaint_io::import(name, &std::fs::read(join(&out, name)).unwrap()).unwrap().document;
-        let pixel = localpaint_compose::render(&saved, Rect::new(1, 1, 2, 2)).px[0];
+        let saved = localraster_io::import(name, &std::fs::read(join(&out, name)).unwrap()).unwrap().document;
+        let pixel = localraster_compose::render(&saved, Rect::new(1, 1, 2, 2)).px[0];
         assert_eq!(pixel, expected, "{name}");
     }
 }
@@ -1549,8 +1549,8 @@ fn batch_reports_inputs_that_share_an_output_name() {
     let out = join(&dir, "droplet");
     let r = s.execute("file.automate.runDroplet", json!({"droplet": droplet, "input": [join(&input, "a.png"), other], "output": out})).unwrap();
     assert_eq!((r["files"].as_array().unwrap().len(), r["errors"].as_array().unwrap().len()), (1, 1), "{r}");
-    let kept = localpaint_io::import("a.png", &std::fs::read(join(&out, "a.png")).unwrap()).unwrap().document;
-    let px = localpaint_compose::render(&kept, Rect::new(1, 1, 2, 2)).px[0];
+    let kept = localraster_io::import("a.png", &std::fs::read(join(&out, "a.png")).unwrap()).unwrap().document;
+    let px = localraster_compose::render(&kept, Rect::new(1, 1, 2, 2)).px[0];
     assert!(px[0] > 0.99 && px[1] < 0.01, "the first input's result is kept: {px:?}");
 }
 
@@ -1621,8 +1621,8 @@ fn batch_include_all_subfolders() {
     let files: Vec<String> = r["files"].as_array().unwrap().iter().map(|f| f.as_str().unwrap().replace('\\', "/")).collect();
     let o = out.replace('\\', "/");
     assert_eq!(files, vec![format!("{o}/a.png"), format!("{o}/sub/b.png"), format!("{o}/sub/deeper/a.png"), format!("{o}/z/a.png")]);
-    let deep = localpaint_io::import("a.png", &std::fs::read(join(&out, "sub/deeper/a.png")).unwrap()).unwrap().document;
-    let px = localpaint_compose::render(&deep, Rect::new(1, 1, 2, 2)).px[0];
+    let deep = localraster_io::import("a.png", &std::fs::read(join(&out, "sub/deeper/a.png")).unwrap()).unwrap().document;
+    let px = localraster_compose::render(&deep, Rect::new(1, 1, 2, 2)).px[0];
     assert!(px[0] > 0.99 && px[1] > 0.99 && px[2] < 0.01, "blue inverted to yellow: {px:?}");
     std::fs::remove_dir_all(&out).unwrap();
     // A naming template applies within each kept subfolder (output outside the input folder).
@@ -1769,8 +1769,8 @@ fn batch_naming_still_reports_collisions_instead_of_overwriting() {
     assert_eq!(result["files"], json!([join(&out, "constant.png")]));
     assert_eq!(result["errors"].as_array().unwrap().len(), 1, "{result}");
     assert!(result["errors"][0]["error"].as_str().unwrap().contains("not written"));
-    let saved = localpaint_io::import("constant.png", &std::fs::read(join(&out, "constant.png")).unwrap()).unwrap().document;
-    assert_eq!(localpaint_compose::render(&saved, Rect::new(1, 1, 2, 2)).px[0], [1.0, 0.0, 0.0, 1.0]);
+    let saved = localraster_io::import("constant.png", &std::fs::read(join(&out, "constant.png")).unwrap()).unwrap().document;
+    assert_eq!(localraster_compose::render(&saved, Rect::new(1, 1, 2, 2)).px[0], [1.0, 0.0, 0.0, 1.0]);
 }
 #[test]
 fn batch_naming_rejects_outputs_that_replace_inputs_before_processing() {
@@ -1802,14 +1802,14 @@ fn batch_naming_rejects_outputs_that_replace_inputs_before_processing() {
 fn batch_saves_at_the_recorded_save_so_a_close_after_it_keeps_the_result() {
     let dir = tmp("batch-save-close");
     let red = png(&dir, "red.png", 8, 8, "#ff0000");
-    let saved = |out: &str| localpaint_io::import("red.png", &std::fs::read(join(out, "red.png")).unwrap()).unwrap().document;
+    let saved = |out: &str| localraster_io::import("red.png", &std::fs::read(join(out, "red.png")).unwrap()).unwrap().document;
     let mut s = Session::new();
     let out = join(&dir, "close");
     let steps = json!([["image.adjustments.invert", {}], ["file.saveAs", {}], ["file.close", {}]]);
     let r = s.execute("file.automate.batch", json!({"input": [red], "output": out, "format": "png", "steps": steps})).unwrap();
     assert_eq!(r["errors"], json!([]), "{r}");
     assert_eq!(r["files"], json!([join(&out, "red.png")]));
-    assert_eq!(localpaint_compose::render(&saved(&out), Rect::new(1, 1, 2, 2)).px[0], [0.0, 1.0, 1.0, 1.0], "the inverted red");
+    assert_eq!(localraster_compose::render(&saved(&out), Rect::new(1, 1, 2, 2)).px[0], [0.0, 1.0, 1.0, 1.0], "the inverted red");
 
     // Save a Copy marks the result the same way, and its recorded path is never written.
     let out = join(&dir, "copy");
@@ -1817,7 +1817,7 @@ fn batch_saves_at_the_recorded_save_so_a_close_after_it_keeps_the_result() {
     let steps = json!([["image.adjustments.invert", {}], ["file.saveACopy", {"path": elsewhere}], ["file.close", {}]]);
     let r = s.execute("file.automate.batch", json!({"input": [red], "output": out, "format": "png", "steps": steps})).unwrap();
     assert_eq!(r["errors"], json!([]), "{r}");
-    assert_eq!(localpaint_compose::render(&saved(&out), Rect::new(1, 1, 2, 2)).px[0], [0.0, 1.0, 1.0, 1.0]);
+    assert_eq!(localraster_compose::render(&saved(&out), Rect::new(1, 1, 2, 2)).px[0], [0.0, 1.0, 1.0, 1.0]);
     assert!(!std::path::Path::new(&elsewhere).exists());
 
     // With no Save step the result is still saved after the action; with nothing left open then,
@@ -1844,9 +1844,9 @@ fn batch_saves_the_document_active_at_the_save_not_the_one_left_after_it() {
     ]);
     let r = Session::new().execute("file.automate.batch", json!({"input": [red], "output": out, "format": "png", "steps": steps})).unwrap();
     assert_eq!(r["errors"], json!([]), "{r}");
-    let saved = localpaint_io::import("red.png", &std::fs::read(join(&out, "red.png")).unwrap()).unwrap().document;
+    let saved = localraster_io::import("red.png", &std::fs::read(join(&out, "red.png")).unwrap()).unwrap().document;
     assert_eq!((saved.size.width, saved.size.height), (4, 4));
-    assert_eq!(localpaint_compose::render(&saved, Rect::new(1, 1, 2, 2)).px[0], [0.0, 1.0, 0.0, 1.0]);
+    assert_eq!(localraster_compose::render(&saved, Rect::new(1, 1, 2, 2)).px[0], [0.0, 1.0, 0.0, 1.0]);
 }
 
 /// While the saved document is open, the steps after its save still reach the result (#3058: a
@@ -1861,8 +1861,8 @@ fn batch_applies_the_steps_after_a_save_while_its_document_is_open() {
     let steps = json!([["file.saveAs", {}], ["image.adjustments.invert", {}]]);
     let r = s.execute("file.automate.batch", json!({"input": [red], "output": out, "format": "png", "steps": steps})).unwrap();
     assert_eq!(r["errors"], json!([]), "{r}");
-    let saved = localpaint_io::import("red.png", &std::fs::read(join(&out, "red.png")).unwrap()).unwrap().document;
-    assert_eq!(localpaint_compose::render(&saved, Rect::new(1, 1, 2, 2)).px[0], [0.0, 1.0, 1.0, 1.0]);
+    let saved = localraster_io::import("red.png", &std::fs::read(join(&out, "red.png")).unwrap()).unwrap().document;
+    assert_eq!(localraster_compose::render(&saved, Rect::new(1, 1, 2, 2)).px[0], [0.0, 1.0, 1.0, 1.0]);
 
     let out = join(&dir, "failed");
     let steps = json!([["image.adjustments.invert", {}], ["file.saveAs", {}], ["layer.select", {"layer": "missing"}]]);
@@ -1894,13 +1894,13 @@ fn folder_listing_recognises_gzipped_xcf_by_its_double_extension() {
 /// as the embedded JPEG preview (CR3, compressed ORF and RAF, RW2 other than raw formats 3, 4 and
 /// 5): a batch would process the thumbnail without a word.
 #[test]
-fn folder_listing_takes_every_format_localpaint_opens() {
+fn folder_listing_takes_every_format_localraster_opens() {
     let codecs = ["a.cin", "a.dcm", "a.dicom", "a.dc3", "a.iff", "a.lbm", "a.ilbm", "a.pcx", "a.xpm", "a.dds", "a.pbm", "a.pam", "a.pfm", "a.psdt", "A.PCX"];
     let raws = ["a.dng", "IMG_0001.CR2", "a.nef", "a.nrw", "a.arw", "a.pef"];
     for name in codecs.into_iter().chain(raws) {
         assert!(super::openable_name(name), "{name}");
     }
-    for f in localpaint_codecs::Format::ALL.into_iter().filter(|f| f.caps().read) {
+    for f in localraster_codecs::Format::ALL.into_iter().filter(|f| f.caps().read) {
         for ext in f.extensions() {
             assert!(super::openable_name(&format!("a.{ext}")), "{f:?} .{ext}");
         }
@@ -1908,7 +1908,7 @@ fn folder_listing_takes_every_format_localpaint_opens() {
     for name in ["a.cr3", "IMG_0001.CR3", "a.orf", "a.raf", "a.rw2", "a.srf", "a.sr2"] {
         assert!(!super::openable_name(name), "{name}");
     }
-    // Local Paint does not read AVIF.
+    // Local Raster does not read AVIF.
     assert!(!super::openable_name("a.avif"));
 }
 
@@ -1957,7 +1957,7 @@ fn save_a_copy_writes_the_tiff_compression_asked_for() {
         s.execute("file.saveACopy", p).unwrap();
         let bytes = std::fs::read(&out).unwrap();
         assert_eq!(tiff_compression_tag(&bytes), Some(tag), "{params}");
-        assert_eq!(localpaint_io::import("a.tif", &bytes).unwrap().document.size, localpaint_geom::Size::new(12, 6));
+        assert_eq!(localraster_io::import("a.tif", &bytes).unwrap().document.size, localraster_geom::Size::new(12, 6));
     }
     let mut s = session(8, 8, 8);
     let state = |s: &Session| s.active().map(|st| (st.revision, st.path.clone(), st.is_dirty()));

@@ -7,7 +7,7 @@
 
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
 /// Notice title when the device was lost.
 pub const LOST_MESSAGE: &str = "GPU device was lost; using the CPU renderer.";
@@ -16,8 +16,8 @@ pub const ERROR_MESSAGE: &str = "GPU error; using the CPU renderer.";
 /// Frames after which startup counts as done even if a document never drew.
 const STARTED_MAX_FRAMES: u64 = 120;
 
-/// Hook run once the app has rendered its first frames (see [`LocalPaintApp::on_started`]).
-pub type StartedHook = Box<dyn FnOnce(&mut LocalPaintApp)>;
+/// Hook run once the app has rendered its first frames (see [`LocalRasterApp::on_started`]).
+pub type StartedHook = Box<dyn FnOnce(&mut LocalRasterApp)>;
 
 /// Out-of-memory errors after which the GPU canvas is rebuilt by itself; past them the CPU
 /// renderer stays until the user chooses Retry GPU, so a document that never fits doesn't rebuild
@@ -28,7 +28,7 @@ pub const OOM_AUTO_RETRIES: u32 = 3;
 /// out-of-memory error on a device that still works is not the end of the GPU for the session
 /// (#6564): the dropped canvas freed its memory, so a new one is built at once and the views
 /// redraw through it, up to [`OOM_AUTO_RETRIES`] times.
-pub fn check(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub fn check(app: &mut LocalRasterApp, ctx: &egui::Context) {
     if let Some(fault) = app.gpu.as_ref().and_then(|g| g.fault()) {
         fall_back(app, &fault);
         if fault.is_out_of_memory() && app.gpu_oom_retries < OOM_AUTO_RETRIES && can_retry_now(app) {
@@ -62,7 +62,7 @@ pub fn check(app: &mut LocalPaintApp, ctx: &egui::Context) {
 /// writes, and closes the app without asking once all of them are saved. The next launch reopens
 /// the documents. If a write fails (a full disk, say) the app stays open with the documents in
 /// memory and tries again every [`RECOVERY_RETRY_SECS`]: closing would lose them.
-pub fn check_window(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub fn check_window(app: &mut LocalRasterApp, ctx: &egui::Context) {
     let Some((device, health)) = app.window_device.as_ref() else { return };
     // A loss while the app sat idle or the PC slept is noticed here, before the next frame.
     health.probe(device);
@@ -106,7 +106,7 @@ pub const RECOVERY_RETRY_SECS: f64 = 2.0;
 /// Write every document with unsaved changes to crash recovery, whatever the autosave timer and
 /// preference, and wait until the writes finished (see `Services::flush_autosaves`). `Ok` only when
 /// each of them is known to be on disk.
-fn save_for_recovery(app: &mut LocalPaintApp) -> Result<(), String> {
+fn save_for_recovery(app: &mut LocalRasterApp) -> Result<(), String> {
     let jobs: Vec<_> = app.session.documents().iter().filter(|d| d.is_dirty()).map(|d| (d.doc.clone(), d.revision, d.path.clone())).collect();
     if jobs.is_empty() {
         return Ok(());
@@ -146,7 +146,7 @@ fn save_for_recovery(app: &mut LocalPaintApp) -> Result<(), String> {
 
 /// Drop the GPU canvas after `fault`: free its resources, send every view through the CPU
 /// path, record why, and tell the user. Documents are untouched.
-pub fn fall_back(app: &mut LocalPaintApp, fault: &localpaint_gpu::Fault) {
+pub fn fall_back(app: &mut LocalRasterApp, fault: &localraster_gpu::Fault) {
     let Some(gpu) = app.gpu.take() else { return };
     // The GPU canvas is gone (that's this error); the switch to the CPU is `render_path`'s line.
     log::error!("{fault}; GPU canvas dropped");
@@ -169,13 +169,13 @@ pub fn fall_back(app: &mut LocalPaintApp, fault: &localpaint_gpu::Fault) {
 }
 
 /// English diagnostics for issue reports (Copy and the control API), independent of UI language.
-pub fn system_info(app: &LocalPaintApp) -> Vec<String> {
+pub fn system_info(app: &LocalRasterApp) -> Vec<String> {
     crate::i18n::with_language(crate::i18n::Lang::EN, || system_info_ui(app))
 }
 
 /// Help › System Info's on-screen text: version, platform and the graphics state.
-pub fn system_info_ui(app: &LocalPaintApp) -> Vec<String> {
-    let mut v = vec![format!("Local Paint {}", localpaint_engine::build_info::long_version()), {
+pub fn system_info_ui(app: &LocalRasterApp) -> Vec<String> {
+    let mut v = vec![format!("Local Raster {}", localraster_engine::build_info::long_version()), {
         let template = "Platform: {os} {arch}";
         crate::i18n::fmt(tl!(template), &[("os", std::env::consts::OS), ("arch", std::env::consts::ARCH)])
     }];
@@ -185,9 +185,9 @@ pub fn system_info_ui(app: &LocalPaintApp) -> Vec<String> {
 }
 
 /// The `help.systemInfo` result: the same facts as JSON.
-pub fn system_info_json(app: &LocalPaintApp) -> serde_json::Value {
+pub fn system_info_json(app: &LocalRasterApp) -> serde_json::Value {
     json!({
-        "version": localpaint_engine::build_info::long_version(),
+        "version": localraster_engine::build_info::long_version(),
         "os": std::env::consts::OS,
         "arch": std::env::consts::ARCH,
         "gpu": app.perf.gpu_info,
@@ -198,20 +198,20 @@ pub fn system_info_json(app: &LocalPaintApp) -> serde_json::Value {
 }
 
 /// Queue the same recovery warning for startup and runtime failures.
-pub fn queue_fallback_notice(app: &mut LocalPaintApp, reason: impl Into<String>) {
+pub fn queue_fallback_notice(app: &mut LocalRasterApp, reason: impl Into<String>) {
     app.ui.gpu_fallback_notice = Some(reason.into());
 }
 
 /// Whether Retry GPU can build a new GPU canvas now: the canvas was dropped after an error (out
 /// of memory, validation) on a device that still works. After a loss, or a GPU start that
 /// failed, only a restart can try the GPU again.
-fn can_retry_now(app: &LocalPaintApp) -> bool {
+fn can_retry_now(app: &LocalRasterApp) -> bool {
     app.gpu_render_state.is_some() && app.gpu_fault.as_ref().is_some_and(|f| !f.is_lost())
 }
 
 /// Build a new GPU canvas on the device the dropped one used, with a fresh health flag, and send
 /// the views back through it (#6577). Returns whether the canvas is active again.
-fn retry_now(app: &mut LocalPaintApp) -> bool {
+fn retry_now(app: &mut LocalRasterApp) -> bool {
     let Some(rs) = app.gpu_render_state.clone() else { return false };
     app.set_wgpu(rs);
     if !app.gpu_active() {
@@ -231,7 +231,7 @@ fn retry_now(app: &mut LocalPaintApp) -> bool {
 
 /// Store the next-launch choice without restarting or risking unsaved documents. Retry GPU after
 /// an error on a working device also builds a new GPU canvas at once (see [`retry_now`]).
-fn choose_recovery(app: &mut LocalPaintApp, retry: bool) -> Result<(), String> {
+fn choose_recovery(app: &mut LocalRasterApp, retry: bool) -> Result<(), String> {
     app.run(
         "prefs.set",
         json!({"values": {
@@ -249,7 +249,7 @@ fn choose_recovery(app: &mut LocalPaintApp, retry: bool) -> Result<(), String> {
         crate::notices::post(
             app,
             "GPU retry scheduled",
-            vec!["Save your work and restart Local Paint to retry GPU acceleration. CPU rendering remains active for this session.".into()],
+            vec!["Save your work and restart Local Raster to retry GPU acceleration. CPU rendering remains active for this session.".into()],
             false,
             None,
         );
@@ -258,7 +258,7 @@ fn choose_recovery(app: &mut LocalPaintApp, retry: bool) -> Result<(), String> {
 }
 
 /// Recovery is an explicit choice; the CPU document renderer stays active while the user works.
-pub fn show_fallback(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub fn show_fallback(app: &mut LocalRasterApp, ctx: &egui::Context) {
     let Some(reason) = app.ui.gpu_fallback_notice.clone() else { return };
     let retry_now = can_retry_now(app);
     let t = crate::theme::Tokens::get(ctx);
@@ -271,7 +271,7 @@ pub fn show_fallback(app: &mut LocalPaintApp, ctx: &egui::Context) {
         .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
         .show(ctx, |ui| {
             ui.label(egui::RichText::new(tl!("GPU acceleration could not continue. Your documents are unchanged.")).color(t.warning));
-            ui.label(tl!("Local Paint is using the CPU image compositor. The window may still use your graphics adapter."));
+            ui.label(tl!("Local Raster is using the CPU image compositor. The window may still use your graphics adapter."));
             ui.collapsing(tl!("Details"), |ui| {
                 ui.label(&reason);
             });
@@ -303,7 +303,7 @@ mod tests {
 
     #[test]
     fn system_info_copy_and_api_stay_english_in_czech_ui() {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.perf.gpu_info.adapter = "Test GPU".into();
         app.perf.gpu_info.preference = "auto".into();
         let english = crate::i18n::with_language(crate::i18n::Lang::EN, || system_info(&app));
@@ -324,7 +324,7 @@ mod tests {
 
     #[test]
     fn system_info_translates_empty_and_stored_auto_only_for_display() {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         // Hardware names are opaque even when they happen to match a lookup key.
         app.perf.gpu_info.adapter = "auto".into();
         crate::i18n::with_language(crate::i18n::Lang::from_code("cs").unwrap(), || {
@@ -344,7 +344,7 @@ mod tests {
 
     #[test]
     fn fallback_warning_keeps_reason_in_inspectable_state() {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         queue_fallback_notice(&mut app, "device unavailable");
         let state = serde_json::to_value(&app.ui).unwrap();
         assert_eq!(state["gpu_fallback_notice"], "device unavailable");
@@ -354,7 +354,7 @@ mod tests {
     #[test]
     fn failed_preference_save_keeps_recovery_warning_open() {
         let services = crate::Services { save_prefs: Some(Box::new(|_| Err("disk full".into()))), ..Default::default() };
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), services);
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), services);
         queue_fallback_notice(&mut app, "GPU fault");
         assert!(choose_recovery(&mut app, true).is_err());
         assert_eq!(app.ui.gpu_fallback_notice.as_deref(), Some("GPU fault"));
@@ -372,7 +372,7 @@ mod tests {
             })),
             ..Default::default()
         };
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), services);
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), services);
         queue_fallback_notice(&mut app, "device unavailable");
         choose_recovery(&mut app, false).unwrap();
         assert!(!app.session.prefs().performance.use_gpu);
@@ -393,17 +393,17 @@ mod tests {
     /// stays until Retry GPU. Other errors and a loss still fall back at once.
     #[test]
     fn out_of_memory_rebuilds_the_gpu_canvas_by_itself() {
-        let _gpu = localpaint_testkit::gpu_lock();
+        let _gpu = localraster_testkit::gpu_lock();
         let rs = std::panic::catch_unwind(|| egui_kittest::wgpu::create_render_state(crate::gpu_canvas::wgpu_setup(), Default::default()));
         let Ok(rs) = rs else {
             eprintln!("skipping: no GPU adapter");
             return;
         };
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
         app.set_wgpu(rs);
         app.run("file.new", json!({"width": 64, "height": 48})).unwrap();
         let ctx = egui::Context::default();
-        let oom = || localpaint_gpu::Fault::Error("Out of Memory".into());
+        let oom = || localraster_gpu::Fault::Error("Out of Memory".into());
         for n in 1..=OOM_AUTO_RETRIES {
             app.gpu_health().unwrap().mark(oom());
             check(&mut app, &ctx);
@@ -421,10 +421,10 @@ mod tests {
 
         // A validation error is not retried by itself.
         let rs = egui_kittest::wgpu::create_render_state(crate::gpu_canvas::wgpu_setup(), Default::default());
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
         app.set_wgpu(rs);
         app.run("file.new", json!({"width": 64, "height": 48})).unwrap();
-        app.gpu_health().unwrap().mark(localpaint_gpu::Fault::Error("Validation Error".into()));
+        app.gpu_health().unwrap().mark(localraster_gpu::Fault::Error("Validation Error".into()));
         check(&mut app, &ctx);
         assert!(!app.gpu_active() && app.ui.gpu_fallback_notice.is_some());
     }
@@ -434,20 +434,20 @@ mod tests {
     /// the device can't be used again, so the retry still waits for the next launch.
     #[test]
     fn retry_gpu_after_an_error_rebuilds_the_canvas_without_a_restart() {
-        let _gpu = localpaint_testkit::gpu_lock();
+        let _gpu = localraster_testkit::gpu_lock();
         let rs = std::panic::catch_unwind(|| egui_kittest::wgpu::create_render_state(crate::gpu_canvas::wgpu_setup(), Default::default()));
         let Ok(rs) = rs else {
             eprintln!("skipping: no GPU adapter");
             return;
         };
         let services = crate::Services { save_prefs: Some(Box::new(|_| Ok(()))), ..Default::default() };
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), services);
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), services);
         app.set_wgpu(rs);
         app.run("file.new", json!({"width": 64, "height": 48})).unwrap();
         let ctx = egui::Context::default();
         // An error on a live device (one not retried by itself, see #6564): Retry GPU rebuilds
         // the canvas now.
-        app.gpu_health().unwrap().mark(localpaint_gpu::Fault::Error("Validation Error".into()));
+        app.gpu_health().unwrap().mark(localraster_gpu::Fault::Error("Validation Error".into()));
         check(&mut app, &ctx);
         assert!(!app.gpu_active() && app.ui.gpu_fallback_notice.is_some());
         assert!(can_retry_now(&app));
@@ -460,7 +460,7 @@ mod tests {
         assert!(app.ui.gpu_fallback_notice.is_none() && app.ui.notices.is_empty(), "no restart notice");
         assert_eq!(app.session.documents().len(), 1, "the document stayed open");
         // A loss: the device can't be reused, so the retry is scheduled for the next launch.
-        app.gpu_health().unwrap().mark(localpaint_gpu::Fault::Lost("simulated".into()));
+        app.gpu_health().unwrap().mark(localraster_gpu::Fault::Lost("simulated".into()));
         check(&mut app, &ctx);
         assert!(!can_retry_now(&app));
         choose_recovery(&mut app, true).unwrap();

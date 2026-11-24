@@ -82,7 +82,7 @@ Affinity zlib entries, deep EXR ZIP chunks and compressed SVG input now decode d
 
 ## Linux and Windows x86-64 validation
 
-[GitHub Actions run](https://github.com/reneleonhardt/localpaint/actions/runs/39444647224) passed the deflate compatibility test,
+[GitHub Actions run](https://github.com/reneleonhardt/localraster/actions/runs/39444647224) passed the deflate compatibility test,
 the full IO/codecs/format package tests on Ubuntu 24.04 and Windows 2022 x86-64.
 The temporary `ci/deflate-zlib-rs-x86` branch at `46232997` contains the workflow and benchmark setup.
 The run's `deflate-x86-results` artifact contains all raw samples, the full table, input and binary hashes, backend features and host details.

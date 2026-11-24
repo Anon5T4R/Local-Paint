@@ -153,12 +153,12 @@ fn render_to_file_and_base64() {
     g.handle("doc.new", json!({"width": 40, "height": 20, "background": "black"})).unwrap();
     let b = g.handle("doc.render", json!({"maxSide": 10})).unwrap();
     let png = base64::engine::general_purpose::STANDARD.decode(b["base64"].as_str().unwrap()).unwrap();
-    let img = localpaint_codecs::decode(&png).unwrap();
+    let img = localraster_codecs::decode(&png).unwrap();
     assert_eq!(img.dimensions(), (10, 5));
     let path = std::env::temp_dir().join(format!("pc-rpc-{}.png", std::process::id()));
     let r = g.handle("doc.render", json!({"path": path.to_string_lossy(), "maxSide": 0})).unwrap();
     assert!(r["bytes"].as_u64().unwrap() > 0);
-    assert_eq!(localpaint_codecs::decode(&std::fs::read(&path).unwrap()).unwrap().dimensions(), (40, 20));
+    assert_eq!(localraster_codecs::decode(&std::fs::read(&path).unwrap()).unwrap().dimensions(), (40, 20));
     let _ = std::fs::remove_file(path);
 }
 
@@ -246,7 +246,7 @@ fn every_request_sees_a_finished_background_job() {
     let history = h.handle("doc.inspect", json!({})).unwrap()["history"].clone();
     assert_eq!(history.as_array().unwrap().last().unwrap(), "Gaussian Blur", "{history}");
     h.handle("doc.save", json!({"path": after.to_string_lossy()})).unwrap();
-    let decode = |p: &std::path::Path| localpaint_codecs::decode(&std::fs::read(p).unwrap()).unwrap().to_rgba8();
+    let decode = |p: &std::path::Path| localraster_codecs::decode(&std::fs::read(p).unwrap()).unwrap().to_rgba8();
     assert_ne!(decode(&before), decode(&after), "the export holds the blur");
     assert_ne!(render(&mut h), unblurred, "the preview holds the blur");
     std::fs::remove_dir_all(dir).unwrap();
@@ -283,7 +283,7 @@ fn automation_preview_rejects_oversized_full_size_and_numeric_wraparound() {
     // A smaller preview still works, and rejection leaves the source document intact.
     let rendered = h.handle("doc.render", json!({"maxSide": 32})).unwrap();
     let png = base64::engine::general_purpose::STANDARD.decode(rendered["base64"].as_str().unwrap()).unwrap();
-    assert_eq!(localpaint_codecs::decode(&png).unwrap().dimensions(), (32, 1));
+    assert_eq!(localraster_codecs::decode(&png).unwrap().dimensions(), (32, 1));
     assert_eq!(h.session.active().unwrap().doc.size.width, 2049);
 }
 
@@ -349,8 +349,8 @@ fn doc_place_reads_through_the_read_root_and_never_outside_it() {
     for dir in [&root, &outside] {
         std::fs::create_dir_all(dir).unwrap();
     }
-    let img = localpaint_codecs::Image::from_u8(8, 6, localpaint_codecs::ChannelLayout::Rgb, vec![42; 8 * 6 * 3]).unwrap();
-    let png = localpaint_codecs::encode(&img, localpaint_codecs::Format::Png, &Default::default()).unwrap();
+    let img = localraster_codecs::Image::from_u8(8, 6, localraster_codecs::ChannelLayout::Rgb, vec![42; 8 * 6 * 3]).unwrap();
+    let png = localraster_codecs::encode(&img, localraster_codecs::Format::Png, &Default::default()).unwrap();
     std::fs::write(root.join("logo.png"), &png).unwrap();
     std::fs::write(outside.join("logo.png"), &png).unwrap();
     let absolute = outside.join("logo.png").to_string_lossy().into_owned();
@@ -380,7 +380,7 @@ fn doc_place_reads_through_the_read_root_and_never_outside_it() {
     std::fs::remove_dir_all(base).unwrap();
 }
 
-/// A save or render never turns a file Local Paint doesn't write (source, settings, notes)
+/// A save or render never turns a file Local Raster doesn't write (source, settings, notes)
 /// into image bytes, whatever `format` says; images and new files are written as before (#9439).
 #[test]
 fn workspace_writes_refuse_to_replace_a_file_that_is_not_an_image() {
@@ -427,8 +427,8 @@ fn doc_replace_smart_object_reads_through_the_read_root_and_never_outside_it() {
         std::fs::create_dir_all(dir).unwrap();
     }
     let png = |w: u32, h: u32, v: u8| {
-        let img = localpaint_codecs::Image::from_u8(w, h, localpaint_codecs::ChannelLayout::Rgb, vec![v; (w * h * 3) as usize]).unwrap();
-        localpaint_codecs::encode(&img, localpaint_codecs::Format::Png, &Default::default()).unwrap()
+        let img = localraster_codecs::Image::from_u8(w, h, localraster_codecs::ChannelLayout::Rgb, vec![v; (w * h * 3) as usize]).unwrap();
+        localraster_codecs::encode(&img, localraster_codecs::Format::Png, &Default::default()).unwrap()
     };
     std::fs::write(root.join("logo.png"), png(8, 6, 42)).unwrap();
     std::fs::write(root.join("red.png"), png(8, 6, 200)).unwrap();
@@ -446,7 +446,7 @@ fn doc_replace_smart_object_reads_through_the_read_root_and_never_outside_it() {
         let name = so["smartSource"]["fileName"].as_str().unwrap_or_default().to_owned();
         let rendered = h.handle("doc.render", json!({"maxSide": 0})).unwrap();
         let png = base64::engine::general_purpose::STANDARD.decode(rendered["base64"].as_str().unwrap()).unwrap();
-        let img = localpaint_codecs::decode(&png).unwrap();
+        let img = localraster_codecs::decode(&png).unwrap();
         let (w, ht) = img.dimensions();
         let data = img.as_u8().unwrap();
         let channels = data.len() / (w * ht) as usize;
@@ -559,7 +559,7 @@ fn doc_export_layers_writes_only_beneath_the_write_root() {
     for name in names {
         assert!(name.starts_with("card_") && name.ends_with(".png"), "{name}");
         let bytes = std::fs::read(out.join(&name)).unwrap();
-        assert_eq!(localpaint_codecs::decode(&bytes).unwrap().dimensions(), (12, 8), "{name}");
+        assert_eq!(localraster_codecs::decode(&bytes).unwrap().dimensions(), (12, 8), "{name}");
     }
     // Outside the write root nothing is created, not even the directory.
     let escaped = base.join("escaped");
@@ -621,8 +621,8 @@ fn indexed_place_replace_and_data_set_methods_keep_the_active_document() {
     let base = std::env::temp_dir().join(format!("pc-doc-index-active-{}", std::process::id()));
     let root = base.join("workspace");
     std::fs::create_dir_all(&root).unwrap();
-    let img = localpaint_codecs::Image::from_u8(4, 4, localpaint_codecs::ChannelLayout::Rgb, vec![42; 4 * 4 * 3]).unwrap();
-    std::fs::write(root.join("logo.png"), localpaint_codecs::encode(&img, localpaint_codecs::Format::Png, &Default::default()).unwrap()).unwrap();
+    let img = localraster_codecs::Image::from_u8(4, 4, localraster_codecs::ChannelLayout::Rgb, vec![42; 4 * 4 * 3]).unwrap();
+    std::fs::write(root.join("logo.png"), localraster_codecs::encode(&img, localraster_codecs::Format::Png, &Default::default()).unwrap()).unwrap();
     std::fs::write(root.join("sets.csv"), "Data Set,show\none,true\ntwo,false\n").unwrap();
     let mut h = Headless::with_workspace(crate::AuthorizedWorkspace::new(Some(&root), Some(&root)).unwrap());
     h.handle("doc.new", json!({"width": 8, "height": 8, "background": "white", "name": "first"})).unwrap();
@@ -661,9 +661,9 @@ fn doc_export_data_sets_judges_pixel_replacement_paths_like_apply() {
     let base = std::env::temp_dir().join(format!("pc-doc-data-set-pixels-{}", std::process::id()));
     let root = base.join("workspace");
     std::fs::create_dir_all(&root).unwrap();
-    let red = localpaint_codecs::Image::from_u8(4, 4, localpaint_codecs::ChannelLayout::Rgb, [255, 0, 0].repeat(16)).unwrap();
+    let red = localraster_codecs::Image::from_u8(4, 4, localraster_codecs::ChannelLayout::Rgb, [255, 0, 0].repeat(16)).unwrap();
     let photo = base.join("photo.png");
-    std::fs::write(&photo, localpaint_codecs::encode(&red, localpaint_codecs::Format::Png, &Default::default()).unwrap()).unwrap();
+    std::fs::write(&photo, localraster_codecs::encode(&red, localraster_codecs::Format::Png, &Default::default()).unwrap()).unwrap();
     let mut h = Headless::with_workspace(crate::AuthorizedWorkspace::new(Some(&root), Some(&root)).unwrap());
     h.handle("doc.new", json!({"width": 8, "height": 8, "background": "white", "name": "card"})).unwrap();
     let layer = h.handle("engine.execute", json!({"command": "layer.new.layer", "params": {}})).unwrap()["layer"].clone();
@@ -693,12 +693,12 @@ fn doc_export_data_sets_judges_pixel_replacement_paths_like_apply() {
 
 #[test]
 fn workspace_psd_saves_embed_no_file_a_linked_smart_object_names() {
-    use localpaint_engine::doc::{LayerContent, SmartSource};
+    use localraster_engine::doc::{LayerContent, SmartSource};
 
-    // An image Local Paint can open (other linked files are never embedded): an embedded copy
+    // An image Local Raster can open (other linked files are never embedded): an embedded copy
     // carries these exact bytes, while pixels written for the layer don't.
-    let image = localpaint_codecs::Image::from_u8(8, 8, localpaint_codecs::ChannelLayout::Rgb, (0..192u8).collect()).unwrap();
-    let marker = localpaint_codecs::encode(&image, localpaint_codecs::Format::Png, &Default::default()).unwrap();
+    let image = localraster_codecs::Image::from_u8(8, 8, localraster_codecs::ChannelLayout::Rgb, (0..192u8).collect()).unwrap();
+    let marker = localraster_codecs::encode(&image, localraster_codecs::Format::Png, &Default::default()).unwrap();
     let has_marker = |bytes: &[u8]| bytes.windows(marker.len()).any(|w| w == marker.as_slice());
     let base = std::env::temp_dir().join(format!("pc-psd-linked-embed-{}", std::process::id()));
     let root = base.join("workspace");
@@ -706,15 +706,15 @@ fn workspace_psd_saves_embed_no_file_a_linked_smart_object_names() {
     let outside = base.join("outside.png");
     std::fs::write(&outside, &marker).unwrap();
     // A document whose smart object names a file outside the roots as its source.
-    let mut session = localpaint_engine::Session::new();
+    let mut session = localraster_engine::Session::new();
     session.execute("file.new", json!({"width": 8, "height": 8, "background": "white"})).unwrap();
     session.execute("layer.smartObjects.convertToSmartObject", json!({})).unwrap();
     let state = session.active_mut().unwrap();
     let LayerContent::Smart(smart) = &mut std::sync::Arc::make_mut(&mut state.doc).layers[0].content else { panic!("smart object") };
     smart.source = SmartSource::Linked { path: outside.to_string_lossy().into_owned() };
-    std::fs::write(root.join("in.pcraft"), localpaint_engine::smart_cmds::encode_source(&state.doc).unwrap()).unwrap();
+    std::fs::write(root.join("in.pcraft"), localraster_engine::smart_cmds::encode_source(&state.doc).unwrap()).unwrap();
     // A trusted export embeds the linked file, as before.
-    assert!(has_marker(&localpaint_io::export(&state.doc, "psd", &Default::default()).unwrap().bytes));
+    assert!(has_marker(&localraster_io::export(&state.doc, "psd", &Default::default()).unwrap().bytes));
 
     let mut h = Headless::with_workspace(crate::AuthorizedWorkspace::new(Some(&root), Some(&root)).unwrap());
     h.handle("doc.open", json!({"path": "in.pcraft"})).unwrap();
@@ -729,22 +729,22 @@ fn workspace_psd_saves_embed_no_file_a_linked_smart_object_names() {
 
 #[test]
 fn allowed_filters_do_not_rerender_a_smart_object_from_its_linked_file() {
-    use localpaint_engine::doc::{LayerContent, SmartSource};
+    use localraster_engine::doc::{LayerContent, SmartSource};
 
     let base = std::env::temp_dir().join(format!("pc-linked-rerender-{}", std::process::id()));
     let root = base.join("workspace");
     std::fs::create_dir_all(&root).unwrap();
-    let red = localpaint_codecs::Image::from_u8(8, 8, localpaint_codecs::ChannelLayout::Rgb, [255, 0, 0].repeat(64)).unwrap();
+    let red = localraster_codecs::Image::from_u8(8, 8, localraster_codecs::ChannelLayout::Rgb, [255, 0, 0].repeat(64)).unwrap();
     let outside = base.join("red.png");
-    std::fs::write(&outside, localpaint_codecs::encode(&red, localpaint_codecs::Format::Png, &Default::default()).unwrap()).unwrap();
+    std::fs::write(&outside, localraster_codecs::encode(&red, localraster_codecs::Format::Png, &Default::default()).unwrap()).unwrap();
     // A document whose white smart object names a file outside the roots as its source.
-    let mut session = localpaint_engine::Session::new();
+    let mut session = localraster_engine::Session::new();
     session.execute("file.new", json!({"width": 8, "height": 8, "background": "white"})).unwrap();
     session.execute("layer.smartObjects.convertToSmartObject", json!({})).unwrap();
     let state = session.active_mut().unwrap();
     let LayerContent::Smart(smart) = &mut std::sync::Arc::make_mut(&mut state.doc).layers[0].content else { panic!("smart object") };
     smart.source = SmartSource::Linked { path: outside.to_string_lossy().into_owned() };
-    std::fs::write(root.join("p.pcraft"), localpaint_engine::smart_cmds::encode_source(&state.doc).unwrap()).unwrap();
+    std::fs::write(root.join("p.pcraft"), localraster_engine::smart_cmds::encode_source(&state.doc).unwrap()).unwrap();
 
     let mut h = Headless::with_workspace(crate::AuthorizedWorkspace::new(Some(&root), Some(&root)).unwrap());
     h.handle("doc.open", json!({"path": "p.pcraft"})).unwrap();
@@ -760,9 +760,9 @@ fn allowed_filters_do_not_rerender_a_smart_object_from_its_linked_file() {
 
 #[test]
 fn workspace_layer_exports_keep_linked_smart_objects_as_pixels() {
-    use localpaint_engine::doc::{LayerContent, SmartSource};
+    use localraster_engine::doc::{LayerContent, SmartSource};
 
-    const MARKER: &[u8] = b"LOCALPAINT-LINKED-0002";
+    const MARKER: &[u8] = b"LOCALRASTER-LINKED-0002";
     let has_marker = |bytes: &[u8]| bytes.windows(MARKER.len()).any(|w| w == MARKER);
     let base = std::env::temp_dir().join(format!("pc-export-layers-linked-{}", std::process::id()));
     let root = base.join("workspace");
@@ -770,13 +770,13 @@ fn workspace_layer_exports_keep_linked_smart_objects_as_pixels() {
     let outside = base.join("outside.txt");
     std::fs::write(&outside, MARKER).unwrap();
     // A document whose smart object names a file outside the roots as its source.
-    let mut session = localpaint_engine::Session::new();
+    let mut session = localraster_engine::Session::new();
     session.execute("file.new", json!({"width": 8, "height": 8, "background": "white"})).unwrap();
     session.execute("layer.smartObjects.convertToSmartObject", json!({})).unwrap();
     let state = session.active_mut().unwrap();
     let LayerContent::Smart(smart) = &mut std::sync::Arc::make_mut(&mut state.doc).layers[0].content else { panic!("smart object") };
     smart.source = SmartSource::Linked { path: outside.to_string_lossy().into_owned() };
-    std::fs::write(root.join("in.pcraft"), localpaint_engine::smart_cmds::encode_source(&state.doc).unwrap()).unwrap();
+    std::fs::write(root.join("in.pcraft"), localraster_engine::smart_cmds::encode_source(&state.doc).unwrap()).unwrap();
 
     let mut h = Headless::with_workspace(crate::AuthorizedWorkspace::new(Some(&root), Some(&root)).unwrap());
     h.handle("doc.open", json!({"path": "in.pcraft"})).unwrap();
@@ -801,7 +801,7 @@ fn trusted_local_render_keeps_full_size_behavior() {
     h.handle("doc.new", json!({"width": 2049, "height": 1})).unwrap();
     let rendered = h.handle("doc.render", json!({"maxSide": 0})).unwrap();
     let png = base64::engine::general_purpose::STANDARD.decode(rendered["base64"].as_str().unwrap()).unwrap();
-    assert_eq!(localpaint_codecs::decode(&png).unwrap().dimensions(), (2049, 1));
+    assert_eq!(localraster_codecs::decode(&png).unwrap().dimensions(), (2049, 1));
 }
 
 #[test]

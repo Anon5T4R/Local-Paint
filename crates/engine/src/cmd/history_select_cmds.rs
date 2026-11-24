@@ -118,7 +118,7 @@ mod tests {
         s
     }
 
-    type Look = (Arc<localpaint_doc::Document>, Option<localpaint_doc::LayerId>, Vec<localpaint_doc::LayerId>, Vec<String>, Vec<String>);
+    type Look = (Arc<localraster_doc::Document>, Option<localraster_doc::LayerId>, Vec<localraster_doc::LayerId>, Vec<String>, Vec<String>);
 
     /// What the panel can see of a session: the document, the targeted layers, the entries and
     /// the redo states.

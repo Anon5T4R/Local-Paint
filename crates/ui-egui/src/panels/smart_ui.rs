@@ -6,12 +6,12 @@
 //! ⌥-click to view it, ⇧-click to disable it (FILE-215-3).
 
 use egui::{Color32, Rect, Sense, Stroke, StrokeKind, pos2, vec2};
-use localpaint_doc::{Document, Layer, LayerContent, LayerId, SmartObject};
+use localraster_doc::{Document, Layer, LayerContent, LayerId, SmartObject};
 use serde_json::{Value, json};
 
 use crate::state::LayerThumbnailSize;
 use crate::theme::Tokens;
-use crate::{LocalPaintApp, icons};
+use crate::{LocalRasterApp, icons};
 
 /// What the badge on a layer thumbnail marks the layer as.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -62,14 +62,14 @@ pub fn thumb_badge(ui: &egui::Ui, l: &Layer, thumb: Rect) {
 }
 
 /// The display name of a smart filter (its command's label without the ellipsis). A Photoshop
-/// filter Local Paint doesn't implement shows its own name and is marked as kept as is.
-pub(crate) fn filter_label(f: &localpaint_doc::SmartFilter) -> String {
+/// filter Local Raster doesn't implement shows its own name and is marked as kept as is.
+pub(crate) fn filter_label(f: &localraster_doc::SmartFilter) -> String {
     let command = f.command.as_str();
-    if command == localpaint_engine::smart_cmds::UNSUPPORTED_FILTER {
+    if command == localraster_engine::smart_cmds::UNSUPPORTED_FILTER {
         let name = f.params.get("name").and_then(Value::as_str).unwrap_or("Smart filter");
         return format!("{} (kept, not editable)", name.trim_end_matches("...").trim_end_matches('…'));
     }
-    localpaint_engine::commands::find(command)
+    localraster_engine::commands::find(command)
         .map_or_else(|| command.rsplit('.').next().unwrap_or(command).to_string(), |c| tl!(c.label).trim_end_matches('…').to_string())
 }
 
@@ -101,7 +101,7 @@ pub fn paint_badge(painter: &egui::Painter, center: egui::Pos2, color: Color32) 
 /// document's revision as its target, so the click's queued `layer.select` must not run after it
 /// opens (OK would refuse the edit): select first, as the Layers panel runs it. False when the
 /// selection failed and the editor must stay closed.
-fn select_before_editor(app: &mut LocalPaintApp, layer: u64, actions: &mut Vec<(String, Value)>) -> bool {
+fn select_before_editor(app: &mut LocalRasterApp, layer: u64, actions: &mut Vec<(String, Value)>) -> bool {
     actions.retain(|(id, p)| !(id == "layer.select" && p.get("layer").and_then(Value::as_u64) == Some(layer)));
     if app.ui.text_edit.is_some() {
         crate::type_tool::commit(app);
@@ -110,7 +110,7 @@ fn select_before_editor(app: &mut LocalPaintApp, layer: u64, actions: &mut Vec<(
 }
 
 /// Paint the Smart Filters header and one row per filter of Smart Object `l` (top filter first), with their drag, drop and click handling; actions go to `actions`.
-pub fn filter_rows(app: &mut LocalPaintApp, ui: &mut egui::Ui, doc: &Document, l: &Layer, depth: usize, actions: &mut Vec<(String, Value)>) {
+pub fn filter_rows(app: &mut LocalRasterApp, ui: &mut egui::Ui, doc: &Document, l: &Layer, depth: usize, actions: &mut Vec<(String, Value)>) {
     let LayerContent::Smart(sm) = &l.content else { return };
     if sm.smart_filters.is_empty() {
         return;
@@ -266,7 +266,7 @@ fn filter_mask_click(l: &Layer, sm: &SmartObject, m: egui::Modifiers) -> Vec<(St
         return sm
             .filter_mask
             .is_some()
-            .then(|| (localpaint_engine::mask_view_cmds::ID.to_string(), json!({"layer": layer, "mode": mode, "mask": "filter"})))
+            .then(|| (localraster_engine::mask_view_cmds::ID.to_string(), json!({"layer": layer, "mode": mode, "mask": "filter"})))
             .into_iter()
             .collect();
     }
@@ -291,12 +291,12 @@ pub(crate) fn drag_key() -> egui::Id {
 }
 
 /// The selected smart filter row of a document.
-fn selected_key(doc: localpaint_doc::DocId) -> egui::Id {
+fn selected_key(doc: localraster_doc::DocId) -> egui::Id {
     egui::Id::unique(("smart-filter-selected", doc))
 }
 
 /// The pass in which the selected smart filter row of a document was last drawn.
-fn drawn_key(doc: localpaint_doc::DocId) -> egui::Id {
+fn drawn_key(doc: localraster_doc::DocId) -> egui::Id {
     egui::Id::unique(("smart-filter-selected-drawn", doc))
 }
 
@@ -321,14 +321,14 @@ pub(crate) fn selected(ctx: &egui::Context, doc: &Document, active: Option<Layer
 
 /// Forgets the selected smart filter row: its smart object's own row was clicked, or the filter
 /// was deleted (its index would now name the next one).
-pub(crate) fn deselect(ctx: &egui::Context, doc: localpaint_doc::DocId) {
+pub(crate) fn deselect(ctx: &egui::Context, doc: localraster_doc::DocId) {
     ctx.data_mut(|d| d.remove::<FilterDrag>(selected_key(doc)));
 }
 
 /// Forgets the selected smart filter row when the Layers panel didn't draw it this pass (its smart
 /// object is in a closed group, filtered out or isolated away): Delete must never remove a filter
 /// nobody sees highlighted.
-pub(crate) fn forget_hidden(ctx: &egui::Context, doc: localpaint_doc::DocId) {
+pub(crate) fn forget_hidden(ctx: &egui::Context, doc: localraster_doc::DocId) {
     let picked = ctx.data(|d| d.get_temp::<FilterDrag>(selected_key(doc)));
     let drawn = ctx.data(|d| d.get_temp::<u64>(drawn_key(doc)));
     if picked.is_some() && drawn != Some(ctx.cumulative_pass_nr()) {
@@ -434,7 +434,7 @@ pub(crate) fn trash_action((layer, filter): FilterDrag) -> (String, Value) {
 /// Delete or Backspace with no modifiers while a filter's row is selected removes that filter (the
 /// Smart Filters row: all of them), as the panel's Delete button does (#4751), instead of
 /// deleting the smart object or reaching Edit › Clear.
-pub(crate) fn keys(app: &mut LocalPaintApp, ctx: &egui::Context) -> bool {
+pub(crate) fn keys(app: &mut LocalRasterApp, ctx: &egui::Context) -> bool {
     use crate::shortcut_dispatch::Focus;
     // Text fields and widgets that delete with these keys themselves keep them (#1534).
     if app.ui.text_edit.is_some() || matches!(Focus::of(ctx), Focus::Text | Focus::DeletingWidget) {
@@ -463,11 +463,11 @@ pub(crate) fn keys(app: &mut LocalPaintApp, ctx: &egui::Context) -> bool {
 
 /// Re-opens a smart filter's dialog with its recorded parameters; OK runs
 /// `layer.smartFilter.setParams` instead of adding another filter (see `dialogs::confirm`).
-pub fn open_editor(app: &mut LocalPaintApp, ctx: &egui::Context, layer: u64, sm: &SmartObject, index: usize) {
+pub fn open_editor(app: &mut LocalRasterApp, ctx: &egui::Context, layer: u64, sm: &SmartObject, index: usize) {
     let Some(f) = sm.smart_filters.get(index) else { return };
     // Camera Raw has its own full-window dialog rather than a generic parameter form.
-    if f.command == localpaint_engine::lens_cmds::RAW {
-        if let Err(e) = crate::camera_raw_ui::open_smart_filter(app, ctx, localpaint_doc::LayerId(layer), index) {
+    if f.command == localraster_engine::lens_cmds::RAW {
+        if let Err(e) = crate::camera_raw_ui::open_smart_filter(app, ctx, localraster_doc::LayerId(layer), index) {
             app.ui.status = e;
             app.ui.status_error = true;
         }
@@ -475,21 +475,21 @@ pub fn open_editor(app: &mut LocalPaintApp, ctx: &egui::Context, layer: u64, sm:
     }
     // So has the Filter Gallery.
     if f.command == "filter.filterGallery" {
-        if let Err(e) = crate::gallery_ui::open_smart_filter(app, localpaint_doc::LayerId(layer), index) {
+        if let Err(e) = crate::gallery_ui::open_smart_filter(app, localraster_doc::LayerId(layer), index) {
             app.ui.status = e;
             app.ui.status_error = true;
         }
         return;
     }
     // And Liquify, which re-opens with the filter's recorded strokes.
-    if f.command == localpaint_engine::distort_cmds::LIQUIFY {
-        if let Err(e) = crate::liquify_ui::open_smart_filter(app, ctx, localpaint_doc::LayerId(layer), index) {
+    if f.command == localraster_engine::distort_cmds::LIQUIFY {
+        if let Err(e) = crate::liquify_ui::open_smart_filter(app, ctx, localraster_doc::LayerId(layer), index) {
             app.ui.status = e;
             app.ui.status_error = true;
         }
         return;
     }
-    let target = match crate::smart_filter_dialog::target(app, localpaint_doc::LayerId(layer), index) {
+    let target = match crate::smart_filter_dialog::target(app, localraster_doc::LayerId(layer), index) {
         Ok(target) => target,
         Err(e) => {
             crate::notices::error(app, e);
@@ -533,7 +533,7 @@ pub fn preview_command<'a>(fields: &serde_json::Map<String, Value>, command: &'a
 }
 
 /// The command a confirmed filter dialog runs: smart-filter edits update the recorded filter.
-pub fn confirm_command(app: &LocalPaintApp, fields: &serde_json::Map<String, Value>, command: String, params: Value) -> Result<(String, Value), String> {
+pub fn confirm_command(app: &LocalRasterApp, fields: &serde_json::Map<String, Value>, command: String, params: Value) -> Result<(String, Value), String> {
     // One builder for the preview and for OK, so the two cannot differ.
     if fields.contains_key("__smartFilter") {
         return crate::smart_filter_dialog::edit_command(app, fields);
@@ -552,7 +552,7 @@ mod layer_thumbnail_scaling_tests {
     #[test]
     fn sub_rows_stay_compact_while_the_smart_filter_mask_follows_thumbnail_setting() {
         for setting in [LayerThumbnailSize::None, LayerThumbnailSize::Small, LayerThumbnailSize::Medium, LayerThumbnailSize::Large] {
-            let mut session = localpaint_engine::Session::new();
+            let mut session = localraster_engine::Session::new();
             session.execute("file.new", json!({"width": 50, "height": 38})).unwrap();
             session.execute("edit.fill", json!({"color": "#8A42B3"})).unwrap();
             session.execute("layer.smartObjects.convertToSmartObject", json!({})).unwrap();
@@ -561,8 +561,8 @@ mod layer_thumbnail_scaling_tests {
             session.execute("layer.layerStyle.dropShadow", json!({"size": 2})).unwrap();
             assert!(matches!(session.active().unwrap().doc.layers.last().unwrap().content, LayerContent::Smart(_)));
             let mut h = Harness::builder().with_size(vec2(1440.0, 1400.0)).with_max_steps(64).build_eframe(move |cc| {
-                LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-                LocalPaintApp::new(session, crate::Services::default())
+                LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+                LocalRasterApp::new(session, crate::Services::default())
             });
             h.state_mut().ui.layers_panel_options.thumbnail_size = setting;
             h.run_steps(8);
@@ -577,7 +577,7 @@ mod layer_thumbnail_scaling_tests {
             assert!((rect.height() - header).abs() < 1.0, "{setting:?}: Smart Filters was {rect:?}, expected {header}");
             assert!(mask <= header - 6.0 || mask == 0.0, "{setting:?}: a {mask} mask must fit a {header} row");
             assert_eq!(mask == 0.0, setting == LayerThumbnailSize::None, "{setting:?}: the mask hides only at None");
-            if let Some(dir) = std::env::var_os("LOCALPAINT_LAYERS_SNAPSHOTS") {
+            if let Some(dir) = localraster_engine::legacy_env::var_os("LOCALRASTER_LAYERS_SNAPSHOTS") {
                 let dir = std::path::PathBuf::from(dir);
                 std::fs::create_dir_all(&dir).unwrap();
                 h.render().unwrap().save(dir.join(format!("layers-sub-rows-{setting:?}.png"))).unwrap();
@@ -588,12 +588,12 @@ mod layer_thumbnail_scaling_tests {
 
 #[cfg(test)]
 mod tests {
-    use localpaint_engine::Session;
+    use localraster_engine::Session;
 
     use super::*;
     use crate::Services;
 
-    fn smart(app: &LocalPaintApp) -> (localpaint_doc::Layer, localpaint_doc::SmartObject) {
+    fn smart(app: &LocalRasterApp) -> (localraster_doc::Layer, localraster_doc::SmartObject) {
         let st = app.session.active().unwrap();
         let l = st.doc.layer(st.active_layer.unwrap()).unwrap().clone();
         let LayerContent::Smart(sm) = l.content.clone() else { panic!("not a smart object") };
@@ -604,7 +604,7 @@ mod tests {
     /// the layer mask, no rasterize prompt), and clicking the layer thumbnail goes back.
     #[test]
     fn the_filter_mask_thumbnail_targets_the_filter_mask() {
-        let mut app = LocalPaintApp::new(Session::new(), Services::default());
+        let mut app = LocalRasterApp::new(Session::new(), Services::default());
         app.run("file.new", json!({"width": 32, "height": 32})).unwrap();
         app.run("layer.new.layer", json!({})).unwrap();
         app.run("edit.fill", json!({"contents": "color", "color": "#ff0000"})).unwrap();
@@ -637,7 +637,7 @@ mod tests {
 
     #[test]
     fn selecting_the_filter_mask_replaces_a_layer_mask_view() {
-        let mut app = LocalPaintApp::new(Session::new(), Services::default());
+        let mut app = LocalRasterApp::new(Session::new(), Services::default());
         app.run("file.new", json!({"width": 32, "height": 32})).unwrap();
         app.run("layer.new.layer", json!({})).unwrap();
         app.run("edit.fill", json!({"contents": "color", "color": "#ff0000"})).unwrap();
@@ -652,7 +652,7 @@ mod tests {
         app.sync_views();
         assert!(app.filter_mask_targeted());
         assert!(!app.layer_mask_targeted());
-        assert!(localpaint_engine::mask_view_cmds::current(app.session.active().unwrap()).is_none());
+        assert!(localraster_engine::mask_view_cmds::current(app.session.active().unwrap()).is_none());
         app.run("paint.stroke", json!({"points": [[8, 8]], "size": 6, "hardness": 1, "color": "#000000"})).unwrap();
         let st = app.session.active().unwrap();
         let layer = st.doc.layer(id).unwrap();
@@ -661,12 +661,12 @@ mod tests {
         assert_eq!(sm.filter_mask.as_ref().unwrap().value(8, 8), 0.0);
         app.run("view.layerMask", json!({"mode": "gray", "mask": "filter"})).unwrap();
         app.select_filter_mask_target(Some(id.0));
-        assert!(localpaint_engine::mask_view_cmds::current(app.session.active().unwrap()).unwrap().filter, "a matching filter-mask view stays open");
+        assert!(localraster_engine::mask_view_cmds::current(app.session.active().unwrap()).unwrap().filter, "a matching filter-mask view stays open");
     }
 
     /// A pixel layer, a shape layer and a smart object, in that order.
     fn layers() -> [Layer; 3] {
-        let mut s = localpaint_engine::Session::new();
+        let mut s = localraster_engine::Session::new();
         s.execute("file.new", json!({"width": 64, "height": 48})).unwrap();
         // An empty layer can't become a smart object: fill it first.
         s.execute("layer.new.layer", json!({})).unwrap();
@@ -675,7 +675,7 @@ mod tests {
         let shape = s.execute("shape.create", json!({"kind": "rect", "rect": [8, 8, 40, 24], "fill": "#cc3333"})).unwrap()["layer"].as_u64().unwrap();
         let pixel = s.execute("layer.new.layer", json!({})).unwrap()["layer"].as_u64().unwrap();
         let doc = &s.active().unwrap().doc;
-        [pixel, shape, smart].map(|id| doc.layer(localpaint_doc::LayerId(id)).unwrap().clone())
+        [pixel, shape, smart].map(|id| doc.layer(localraster_doc::LayerId(id)).unwrap().clone())
     }
 
     /// Stack [A, B, C] (A at the bottom, drawn last): where a dragged filter lands.
@@ -750,14 +750,14 @@ mod tests {
     /// filter instead of stacking another.
     #[test]
     fn an_adjustment_smart_filter_opens_its_editor_and_updates_it() {
-        let mut s = localpaint_engine::Session::new();
+        let mut s = localraster_engine::Session::new();
         s.execute("file.new", json!({"width": 64, "height": 48})).unwrap();
         s.execute("layer.new.layer", json!({})).unwrap();
         s.execute("edit.fill", json!({"contents": "black"})).unwrap();
         let id = s.execute("layer.smartObjects.convertToSmartObject", json!({})).unwrap()["layer"].as_u64().unwrap();
         s.execute("image.adjustments.brightnessContrast", json!({"brightness": 40, "contrast": -10})).unwrap();
-        let mut app = LocalPaintApp::new(s, crate::Services::default());
-        let sm = match &app.session.active().unwrap().doc.layer(localpaint_doc::LayerId(id)).unwrap().content {
+        let mut app = LocalRasterApp::new(s, crate::Services::default());
+        let sm = match &app.session.active().unwrap().doc.layer(localraster_doc::LayerId(id)).unwrap().content {
             LayerContent::Smart(sm) => sm.clone(),
             other => panic!("expected a smart object, got {other:?}"),
         };
@@ -770,7 +770,7 @@ mod tests {
         let dialog = d.id;
         // OK updates the recorded filter (one history step), it does not add a second filter.
         crate::dialogs::confirm(&mut app, dialog).unwrap();
-        let LayerContent::Smart(sm) = &app.session.active().unwrap().doc.layer(localpaint_doc::LayerId(id)).unwrap().content else {
+        let LayerContent::Smart(sm) = &app.session.active().unwrap().doc.layer(localraster_doc::LayerId(id)).unwrap().content else {
             panic!("the layer stays a smart object");
         };
         assert_eq!(sm.smart_filters.len(), 1, "no filter was stacked");
@@ -782,7 +782,7 @@ mod tests {
     /// the stack (as OK does) instead of stacking a second one.
     #[test]
     fn an_edited_smart_filter_previews_what_ok_gives() {
-        let mut s = localpaint_engine::Session::new();
+        let mut s = localraster_engine::Session::new();
         s.execute("file.new", json!({"width": 64, "height": 48, "background": "#ffffff"})).unwrap();
         s.execute("layer.new.layer", json!({})).unwrap();
         s.execute("select.all", json!({})).unwrap();
@@ -790,9 +790,9 @@ mod tests {
         s.execute("select.deselect", json!({})).unwrap();
         let id = s.execute("layer.smartObjects.convertToSmartObject", json!({})).unwrap()["layer"].as_u64().unwrap();
         s.execute("filter.blur.gaussianBlur", json!({"radius": 1.0})).unwrap();
-        let mut app = LocalPaintApp::new(s, crate::Services::default());
+        let mut app = LocalRasterApp::new(s, crate::Services::default());
         app.background_jobs = false;
-        let smart = |app: &LocalPaintApp, doc: &Document| match &doc.layer(LayerId(id)).unwrap().content {
+        let smart = |app: &LocalRasterApp, doc: &Document| match &doc.layer(LayerId(id)).unwrap().content {
             LayerContent::Smart(sm) => sm.clone(),
             other => panic!("expected a smart object, got {other:?} ({})", app.ui.status),
         };
@@ -819,7 +819,7 @@ mod tests {
         crate::dialogs::confirm(&mut app, dialog).unwrap();
         let doc = &app.session.active().unwrap().doc;
         assert_eq!(smart(&app, doc).smart_filters.len(), 1);
-        assert!(localpaint_compose::flatten(&shown).px == localpaint_compose::flatten(doc).px, "OK gives what the preview showed");
+        assert!(localraster_compose::flatten(&shown).px == localraster_compose::flatten(doc).px, "OK gives what the preview showed");
     }
 
     /// FILE-215-3: with the filter mask targeted, Move and Edit › Transform act on the smart object
@@ -827,7 +827,7 @@ mod tests {
     /// still edit the filter mask.
     #[test]
     fn only_filter_mask_edits_carry_the_filter_mask_target() {
-        let mut app = LocalPaintApp::new(Session::new(), Services::default());
+        let mut app = LocalRasterApp::new(Session::new(), Services::default());
         app.run("file.new", json!({"width": 32, "height": 32})).unwrap();
         app.run("layer.new.layer", json!({})).unwrap();
         app.run("edit.fill", json!({"contents": "color", "color": "#ff0000"})).unwrap();

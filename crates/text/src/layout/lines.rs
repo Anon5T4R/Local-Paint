@@ -1,7 +1,7 @@
 //! Placing one broken line of a paragraph: kerning and tab stops, glyph and cluster positions,
 //! decorations, and the line's vertical-type and justification adjustments.
 
-use localpaint_doc::text::{CharStyle, Kerning, TextAlign};
+use localraster_doc::text::{CharStyle, Kerning, TextAlign};
 use parley::{PositionedLayoutItem, Run};
 use skrifa::instance::NormalizedCoord;
 

@@ -1,9 +1,9 @@
-//! `cargo bench -p localpaint-algo`
+//! `cargo bench -p localraster-algo`
 use criterion::{Criterion, criterion_group, criterion_main};
-use localpaint_algo::{FilterParams, apply};
-use localpaint_color::PixelFormat;
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_algo::{FilterParams, apply};
+use localraster_color::PixelFormat;
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 
 fn textured(n: u32) -> Surface {
     let r = Rect::new(0, 0, n as i32, n as i32);

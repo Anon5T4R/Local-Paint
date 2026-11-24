@@ -6,7 +6,7 @@
 //! radius-independent box cascade, so cost grows with the number of levels,
 //! not the blur size.
 
-use localpaint_geom::Rect;
+use localraster_geom::Rect;
 
 mod spin_plan;
 

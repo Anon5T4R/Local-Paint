@@ -1,12 +1,12 @@
-//! Local Paint's private PSD display-preview block. The linked-layer payload is never replaced.
+//! Local Raster's private PSD display-preview block. The linked-layer payload is never replaced.
 //!
 //! `pcVP` carries a versioned header, BLAKE3 of the native AI/PDF/EPS source, the SVG byte
 //! length and a bounded display-only SVG. Other readers may ignore it and use PSD cached pixels.
 
 use std::sync::Arc;
 
-use localpaint_doc::VectorPreview;
-use localpaint_geom::Size;
+use localraster_doc::VectorPreview;
+use localraster_geom::Size;
 
 pub const PSD_KEY: [u8; 4] = *b"pcVP";
 const HEADER: &[u8; 8] = b"PCVP\0\0\0\x01";
@@ -86,7 +86,7 @@ pub(crate) fn frame_for_svg(svg: &[u8], size: Size) -> Option<(f64, f64)> {
 }
 
 /// Bounded display document used for PSD smart-filter source caches, never as embedded contents.
-pub(crate) fn document(preview: &VectorPreview, source: &[u8]) -> Option<localpaint_doc::Document> {
+pub(crate) fn document(preview: &VectorPreview, source: &[u8]) -> Option<localraster_doc::Document> {
     if preview.source_hash != source_hash(source)? {
         return None;
     }
@@ -94,7 +94,7 @@ pub(crate) fn document(preview: &VectorPreview, source: &[u8]) -> Option<localpa
 }
 
 /// Bounded preview parsing after the caller has checked the original-source binding.
-fn display_document(svg: &[u8]) -> Option<localpaint_doc::Document> {
+fn display_document(svg: &[u8]) -> Option<localraster_doc::Document> {
     display_document_with_budget(svg, 4 * MAX_PIXELS)
 }
 
@@ -102,12 +102,12 @@ fn display_document(svg: &[u8]) -> Option<localpaint_doc::Document> {
 thread_local! { static RENDERED_PREVIEWS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) }; }
 
 /// Keep callers that need only a display document separate from aggregate-work accounting.
-fn display_document_with_budget(svg: &[u8], max_pixels: u64) -> Option<localpaint_doc::Document> {
+fn display_document_with_budget(svg: &[u8], max_pixels: u64) -> Option<localraster_doc::Document> {
     display_document_with_work(svg, max_pixels).map(|(document, _)| document)
 }
 
 /// Validate a display-only SVG and report the decode/render allowance it consumed.
-fn display_document_with_work(svg: &[u8], max_pixels: u64) -> Option<(localpaint_doc::Document, u64)> {
+fn display_document_with_work(svg: &[u8], max_pixels: u64) -> Option<(localraster_doc::Document, u64)> {
     if max_pixels == 0 || svg.is_empty() || svg.len() > MAX_BYTES || !crate::svg::is_svg(svg) {
         return None;
     }
@@ -225,7 +225,7 @@ impl ImportCache {
 /// source cache), the exact source-pixel frame (`None` when the SVG's own size does not supply
 /// one) and the encoded `pcVP` block.
 pub(crate) struct Exported {
-    pub(crate) document: localpaint_doc::Document,
+    pub(crate) document: localraster_doc::Document,
     pub(crate) frame: Option<(f64, f64)>,
     pub(crate) block: Vec<u8>,
 }
@@ -310,7 +310,7 @@ mod tests {
     fn metadata_frame_is_source_bound_and_does_not_decode_old_preview_images() {
         let source = b"%PDF-1.7\noriginal native vector";
         let hash = *blake3::hash(source).as_bytes();
-        let mut preview = localpaint_doc::VectorPreview {
+        let mut preview = localraster_doc::VectorPreview {
             source_hash: hash,
             svg: std::sync::Arc::new(
                 br#"<svg xmlns="http://www.w3.org/2000/svg" width="8.3" height="6.2"><image href="data:image/png;base64,AAAA" width="8" height="6"/></svg>"#
@@ -367,10 +367,10 @@ mod tests {
 
     #[test]
     fn many_psd_instances_hash_the_native_payload_once_and_share_the_validated_preview() {
-        use localpaint_color::{ColorMode, SampleType};
-        use localpaint_doc::{Document, Layer, LayerContent, SmartObject, SmartSource};
-        use localpaint_geom::Affine;
-        use localpaint_raster::Surface;
+        use localraster_color::{ColorMode, SampleType};
+        use localraster_doc::{Document, Layer, LayerContent, SmartObject, SmartSource};
+        use localraster_geom::Affine;
+        use localraster_raster::Surface;
 
         let mut source = vec![b' '; MAX_BYTES];
         source[..SOURCE.len()].copy_from_slice(SOURCE);
@@ -384,7 +384,7 @@ mod tests {
         smart.vector_preview = Some(preview.clone());
         doc.layers.push(Layer::new("native", LayerContent::Smart(smart)));
         let out = crate::export(&doc, "psd", &Default::default()).unwrap();
-        let mut file = localpaint_psd::PsdFile::from_bytes(&out.bytes).unwrap();
+        let mut file = localraster_psd::PsdFile::from_bytes(&out.bytes).unwrap();
         let record = file.layers()[0].clone();
         *file.layers_mut() = vec![record; 100];
         let before = HASHED_SOURCE_BYTES.with(std::cell::Cell::get);
@@ -406,10 +406,10 @@ mod tests {
 
     #[test]
     fn psd_export_hashes_and_renders_a_shared_native_preview_once_for_all_instances() {
-        use localpaint_color::{ColorMode, SampleType};
-        use localpaint_doc::{Document, Layer, LayerContent, SmartObject, SmartSource};
-        use localpaint_geom::Affine;
-        use localpaint_raster::Surface;
+        use localraster_color::{ColorMode, SampleType};
+        use localraster_doc::{Document, Layer, LayerContent, SmartObject, SmartSource};
+        use localraster_geom::Affine;
+        use localraster_raster::Surface;
 
         let counters = || {
             (
@@ -450,7 +450,7 @@ mod tests {
         assert_eq!(after.0 - before.0, source.len(), "the shared native source must not be hashed per layer or per use");
         assert_eq!(after.1 - before.1, 1, "the shared preview must not be rendered per layer or per use");
         assert_eq!(after.2 - before.2, source.len(), "the conversion cache must not re-hash the shared Embedded owner per layer");
-        let file = localpaint_psd::PsdFile::from_bytes(&out.bytes).unwrap();
+        let file = localraster_psd::PsdFile::from_bytes(&out.bytes).unwrap();
         assert!(file.layers().iter().all(|layer| layer.block(&PSD_KEY).is_some()));
         let back = check(&out.bytes);
 
@@ -514,8 +514,8 @@ mod tests {
         }
         assert_eq!(imports.remaining_pixels, 10_000 - 12 * 48);
         assert_eq!(exports.remaining_pixels, imports.remaining_pixels);
-        let image = localpaint_codecs::Image::from_u8(64, 64, localpaint_codecs::ChannelLayout::Rgb, vec![255; 64 * 64 * 3]).unwrap();
-        let png = localpaint_codecs::encode(&image, localpaint_codecs::Format::Png, &Default::default()).unwrap();
+        let image = localraster_codecs::Image::from_u8(64, 64, localraster_codecs::ChannelLayout::Rgb, vec![255; 64 * 64 * 3]).unwrap();
+        let png = localraster_codecs::encode(&image, localraster_codecs::Format::Png, &Default::default()).unwrap();
         let data = png.iter().map(|byte| format!("%{byte:02X}")).collect::<String>();
         let mut drawing = preview();
         drawing.svg = Arc::new(

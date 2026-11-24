@@ -1,5 +1,5 @@
 [package]
-name = "localpaint-tablet"
+name = "localraster-tablet"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

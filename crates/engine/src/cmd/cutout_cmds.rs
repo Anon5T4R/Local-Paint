@@ -3,10 +3,10 @@
 //! Like Photoshop it is non-destructive (the pixels stay; the mask hides the background), turns
 //! the Background layer into a normal layer first and has no menu item.
 
-use localpaint_algo::matting::{self, RefineParams};
-use localpaint_algo::segment::subject;
-use localpaint_doc::{Document, Layer, LayerContent, LayerMask};
-use localpaint_geom::Rect;
+use localraster_algo::matting::{self, RefineParams};
+use localraster_algo::segment::subject;
+use localraster_doc::{Document, Layer, LayerContent, LayerMask};
+use localraster_geom::Rect;
 use serde_json::{Value, json};
 
 use crate::commands::{CommandSpec, layer_param};
@@ -105,8 +105,8 @@ pub fn specs() -> Vec<CommandSpec> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_algo::segment::Rng;
-    use localpaint_doc::LayerId;
+    use localraster_algo::segment::Rng;
+    use localraster_doc::LayerId;
 
     fn session_with(w: u32, h: u32, depth: u32, px: impl Fn(u32, u32) -> [f32; 3]) -> Session {
         let mut s = Session::new();
@@ -194,7 +194,7 @@ mod tests {
             assert!(mask_cov(&s, 100, 80) >= 0.8, "depth {depth}: disc centre hidden");
             // Non-destructive: the pixels are untouched, only masked.
             assert_eq!(layer(&s, id).surface().unwrap().read_region(Rect::new(0, 0, 200, 160)), pixels, "depth {depth}");
-            let corner = localpaint_compose::render(&s.active().unwrap().doc, Rect::new(0, 0, 1, 1)).px[0][3];
+            let corner = localraster_compose::render(&s.active().unwrap().doc, Rect::new(0, 0, 1, 1)).px[0][3];
             assert!(corner < 0.2, "depth {depth}: composite corner alpha {corner}");
             assert!(s.active().unwrap().doc.selection.is_none());
             s.execute("edit.undo", json!({})).unwrap();
@@ -319,17 +319,17 @@ mod tests {
             }
             s.edit("stroke", |doc, _| {
                 let l = doc.layer_mut(id).ok_or(EngineError::NoLayer(id))?;
-                l.effects.items = vec![localpaint_doc::Effect::Stroke(localpaint_doc::StrokeFx {
-                    common: localpaint_doc::FxCommon::new(localpaint_color::BlendMode::Normal, 1.0),
+                l.effects.items = vec![localraster_doc::Effect::Stroke(localraster_doc::StrokeFx {
+                    common: localraster_doc::FxCommon::new(localraster_color::BlendMode::Normal, 1.0),
                     size: 3.0,
-                    position: localpaint_doc::StrokePosition::Outside,
-                    paint: localpaint_doc::FxPaint::Color(localpaint_color::Color::rgb(0.0, 0.0, 1.0)),
+                    position: localraster_doc::StrokePosition::Outside,
+                    paint: localraster_doc::FxPaint::Color(localraster_color::Color::rgb(0.0, 0.0, 1.0)),
                     overprint: false,
                 })];
                 Ok(())
             })
             .unwrap();
-            let img = localpaint_compose::render(&s.active().unwrap().doc, Rect::new(0, 0, 260, 220));
+            let img = localraster_compose::render(&s.active().unwrap().doc, Rect::new(0, 0, 260, 220));
             // Just outside the photo's left edge, and just inside it: no stroke.
             for x in [27, 28, 29, 30, 31] {
                 let a = img.px[110 * 260 + x][3];

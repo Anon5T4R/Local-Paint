@@ -1,5 +1,5 @@
 //! Layered TIFF: Photoshop layer data carried in the TIFF tags 37724 (`ImageSourceData`) and
-//! 34377 (image resources), see [`localpaint_psd::tiff`].
+//! 34377 (image resources), see [`localraster_psd::tiff`].
 //!
 //! Import rebuilds a PSD model from the TIFF's pixels plus those two tags and hands it to the
 //! PSD importer, so everything the PSD path understands (groups, masks, effects, type, shapes,
@@ -10,14 +10,14 @@
 
 use std::sync::Arc;
 
-use localpaint_codecs::{self as codecs, ChannelLayout, Format, Image, SampleType as CSample};
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_doc::{AlphaChannel, Document};
-use localpaint_geom::Rect;
-use localpaint_psd::resources::ids;
-use localpaint_psd::tiff::{ByteOrder, ImageSourceData, resources_from_bytes, resources_to_bytes};
-use localpaint_psd::{ColorMode as PsdMode, Compression, Header, ImageData, ImageResource, ResolutionInfo};
-use localpaint_raster::Surface;
+use localraster_codecs::{self as codecs, ChannelLayout, Format, Image, SampleType as CSample};
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_doc::{AlphaChannel, Document};
+use localraster_geom::Rect;
+use localraster_psd::resources::ids;
+use localraster_psd::tiff::{ByteOrder, ImageSourceData, resources_from_bytes, resources_to_bytes};
+use localraster_psd::{ColorMode as PsdMode, Compression, Header, ImageData, ImageResource, ResolutionInfo};
+use localraster_raster::Surface;
 
 use crate::flat::{csample, encode_image, image_to_document, layout_for, single_layer, try_buffer};
 use crate::psd_export::PsdExportOptions;
@@ -34,7 +34,7 @@ pub fn would_write_layers(doc: &Document) -> bool {
 
 /// Documents a layered TIFF can hold: the TIFF composite must be in the document's model so
 /// that the layer channels inside the tag match it (Lab TIFFs are not decoded or encoded by
-/// `localpaint-codecs`), and there must be layers to keep (a Multichannel document has none:
+/// `localraster-codecs`), and there must be layers to keep (a Multichannel document has none:
 /// its channels are the image).
 fn layered_mode(doc: &Document) -> bool {
     matches!(doc.pixel_format().mode, ColorMode::Grayscale | ColorMode::Rgb | ColorMode::Cmyk) && doc.mode != ColorMode::Multichannel && !doc.layers.is_empty()
@@ -122,7 +122,7 @@ pub(crate) fn import_layered(name: &str, img: &Image, layers: &[u8], pixel_limit
     // held against the allowance as well.
     let composite = u64::try_from(plane_len.saturating_mul(usize::from(channels))).unwrap_or(u64::MAX);
     if composite > pixel_limit {
-        return Err(localpaint_psd::PsdError::LimitExceeded("the TIFF composite exceeds the import allowance").into());
+        return Err(localraster_psd::PsdError::LimitExceeded("the TIFF composite exceeds the import allowance").into());
     }
     crate::psd_budget::check(&file, pixel_limit - composite)?;
     let img = if img.sample_type() == CSample::F16 {
@@ -147,9 +147,9 @@ pub(crate) fn import_layered(name: &str, img: &Image, layers: &[u8], pixel_limit
     file.header.channels = u16::try_from(img.layout().channels().saturating_add(added)).map_err(|_| IoError::Unsupported("too many channels".into()))?;
     file.image_data = ImageData::new(Compression::Raw, data);
     // Spot planes are read in Photoshop's polarity (0 = solid ink), as from a PSD. The importer's
-    // rule for PSDs from earlier Local Paint versions never applies: those versions stored no
+    // rule for PSDs from earlier Local Raster versions never applies: those versions stored no
     // extra samples in a TIFF, and a TIFF with them carries 1053.
-    let (mut doc, w, _, fatal_error) = psd_to_document_owned(file, &localpaint_raster::Interrupt::NONE, None).ok_or(IoError::Cancelled)?;
+    let (mut doc, w, _, fatal_error) = psd_to_document_owned(file, &localraster_raster::Interrupt::NONE, None).ok_or(IoError::Cancelled)?;
     if let Some(error) = fatal_error {
         return Err(error);
     }
@@ -234,7 +234,7 @@ const TIFF_COMPOSITE_DONE: f32 = 0.72;
 /// Saves `doc` as a layered TIFF. Documents whose colour mode a TIFF cannot hold in our
 /// codec (Lab) are saved flat, with a warning. Reports progress through `ctl` (see
 /// [`crate::export_with`]).
-pub(crate) fn export_layered(doc: &Document, opts: &ExportOptions, ctl: &localpaint_raster::Interrupt) -> Result<ExportResult, IoError> {
+pub(crate) fn export_layered(doc: &Document, opts: &ExportOptions, ctl: &localraster_raster::Interrupt) -> Result<ExportResult, IoError> {
     if !layered_mode(doc) {
         let mut r = crate::flat::export_flat_with(doc, Format::Tiff, opts, ctl)?;
         if !doc.layers.is_empty() {
@@ -283,7 +283,7 @@ pub(crate) fn export_layered(doc: &Document, opts: &ExportOptions, ctl: &localpa
     warnings.extend(w);
     let order = if codecs::tiff_writes_little_endian() { ByteOrder::Little } else { ByteOrder::Big };
     let (layers, w) = match tiff_image_source(doc, &file).to_bytes(order) {
-        Err(localpaint_psd::PsdError::LimitExceeded(_)) if !force_psb => {
+        Err(localraster_psd::PsdError::LimitExceeded(_)) if !force_psb => {
             let psb_opts = PsdExportOptions { force_psb: true, ..psd_opts };
             let (psb, w) = crate::with_span(ctl, 0.0, TIFF_MODEL_DONE, |ctl| crate::psd_export::document_to_psd_interruptible(doc, &psb_opts, ctl));
             ctl.check().map_err(|_| IoError::Cancelled)?;
@@ -374,7 +374,7 @@ pub(crate) fn export_layered(doc: &Document, opts: &ExportOptions, ctl: &localpa
 
 /// The layer data (`ImageSourceData`) of a layered TIFF saved from `file`, adjusted the way
 /// Photoshop writes it.
-fn tiff_image_source(doc: &Document, file: &localpaint_psd::PsdFile) -> ImageSourceData {
+fn tiff_image_source(doc: &Document, file: &localraster_psd::PsdFile) -> ImageSourceData {
     // Photoshop pairs alpha-name resources with samples past the colour channels and ignores
     // the ExtraSamples kind. The merged transparency must not occupy that first slot when a
     // spot is also stored. Layer transparency stays in each layer's channel −1.
@@ -398,9 +398,9 @@ fn tiff_image_source(doc: &Document, file: &localpaint_psd::PsdFile) -> ImageSou
     if let Some(info) = &mut isd.layer_info {
         for layer in &mut info.layers {
             // Photoshop sets flag bit 3 on every record it writes, group dividers included (299 of
-            // the 305 dividers in the corpus's Photoshop files). Local Paint's PSDs set it on
+            // the 305 dividers in the corpus's Photoshop files). Local Raster's PSDs set it on
             // layers only, unchanged here.
-            layer.flags.0 |= localpaint_psd::layer::LayerFlags::BIT4_USEFUL;
+            layer.flags.0 |= localraster_psd::layer::LayerFlags::BIT4_USEFUL;
             photoshop_layer_blocks(&mut layer.blocks);
         }
     }
@@ -410,13 +410,13 @@ fn tiff_image_source(doc: &Document, file: &localpaint_psd::PsdFile) -> ImageSou
     if let Some(mask) = &mut isd.global_layer_mask
         && mask.data.len() < 14
     {
-        *mask = localpaint_psd::GlobalLayerMask::photoshop_default();
+        *mask = localraster_psd::GlobalLayerMask::photoshop_default();
     }
     if !isd.global_blocks.iter().any(|b| matches!(&b.key, b"Patt" | b"Pat2" | b"Pat3")) {
-        isd.global_blocks.insert(0, localpaint_psd::TaggedBlock::new(*b"Patt", Vec::new()));
+        isd.global_blocks.insert(0, localraster_psd::TaggedBlock::new(*b"Patt", Vec::new()));
     }
     if !isd.global_blocks.iter().any(|b| &b.key == b"FMsk") {
-        isd.global_blocks.push(localpaint_psd::TaggedBlock::new(*b"FMsk", FILTER_MASK_DEFAULT.to_vec()));
+        isd.global_blocks.push(localraster_psd::TaggedBlock::new(*b"FMsk", FILTER_MASK_DEFAULT.to_vec()));
     }
     isd
 }
@@ -502,32 +502,32 @@ fn drop_first_display_record(data: &[u8]) -> Vec<u8> {
 }
 
 /// Filter-mask block (`FMsk`) Photoshop writes next to a layered TIFF: the same red 50%
-/// overlay as [`localpaint_psd::GlobalLayerMask::photoshop_default`], without the kind byte.
+/// overlay as [`localraster_psd::GlobalLayerMask::photoshop_default`], without the kind byte.
 const FILTER_MASK_DEFAULT: &[u8] = &[0, 0, 0xff, 0xff, 0, 0, 0, 0, 0, 0, 0, 50];
 
 /// Blocks Photoshop writes on every layer of a layered TIFF, when the layer does not
 /// already carry them. Defaults match a plain pixel layer (clipped-as-group on, nothing
 /// locked, no label).
-fn photoshop_layer_blocks(blocks: &mut Vec<localpaint_psd::TaggedBlock>) {
+fn photoshop_layer_blocks(blocks: &mut Vec<localraster_psd::TaggedBlock>) {
     let has = |k: &[u8; 4]| blocks.iter().any(|b| &b.key == k);
     let mut add = Vec::new();
     if !has(b"lnsr") {
-        add.push(localpaint_psd::TaggedBlock::name_source(*b"layr"));
+        add.push(localraster_psd::TaggedBlock::name_source(*b"layr"));
     }
     if !has(b"clbl") {
-        add.push(localpaint_psd::TaggedBlock::blend_clipped_as_group(true));
+        add.push(localraster_psd::TaggedBlock::blend_clipped_as_group(true));
     }
     if !has(b"infx") {
-        add.push(localpaint_psd::TaggedBlock::blend_interior_elements(false));
+        add.push(localraster_psd::TaggedBlock::blend_interior_elements(false));
     }
     if !has(b"knko") {
-        add.push(localpaint_psd::TaggedBlock::knockout(0));
+        add.push(localraster_psd::TaggedBlock::knockout(0));
     }
     if !has(b"lspf") {
-        add.push(localpaint_psd::TaggedBlock::protection(0));
+        add.push(localraster_psd::TaggedBlock::protection(0));
     }
     if !has(b"lclr") {
-        add.push(localpaint_psd::TaggedBlock::sheet_color(0));
+        add.push(localraster_psd::TaggedBlock::sheet_color(0));
     }
     let at = blocks
         .iter()
@@ -541,12 +541,12 @@ fn photoshop_layer_blocks(blocks: &mut Vec<localpaint_psd::TaggedBlock>) {
 }
 
 /// Removes the blocks a document kept verbatim from a little-endian TIFF because their layout
-/// is unknown ([`localpaint_psd::TaggedBlock::is_foreign_order`]) before `file` is written as a
+/// is unknown ([`localraster_psd::TaggedBlock::is_foreign_order`]) before `file` is written as a
 /// PSD: their bytes are in the wrong order for a PSD and cannot be converted. Returns a warning
-/// per block dropped. A save back to TIFF keeps them (see [`localpaint_psd::tiff`]).
-pub fn strip_foreign_order_blocks(file: &mut localpaint_psd::PsdFile) -> Vec<String> {
+/// per block dropped. A save back to TIFF keeps them (see [`localraster_psd::tiff`]).
+pub fn strip_foreign_order_blocks(file: &mut localraster_psd::PsdFile) -> Vec<String> {
     let mut warnings = Vec::new();
-    let mut strip = |blocks: &mut Vec<localpaint_psd::TaggedBlock>, owner: &str| {
+    let mut strip = |blocks: &mut Vec<localraster_psd::TaggedBlock>, owner: &str| {
         blocks.retain(|b| {
             let keep = !b.is_foreign_order();
             if !keep {
@@ -689,7 +689,7 @@ fn matte_and_drop_alpha(img: &mut Image) -> bool {
     let white_byte: u8 = if cmyk { 0 } else { 255 };
     let white_u16: u16 = if cmyk { 0 } else { u16::MAX };
     let white_f: f32 = if cmyk { 0.0 } else { 1.0 };
-    // Lab's white is L* 100 with a* and b* 0, which Local Paint holds mid-range (`(0 + 128) / 255`).
+    // Lab's white is L* 100 with a* and b* 0, which Local Raster holds mid-range (`(0 + 128) / 255`).
     let lab = img.layout().is_lab();
     let mut out = Vec::with_capacity(img.data().len() / stride * keep);
     for px in img.data().chunks_exact(stride) {
@@ -987,8 +987,8 @@ fn mask_from_plane(data: &[u8], w: u32, h: u32, n: usize, from: CSample, depth: 
 
 #[cfg(test)]
 mod tests {
-    use localpaint_doc::{Color, Document, Fill, FillCache, Layer, LayerContent};
-    use localpaint_raster::Surface;
+    use localraster_doc::{Color, Document, Fill, FillCache, Layer, LayerContent};
+    use localraster_raster::Surface;
 
     use crate::{ExportOptions, export};
 
@@ -998,7 +998,8 @@ mod tests {
     /// PSD-style layer data: Photoshop does not read the PSB-style header in a TIFF and opens only
     /// the composite, as one locked Background.
     fn many_cheap_fills() -> Document {
-        let mut doc = Document::new("many fills", localpaint_geom::Size::new(2048, 2048), localpaint_color::ColorMode::Rgb, localpaint_color::SampleType::U8);
+        let mut doc =
+            Document::new("many fills", localraster_geom::Size::new(2048, 2048), localraster_color::ColorMode::Rgb, localraster_color::SampleType::U8);
         for i in 0..140 {
             let fill = Fill::Solid(Color::rgb(0.5, 0.25, 0.75));
             let mut l = Layer::new(format!("Fill {i}"), LayerContent::Fill(fill.clone()));
@@ -1014,9 +1015,9 @@ mod tests {
         let doc = many_cheap_fills();
 
         let r = export(&doc, "x.tif", &ExportOptions { tiff_layers: true, ..Default::default() }).unwrap();
-        let (_, layers) = localpaint_codecs::tiff_photoshop_tags(&r.bytes);
+        let (_, layers) = localraster_codecs::tiff_photoshop_tags(&r.bytes);
         let layers = layers.unwrap();
-        assert!(layers.starts_with(localpaint_psd::tiff::SIGNATURE), "{:?}", String::from_utf8_lossy(&layers[..36.min(layers.len())]));
+        assert!(layers.starts_with(localraster_psd::tiff::SIGNATURE), "{:?}", String::from_utf8_lossy(&layers[..36.min(layers.len())]));
         assert!(!r.warnings.iter().any(|w| w.contains("PSB")), "{:?}", r.warnings);
         let back = crate::import("x.tif", &r.bytes).unwrap().document;
         assert_eq!(back.layers.len(), doc.layers.len());
@@ -1030,7 +1031,7 @@ mod tests {
     fn forcing_psb_still_writes_psb_style_layer_data() {
         let doc = many_cheap_fills();
         let r = export(&doc, "x.tif", &ExportOptions { tiff_layers: true, force_psb: true, ..Default::default() }).unwrap();
-        let (_, layers) = localpaint_codecs::tiff_photoshop_tags(&r.bytes);
-        assert!(layers.unwrap().starts_with(localpaint_psd::tiff::SIGNATURE_PSB));
+        let (_, layers) = localraster_codecs::tiff_photoshop_tags(&r.bytes);
+        assert!(layers.unwrap().starts_with(localraster_psd::tiff::SIGNATURE_PSB));
     }
 }

@@ -1,8 +1,8 @@
-//! Image › Trap. Trapping is a CMYK prepress step (see `localpaint_algo::trap`). Photoshop requires
+//! Image › Trap. Trapping is a CMYK prepress step (see `localraster_algo::trap`). Photoshop requires
 //! a flattened CMYK image; we trap the active pixel layer's inks over the canvas. One history step.
 
-use localpaint_color::ColorMode;
-use localpaint_doc::LayerContent;
+use localraster_color::ColorMode;
+use localraster_doc::LayerContent;
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;
@@ -39,7 +39,7 @@ fn trap(s: &mut Session, p: &Value) -> Result<Value> {
         let ch = surf.channels();
         let (w, h) = (bounds.width() as usize, bounds.height() as usize);
         let mut data = surf.read_region(bounds);
-        localpaint_algo::trap::trap(&mut data, w, h, ch, width);
+        localraster_algo::trap::trap(&mut data, w, h, ch, width);
         surf.write_region(bounds, &data);
         Ok(())
     })?;
@@ -62,7 +62,7 @@ pub fn specs() -> Vec<CommandSpec> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_geom::Rect;
+    use localraster_geom::Rect;
 
     /// Paints cyan | magenta halves on the active layer.
     fn paint_halves(s: &mut Session) {

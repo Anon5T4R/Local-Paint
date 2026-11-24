@@ -1,10 +1,10 @@
 use super::start_screen::start_screen;
 use super::textures::retain_gpu_documents;
-use super::{Color32, LocalPaintApp, Pos2, Rect, Sense, Stroke, TextureOptions, canvas_view, fmt_zoom, json, mode_label, pos2};
+use super::{Color32, LocalRasterApp, Pos2, Rect, Sense, Stroke, TextureOptions, canvas_view, fmt_zoom, json, mode_label, pos2};
 
 /// Tabs + canvas for the active document, or the start screen; then drops layers dragged onto
 /// another document (`layer_transfer`).
-pub fn document_area(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+pub fn document_area(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     crate::distort_ui::drop_foreign(app);
     documents(app, ui);
     crate::layer_transfer::finish(app, ui.ctx());
@@ -15,7 +15,7 @@ pub fn document_area(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
     crate::brush_mode_menu::show(app, ui.ctx());
 }
 
-pub(crate) fn arranged_cells(app: &LocalPaintApp, rect: Rect) -> Option<Vec<(usize, Rect)>> {
+pub(crate) fn arranged_cells(app: &LocalRasterApp, rect: Rect) -> Option<Vec<(usize, Rect)>> {
     let documents = docked_document_indices(app);
     let n = documents.len();
     if n == 0 {
@@ -29,7 +29,7 @@ pub(crate) fn arranged_cells(app: &LocalPaintApp, rect: Rect) -> Option<Vec<(usi
     Some(documents[start..].iter().copied().zip(cells).collect())
 }
 
-fn documents(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+fn documents(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     app.drop_canvas_rect = None;
     app.tab_strip = None;
     retain_gpu_documents(app);
@@ -108,7 +108,7 @@ fn documents(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
 }
 
 /// The tab strip; returns where its document tabs are.
-pub(super) fn tabs(app: &mut LocalPaintApp, ui: &mut egui::Ui) -> TabStrip {
+pub(super) fn tabs(app: &mut LocalRasterApp, ui: &mut egui::Ui) -> TabStrip {
     let t = crate::theme::Tokens::get(ui.ctx());
     if t.pro {
         return pro_tabs(app, ui);
@@ -381,7 +381,7 @@ fn tab_drag(ui: &egui::Ui, resp: &egui::Response, i: usize, r: Rect, strip: Rect
 }
 
 /// Float a torn-off tab's document in its own window (`window.arrange.floatInWindow`).
-fn float_torn_off(app: &mut LocalPaintApp, ctx: &egui::Context, tear_off: Option<(usize, Option<[f32; 2]>)>) {
+fn float_torn_off(app: &mut LocalRasterApp, ctx: &egui::Context, tear_off: Option<(usize, Option<[f32; 2]>)>) {
     let Some((doc, at)) = tear_off else { return };
     let params = match at {
         Some(at) => json!({"document": doc, "position": at}),
@@ -421,10 +421,10 @@ fn tab_drop_line(ui: &egui::Ui, placed: &[(usize, Rect)], x: f32, t: &crate::the
 /// Apply tab-strip clicks: a document tab shows that document, an opening tab its progress, and
 /// an opening tab's × cancels the open (closing the half-open tab).
 fn open_tab_clicks(
-    app: &mut LocalPaintApp,
+    app: &mut LocalRasterApp,
     activate: Option<usize>,
-    focus_open: Option<localpaint_engine::jobs::JobId>,
-    cancel_open: Option<localpaint_engine::jobs::JobId>,
+    focus_open: Option<localraster_engine::jobs::JobId>,
+    cancel_open: Option<localraster_engine::jobs::JobId>,
 ) {
     if let Some(i) = activate {
         app.session.set_active(i);
@@ -457,13 +457,13 @@ fn fit_doc_tabs(natural: &[f32], selected: usize, avail: f32) -> crate::tab_stri
 
 /// Photoshop's tab title: "name @ 50% (Layer 1, RGB/8)", "(Layer 1, Layer Mask/8)" when the mask
 /// is targeted, "(Quick Mask/8)" in Quick Mask mode; the Background layer's name is omitted.
-pub(super) fn pro_tab_title(app: &LocalPaintApp, i: usize) -> String {
+pub(super) fn pro_tab_title(app: &LocalRasterApp, i: usize) -> String {
     tab_title_at(app, i, app.ui.views.get(i).map_or(100.0, |v| v.zoom * 100.0))
 }
 
 /// [`pro_tab_title`] at `zoom` percent (a workspace with its own view, such as Select and Mask).
-pub(crate) fn tab_title_at(app: &LocalPaintApp, i: usize, zoom: f32) -> String {
-    use localpaint_engine::channel_cmds::ChannelTarget;
+pub(crate) fn tab_title_at(app: &LocalRasterApp, i: usize, zoom: f32) -> String {
+    use localraster_engine::channel_cmds::ChannelTarget;
     let Some(st) = app.session.documents().get(i) else { return String::new() };
     // Quick Mask mode targets the mask, not the layer (see `paint_target`): painting and Free
     // Transform change the red overlay, so the tab says so, as Photoshop's does.
@@ -484,7 +484,7 @@ pub(crate) fn tab_title_at(app: &LocalPaintApp, i: usize, zoom: f32) -> String {
 }
 
 /// The Studio strip's tab name: "name *" when unsaved, "name * - Saving 45%" while it saves (#3389).
-fn studio_tab_name(app: &LocalPaintApp, st: &localpaint_engine::DocState) -> String {
+fn studio_tab_name(app: &LocalRasterApp, st: &localraster_engine::DocState) -> String {
     let saving = crate::jobs_ui::save_progress(app, st.doc.id).map(|s| format!(" - {s}")).unwrap_or_default();
     format!("{}{}{saving}", st.doc.name, if st.is_dirty() { " *" } else { "" })
 }
@@ -492,7 +492,7 @@ fn studio_tab_name(app: &LocalPaintApp, st: &localpaint_engine::DocState) -> Str
 /// Photoshop document tabs: "name @ 33.3% (RGB/8)" on a dark strip; active tab matches panels.
 /// Tabs keep their whole titles, and the ones that don't fit move into a » menu at the end of the
 /// strip; the active document's tab always stays on the strip (#1276, #4487).
-fn pro_tabs(app: &mut LocalPaintApp, ui: &mut egui::Ui) -> TabStrip {
+fn pro_tabs(app: &mut LocalRasterApp, ui: &mut egui::Ui) -> TabStrip {
     let t = crate::theme::Tokens::get(ui.ctx());
     let documents = docked_document_indices(app);
     let active_doc = app.session.active_index().filter(|_| app.jobs.focus.is_none());
@@ -655,7 +655,7 @@ impl TabStrip {
 }
 
 /// While files are dragged over the tab strip, an insertion line where they would open.
-fn drop_slot_line(app: &mut LocalPaintApp, ui: &egui::Ui) {
+fn drop_slot_line(app: &mut LocalRasterApp, ui: &egui::Ui) {
     if ui.input(|i| i.raw.hovered_files.is_empty()) {
         return;
     }
@@ -717,14 +717,14 @@ pub(super) fn paint_dots(ui: &egui::Ui, rect: Rect, enabled: bool) {
 /// With no document open, double-clicking the empty workspace shows File › Open, as in Photoshop
 /// (#5367), and so does the Home screen's blank background. Registered before anything drawn over
 /// `area`, so the buttons and links there keep their own clicks; not a keyboard focus stop.
-pub(super) fn open_on_double_click(app: &mut LocalPaintApp, ui: &egui::Ui, area: Rect) {
+pub(super) fn open_on_double_click(app: &mut LocalRasterApp, ui: &egui::Ui, area: Rect) {
     if app.session.documents().is_empty() && ui.interact(area, ui.scope_id().with("empty-workspace"), Sense::CLICK).double_clicked() {
         let _ = app.open_dialog_file();
     }
 }
 
 /// Extra OS windows showing documents (multi-window / multi-monitor).
-pub fn extra_windows(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub fn extra_windows(app: &mut LocalRasterApp, ctx: &egui::Context) {
     let wins = app.ui.windows.clone();
     for w in wins.into_iter().filter(|w| w.open) {
         let Some(st) = app.session.documents().get(w.document) else { continue };
@@ -765,11 +765,11 @@ pub fn extra_windows(app: &mut LocalPaintApp, ctx: &egui::Context) {
 
 /// Window › Arrange tiles: each document shown with its tile in `rect`, or `None` when the
 /// active document fills the area.
-pub(super) fn docked_document_indices(app: &LocalPaintApp) -> Vec<usize> {
+pub(super) fn docked_document_indices(app: &LocalRasterApp) -> Vec<usize> {
     (0..app.session.documents().len()).filter(|&doc| !crate::view_cmds::document_is_floating(app, doc)).collect()
 }
 
-pub(super) fn main_canvas_document(app: &LocalPaintApp) -> Option<usize> {
+pub(super) fn main_canvas_document(app: &LocalRasterApp) -> Option<usize> {
     let active = app.session.active_index()?;
     if !crate::view_cmds::document_is_floating(app, active) {
         return Some(active);

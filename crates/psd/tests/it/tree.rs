@@ -1,7 +1,7 @@
 //! Layer tree reconstruction.
 
-use localpaint_psd::testgen;
-use localpaint_psd::*;
+use localraster_psd::testgen;
+use localraster_psd::*;
 
 fn rec(name: &str, kind: Option<SectionType>) -> LayerRecord {
     let mut r = LayerRecord { name: name.as_bytes().to_vec(), ..Default::default() };

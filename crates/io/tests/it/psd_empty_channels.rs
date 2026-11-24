@@ -1,8 +1,8 @@
 use crate::common;
 use common::Features;
-use localpaint_color::{ColorMode, SampleType};
-use localpaint_io::{ExportOptions, export};
-use localpaint_psd::{Compression, PsdFile};
+use localraster_color::{ColorMode, SampleType};
+use localraster_io::{ExportOptions, export};
+use localraster_psd::{Compression, PsdFile};
 
 #[test]
 fn empty_layer_and_mask_channels_use_raw_without_a_payload() {
@@ -10,9 +10,9 @@ fn empty_layer_and_mask_channels_use_raw_without_a_payload() {
         for depth in [SampleType::U8, SampleType::U16, SampleType::F32] {
             for ext in ["out.psd", "out.psb"] {
                 let mut doc = common::gen_doc(mode, depth, Features::ALL);
-                let mut masked = common::raster("Uniform mask", doc.pixel_format(), localpaint_geom::Rect::new(0, 0, 3, 3), 1, true);
-                masked.mask = Some(localpaint_doc::LayerMask {
-                    surface: localpaint_raster::Surface::new(localpaint_color::PixelFormat::new(ColorMode::Grayscale, depth, false)),
+                let mut masked = common::raster("Uniform mask", doc.pixel_format(), localraster_geom::Rect::new(0, 0, 3, 3), 1, true);
+                masked.mask = Some(localraster_doc::LayerMask {
+                    surface: localraster_raster::Surface::new(localraster_color::PixelFormat::new(ColorMode::Grayscale, depth, false)),
                     enabled: true,
                     linked: true,
                     density: 1.0,

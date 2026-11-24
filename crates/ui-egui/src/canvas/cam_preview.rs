@@ -1,6 +1,6 @@
 //! Content-Aware Move drags and its Transform On Drop box shown with the result: once the pointer
 //! (or the box) rests for a moment, the move is computed as a background job
-//! ([`localpaint_engine::retouch_cmds::content_aware_move_preview`]: a smaller sampling window than
+//! ([`localraster_engine::retouch_cmds::content_aware_move_preview`]: a smaller sampling window than
 //! the command) and the canvas shows the document with it. A selection too large to solve at once
 //! shows a coarse result first (solved scaled down), then the exact one, computed as a second job.
 //! Any change of the offset, scale or rotation cancels the jobs and starts the wait again, so the
@@ -10,12 +10,12 @@
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, TryRecvError};
 
-use localpaint_doc::{DocId, Document};
-use localpaint_engine::jobs::JobCtx;
-use localpaint_engine::retouch_cmds::ContentAwarePreview;
+use localraster_doc::{DocId, Document};
+use localraster_engine::jobs::JobCtx;
+use localraster_engine::retouch_cmds::ContentAwarePreview;
 use serde_json::Value;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::state::Tool;
 
 /// Preview keys: `BASE + n`, one per result shown (see `canvas::display_doc`).
@@ -28,7 +28,7 @@ const POLL_MS: u64 = 40;
 struct Running {
     key: String,
     ctx: JobCtx,
-    rx: Receiver<localpaint_engine::Result<Document>>,
+    rx: Receiver<localraster_engine::Result<Document>>,
     /// Test-only notification sent after this worker publishes its real result.
     #[cfg(test)]
     finished: Receiver<()>,
@@ -68,7 +68,7 @@ impl Drop for CamPreview {
 
 /// `paint.contentAwareMove`'s params for what the pointer or the box has now; `None` without a
 /// move to preview.
-fn wanted(app: &mut LocalPaintApp) -> Option<Value> {
+fn wanted(app: &mut LocalRasterApp) -> Option<Value> {
     if app.ui.tool != Tool::ContentAwareMove {
         return None;
     }
@@ -91,14 +91,14 @@ fn wanted(app: &mut LocalPaintApp) -> Option<Value> {
 
 /// The document to show for the move on document `idx`: with the move applied, once its preview
 /// has been computed for the current offset and transform.
-pub(crate) fn display_doc(app: &mut LocalPaintApp, idx: usize) -> Option<(Arc<Document>, u64)> {
+pub(crate) fn display_doc(app: &mut LocalRasterApp, idx: usize) -> Option<(Arc<Document>, u64)> {
     if app.session.active_index() != Some(idx) {
         return None;
     }
     step(app, crate::gpu_canvas::now_ms())
 }
 
-fn step(app: &mut LocalPaintApp, now: f64) -> Option<(Arc<Document>, u64)> {
+fn step(app: &mut LocalRasterApp, now: f64) -> Option<(Arc<Document>, u64)> {
     let Some(params) = wanted(app) else {
         app.cam_preview = None;
         return None;
@@ -134,7 +134,7 @@ fn step(app: &mut LocalPaintApp, now: f64) -> Option<(Arc<Document>, u64)> {
                 match (result, r) {
                     (Ok(d), Some(r)) => {
                         // Duotone documents display through their inks.
-                        let d = localpaint_engine::mode_cmds::display_document(&d).unwrap_or(d);
+                        let d = localraster_engine::mode_cmds::display_document(&d).unwrap_or(d);
                         p.shown = Some((r.key.clone(), Arc::new(d)));
                         p.serial += 1;
                         // A coarse result: the exact one follows.
@@ -171,8 +171,8 @@ fn step(app: &mut LocalPaintApp, now: f64) -> Option<(Arc<Document>, u64)> {
 }
 
 /// Compute the preview of `params` on a worker thread.
-fn start(app: &LocalPaintApp, params: &Value, key: String) -> Option<Running> {
-    let job = localpaint_engine::retouch_cmds::content_aware_move_preview(&app.session, params).ok()?;
+fn start(app: &LocalRasterApp, params: &Value, key: String) -> Option<Running> {
+    let job = localraster_engine::retouch_cmds::content_aware_move_preview(&app.session, params).ok()?;
     spawn(job, key, false)
 }
 
@@ -204,7 +204,7 @@ fn spawn(job: ContentAwarePreview, key: String, refining: bool) -> Option<Runnin
 }
 
 /// Keep frames coming while a preview waits out its debounce or computes.
-pub(crate) fn wake(app: &LocalPaintApp, ctx: &egui::Context) {
+pub(crate) fn wake(app: &LocalRasterApp, ctx: &egui::Context) {
     let Some(p) = &app.cam_preview else { return };
     if p.running.is_some() {
         ctx.request_repaint_after(std::time::Duration::from_millis(POLL_MS));
@@ -215,7 +215,7 @@ pub(crate) fn wake(app: &LocalPaintApp, ctx: &egui::Context) {
 }
 
 /// Whether the canvas shows a preview.
-pub(crate) fn showing(app: &LocalPaintApp) -> bool {
+pub(crate) fn showing(app: &LocalRasterApp) -> bool {
     app.cam_preview.as_ref().is_some_and(|p| p.shown.as_ref().is_some_and(|s| s.0 == p.key))
 }
 
@@ -231,7 +231,7 @@ mod tests {
 
     #[test]
     fn the_drag_previews_the_move_after_it_rests_and_never_touches_the_document() {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 100, "height": 60})).unwrap();
         app.run("paint.pencil", json!({"points": [[16, 30], [28, 30]], "size": 4, "color": "#0000ff"})).unwrap();
         app.run("select.lasso", json!({"points": [[6, 14], [38, 14], [38, 46], [6, 46]]})).unwrap();
@@ -266,7 +266,7 @@ mod tests {
 
     #[test]
     fn the_transform_on_drop_box_previews_the_dropped_patch() {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 100, "height": 60})).unwrap();
         app.run("paint.pencil", json!({"points": [[16, 30], [28, 30]], "size": 4, "color": "#0000ff"})).unwrap();
         app.run("select.lasso", json!({"points": [[6, 14], [38, 14], [38, 46], [6, 46]]})).unwrap();
@@ -288,7 +288,7 @@ mod tests {
     /// Wait for the specific worker to publish its result, then let the normal non-blocking
     /// `step` path consume it. Coverage instrumentation can make a solve much slower than a
     /// fixed polling loop; the watchdog bounds a stuck worker without setting its expected speed.
-    fn wait_for(app: &mut LocalPaintApp, now: &mut f64, after: u64) -> Option<(Arc<Document>, u64)> {
+    fn wait_for(app: &mut LocalRasterApp, now: &mut f64, after: u64) -> Option<(Arc<Document>, u64)> {
         let deadline = std::time::Instant::now() + std::time::Duration::from_secs(300);
         loop {
             let shown = step(app, *now);
@@ -312,7 +312,7 @@ mod tests {
 
     #[test]
     fn a_large_selection_shows_a_coarse_result_then_the_exact_one() {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 600, "height": 400})).unwrap();
         app.run("paint.pencil", json!({"points": [[150, 160], [170, 160]], "size": 12, "color": "#0000ff"})).unwrap();
         app.run("select.rect", json!({"x": 10, "y": 10, "width": 300, "height": 300})).unwrap();
@@ -342,7 +342,7 @@ mod tests {
 
     #[test]
     fn a_failed_preview_is_not_retried() {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 100, "height": 60})).unwrap();
         app.run("select.rect", json!({"x": 6, "y": 14, "width": 32, "height": 32})).unwrap();
         app.run("layer.lockLayers", json!({"pixels": true})).unwrap();

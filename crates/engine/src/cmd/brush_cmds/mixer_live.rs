@@ -4,12 +4,12 @@ use super::{
     EngineError, LiveCommit, MixerSettings, Rect, Result, Session, Stroke, StrokePoint, Surface, Value, bad, check_coords, color, damage_json, doc_cmyk_space,
     flag, has_paintable, json, layer_id, num, parse_points, pct, resolve_brush,
 };
-use localpaint_color::{PixelFormat, SampleType};
-use localpaint_doc::{Document, LayerId};
-use localpaint_paint::dynamics::DabGenerator;
-use localpaint_paint::mixer::{MixerState, apply_mixer_dab_region};
-use localpaint_paint::retouch::{Region, mix_back};
-use localpaint_paint::{BrushContext, Dab};
+use localraster_color::{PixelFormat, SampleType};
+use localraster_doc::{Document, LayerId};
+use localraster_paint::dynamics::DabGenerator;
+use localraster_paint::mixer::{MixerState, apply_mixer_dab_region};
+use localraster_paint::retouch::{Region, mix_back};
+use localraster_paint::{BrushContext, Dab};
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
@@ -91,11 +91,11 @@ impl Core {
             // Render the visible document including the active layer exactly once, before
             // deposition. Masks, transforms, blend modes and adjustments use the compositor.
             let sample = (self.settings.sample_all_layers && self.settings.samples_canvas(dab)).then(|| {
-                let buf = localpaint_compose::render(&self.doc, r);
+                let buf = localraster_compose::render(&self.doc, r);
                 let fmt = self.pre.format();
                 let mut sample = Region::new(r, fmt.channels());
                 for (src, dst) in buf.px.iter().zip(sample.data.chunks_exact_mut(sample.ch)) {
-                    localpaint_raster::from_rgba_into(&fmt, *src, dst);
+                    localraster_raster::from_rgba_into(&fmt, *src, dst);
                 }
                 sample
             });
@@ -123,7 +123,7 @@ pub struct LiveMixer {
     core: Core,
     state: MixerState,
     tail: Rect,
-    cmyk: Option<Arc<localpaint_color::convert::CmykSpace>>,
+    cmyk: Option<Arc<localraster_color::convert::CmykSpace>>,
     original: Arc<Document>,
     points: Vec<StrokePoint>,
     original_state: MixerState,
@@ -251,7 +251,7 @@ impl LiveMixer {
             return Err(bad(CMD, "stroke exceeds 65536 recorded input samples"));
         }
         let cmyk = self.cmyk.clone();
-        localpaint_color::convert::with_cmyk_space(cmyk.as_ref(), || {
+        localraster_color::convert::with_cmyk_space(cmyk.as_ref(), || {
             let old_tail = self.tail;
             let mut damage = Rect::EMPTY;
             for point in points {
@@ -376,7 +376,7 @@ pub(super) fn sample(s: &mut Session, p: &Value) -> Result<Value> {
         return Err(bad("brush.mixer.sample", "sampling size is limited to 1024 pixels"));
     }
     brush.flow = 1.0;
-    let dabs = localpaint_paint::dabs(&Stroke { brush: brush.clone(), points });
+    let dabs = localraster_paint::dabs(&Stroke { brush: brush.clone(), points });
     let dab = dabs.first().ok_or_else(|| bad("brush.mixer.sample", "brush has no contact"))?;
     let ctx = BrushContext::new(&brush);
     let rect = ctx.dab_rect(dab, false);
@@ -388,9 +388,9 @@ pub(super) fn sample(s: &mut Session, p: &Value) -> Result<Value> {
     let mut doc = crate::float_cmds::displayed(st, (0, 0)).unwrap_or_else(|| (*st.doc).clone());
     let id = if crate::channel_cmds::is_channel_target(p) { None } else { Some(layer_id(s, p)?) };
     let cmyk = doc_cmyk_space(s);
-    let load = localpaint_color::convert::with_cmyk_space(cmyk.as_ref(), || -> Result<Vec<[f32; 4]>> {
+    let load = localraster_color::convert::with_cmyk_space(cmyk.as_ref(), || -> Result<Vec<[f32; 4]>> {
         let surface = if flag(p, "sampleAllLayers", brush.mixer.sample_all_layers) && crate::channel_cmds::target_of(p) == crate::channel_cmds::Target::Pixels {
-            let buf = localpaint_compose::render(&doc, rect);
+            let buf = localraster_compose::render(&doc, rect);
             let mut surface = Surface::new(PixelFormat::RGBA32F);
             surface.write_region(rect, &buf.px.iter().flatten().copied().collect::<Vec<_>>());
             surface

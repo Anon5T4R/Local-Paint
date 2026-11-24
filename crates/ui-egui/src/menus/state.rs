@@ -1,8 +1,8 @@
 use super::invoke::{panel_alias, proof_preset, workspace_name};
 use super::items::MenuItem;
-use super::{DOCUMENT_ITEM, LocalPaintApp, Value};
+use super::{DOCUMENT_ITEM, LocalRasterApp, Value};
 
-pub fn is_enabled(app: &LocalPaintApp, id: &str) -> bool {
+pub fn is_enabled(app: &LocalRasterApp, id: &str) -> bool {
     if id == "layer.selectUnderCursor" {
         return app.session.active().is_some() && app.drag.is_none() && app.brush_resize.is_none();
     }
@@ -92,7 +92,7 @@ pub fn is_enabled(app: &LocalPaintApp, id: &str) -> bool {
             .session
             .active()
             .and_then(|s| s.active_layer.and_then(|id| s.doc.layer(id)))
-            .is_some_and(|l| matches!(l.content, localpaint_doc::LayerContent::Text(_))),
+            .is_some_and(|l| matches!(l.content, localraster_doc::LayerContent::Text(_))),
         "select.transformSelection" => app.ui.transform.is_none() && app.session.is_enabled("select.transformSelection"),
         // ⇧[ / ⇧] only step the hardness of a tool that paints with the brush tip, as in Photoshop.
         "tools.decreaseBrushHardness" | "tools.increaseBrushHardness" => app.ui.tool.is_brushlike(),
@@ -118,18 +118,18 @@ pub fn is_enabled(app: &LocalPaintApp, id: &str) -> bool {
 const MODE_CHECKS: [&str; 11] = ["rgb", "grayscale", "cmyk", "lab", "multichannel", "indexedColor", "bitmap", "duotone", "bits8", "bits16", "bits32"];
 
 /// Is a UI-level panel toggle currently on (for checkmarks)?
-pub(super) fn checked(app: &LocalPaintApp, id: &str) -> Option<bool> {
+pub(super) fn checked(app: &LocalRasterApp, id: &str) -> Option<bool> {
     if let Some(checked) = crate::panel_docking::checked(app, id) {
         return Some(checked);
     }
-    use localpaint_doc::{ColorMode, SampleType};
+    use localraster_doc::{ColorMode, SampleType};
     if let Some(name) = id.strip_prefix("window.theme.").filter(|n| *n != "toggle") {
-        let auto = app.session.prefs().interface.appearance_mode == localpaint_engine::prefs::AppearanceMode::Auto;
+        let auto = app.session.prefs().interface.appearance_mode == localraster_engine::prefs::AppearanceMode::Auto;
         let mode = app.session.prefs().interface.appearance_mode;
         return Some(match name {
             "system" => auto,
-            "light" => mode == localpaint_engine::prefs::AppearanceMode::Light,
-            "dark" => mode == localpaint_engine::prefs::AppearanceMode::Dark,
+            "light" => mode == localraster_engine::prefs::AppearanceMode::Light,
+            "dark" => mode == localraster_engine::prefs::AppearanceMode::Dark,
             _ => !auto && crate::theme::ThemeKind::from_name(name) == Some(app.ui.theme),
         });
     }

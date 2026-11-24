@@ -39,7 +39,7 @@ Local raw evidence and the shared harness: `.local/perf-real-261019/` in the rep
 
 These checks passed when the split was prepared; they were not all rerun for this benchmark review. Current affected checks are listed above where production code changed.
 
-- `cargo test -p localpaint-io --locked`: passed (617 passed, 6 ignored).
-- `cargo clippy -p localpaint-io --locked --all-targets -- -D warnings`: passed.
+- `cargo test -p localraster-io --locked`: passed (617 passed, 6 ignored).
+- `cargo clippy -p localraster-io --locked --all-targets -- -D warnings`: passed.
 - `cargo xtask layers`: passed.
 - `cargo xtask test-corpus -p io`: passed (646 passed, 6 ignored).

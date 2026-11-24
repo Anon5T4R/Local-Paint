@@ -3,15 +3,15 @@
 
 use serde_json::{Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::state::DialogKind;
 
-fn app() -> LocalPaintApp {
-    LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default())
+fn app() -> LocalRasterApp {
+    LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default())
 }
 
 /// Open New Document, set `fields`, press Create.
-fn create(app: &mut LocalPaintApp, fields: Value) {
+fn create(app: &mut LocalRasterApp, fields: Value) {
     let f = app.new_document_fields();
     let id = app.ui.open_dialog(DialogKind::NewDocument, f);
     let d = app.ui.dialog_mut(id).unwrap();
@@ -87,7 +87,7 @@ fn created_documents_fill_the_recent_category() {
     let recent = app.session.presets.recent_documents.clone();
     assert_eq!(recent.iter().map(|r| (r.width, r.unit.as_str())).collect::<Vec<_>>(), [(1920, "px"), (640, "in")]);
     // The settings are kept with the preferences.
-    let mut restarted = localpaint_engine::Session::new();
+    let mut restarted = localraster_engine::Session::new();
     restarted.load_prefs_json(&app.session.prefs_to_json()).unwrap();
     assert_eq!(restarted.presets.recent_documents, recent);
     // A recent card restores all of its settings but keeps the new document's name.

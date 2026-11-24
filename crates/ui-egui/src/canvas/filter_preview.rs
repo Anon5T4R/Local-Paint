@@ -1,6 +1,6 @@
 use super::display::canvas_display;
 use super::textures::texture_buffer;
-use super::{Document, LayerContent, LocalPaintApp};
+use super::{Document, LayerContent, LocalRasterApp};
 
 /// The proxy factor of a live preview of filter `cmd` with `params` on `doc`, the active document:
 /// reduced on a large document (Preferences › Performance › Low Resolution Previews), except for
@@ -14,11 +14,11 @@ use super::{Document, LayerContent, LocalPaintApp};
 /// Full resolution costs a whole filter per parameter change, which only the background worker
 /// absorbs. The web build has no worker and computes the preview inline on the UI thread (#1676),
 /// where that would freeze the page: there the document's proxy stands. The test and
-/// `LOCALPAINT_INLINE_JOBS` inline paths keep the cap deliberately, because `background_jobs` is
+/// `LOCALRASTER_INLINE_JOBS` inline paths keep the cap deliberately, because `background_jobs` is
 /// flipped mid-session (a shell save during `actions.play`): a factor that followed it would change
 /// [`crate::filter_dialog::FilterPreviewKey`] under a finished preview and recompute it inline,
 /// the very stall this avoids.
-pub(crate) fn filter_preview_factor(app: &LocalPaintApp, doc: &Document, cmd: &str, params: &serde_json::Value) -> u32 {
+pub(crate) fn filter_preview_factor(app: &LocalRasterApp, doc: &Document, cmd: &str, params: &serde_json::Value) -> u32 {
     // A smart filter edit re-renders the whole stack: every stage constrains the factor.
     let k = crate::filter_dialog::smart_preview_factor(doc, cmd, params, crate::proxy::preview_factor(doc, crate::proxy::reduced_previews(app)));
     crate::proxy::view_factor(k, app.current_zoom())
@@ -26,10 +26,10 @@ pub(crate) fn filter_preview_factor(app: &LocalPaintApp, doc: &Document, cmd: &s
 
 /// Live preview for an open filter dialog: run the filter on the proxy and upload it. With
 /// background jobs (the desktop app) it computes on one background worker
-/// (`filter_preview_worker`); otherwise (web, tests, `LOCALPAINT_INLINE_JOBS`) it keeps the
+/// (`filter_preview_worker`); otherwise (web, tests, `LOCALRASTER_INLINE_JOBS`) it keeps the
 /// deterministic inline path (#1676), which also lets headless/CPU tests inspect previews
 /// without a GPU texture.
-pub(crate) fn ensure_filter_preview(app: &mut LocalPaintApp, idx: usize, ctx: &egui::Context) -> Option<(u32, u64, [u32; 2])> {
+pub(crate) fn ensure_filter_preview(app: &mut LocalRasterApp, idx: usize, ctx: &egui::Context) -> Option<(u32, u64, [u32; 2])> {
     if let Some(held) = committed_filter_preview(app, idx) {
         return held;
     }
@@ -121,7 +121,7 @@ pub(crate) fn ensure_filter_preview(app: &mut LocalPaintApp, idx: usize, ctx: &e
                     &color,
                 )
                 .map(|doc| {
-                    let buffer = localpaint_compose::flatten(&doc);
+                    let buffer = localraster_compose::flatten(&doc);
                     (std::sync::Arc::new(doc), buffer)
                 });
                 crate::dialogs::filter_preview_worker::Computed { result, ms: crate::gpu_canvas::now_ms() - t0 }
@@ -161,7 +161,7 @@ pub(crate) fn ensure_filter_preview(app: &mut LocalPaintApp, idx: usize, ctx: &e
             &app.session.color.settings,
         )
         .map(|doc| {
-            let buffer = localpaint_compose::flatten(&doc);
+            let buffer = localraster_compose::flatten(&doc);
             (std::sync::Arc::new(doc), buffer)
         });
         publish_filter_preview(app, idx, request, computed, crate::gpu_canvas::now_ms() - t0);
@@ -173,7 +173,7 @@ pub(crate) fn ensure_filter_preview(app: &mut LocalPaintApp, idx: usize, ctx: &e
 
 /// Channel overlays must use the filter's current proxy too, including on the CPU canvas.
 /// The cache key changes with the completed request; unchanged frames reuse the overlay texture.
-pub(crate) fn filter_channel_preview(app: &mut LocalPaintApp, idx: usize, ctx: &egui::Context) -> Option<(std::sync::Arc<Document>, u64)> {
+pub(crate) fn filter_channel_preview(app: &mut LocalRasterApp, idx: usize, ctx: &egui::Context) -> Option<(std::sync::Arc<Document>, u64)> {
     use std::hash::{Hash, Hasher};
     ensure_filter_preview(app, idx, ctx)?;
     let preview = app.filter_preview.as_ref()?;
@@ -184,10 +184,10 @@ pub(crate) fn filter_channel_preview(app: &mut LocalPaintApp, idx: usize, ctx: &
 }
 
 fn publish_filter_preview(
-    app: &mut LocalPaintApp,
+    app: &mut LocalRasterApp,
     idx: usize,
     request: crate::filter_dialog::FilterPreviewKey,
-    computed: Option<(std::sync::Arc<localpaint_doc::Document>, localpaint_compose::Buffer)>,
+    computed: Option<(std::sync::Arc<localraster_doc::Document>, localraster_compose::Buffer)>,
     ms: f64,
 ) {
     let result = computed.and_then(|(result, buffer)| {
@@ -209,7 +209,7 @@ fn publish_filter_preview(
 /// The document whose colour management the canvas texture under `key` is shown through: a filter
 /// preview's own result (it keeps the document's id, so Proof Colors still apply), else `doc`.
 /// Assign Profile changes only the profile, so through `doc`'s its preview looked unchanged.
-pub(super) fn filter_preview_display_doc(app: &LocalPaintApp, doc: &std::sync::Arc<Document>, key: u64) -> std::sync::Arc<Document> {
+pub(super) fn filter_preview_display_doc(app: &LocalRasterApp, doc: &std::sync::Arc<Document>, key: u64) -> std::sync::Arc<Document> {
     if key != doc.id.0 ^ (1u64 << 61) {
         return doc.clone();
     }
@@ -220,7 +220,7 @@ pub(super) fn filter_preview_display_doc(app: &LocalPaintApp, doc: &std::sync::A
 /// that commits it (the document unchanged and the job still running, for this document's views),
 /// `None` otherwise (other documents' views included). A job that lands, fails or is cancelled
 /// drops it.
-pub(crate) fn committed_filter_preview(app: &mut LocalPaintApp, idx: usize) -> Option<Option<(u32, u64, [u32; 2])>> {
+pub(crate) fn committed_filter_preview(app: &mut LocalRasterApp, idx: usize) -> Option<Option<(u32, u64, [u32; 2])>> {
     let p = app.filter_preview.as_ref().filter(|p| p.committing)?;
     let st = app.session.documents().get(idx)?;
     if st.doc.id != p.key.doc {
@@ -240,7 +240,7 @@ pub(crate) fn committed_filter_preview(app: &mut LocalPaintApp, idx: usize) -> O
 /// Zoomed-out Image › Adjustments preview on a large document: the wgpu compositor renders the
 /// reduced preview document (`adjust_preview::gpu_proxy`) into its own texture, over the target's
 /// area after the first frame. Returns (factor, gpu key, dimensions) to draw.
-pub(super) fn ensure_adjust_proxy(app: &mut LocalPaintApp, idx: usize, zoom: f32) -> Option<(u32, u64, [u32; 2])> {
+pub(super) fn ensure_adjust_proxy(app: &mut LocalRasterApp, idx: usize, zoom: f32) -> Option<(u32, u64, [u32; 2])> {
     let frame = crate::adjust_preview::gpu_proxy(app, idx, zoom)?;
     let key = frame.doc.id.0;
     let size = [frame.doc.size.width, frame.doc.size.height];
@@ -261,7 +261,7 @@ pub(super) fn ensure_adjust_proxy(app: &mut LocalPaintApp, idx: usize, zoom: f32
 /// If a live adjustment preview is active on a large document, composite it on the proxy and upload
 /// it under its own GPU key. Returns (factor, gpu key, dimensions) when the proxy should be drawn.
 /// `zoom` is the view's (physical screen pixels per document pixel).
-pub(super) fn ensure_proxy_preview(app: &mut LocalPaintApp, idx: usize, zoom: f32) -> Option<(u32, u64, [u32; 2])> {
+pub(super) fn ensure_proxy_preview(app: &mut LocalRasterApp, idx: usize, zoom: f32) -> Option<(u32, u64, [u32; 2])> {
     let (layer, params) = app.live_adjust.clone()?;
     let (doc_id, revision, doc) = {
         let st = app.session.documents().get(idx)?;
@@ -289,14 +289,14 @@ pub(super) fn ensure_proxy_preview(app: &mut LocalPaintApp, idx: usize, zoom: f3
     if app.proxy_uploaded != Some((doc_id, hash)) {
         let l = proxy.layer(layer)?;
         let LayerContent::Adjustment(a) = &l.content else { return None };
-        let kind = localpaint_engine::commands::adjustment_kind(a);
-        let preview = localpaint_engine::adjust_params::from_params(kind, &params, Some(a), proxy.mode).unwrap_or_else(|_| a.clone());
+        let kind = localraster_engine::commands::adjustment_kind(a);
+        let preview = localraster_engine::adjust_params::from_params(kind, &params, Some(a), proxy.mode).unwrap_or_else(|_| a.clone());
         let mut p = (*proxy).clone();
         if let Some(lm) = p.layer_mut(layer) {
             lm.content = LayerContent::Adjustment(preview);
         }
         let t0 = crate::gpu_canvas::now_ms();
-        let buf = localpaint_compose::flatten(&p);
+        let buf = localraster_compose::flatten(&p);
         let t1 = crate::gpu_canvas::now_ms();
         let (display, _) = canvas_display(app, &doc, None);
         app.gpu.as_ref()?.upload_buffer_full(key, &texture_buffer(display.as_deref(), &buf), doc.depth);

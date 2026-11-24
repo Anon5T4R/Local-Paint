@@ -13,14 +13,14 @@
 //!   to `pointerdown`/`pointermove` itself and writes `pressure`, `tiltX`, `tiltY`, `twist` and
 //!   the eraser button of `pointerType == "pen"` events into the [`StylusFeed`].
 //! - **macOS**: winit 0.30 drops `NSEvent` tablet data, so the desktop app installs an AppKit
-//!   local event monitor (the `localpaint-tablet` crate) that writes pressure, tilt, rotation and
+//!   local event monitor (the `localraster-tablet` crate) that writes pressure, tilt, rotation and
 //!   the eraser end into the [`StylusFeed`] before winit handles each event.
 //! - **Linux X11**: the desktop app reads XInput2 raw valuator events on its own X connection
-//!   (`localpaint-tablet`, x11rb) and writes them into the [`StylusFeed`].
+//!   (`localraster-tablet`, x11rb) and writes them into the [`StylusFeed`].
 //! - **Linux Wayland**: compositors give a pen only to clients that bind `zwp_tablet_v2`, which
 //!   winit doesn't (it would have to share winit's connection), so with a pen attached the
 //!   desktop app opens its window through Xwayland, which reports tablet valuators to the X11
-//!   reader. `LOCALPAINT_NATIVE_WAYLAND=1` keeps native Wayland, where the pen has no input.
+//!   reader. `LOCALRASTER_NATIVE_WAYLAND=1` keeps native Wayland, where the pen has no input.
 //!
 //! Preferences › Tools › Use Tablet Pressure off makes a pen paint like a mouse. Flipping the pen
 //! to its eraser end selects the Eraser tool and flipping back restores the previous tool, as in
@@ -114,7 +114,7 @@ pub struct Stylus {
     /// Preferences › Tools › Use Tablet Pressure: off, a pen paints like a mouse.
     pub use_pressure: bool,
     /// Preferences › Tools › Pressure Curve (`None`: linear), with the points it was built from.
-    pressure_curve: Option<localpaint_engine::prefs::PressureCurve>,
+    pressure_curve: Option<localraster_engine::prefs::PressureCurve>,
     curve_points: Vec<[f32; 2]>,
     /// The pen end last seen (`Some(true)` = eraser), for the eraser tool switch.
     end: Option<bool>,
@@ -276,7 +276,7 @@ impl Stylus {
     pub fn set_pressure_curve(&mut self, points: &[[f32; 2]]) {
         if self.curve_points != points {
             self.curve_points = points.to_vec();
-            let c = localpaint_engine::prefs::PressureCurve::new(points);
+            let c = localraster_engine::prefs::PressureCurve::new(points);
             self.pressure_curve = (!c.is_linear()).then_some(c);
         }
     }
@@ -327,7 +327,7 @@ impl Stylus {
 
     /// Switch to the Eraser when the pen's eraser end comes in, and back to the previous tool when
     /// the tip does (Photoshop). Not during a drag. Returns whether the tool changed.
-    pub fn sync_eraser_tool(app: &mut crate::LocalPaintApp) -> bool {
+    pub fn sync_eraser_tool(app: &mut crate::LocalRasterApp) -> bool {
         use crate::state::Tool;
         if app.drag.is_some() {
             return false;

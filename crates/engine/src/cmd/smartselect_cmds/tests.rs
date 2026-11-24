@@ -1,5 +1,5 @@
 use super::*;
-use localpaint_algo::segment::Rng;
+use localraster_algo::segment::Rng;
 
 /// A document whose background shows `px(x, y)` (RGB, 0–1), at the given depth.
 fn session_with(w: u32, h: u32, depth: u32, px: impl Fn(u32, u32) -> [f32; 3]) -> Session {
@@ -315,7 +315,7 @@ fn blurred_edge_selected_at(depth: u32) -> Session {
     s
 }
 
-fn soft_count(s: &localpaint_raster::Surface, y: i32) -> usize {
+fn soft_count(s: &localraster_raster::Surface, y: i32) -> usize {
     (0..80)
         .filter(|x| {
             let v = s.sample_channel(*x, y, 0);
@@ -340,7 +340,7 @@ fn refine_edge_outputs_and_undo() {
     let layers_before = s.active().unwrap().doc.layer_count();
     let r = s.execute("select.refineEdge", json!({"radius": 8, "output": "layerMask"})).unwrap();
     let d = s.active().unwrap();
-    let l = d.doc.layer(localpaint_doc::LayerId(r["layer"].as_u64().unwrap())).unwrap();
+    let l = d.doc.layer(localraster_doc::LayerId(r["layer"].as_u64().unwrap())).unwrap();
     let m = l.mask.as_ref().unwrap();
     assert!(soft_count(&m.surface, 20) >= 4);
     assert!(m.value(5, 20) > 0.99 && m.value(75, 20) < 0.01);
@@ -352,8 +352,8 @@ fn refine_edge_outputs_and_undo() {
 
     // Existing mask settings (density, feather, linked) are preserved
     s.edit("set mask", |doc, _| {
-        doc.layers[0].mask = Some(localpaint_doc::LayerMask {
-            surface: localpaint_raster::Surface::new(localpaint_color::PixelFormat::GRAY8),
+        doc.layers[0].mask = Some(localraster_doc::LayerMask {
+            surface: localraster_raster::Surface::new(localraster_color::PixelFormat::GRAY8),
             density: 0.75,
             feather: 3.5,
             linked: false,
@@ -363,7 +363,7 @@ fn refine_edge_outputs_and_undo() {
     })
     .unwrap();
     let r = s.execute("select.refineEdge", json!({"radius": 8, "output": "layerMask"})).unwrap();
-    let l = s.active().unwrap().doc.layer(localpaint_doc::LayerId(r["layer"].as_u64().unwrap())).unwrap();
+    let l = s.active().unwrap().doc.layer(localraster_doc::LayerId(r["layer"].as_u64().unwrap())).unwrap();
     let m = l.mask.as_ref().unwrap();
     assert_eq!(m.density, 0.75);
     assert_eq!(m.feather, 3.5);
@@ -378,7 +378,7 @@ fn refine_edge_outputs_and_undo() {
     // New layer: pixels with the refined alpha; the source is hidden.
     let r = s.execute("select.refineEdge", json!({"radius": 8, "feather": 1, "output": "newLayer"})).unwrap();
     let d = s.active().unwrap();
-    let nid = localpaint_doc::LayerId(r["layer"].as_u64().unwrap());
+    let nid = localraster_doc::LayerId(r["layer"].as_u64().unwrap());
     assert_eq!(d.active_layer, Some(nid));
     assert_eq!(d.doc.layer_count(), layers_before + 1);
     let nl = d.doc.layer(nid).unwrap();
@@ -395,7 +395,7 @@ fn refine_edge_outputs_and_undo() {
     let r = s.execute("select.refineEdge", json!({"radius": 8, "decontaminate": true, "amount": 100})).unwrap();
     assert_eq!(r["output"], "newLayerWithMask");
     let d = s.active().unwrap();
-    let nl = d.doc.layer(localpaint_doc::LayerId(r["layer"].as_u64().unwrap())).unwrap();
+    let nl = d.doc.layer(localraster_doc::LayerId(r["layer"].as_u64().unwrap())).unwrap();
     assert!(nl.mask.is_some());
     let px = nl.surface().unwrap().pixel(41, 20);
     let orig = d.doc.layers[0].surface().unwrap().pixel(41, 20);
@@ -550,7 +550,10 @@ fn sel_bytes(s: &Session, w: i32, h: i32) -> Vec<u8> {
 #[test]
 fn refine_edge_refuses_a_selection_too_large_to_refine() {
     let mut s = Session::new();
-    s.add_document(Document::new("huge", localpaint_doc::Size::new(100_000, 100_000), localpaint_doc::ColorMode::Rgb, localpaint_color::SampleType::U8), None);
+    s.add_document(
+        Document::new("huge", localraster_doc::Size::new(100_000, 100_000), localraster_doc::ColorMode::Rgb, localraster_color::SampleType::U8),
+        None,
+    );
     s.execute("select.rect", json!({"x": 10, "y": 60, "width": 10, "height": 10})).unwrap();
     let small = s.active().and_then(|d| d.doc.selection.clone()).expect("selected");
     let diagonal = json!({"edits": [{"tool": "brush", "points": [[0, 0], [99_999, 99_999]], "size": 1}]});
@@ -574,7 +577,10 @@ fn refine_edge_refuses_a_selection_too_large_to_refine() {
 #[test]
 fn refine_edge_refuses_edits_that_cross_too_many_tiles() {
     let mut s = Session::new();
-    s.add_document(Document::new("huge", localpaint_doc::Size::new(100_000, 100_000), localpaint_doc::ColorMode::Rgb, localpaint_color::SampleType::U8), None);
+    s.add_document(
+        Document::new("huge", localraster_doc::Size::new(100_000, 100_000), localraster_doc::ColorMode::Rgb, localraster_color::SampleType::U8),
+        None,
+    );
     s.execute("select.rect", json!({"x": 10, "y": 10, "width": 10, "height": 10})).unwrap();
     let before = s.active().and_then(|d| d.doc.selection.clone()).expect("selected");
     let zigzag: Vec<[f32; 2]> = (0..20).map(|i| [if i % 2 == 0 { 0.0 } else { 99_999.0 }, i as f32 * 5000.0]).collect();

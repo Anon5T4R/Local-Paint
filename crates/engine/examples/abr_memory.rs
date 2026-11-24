@@ -1,11 +1,11 @@
 //! Memory of a large imported brush library (#1843): import `.abr` files into a session with a
 //! preset store on disk, or reopen that store (a restart), then use a few brushes, printing the
 //! process memory after each step. Run each phase as its own process so freed memory doesn't hide
-//! what a fresh start costs. Generate a library with `localpaint-io`'s `gen_abr_library` example.
+//! what a fresh start costs. Generate a library with `localraster-io`'s `gen_abr_library` example.
 //!
 //! ```text
-//! cargo run --release -p localpaint-engine --example abr_memory -- import <abr dir> <store dir>
-//! cargo run --release -p localpaint-engine --example abr_memory -- reopen <store dir>
+//! cargo run --release -p localraster-engine --example abr_memory -- import <abr dir> <store dir>
+//! cargo run --release -p localraster-engine --example abr_memory -- reopen <store dir>
 //! ```
 //!
 //! Memory comes from PowerShell `Get-Process` on Windows and `/proc/self/status` elsewhere.
@@ -13,8 +13,8 @@
 
 use std::time::Instant;
 
-use localpaint_engine::Session;
-use localpaint_engine::paint::{Pattern, TipShape};
+use localraster_engine::Session;
+use localraster_engine::paint::{Pattern, TipShape};
 use serde_json::json;
 
 fn memory() -> String {
@@ -43,7 +43,7 @@ fn memory() -> String {
 /// the previews of stored tips that aren't loaded.
 fn library_tip_bytes(s: &Session) -> (usize, u64, u64) {
     let (mut n, mut bytes, mut previews) = (0, 0u64, 0u64);
-    let mut add = |full: Option<&localpaint_engine::paint::GrayTile>, preview: Option<&localpaint_engine::paint::GrayTile>| {
+    let mut add = |full: Option<&localraster_engine::paint::GrayTile>, preview: Option<&localraster_engine::paint::GrayTile>| {
         if let Some(g) = full {
             n += 1;
             bytes += g.data.len() as u64 * 2;
@@ -106,7 +106,7 @@ fn main() {
             let (abr, store) = (args.get(2).expect("abr dir"), args.get(3).expect("store dir"));
             let _ = std::fs::remove_dir_all(store);
             let mut s = Session::new();
-            s.attach_preset_store(localpaint_engine::preset_store::open_dir(store));
+            s.attach_preset_store(localraster_engine::preset_store::open_dir(store));
             let mut files: Vec<_> = std::fs::read_dir(abr).unwrap().flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "abr")).collect();
             files.sort();
             let t = Instant::now();
@@ -124,7 +124,7 @@ fn main() {
         Some("reopen") => {
             let store = args.get(2).expect("store dir");
             let t = Instant::now();
-            let opened = localpaint_engine::preset_store::open_dir(store);
+            let opened = localraster_engine::preset_store::open_dir(store);
             let open_s = t.elapsed().as_secs_f64();
             let mut s = Session::new();
             let w = s.attach_preset_store(opened);

@@ -2,25 +2,25 @@
 //! the Pen does.
 
 use egui::Modifiers;
-use localpaint_doc::{LayerContent, Path};
+use localraster_doc::{LayerContent, Path};
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::canvas::{ToolEvent, tool_event};
 use crate::state::Tool;
 
-fn app(tool: Tool) -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+fn app(tool: Tool) -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 300, "height": 200})).unwrap();
     app.ui.tool = tool;
     app
 }
 
-fn work_path(app: &LocalPaintApp) -> Path {
+fn work_path(app: &LocalRasterApp) -> Path {
     app.session.active().unwrap().doc.work_path.clone().expect("a work path")
 }
 
-fn click(app: &mut LocalPaintApp, x: f64, y: f64) {
+fn click(app: &mut LocalRasterApp, x: f64, y: f64) {
     tool_event(app, ToolEvent::Down { x, y, pressure: 1.0 }, Modifiers::NONE);
     tool_event(app, ToolEvent::Up { x, y }, Modifiers::NONE);
 }
@@ -105,7 +105,7 @@ fn curvature_pen_clicks_make_a_smooth_path_through_every_point() {
     assert!(sp.knots[0].smooth && sp.knots[2].smooth);
 }
 
-fn ev(app: &mut LocalPaintApp, kind: &str, x: f64, y: f64, mods: Modifiers) {
+fn ev(app: &mut LocalRasterApp, kind: &str, x: f64, y: f64, mods: Modifiers) {
     let e = match kind {
         "down" => ToolEvent::Down { x, y, pressure: 1.0 },
         "up" => ToolEvent::Up { x, y },
@@ -176,10 +176,10 @@ fn new_pens_with_command_edit_paths_as_direct_selection() {
 #[test]
 fn the_pen_carries_on_an_open_path_from_either_end() {
     let mut app = app(Tool::Pen);
-    let anchors = |app: &LocalPaintApp| -> Vec<Vec<[f64; 2]>> {
+    let anchors = |app: &LocalRasterApp| -> Vec<Vec<[f64; 2]>> {
         work_path(app).subpaths.iter().map(|s| s.knots.iter().map(|k| [k.anchor.x, k.anchor.y]).collect()).collect()
     };
-    let steps = |app: &LocalPaintApp| app.session.active().unwrap().history.past_len();
+    let steps = |app: &LocalRasterApp| app.session.active().unwrap().history.past_len();
     click(&mut app, 20.0, 20.0);
     click(&mut app, 80.0, 20.0);
     crate::vector_ui::pen_commit(&mut app, false);
@@ -223,7 +223,7 @@ fn a_resumed_subpath_keeps_its_operation_and_a_stale_draft_adds_a_new_one() {
     crate::vector_ui::pen_commit(&mut app, false);
     let work = work_path(&app);
     assert_eq!((work.subpaths.len(), work.subpaths[0].knots.len()), (1, 3));
-    assert_eq!(work.subpaths[0].op, localpaint_doc::vector::PathOp::Subtract, "the operation is kept");
+    assert_eq!(work.subpaths[0].op, localraster_doc::vector::PathOp::Subtract, "the operation is kept");
     // Replacing the source invalidates the draft; neither explicit commit nor a frame retries it.
     click(&mut app, 20.0, 20.0);
     click(&mut app, 20.0, 80.0);

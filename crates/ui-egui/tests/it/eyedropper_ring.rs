@@ -5,11 +5,11 @@
 //! is available (like `checker_canvas.rs`).
 
 use egui::{Modifiers, PointerButton, Pos2};
-use localpaint_ui_egui::LocalPaintApp;
-use localpaint_ui_egui::control::{ControlRequest, handle};
+use localraster_ui_egui::LocalRasterApp;
+use localraster_ui_egui::control::{ControlRequest, handle};
 use serde_json::{Value, json};
 
-type Harness = egui_kittest::Harness<'static, LocalPaintApp>;
+type Harness = egui_kittest::Harness<'static, LocalRasterApp>;
 
 /// The ring geometry `eyedropper_ring` draws: outer radius and band width, in points.
 const R_OUT: i32 = 105;
@@ -20,8 +20,8 @@ const BG: u8 = 0x7f;
 fn harness() -> Option<Harness> {
     let built = std::panic::catch_unwind(|| {
         egui_kittest::Harness::builder().with_size(egui::vec2(1400.0, 800.0)).with_pixels_per_point(1.0).with_max_steps(64).wgpu().build_eframe(|cc| {
-            LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-            let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+            LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+            let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
             if let Some(rs) = cc.wgpu_render_state.as_ref() {
                 app.set_wgpu(rs.clone());
             }
@@ -105,7 +105,7 @@ fn outer_edge_reads(img: &Shot, c: Pos2) -> bool {
 
 #[test]
 fn ring_reads_over_a_flat_area_of_its_own_colour() {
-    let _gpu = localpaint_testkit::gpu_lock();
+    let _gpu = localraster_testkit::gpu_lock();
     let Some(mut h) = harness() else { return };
     h.run_steps(4);
     let c = setup(&mut h);
@@ -127,7 +127,7 @@ fn ring_reads_over_a_flat_area_of_its_own_colour() {
 
 #[test]
 fn show_sampling_ring_off_draws_nothing() {
-    let _gpu = localpaint_testkit::gpu_lock();
+    let _gpu = localraster_testkit::gpu_lock();
     let Some(mut h) = harness() else { return };
     h.run_steps(4);
     let c = setup(&mut h);

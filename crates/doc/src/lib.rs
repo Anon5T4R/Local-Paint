@@ -1,4 +1,4 @@
-//! The Local Paint document model: pure data, no rendering, no UI.
+//! The Local Raster document model: pure data, no rendering, no UI.
 //!
 //! Layer order: inside every group (and the root), `children[0]` is the **bottom** layer, matching
 //! compositing order and the PSD file order. UIs display the list reversed.
@@ -35,9 +35,9 @@ pub use effects::{
     Bevel, BevelContour, BevelStyle, BevelTechnique, BevelTexture, Contour, Effect, FxCommon, FxPaint, GlobalLight, Glow, GlowSource, GlowTechnique, Gradient,
     GradientStyle, Satin, Shadow, StrokeFx, StrokePosition,
 };
-pub use localpaint_color::{BlendMode, Color, ColorMode, PixelFormat, SampleType};
-pub use localpaint_geom::{Affine, Rect, Size};
-pub use localpaint_raster::Surface;
+pub use localraster_color::{BlendMode, Color, ColorMode, PixelFormat, SampleType};
+pub use localraster_geom::{Affine, Rect, Size};
+pub use localraster_raster::Surface;
 pub use mode::{ColorTable, Duotone, DuotoneInk, StackMode};
 pub use pattern::Pattern;
 use serde::{Deserialize, Serialize};
@@ -309,7 +309,7 @@ pub struct Effects {
 /// PSD export, `.pcraft` save and load) recurses once per level, so deeper trees risk
 /// overflowing the 1 MiB main-thread stacks of Windows and wasm. PSD import and the engine
 /// commands that nest layers (`layer.groupLayers`, `layer.moveTo`, Artboard from Layers) enforce
-/// this up front; `localpaint-format` refuses to save deeper trees.
+/// this up front; `localraster-format` refuses to save deeper trees.
 pub const MAX_GROUP_DEPTH: usize = 100;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -534,7 +534,7 @@ pub struct SmartObject {
     pub filter_mask: Option<LayerMask>,
     /// Edit › Transform › Warp on the smart object, in source-image coordinates; applied before
     /// `transform` when re-rendering from the source, so warping stays lossless.
-    pub warp: Option<localpaint_geom::warp::Warp>,
+    pub warp: Option<localraster_geom::warp::Warp>,
     /// Layer › Smart Objects › Stack Mode: when set, the source's top-level layers are combined
     /// per pixel with this statistic instead of composited.
     pub stack_mode: Option<StackMode>,
@@ -861,7 +861,7 @@ pub type PsdGlobalBlock = ([u8; 4], [u8; 4], Arc<Vec<u8>>);
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Metadata {
-    /// The XMP packet as stored, kept as text so properties Local Paint doesn't model survive.
+    /// The XMP packet as stored, kept as text so properties Local Raster doesn't model survive.
     /// Shared like the other payloads here: cloning a document or a history state never copies
     /// it (#4535).
     pub xmp: Option<Arc<str>>,
@@ -1017,7 +1017,7 @@ impl Document {
         bg.locks.position = true;
         if let Some(s) = bg.surface_mut() {
             let rgba = fill.to_rgb();
-            let px = localpaint_raster::from_rgba(&s.format(), [rgba[0], rgba[1], rgba[2], fill.alpha]);
+            let px = localraster_raster::from_rgba(&s.format(), [rgba[0], rgba[1], rgba[2], fill.alpha]);
             s.fill_rect(d.bounds(), &px);
         }
         d.layers.push(bg);

@@ -8,14 +8,14 @@ use egui::{Align2, Color32, Rect, Sense, Stroke, pos2, vec2};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
-use localpaint_engine::actions_cmds::{self, Action};
+use localraster_engine::actions_cmds::{self, Action};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::icons;
 use crate::theme::Tokens;
 
 /// Which row is selected and which rows are expanded. The action list itself is
-/// [`localpaint_engine::Session::actions`].
+/// [`localraster_engine::Session::actions`].
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ActionsUi {
@@ -56,7 +56,7 @@ struct RenameAction {
 }
 
 pub(crate) fn label_of(id: &str) -> String {
-    localpaint_engine::commands::find(id)
+    localraster_engine::commands::find(id)
         .map(|c| c.label)
         .or_else(|| crate::menus::UI_COMMANDS.iter().find(|c| c.0 == id).map(|c| c.1))
         // Shell menu items recorded as steps, like Save a Copy (#4373).
@@ -67,30 +67,30 @@ pub(crate) fn label_of(id: &str) -> String {
 
 /// The selected action, else the first action of the selected set (Batch and Create Droplet start
 /// on the panel's selection), else the first one.
-pub fn selected_action(app: &LocalPaintApp) -> Option<&Action> {
+pub fn selected_action(app: &LocalRasterApp) -> Option<&Action> {
     let list = &app.session.actions.list;
     let idx = app.ui.actions.selected.filter(|i| *i < list.len());
     idx.and_then(|i| list.get(i)).or_else(|| selected_set_actions(app).first().and_then(|i| list.get(*i))).or_else(|| list.first())
 }
 
 /// The selected set folder, if no action is selected and the set still exists.
-fn selected_set(app: &LocalPaintApp) -> Option<&str> {
+fn selected_set(app: &LocalRasterApp) -> Option<&str> {
     if app.ui.actions.selected.is_some_and(|i| i < app.session.actions.list.len()) {
         return None;
     }
     let set = app.ui.actions.selected_set.as_deref()?;
-    localpaint_engine::actions_edit_cmds::set_names(&app.session).iter().any(|n| n == set).then_some(set)
+    localraster_engine::actions_edit_cmds::set_names(&app.session).iter().any(|n| n == set).then_some(set)
 }
 
 /// The actions of the selected set, in list order (empty when no set is selected, or it is empty).
-fn selected_set_actions(app: &LocalPaintApp) -> Vec<usize> {
+fn selected_set_actions(app: &LocalRasterApp) -> Vec<usize> {
     let Some(set) = selected_set(app) else { return Vec::new() };
     app.session.actions.list.iter().enumerate().filter(|(_, a)| a.set.as_deref() == Some(set)).map(|(i, _)| i).collect()
 }
 
 /// What Play plays: the selected action; with a set folder selected, every action of that set in
 /// order, as Photoshop plays a selected set (nothing for an empty set); else the first action.
-fn playback_targets(app: &LocalPaintApp) -> Vec<usize> {
+fn playback_targets(app: &LocalRasterApp) -> Vec<usize> {
     if selected_set(app).is_some() {
         return selected_set_actions(app);
     }
@@ -102,7 +102,7 @@ fn playback_targets(app: &LocalPaintApp) -> Vec<usize> {
 /// (Cancel stops them all, as it stops one action). A pause inside an action it calls resumes only
 /// the called action, so the set stops there rather than run its next action on an unfinished one. Returns the last result with `ran` counting the steps
 /// of all of them plus `before` (steps the same Play ran before a pause), or `None` when there was nothing to play.
-fn play_targets(app: &mut LocalPaintApp, targets: &[usize], before: u64) -> Result<Option<Value>, String> {
+fn play_targets(app: &mut LocalRasterApp, targets: &[usize], before: u64) -> Result<Option<Value>, String> {
     let (mut last, mut ran) = (None, before);
     for (n, &i) in targets.iter().enumerate() {
         let name = app.session.actions.list.get(i).map(|a| a.name.clone());
@@ -137,7 +137,7 @@ fn play_targets(app: &mut LocalPaintApp, targets: &[usize], before: u64) -> Resu
 
 /// Index of the playback target. Photoshop's Play button uses the first action when
 /// the panel has actions but none of its rows is selected.
-fn playback_selection(app: &LocalPaintApp) -> Option<usize> {
+fn playback_selection(app: &LocalRasterApp) -> Option<usize> {
     let n = app.session.actions.list.len();
     if n == 0 { None } else { Some(app.ui.actions.selected.filter(|i| *i < n).unwrap_or(0)) }
 }
@@ -156,7 +156,7 @@ pub(crate) fn shortcut_id(name: &str) -> String {
     format!("{SHORTCUT_PREFIX}{name}")
 }
 
-pub(crate) fn assign_shortcut(app: &mut LocalPaintApp, name: &str, shortcut: &str) -> Result<Value, String> {
+pub(crate) fn assign_shortcut(app: &mut LocalRasterApp, name: &str, shortcut: &str) -> Result<Value, String> {
     let id = shortcut_id(name);
     let mut set = serde_json::Map::new();
     // A function key belongs to only one action. Ordinary menu bindings remain
@@ -172,13 +172,13 @@ pub(crate) fn assign_shortcut(app: &mut LocalPaintApp, name: &str, shortcut: &st
 
 /// Replay edits synchronously, with view steps handled by the shell in the same order.
 /// Engine steps keep the headless action semantics (no dialogs or background jobs).
-pub(crate) fn play(app: &mut LocalPaintApp, params: &Value) -> Result<Value, String> {
+pub(crate) fn play(app: &mut LocalRasterApp, params: &Value) -> Result<Value, String> {
     play_owned(app, params, None)
 }
 
 /// `suspended` is the recording a paused part of the same call took ([`PausedPlayback::record`]); it comes
 /// back, with that named call journaled, only when the whole call ends.
-fn play_owned(app: &mut LocalPaintApp, params: &Value, suspended: Option<Value>) -> Result<Value, String> {
+fn play_owned(app: &mut LocalRasterApp, params: &Value, suspended: Option<Value>) -> Result<Value, String> {
     let (action, from) = match actions_cmds::playback_plan(&app.session, params) {
         Ok(plan) => plan,
         Err(e) => {
@@ -298,7 +298,7 @@ fn play_owned(app: &mut LocalPaintApp, params: &Value, suspended: Option<Value>)
 
 /// Execute the actual menu command, not a synthetic keystroke. Fit is deferred
 /// until canvas layout, so it uses the dimensions after all preceding action steps.
-pub(crate) fn run_view(app: &mut LocalPaintApp, id: &str, params: Value) -> Result<Value, String> {
+pub(crate) fn run_view(app: &mut LocalRasterApp, id: &str, params: Value) -> Result<Value, String> {
     app.sync_views();
     let i = app.session.active_index().ok_or("no document")?;
     let v = app.ui.views.get_mut(i).ok_or("no document view")?;
@@ -331,14 +331,14 @@ pub(crate) fn run_view(app: &mut LocalPaintApp, id: &str, params: Value) -> Resu
 }
 
 /// The set New Action records into: the selected action's, else the selected set folder's.
-fn new_action_set(app: &LocalPaintApp) -> Option<String> {
+fn new_action_set(app: &LocalRasterApp) -> Option<String> {
     match app.ui.actions.selected.and_then(|i| app.session.actions.list.get(i)) {
         Some(action) => action.set.clone(),
-        None => app.ui.actions.selected_set.clone().filter(|set| localpaint_engine::actions_edit_cmds::set_names(&app.session).contains(set)),
+        None => app.ui.actions.selected_set.clone().filter(|set| localraster_engine::actions_edit_cmds::set_names(&app.session).contains(set)),
     }
 }
 
-fn begin_recording(app: &mut LocalPaintApp, append: bool) {
+fn begin_recording(app: &mut LocalRasterApp, append: bool) {
     if app.session.actions.recording.is_some() {
         return;
     }
@@ -361,7 +361,7 @@ fn begin_recording(app: &mut LocalPaintApp, append: bool) {
     }
 }
 
-pub(crate) fn report_play(app: &mut LocalPaintApp, v: &Value) {
+pub(crate) fn report_play(app: &mut LocalRasterApp, v: &Value) {
     if let Some(paused) = v.get("paused").filter(|p| p.is_object()) {
         let step = paused.get("step").and_then(Value::as_u64).unwrap_or(0);
         let template = "Step {step} is waiting for its dialog";
@@ -383,7 +383,7 @@ pub(crate) fn report_play(app: &mut LocalPaintApp, v: &Value) {
     app.ui.status_error = true;
 }
 
-fn visible_steps(app: &LocalPaintApp, action: usize) -> Vec<(String, Value)> {
+fn visible_steps(app: &LocalRasterApp, action: usize) -> Vec<(String, Value)> {
     app.session.actions.list.get(action).into_iter().flat_map(|a| a.steps.iter()).chain(actions_cmds::pending_steps(&app.session, action)).cloned().collect()
 }
 
@@ -441,10 +441,10 @@ fn step_label(id: &str, params: &Value) -> String {
         let cond = params.get("if").and_then(Value::as_str).unwrap_or("?");
         let branch = |k: &str| params.get(k).and_then(Value::as_str).unwrap_or("–").to_string();
         format!("{}: {cond} → {} / {}", label_of(id), branch("then"), branch("else"))
-    } else if id == localpaint_engine::atn_cmds::STOP_MESSAGE {
+    } else if id == localraster_engine::atn_cmds::STOP_MESSAGE {
         format!("{}: {}", label_of(id), params.get("message").and_then(Value::as_str).unwrap_or_default())
-    } else if id == localpaint_engine::atn_cmds::PHOTOSHOP_STEP {
-        // A step from a .atn file Local Paint can't play yet: its Photoshop name, marked.
+    } else if id == localraster_engine::atn_cmds::PHOTOSHOP_STEP {
+        // A step from a .atn file Local Raster can't play yet: its Photoshop name, marked.
         let name = params.get("name").and_then(Value::as_str).filter(|n| !n.is_empty()).unwrap_or("?");
         crate::i18n::fmt(tl!("{name} (Photoshop)"), &[("name", name)])
     } else {
@@ -459,11 +459,11 @@ fn source(name: &str, bytes: &[u8]) -> Value {
         return json!({"path": name});
     }
     let _ = name;
-    json!({"data": localpaint_engine::paint::tile::b64_encode(bytes)})
+    json!({"data": localraster_engine::paint::tile::b64_encode(bytes)})
 }
 
 /// Load a `.atn` file's bytes into the Actions panel (the panel menu's Load Actions…).
-pub fn load_bytes(app: &mut LocalPaintApp, name: &str, bytes: &[u8]) -> Result<Value, String> {
+pub fn load_bytes(app: &mut LocalRasterApp, name: &str, bytes: &[u8]) -> Result<Value, String> {
     let r = app.run("actions.load", source(name, bytes))?;
     let n = r["actions"].as_array().map_or(0, Vec::len) as u64;
     let unsupported = r["unsupported"].as_array().map_or(0, Vec::len);
@@ -475,8 +475,8 @@ pub fn load_bytes(app: &mut LocalPaintApp, name: &str, bytes: &[u8]) -> Result<V
         let note = crate::i18n::trn(
             crate::i18n::current(),
             unsupported as u64,
-            "{n} step has no Local Paint equivalent yet",
-            "{n} steps have no Local Paint equivalent yet",
+            "{n} step has no Local Raster equivalent yet",
+            "{n} steps have no Local Raster equivalent yet",
         );
         let template = "{message} ({note})";
         crate::i18n::fmt(tl!(template), &[("message", &loaded), ("note", &note)])
@@ -498,22 +498,22 @@ pub fn load_bytes(app: &mut LocalPaintApp, name: &str, bytes: &[u8]) -> Result<V
     Ok(r)
 }
 
-fn load_dialog(app: &mut LocalPaintApp) -> Result<Value, String> {
+fn load_dialog(app: &mut LocalRasterApp) -> Result<Value, String> {
     app.pick_file_bytes_filtered(&["atn"], |app, name, bytes| load_bytes(app, &name, &bytes))
 }
 
 /// Save Actions…: the selected action's set (every action of it), else the selected set folder,
 /// or every action when none came from a set, as a `.atn` file Photoshop loads.
-fn save_dialog(app: &mut LocalPaintApp, set: Option<String>) -> Result<Value, String> {
+fn save_dialog(app: &mut LocalRasterApp, set: Option<String>) -> Result<Value, String> {
     let selected_set = app.ui.actions.selected.is_none().then(|| app.ui.actions.selected_set.clone()).flatten();
-    let selected_set = selected_set.filter(|set| localpaint_engine::actions_edit_cmds::set_names(&app.session).contains(set));
+    let selected_set = selected_set.filter(|set| localraster_engine::actions_edit_cmds::set_names(&app.session).contains(set));
     let set = set.or(selected_set).or_else(|| selected_action(app).and_then(|a| a.set.clone()));
     let params = match &set {
         Some(set) => json!({"set": set, "skipUnsupported": true}),
         None => json!({"skipUnsupported": true}),
     };
     let r = app.run("actions.save", params)?;
-    let bytes = r["data"].as_str().and_then(localpaint_engine::paint::tile::b64_decode).ok_or("the export returned no data")?;
+    let bytes = r["data"].as_str().and_then(localraster_engine::paint::tile::b64_decode).ok_or("the export returned no data")?;
     let n = r["actions"].as_array().map_or(0, Vec::len) as u64;
     let skipped = r["skipped"].as_array().map_or(0, Vec::len);
     // A set name can hold characters a file name can't (as in Keyboard Shortcuts' Save), or be a
@@ -525,7 +525,7 @@ fn save_dialog(app: &mut LocalPaintApp, set: Option<String>) -> Result<Value, St
         .map(|c| if c.is_control() || matches!(c, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|') { '_' } else { c })
         .collect();
     // A file name holds at most 255 bytes: the stem gets what `.atn` leaves, cut at a character.
-    let mut stem = localpaint_engine::file_cmds::portable_device_name(stem);
+    let mut stem = localraster_engine::file_cmds::portable_device_name(stem);
     let mut cut = 255 - ".atn".len();
     while !stem.is_char_boundary(cut.min(stem.len())) {
         cut -= 1;
@@ -565,8 +565,8 @@ pub fn owns_new_set(fields: &serde_json::Map<String, Value>) -> bool {
 }
 
 /// New Set…: name an empty set folder (Photoshop's default "Set N").
-fn new_set_dialog(app: &mut LocalPaintApp) -> Result<Value, String> {
-    let names = localpaint_engine::actions_edit_cmds::set_names(&app.session);
+fn new_set_dialog(app: &mut LocalRasterApp) -> Result<Value, String> {
+    let names = localraster_engine::actions_edit_cmds::set_names(&app.session);
     let name = (1u32..).map(|n| format!("Set {n}")).find(|n| !names.contains(n)).unwrap_or_default();
     let fields = json!({NEW_SET: true, "__command": "actions.newSet", "__label": "New Set", "name": name});
     let id = app.ui.open_dialog(crate::state::DialogKind::Command, fields.as_object().cloned().unwrap_or_default());
@@ -583,7 +583,7 @@ pub fn new_set_body(ui: &mut egui::Ui, fields: &mut serde_json::Map<String, Valu
 }
 
 /// Make the set and select it, so New Action records into it.
-pub fn new_set_confirm(app: &mut LocalPaintApp, fields: &serde_json::Map<String, Value>) -> Result<Value, String> {
+pub fn new_set_confirm(app: &mut LocalRasterApp, fields: &serde_json::Map<String, Value>) -> Result<Value, String> {
     let r = app.run("actions.newSet", json!({"name": fields.get("name").cloned().unwrap_or(Value::Null)}))?;
     app.ui.actions.selected_set = r["set"].as_str().map(str::to_string);
     app.ui.actions.selected = None;
@@ -596,7 +596,7 @@ pub fn owns_insert_stop(fields: &serde_json::Map<String, Value>) -> bool {
 }
 
 /// Insert Stop…: a message step after the selected step (or at the end of the selected action).
-fn insert_stop_dialog(app: &mut LocalPaintApp) -> Result<Value, String> {
+fn insert_stop_dialog(app: &mut LocalRasterApp) -> Result<Value, String> {
     let action = app.ui.actions.selected.filter(|i| *i < app.session.actions.list.len()).ok_or_else(|| tl!("Select an action first").to_string())?;
     let len = app.session.actions.list[action].steps.len() + actions_cmds::pending_steps(&app.session, action).count();
     let at = app.ui.actions.selected_step.map_or(len, |s| (s + 1).min(len));
@@ -617,12 +617,12 @@ pub fn insert_stop_body(ui: &mut egui::Ui, fields: &mut serde_json::Map<String, 
     fields.insert("allowContinue".into(), json!(allow));
 }
 
-pub fn insert_stop_confirm(app: &mut LocalPaintApp, fields: &serde_json::Map<String, Value>) -> Result<Value, String> {
+pub fn insert_stop_confirm(app: &mut LocalRasterApp, fields: &serde_json::Map<String, Value>) -> Result<Value, String> {
     let action = fields.get("action").and_then(Value::as_u64).ok_or("the dialog names no action")?;
     let params = json!({
         "action": action,
         "at": fields.get("at").cloned().unwrap_or(Value::Null),
-        "id": localpaint_engine::atn_cmds::STOP_MESSAGE,
+        "id": localraster_engine::atn_cmds::STOP_MESSAGE,
         "params": {"message": fields.get("message").cloned().unwrap_or(json!("")), "allowContinue": fields.get("allowContinue").cloned().unwrap_or(json!(false))},
     });
     let r = app.run("actions.insert", params)?;
@@ -640,7 +640,7 @@ pub fn insert_stop_confirm(app: &mut LocalPaintApp, fields: &serde_json::Map<Str
 pub const RESUME: &str = "__resumeAction";
 
 /// Resume the recording a paused call suspended and journal that call, once.
-fn restore_recording(app: &mut LocalPaintApp, owner: Option<&Value>) {
+fn restore_recording(app: &mut LocalRasterApp, owner: Option<&Value>) {
     let Some(owner) = owner else { return };
     let (Some(idx), Some(into), Some(name)) = (
         owner.get("index").and_then(Value::as_u64).and_then(|n| usize::try_from(n).ok()),
@@ -663,7 +663,7 @@ fn restore_recording(app: &mut LocalPaintApp, owner: Option<&Value>) {
 }
 
 /// Whether a paused playback holds a suspended recording.
-fn suspended(app: &LocalPaintApp) -> bool {
+fn suspended(app: &LocalRasterApp) -> bool {
     app.paused_playbacks.paused.values().any(|p| p.record.is_some())
 }
 
@@ -671,7 +671,7 @@ fn suspended(app: &LocalPaintApp) -> bool {
 /// recording (the restore would find recording taken) or deleting/moving actions (the recorded
 /// action could go away or change place). The engine checks these against `recording`, which
 /// is `None` then.
-pub(crate) fn suspended_guard(app: &LocalPaintApp, id: &str) -> Result<(), String> {
+pub(crate) fn suspended_guard(app: &LocalRasterApp, id: &str) -> Result<(), String> {
     if matches!(id, "actions.record" | "actions.delete" | "actions.move") && suspended(app) {
         return Err(tl!("Confirm or cancel the open action step dialog first").into());
     }
@@ -679,13 +679,13 @@ pub(crate) fn suspended_guard(app: &LocalPaintApp, id: &str) -> Result<(), Strin
 }
 
 /// A step dialog's command failed: the action ends there.
-pub fn abandoned(app: &mut LocalPaintApp, fields: &serde_json::Map<String, Value>) {
+pub fn abandoned(app: &mut LocalRasterApp, fields: &serde_json::Map<String, Value>) {
     let record = fields.get(RESUME).and_then(|t| app.paused_playbacks.take(t)).and_then(|p| p.record);
     restore_recording(app, record.as_ref());
 }
 
-/// The automation gate a session installs ([`localpaint_engine::Session::authorize`]).
-type Gate = fn(&str, &Value) -> localpaint_engine::Result<()>;
+/// The automation gate a session installs ([`localraster_engine::Session::authorize`]).
+type Gate = fn(&str, &Value) -> localraster_engine::Result<()>;
 
 /// A playback paused at a step dialog: the action and step it continues from, and the gate it
 /// was playing under (`None` for one a person started).
@@ -733,7 +733,7 @@ impl PausedPlaybacks {
 ///
 /// The remaining steps run under the gate the playback paused with, however the dialog was
 /// confirmed: a control request, synthetic Enter or OK, or a click.
-pub fn resume(app: &mut LocalPaintApp, fields: &serde_json::Map<String, Value>) -> Result<(), String> {
+pub fn resume(app: &mut LocalRasterApp, fields: &serde_json::Map<String, Value>) -> Result<(), String> {
     let Some(token) = fields.get(RESUME) else { return Ok(()) };
     let Some(paused) = app.paused_playbacks.take(token) else {
         return Err("this dialog doesn't belong to a paused action".into());
@@ -804,7 +804,7 @@ pub fn resume(app: &mut LocalPaintApp, fields: &serde_json::Map<String, Value>) 
 }
 
 /// A step dialog cancelled: the action stops there, as in Photoshop.
-pub fn stopped(app: &mut LocalPaintApp, fields: &serde_json::Map<String, Value>) {
+pub fn stopped(app: &mut LocalRasterApp, fields: &serde_json::Map<String, Value>) {
     if fields.contains_key(RESUME) {
         abandoned(app, fields);
         app.ui.status = tl!("Action playback stopped").to_string();
@@ -813,7 +813,7 @@ pub fn stopped(app: &mut LocalPaintApp, fields: &serde_json::Map<String, Value>)
 }
 
 /// The Actions entries of the panel group's menu ("…").
-pub fn panel_menu(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+pub fn panel_menu(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     let mut act: Option<&str> = None;
     let recording = app.session.actions.recording.is_some();
     let any = !app.session.actions.list.is_empty();
@@ -847,7 +847,7 @@ pub fn panel_menu(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
         act = Some("load");
     }
     // A selected set folder saves even when empty, as Photoshop saves an empty set.
-    let set_selected = app.ui.actions.selected_set.as_ref().is_some_and(|set| localpaint_engine::actions_edit_cmds::set_names(&app.session).contains(set));
+    let set_selected = app.ui.actions.selected_set.as_ref().is_some_and(|set| localraster_engine::actions_edit_cmds::set_names(&app.session).contains(set));
     if ui.add_enabled(any || set_selected, egui::Button::new(tl!("Save Actions…"))).clicked() {
         act = Some("save");
     }
@@ -912,7 +912,7 @@ fn drag_row(ui: &egui::Ui, response: &egui::Response, row: DragRow, t: &Tokens) 
     response.dnd_release_payload::<DragRow>().map(|source| (*source, to))
 }
 
-fn move_row(app: &mut LocalPaintApp, source: DragRow, to: usize) {
+fn move_row(app: &mut LocalRasterApp, source: DragRow, to: usize) {
     let mut params = json!({"action": source.action, "to": to});
     if let Some(step) = source.step {
         params["step"] = json!(step);
@@ -938,7 +938,7 @@ fn move_row(app: &mut LocalPaintApp, source: DragRow, to: usize) {
     }
 }
 
-fn delete_selection(app: &mut LocalPaintApp) {
+fn delete_selection(app: &mut LocalRasterApp) {
     let Some(action) = app.ui.actions.selected else { return };
     let step = app.ui.actions.selected_step;
     let mut params = json!({"action": action});
@@ -959,7 +959,7 @@ fn delete_selection(app: &mut LocalPaintApp) {
 
 /// The in-place name field of the action being renamed. Enter, Tab or clicking elsewhere
 /// returns the new name to commit; Escape cancels and keeps the old name.
-fn rename_field(app: &mut LocalPaintApp, ui: &mut egui::Ui, index: usize, rect: Rect) -> Option<String> {
+fn rename_field(app: &mut LocalRasterApp, ui: &mut egui::Ui, index: usize, rect: Rect) -> Option<String> {
     let mut r = app.ui.actions.renaming.take().filter(|r| r.index == index)?;
     let id = egui::Id::unique(("action-rename-field", index));
     let te = ui.put(rect, egui::TextEdit::singleline(&mut r.text).id(id).font(egui::FontId::proportional(12.0))).accessible_name(tl!("Name"));
@@ -986,7 +986,7 @@ fn rename_field(app: &mut LocalPaintApp, ui: &mut egui::Ui, index: usize, rect: 
     }
 }
 
-fn rename_action(app: &mut LocalPaintApp, index: usize, name: String) {
+fn rename_action(app: &mut LocalRasterApp, index: usize, name: String) {
     if let Err(e) = app.run("actions.rename", json!({"action": index, "name": name})) {
         let template = "Could not rename the action: {error}";
         app.ui.status = crate::i18n::fmt(tl!(template), &[("error", &e)]);
@@ -1074,7 +1074,7 @@ fn draw_set_header(ui: &mut egui::Ui, set: &str, count: u64, collapsed: bool, se
 /// The sets New Set made that hold no action yet: empty folder rows after the rest. Returns the
 /// set whose row was clicked (whether it toggles, whether it selects) and the set whose Save Set…
 /// was chosen.
-fn draw_empty_sets(app: &LocalPaintApp, ui: &mut egui::Ui, rows: &[Row], t: &Tokens) -> (Option<(String, bool, bool)>, Option<String>) {
+fn draw_empty_sets(app: &LocalRasterApp, ui: &mut egui::Ui, rows: &[Row], t: &Tokens) -> (Option<(String, bool, bool)>, Option<String>) {
     let (mut clicked, mut save) = (None, None);
     for set in app.session.actions.sets.iter().filter(|set| !rows.iter().any(|r| r.set.as_ref() == Some(*set))) {
         let selected = app.ui.actions.selected.is_none() && app.ui.actions.selected_set.as_ref() == Some(set);
@@ -1090,16 +1090,16 @@ fn draw_empty_sets(app: &LocalPaintApp, ui: &mut egui::Ui, rows: &[Row], t: &Tok
     (clicked, save)
 }
 
-fn action_context_menu(app: &mut LocalPaintApp, response: &egui::Response, index: usize, name: &str, swatch: &str) {
+fn action_context_menu(app: &mut LocalRasterApp, response: &egui::Response, index: usize, name: &str, swatch: &str) {
     egui::Popup::context_menu(response).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
         ui.label(tl!("Keyboard Shortcuts"));
         let current = app.session.prefs().shortcuts.get(&shortcut_id(name)).cloned().unwrap_or_default();
         // Photoshop's Action Options: a function key, with Shift and Command (#7646).
-        let (key, mut shift, mut command) = localpaint_engine::atn_cmds::parse_function_key(&current).unwrap_or((0, false, false));
+        let (key, mut shift, mut command) = localraster_engine::atn_cmds::parse_function_key(&current).unwrap_or((0, false, false));
         for number in std::iter::once(0).chain(1..=12) {
             let label = if number == 0 { tl!("None").to_string() } else { format!("F{number}") };
             if ui.selectable_label(key == number, label).clicked() {
-                let chosen = if number == 0 { String::new() } else { localpaint_engine::atn_cmds::function_key_name(number, shift, command) };
+                let chosen = if number == 0 { String::new() } else { localraster_engine::atn_cmds::function_key_name(number, shift, command) };
                 let _ = assign_shortcut(app, name, &chosen);
                 ui.close();
             }
@@ -1108,7 +1108,7 @@ fn action_context_menu(app: &mut LocalPaintApp, response: &egui::Response, index
             let command_label = if cfg!(target_os = "macos") { tl!("Command") } else { tl!("Ctrl") };
             let toggled = ui.checkbox(&mut shift, tl!("Shift")).changed() | ui.checkbox(&mut command, command_label).changed();
             if toggled {
-                let _ = assign_shortcut(app, name, &localpaint_engine::atn_cmds::function_key_name(key, shift, command));
+                let _ = assign_shortcut(app, name, &localraster_engine::atn_cmds::function_key_name(key, shift, command));
             }
         });
         ui.separator();
@@ -1132,7 +1132,7 @@ fn action_context_menu(app: &mut LocalPaintApp, response: &egui::Response, index
     });
 }
 
-pub fn panel(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+pub fn panel(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
     let recording = app.session.actions.recording;
     let rows: Vec<Row> = app
@@ -1435,7 +1435,7 @@ struct StepRowEvents {
     dialog_toggled: Option<(usize, usize)>,
 }
 
-fn draw_step_rows(app: &mut LocalPaintApp, ui: &mut egui::Ui, context: &StepRowsContext<'_>) -> StepRowEvents {
+fn draw_step_rows(app: &mut LocalRasterApp, ui: &mut egui::Ui, context: &StepRowsContext<'_>) -> StepRowEvents {
     let mut events = StepRowEvents::default();
     for (step, (id, params)) in context.steps.iter().enumerate() {
         let (rect, response) = ui.allocate_exact_size(vec2(ui.available_width(), 20.0), Sense::click_and_drag());
@@ -1457,7 +1457,7 @@ fn draw_step_rows(app: &mut LocalPaintApp, ui: &mut egui::Ui, context: &StepRows
     events
 }
 
-fn draw_step_label(app: &LocalPaintApp, ui: &egui::Ui, rect: Rect, response: &egui::Response, step: usize, label: &str, context: &StepRowsContext<'_>) {
+fn draw_step_label(app: &LocalRasterApp, ui: &egui::Ui, rect: Rect, response: &egui::Response, step: usize, label: &str, context: &StepRowsContext<'_>) {
     let selected = app.ui.actions.selected == Some(context.action) && app.ui.actions.selected_step == Some(step);
     response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, selected, label));
     if selected {

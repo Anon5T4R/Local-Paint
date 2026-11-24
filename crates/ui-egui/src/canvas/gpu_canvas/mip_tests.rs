@@ -3,9 +3,9 @@
 //! test devices), and use synthetic pixels instead of event photographs.
 
 use super::*;
-use localpaint_compose::Buffer;
-use localpaint_doc::SampleType;
-use localpaint_geom::Rect;
+use localraster_compose::Buffer;
+use localraster_doc::SampleType;
+use localraster_geom::Rect;
 
 fn read_mips(gpu: &GpuCanvas, key: u64) -> Vec<Vec<[f32; 4]>> {
     let renderer = gpu.rs.renderer.read();
@@ -51,7 +51,7 @@ fn read_mips(gpu: &GpuCanvas, key: u64) -> Vec<Vec<[f32; 4]>> {
 
 #[test]
 fn canvas_mips_preserve_opaque_pixels_and_partial_updates() {
-    let _gpu = localpaint_testkit::gpu_lock();
+    let _gpu = localraster_testkit::gpu_lock();
     let rs = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| egui_kittest::wgpu::create_render_state(wgpu_setup(), Default::default())));
     let Ok(rs) = rs else {
         eprintln!("skipping mip readback: no GPU adapter");
@@ -134,7 +134,7 @@ fn check_mips(gpu: &GpuCanvas) {
 /// both depths and compares every level with a full rebuild of the same pixels.
 #[test]
 fn partial_updates_match_a_full_rebuild_at_every_mip_level() {
-    let _gpu = localpaint_testkit::gpu_lock();
+    let _gpu = localraster_testkit::gpu_lock();
     let rs = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| egui_kittest::wgpu::create_render_state(wgpu_setup(), Default::default())));
     let Ok(rs) = rs else {
         eprintln!("skipping mip rebuild comparison: no GPU adapter");

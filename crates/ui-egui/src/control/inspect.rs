@@ -2,7 +2,7 @@ use super::*;
 
 /// The open canvas context menu's rows for `ui.state`: the spelling suggestions first (type edit
 /// menu over a misspelled word), then the menu's own rows.
-fn context_entries(app: &LocalPaintApp, menu: &crate::canvas_tool_menu::CanvasToolMenu) -> Vec<Value> {
+fn context_entries(app: &LocalRasterApp, menu: &crate::canvas_tool_menu::CanvasToolMenu) -> Vec<Value> {
     use crate::canvas_tool_menu::{crop_rows, entry_enabled, rows, spelling_rows};
     let spelling = spelling_rows(menu);
     let mut entries: Vec<Value> = spelling.iter().map(|(label, id)| json!({"label": label, "id": id, "enabled": entry_enabled(app, menu, id)})).collect();
@@ -21,7 +21,7 @@ fn context_entries(app: &LocalPaintApp, menu: &crate::canvas_tool_menu::CanvasTo
 }
 
 /// Snapshot of everything on screen, addressable by id.
-pub fn inspect(app: &LocalPaintApp, ctx: &egui::Context) -> Value {
+pub fn inspect(app: &LocalRasterApp, ctx: &egui::Context) -> Value {
     let screen = ctx.content_rect();
     let mut dialogs: Vec<Value> =
         app.ui.dialogs.iter().map(|d| json!({"id": d.id, "kind": d.kind, "title": crate::dialogs::title(d), "fields": d.fields})).collect();
@@ -103,12 +103,12 @@ pub fn inspect(app: &LocalPaintApp, ctx: &egui::Context) -> Value {
         "statusError": app.ui.status_error,
         "notices": app.ui.notices,
         "updatesOpen": app.ui.updates_open,
-        "updates": {"supported": app.session.updates.check.is_some(), "currentVersion": localpaint_engine::build_info::VERSION, "result": app.session.updates.status},
+        "updates": {"supported": app.session.updates.check.is_some(), "currentVersion": localraster_engine::build_info::VERSION, "result": app.session.updates.status},
         "gpuFallbackNotice": app.ui.gpu_fallback_notice,
         "kysOffer": app.ui.kys_offer,
         "frame": app.frame,
-        "session": localpaint_engine::inspect::session(&app.session),
-        "document": app.session.active().map(localpaint_engine::inspect::document),
+        "session": localraster_engine::inspect::session(&app.session),
+        "document": app.session.active().map(localraster_engine::inspect::document),
         "perf": {
             "fps": app.fps,
             "timings": app.perf,
@@ -124,7 +124,7 @@ pub fn inspect(app: &LocalPaintApp, ctx: &egui::Context) -> Value {
     })
 }
 
-pub fn save_screenshot(app: &mut LocalPaintApp, image: &egui::ColorImage, path: Option<&str>) -> Value {
+pub fn save_screenshot(app: &mut LocalRasterApp, image: &egui::ColorImage, path: Option<&str>) -> Value {
     let [w, h] = image.size;
     let rgba: Vec<u8> = image.pixels.iter().flat_map(|c| c.to_array()).collect();
     save_screenshot_rgba(app, w, h, &rgba, path)
@@ -132,8 +132,8 @@ pub fn save_screenshot(app: &mut LocalPaintApp, image: &egui::ColorImage, path: 
 
 /// Encode already-flattened RGBA pixels. The capture lifecycle uses this after dropping the
 /// retained [`egui::ColorImage`], so the encoder's input copy and the retained image do not
-/// overlap in memory (see `LocalPaintApp::finish_captures`).
-pub fn save_screenshot_rgba(app: &mut LocalPaintApp, w: usize, h: usize, rgba: &[u8], path: Option<&str>) -> Value {
+/// overlap in memory (see `LocalRasterApp::finish_captures`).
+pub fn save_screenshot_rgba(app: &mut LocalRasterApp, w: usize, h: usize, rgba: &[u8], path: Option<&str>) -> Value {
     let png = match app.services.encode_png.as_ref() {
         Some(enc) => enc(w as u32, h as u32, rgba),
         None => Err("no PNG encoder configured".into()),

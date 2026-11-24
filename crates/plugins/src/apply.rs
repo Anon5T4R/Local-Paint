@@ -1,8 +1,8 @@
 //! Running a filter plug-in over a surface, band by band.
 
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_geom::{Rect, TILE_SIZE, TileCoord};
-use localpaint_raster::Surface;
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_geom::{Rect, TILE_SIZE, TileCoord};
+use localraster_raster::Surface;
 use serde_json::{Value, json};
 
 use crate::manifest::Area;

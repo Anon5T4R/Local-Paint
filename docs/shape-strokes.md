@@ -4,7 +4,7 @@ Updated 2026-10-27: Photoshop's Fill/Stroke popover (paint types, Recently Used 
 folders, full Color Picker). 2026-10-15: retain stroke paint and options when width reaches zero
 (#6191).
 
-Local Paint's Shape tool options bar has a Stroke Options button beside the existing width
+Local Raster's Shape tool options bar has a Stroke Options button beside the existing width
 and colour controls. It sets defaults for new Rectangle, Ellipse, Triangle, Polygon, Line
 and Custom Shape layers. Pen in Shape mode uses the same style defaults; open Pen shapes retain
 their existing foreground colour and minimum 1 px width. To edit an existing shape,
@@ -107,34 +107,34 @@ not offered yet.
 
 ## Upstream and public references
 
-- [PR #2218](https://github.com/Anon5T4R/Local-Paint/pull/2218) introduced these controls with
+- [PR #2218](https://github.com/Anon5T4R/Local-Raster/pull/2218) introduced these controls with
   staged previews. The direct-edit interaction above replaces that Apply/Cancel workflow.
-- [Issue #2496](https://github.com/Anon5T4R/Local-Paint/issues/2496) tracks broader Shape tool
+- [Issue #2496](https://github.com/Anon5T4R/Local-Raster/issues/2496) tracks broader Shape tool
   parity, including selected-shape editing from the options bar and additional fill types;
   those remain separate work.
-- [Issue #1053](https://github.com/Anon5T4R/Local-Paint/issues/1053) documents the missing
+- [Issue #1053](https://github.com/Anon5T4R/Local-Raster/issues/1053) documents the missing
   stroke controls and existing engine/model support. The Fill and Stroke swatches now have a
   Gradient tab (see Paint below); a pattern paint UI remains separate work.
-- [Issue #1931](https://github.com/Anon5T4R/Local-Paint/issues/1931) requests sharp stroke options.
-- [PR #233](https://github.com/Anon5T4R/Local-Paint/pull/233),
-  [#397](https://github.com/Anon5T4R/Local-Paint/pull/397), and
-  [#1495](https://github.com/Anon5T4R/Local-Paint/pull/1495) already address stroke compositing,
+- [Issue #1931](https://github.com/Anon5T4R/Local-Raster/issues/1931) requests sharp stroke options.
+- [PR #233](https://github.com/Anon5T4R/Local-Raster/pull/233),
+  [#397](https://github.com/Anon5T4R/Local-Raster/pull/397), and
+  [#1495](https://github.com/Anon5T4R/Local-Raster/pull/1495) already address stroke compositing,
   hairlines, and depth preservation; their implementations are reused.
-- [PR #2031](https://github.com/Anon5T4R/Local-Paint/pull/2031) supplies the click-to-create
+- [PR #2031](https://github.com/Anon5T4R/Local-Raster/pull/2031) supplies the click-to-create
   dialogs. Both dialogs and drag creation use its shared `create_shape` helper, which receives
   the complete stroke defaults. A gesture regression checks both paths and their undo steps.
 - Adobe's [Photoshop shape fill/stroke guide](https://helpx.adobe.com/photoshop/desktop/draw-shapes-paths/create-shapes/fill-and-stroke-shapes.html)
   describes the tool options and Properties entry points, and its
   [cap/join reference](https://helpx.adobe.com/ca/illustrator/desktop/paint-and-fill/apply-and-edit-strokes/change-the-caps-or-joins-of-a-line.html)
   defines endpoint and corner behavior and the 1–500 miter range. Dash units reuse
-  Local Paint's existing documented `ShapeStroke`/`vstk` convention.
+  Local Raster's existing documented `ShapeStroke`/`vstk` convention.
 
-## Editable arrows and older Local Paint versions
+## Editable arrows and older Local Raster versions
 
 Native `.pcraft` documents store arrow geometry in the regular shape path and
 the editable arrow parameters separately in the optional `arrow_live` field.
 
-Local Paint versions that do not support editable arrows can open these documents
+Local Raster versions that do not support editable arrows can open these documents
 and display the saved arrow geometry as a regular vector shape. They cannot edit
 the arrowhead parameters.
 

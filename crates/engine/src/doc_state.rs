@@ -21,11 +21,11 @@ pub struct DocState {
     pub revision: u64,
     pub saved_revision: u64,
     /// Native save cache shared with this document's workers, released with the editing state.
-    pub pcraft_cache: localpaint_io::PcraftExportCache,
+    pub pcraft_cache: localraster_io::PcraftExportCache,
     /// How much of `revision` came from view-only changes (channel eyes, targeting): pixel caches can ignore those.
     pub view_revision: u64,
     /// Area changed by the latest revision (None = assume everything changed).
-    pub last_damage: Option<localpaint_geom::Rect>,
+    pub last_damage: Option<localraster_geom::Rect>,
     /// Coalescing key of the latest history step (see [`Session::execute`]'s `coalesce` param).
     pub coalesce: Option<String>,
     /// Channels panel: targeted channel and eye toggles (view state, not history).
@@ -54,7 +54,7 @@ pub struct DocState {
     /// The id the next snapshot gets; ids are never reused, so deleting one keeps the others.
     pub(crate) next_snapshot: u64,
     /// The snapshot set as the History Brush's source (`history.setSource {snapshot}`); `None`:
-    /// the source is a state, kept by the history ([`localpaint_ops::History::brush_source`]).
+    /// the source is a state, kept by the history ([`localraster_ops::History::brush_source`]).
     pub(crate) source_snapshot: Option<u64>,
 }
 
@@ -148,17 +148,17 @@ impl DocState {
 pub struct ToolState {
     pub foreground: [f32; 4],
     pub background: [f32; 4],
-    pub brush: localpaint_paint::BrushSettings,
+    pub brush: localraster_paint::BrushSettings,
     /// Brush presets (built-ins plus user presets; see `brush.presets.*`).
-    pub presets: Vec<localpaint_paint::BrushPreset>,
+    pub presets: Vec<localraster_paint::BrushPreset>,
     /// Bumped whenever `presets` changes ([`Session::brush_presets_changed`]); the preset store
     /// syncs when it moves.
     pub presets_rev: u64,
     /// Mixer Brush paint carried between strokes.
-    pub mixer: localpaint_paint::mixer::MixerState,
+    pub mixer: localraster_paint::mixer::MixerState,
     /// The coalescing key of the running `tools.setBrush` gesture and the brush before it, so the
     /// gesture journals as one call ([`brush_cmds::coalesce_journal`]).
-    pub brush_gesture: Option<(String, localpaint_paint::BrushSettings)>,
+    pub brush_gesture: Option<(String, localraster_paint::BrushSettings)>,
     /// Name of the preset the current brush was last picked from. Kept across later edits (the
     /// preset stays "the current brush" so `brush.presets.update` can overwrite it); cleared when
     /// the brush is reset or the preset is gone.
@@ -234,11 +234,11 @@ impl Default for ToolState {
             foreground: [0.0, 0.0, 0.0, 1.0],
             background: [1.0, 1.0, 1.0, 1.0],
             // Photoshop's Brush tool starts at 10 % Smoothing.
-            brush: localpaint_paint::BrushSettings {
-                smoothing: localpaint_paint::brush::Smoothing { amount: 0.1, ..Default::default() },
+            brush: localraster_paint::BrushSettings {
+                smoothing: localraster_paint::brush::Smoothing { amount: 0.1, ..Default::default() },
                 ..Default::default()
             },
-            presets: localpaint_paint::presets::builtin(),
+            presets: localraster_paint::presets::builtin(),
             presets_rev: 0,
             mixer: Default::default(),
             brush_gesture: None,
@@ -256,20 +256,20 @@ impl Default for ToolState {
 /// copies them (Paste Layer Style puts them all on each target).
 #[derive(Clone, Debug)]
 pub struct CopiedStyle {
-    pub effects: localpaint_doc::Effects,
-    pub blend: localpaint_color::BlendMode,
+    pub effects: localraster_doc::Effects,
+    pub blend: localraster_color::BlendMode,
     pub fill: f32,
-    pub advanced: localpaint_doc::AdvancedBlending,
-    pub blend_if: localpaint_doc::BlendIf,
+    pub advanced: localraster_doc::AdvancedBlending,
+    pub blend_if: localraster_doc::BlendIf,
     pub excluded_channels: u32,
     /// The colour mode it was copied in: Blend If's channel ranges and the channel restrictions
     /// only carry over to a document in the same mode.
-    pub mode: localpaint_color::ColorMode,
+    pub mode: localraster_color::ColorMode,
 }
 
 /// The commands whose [`Session::precheck`] is complete: it accepts what `execute` does (Free
 /// Transform applies its box before these, and only when they will run), but for the group
-/// nesting limit ([`localpaint_doc::MAX_GROUP_DEPTH`]): grouping layers already that deep is
+/// nesting limit ([`localraster_doc::MAX_GROUP_DEPTH`]): grouping layers already that deep is
 /// refused only as the edit is made. Layer via Copy and
 /// Cut aren't: whether they have anything to copy (a selection over transparent pixels, a group
 /// or fill layer) is known only when they run.

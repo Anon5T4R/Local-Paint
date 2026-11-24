@@ -3,10 +3,10 @@
 
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
-fn app_with_two_documents() -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn app_with_two_documents() -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 64, "height": 48})).unwrap();
     app.run("file.new", json!({"width": 32, "height": 32})).unwrap();
     assert_eq!(app.ui.views.len(), 2);

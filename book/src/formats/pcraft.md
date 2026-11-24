@@ -1,6 +1,6 @@
 # The `.pcraft` format
 
-`localpaint-format` stores the native lossless document as a ZIP archive or directory bundle. Its main entries are:
+`localraster-format` stores the native lossless document as a ZIP archive or directory bundle. Its main entries are:
 
 ```text
 manifest.json
@@ -31,4 +31,4 @@ The ZIP reader bounds decompression by the caller-supplied maximum, rejects encr
 
 These defaults are intentionally finite but can still be expensive on constrained systems. Future hardening should add context-sensitive budgets and explicit limits for entry count, document complexity, and cumulative work, then test directory bundles against symlink and replacement races.
 
-When fields are added to `localpaint-doc`, `localpaint-format` intentionally requires corresponding manifest and conversion updates so native saves do not silently drop new state.
+When fields are added to `localraster-doc`, `localraster-format` intentionally requires corresponding manifest and conversion updates so native saves do not silently drop new state.

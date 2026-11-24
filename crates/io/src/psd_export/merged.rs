@@ -19,13 +19,13 @@ pub(super) fn merged_planes(doc: &Document, fmt: &PixelFormat, cmyk: bool, matte
     let plane = n * bps;
     let mut planes = vec![0u8; plane * (cc + 1)];
     let (mut has_alpha, mut translucent) = (false, false);
-    let white = localpaint_raster::from_rgba(fmt, [1.0, 1.0, 1.0, 1.0]);
+    let white = localraster_raster::from_rgba(fmt, [1.0, 1.0, 1.0, 1.0]);
     let canvas = doc.bounds();
     let w = canvas.width() as usize;
-    let space = localpaint_compose::cmyk_space(doc);
+    let space = localraster_compose::cmyk_space(doc);
     let lab16 = fmt.mode == ColorMode::Lab && sample == SampleType::U16;
     let rows = canvas.height().max(1) as f32;
-    let _ = localpaint_compose::render_bands(doc, canvas, 0, |band| -> Result<(), ()> {
+    let _ = localraster_compose::render_bands(doc, canvas, 0, |band| -> Result<(), ()> {
         if ctl.cancelled() {
             return Err(());
         }
@@ -45,7 +45,7 @@ pub(super) fn merged_planes(doc: &Document, fmt: &PixelFormat, cmyk: bool, matte
         let flags = crate::pixels::par_map(ranges.into_iter().zip(slots).collect(), |(range, mut out)| {
             let px = band.px.get(range).unwrap_or(&[]);
             let k = Encode { fmt, cc, matte, cmyk, lab16, white: &white };
-            localpaint_color::convert::with_cmyk_space(space.as_ref(), || match sample {
+            localraster_color::convert::with_cmyk_space(space.as_ref(), || match sample {
                 SampleType::U8 => k.run(
                     px,
                     &mut out,
@@ -106,7 +106,7 @@ impl Encode<'_> {
             // Retain alpha whenever it differs from opaque at the stored precision.
             has_alpha |= stored_translucent(p[3]);
             translucent |= p[3] < 1.0;
-            localpaint_raster::from_rgba_into(fmt, *p, &mut v);
+            localraster_raster::from_rgba_into(fmt, *p, &mut v);
             for (c, dst) in out.iter_mut().enumerate() {
                 // Matte against white like Photoshop (see `pixels::matte`).
                 let m = if c < cc && matte { crate::pixels::matte(v[c], v[cc], white.get(c).copied().unwrap_or(1.0)) } else { v[c] };
@@ -121,7 +121,7 @@ impl Encode<'_> {
 }
 
 /// [`merged_planes`] of a CMYK document whose layers are mixed on their ink values
-/// (`localpaint_compose::cmyk`), so opaque pixels keep their exact inks; `None` for documents
+/// (`localraster_compose::cmyk`), so opaque pixels keep their exact inks; `None` for documents
 /// that composite in RGB. Reports progress and stops on cancel like [`merged_planes`].
 fn merged_ink_planes(doc: &Document, sample: SampleType, matte: bool, ctl: &Interrupt) -> Option<(Vec<u8>, bool, bool)> {
     let bps = sample.bytes();
@@ -133,7 +133,7 @@ fn merged_ink_planes(doc: &Document, sample: SampleType, matte: bool, ctl: &Inte
     let w = canvas.width() as usize;
     let rows = canvas.height().max(1) as f32;
     // A cancelled export leaves the rest blank (the caller discards it), so the result stands either way.
-    let _ = localpaint_compose::cmyk::render_cmyk_bands(doc, canvas, 0, |band| -> Result<(), ()> {
+    let _ = localraster_compose::cmyk::render_cmyk_bands(doc, canvas, 0, |band| -> Result<(), ()> {
         if ctl.cancelled() {
             return Err(());
         }
@@ -178,8 +178,8 @@ pub(super) fn placeholder_planes(doc: &Document, fmt: &PixelFormat) -> Vec<u8> {
     let cc = fmt.mode.color_channels();
     let cmyk = cmyk_of(fmt);
     let lab16 = fmt.mode == ColorMode::Lab && fmt.sample == SampleType::U16;
-    let space = localpaint_compose::cmyk_space(doc);
-    let white = localpaint_color::convert::with_cmyk_space(space.as_ref(), || localpaint_raster::from_rgba(fmt, [1.0, 1.0, 1.0, 1.0]));
+    let space = localraster_compose::cmyk_space(doc);
+    let white = localraster_color::convert::with_cmyk_space(space.as_ref(), || localraster_raster::from_rgba(fmt, [1.0, 1.0, 1.0, 1.0]));
     let n = doc.size.area() as usize;
     let mut planes = Vec::with_capacity(n * fmt.sample.bytes() * cc);
     for c in 0..cc {
@@ -196,8 +196,8 @@ pub(super) fn placeholder_planes(doc: &Document, fmt: &PixelFormat) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_doc::{Layer, LayerContent};
-    use localpaint_raster::Surface;
+    use localraster_doc::{Layer, LayerContent};
+    use localraster_raster::Surface;
 
     fn previous_merged_planes(doc: &Document, fmt: &PixelFormat, cmyk: bool, matte: bool) -> (Vec<u8>, bool, bool) {
         if cmyk && let Some(planes) = merged_ink_planes(doc, fmt.sample, matte, &Interrupt::NONE) {
@@ -209,12 +209,12 @@ mod tests {
         let plane = doc.size.area() as usize * bps;
         let mut planes = vec![0u8; plane * (cc + 1)];
         let (mut has_alpha, mut translucent) = (false, false);
-        let white = localpaint_raster::from_rgba(fmt, [1.0, 1.0, 1.0, 1.0]);
+        let white = localraster_raster::from_rgba(fmt, [1.0, 1.0, 1.0, 1.0]);
         let canvas = doc.bounds();
         let w = canvas.width() as usize;
-        let space = localpaint_compose::cmyk_space(doc);
+        let space = localraster_compose::cmyk_space(doc);
         let lab16 = fmt.mode == ColorMode::Lab && sample == SampleType::U16;
-        let _ = localpaint_compose::render_bands(doc, canvas, 0, |band| -> Result<(), ()> {
+        let _ = localraster_compose::render_bands(doc, canvas, 0, |band| -> Result<(), ()> {
             has_alpha |= band.px.iter().any(|p| match sample {
                 SampleType::U8 => q255(p[3]) < 255,
                 SampleType::U16 => (p[3].clamp(0.0, 1.0) * 65535.0 + 0.5) as u16 != u16::MAX,
@@ -222,10 +222,10 @@ mod tests {
             });
             translucent |= band.px.iter().any(|p| p[3] < 1.0);
             let start = (band.rect.y0 - canvas.y0) as usize * w;
-            localpaint_color::convert::with_cmyk_space(space.as_ref(), || {
+            localraster_color::convert::with_cmyk_space(space.as_ref(), || {
                 let mut v = [0.0f32; 5];
                 for (i, p) in band.px.iter().enumerate() {
-                    localpaint_raster::from_rgba_into(fmt, *p, &mut v);
+                    localraster_raster::from_rgba_into(fmt, *p, &mut v);
                     for c in 0..=cc {
                         let m = if c < cc && matte { crate::pixels::matte(v[c], v[cc], white[c]) } else { v[c] };
                         let x = if cmyk && c < cc { 1.0 - m } else { m };
@@ -244,7 +244,7 @@ mod tests {
 
     #[test]
     fn merged_planes_match_the_per_band_reference() {
-        let size = localpaint_geom::Size::new(37, 23);
+        let size = localraster_geom::Size::new(37, 23);
         for mode in [ColorMode::Rgb, ColorMode::Grayscale, ColorMode::Lab, ColorMode::Cmyk] {
             for sample in SampleType::ALL {
                 for alpha_floor in [0.0f32, 0.999_9, 1.0] {
@@ -256,7 +256,7 @@ mod tests {
                             let a = (alpha_floor + (1.0 - alpha_floor) * ((x * 7 + y * 3) % 11) as f32 / 10.0).min(1.0);
                             let rgba = [x as f32 / 36.0, y as f32 / 22.0, ((x + y) % 5) as f32 / 4.0, a];
                             let mut v = [0.0f32; 5];
-                            let n = localpaint_raster::from_rgba_into(&fmt, rgba, &mut v);
+                            let n = localraster_raster::from_rgba_into(&fmt, rgba, &mut v);
                             s.write_pixel(x, y, &v[..n]);
                         }
                     }

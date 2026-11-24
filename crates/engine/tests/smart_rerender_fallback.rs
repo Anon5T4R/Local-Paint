@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use localpaint_doc::{LayerContent, SmartObject, SmartSource};
-use localpaint_engine::{EngineError, Session};
+use localraster_doc::{LayerContent, SmartObject, SmartSource};
+use localraster_engine::{EngineError, Session};
 use serde_json::{Value, json};
 
-fn deny_blur(id: &str, _: &Value) -> localpaint_engine::Result<()> {
+fn deny_blur(id: &str, _: &Value) -> localraster_engine::Result<()> {
     if id == "filter.blur.gaussianBlur" { Err(EngineError::Other("denied".into())) } else { Ok(()) }
 }
 

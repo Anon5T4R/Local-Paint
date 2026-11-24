@@ -74,13 +74,13 @@ impl Session {
     /// Image Size, rotation), dropping the ones that land outside the new canvas. View state: the
     /// points stay pinned to their pixels, no history step. Cleared by the edit it is set for.
     /// The painting symmetry moves through `a` too.
-    pub(crate) fn set_sampler_map(&mut self, a: localpaint_geom::Affine) {
+    pub(crate) fn set_sampler_map(&mut self, a: localraster_geom::Affine) {
         self.set_canvas_map(a, a);
     }
 
     /// [`set_sampler_map`](Self::set_sampler_map) for an edit whose sampler map differs from its
     /// geometry map (a flip or rotation maps pixel centres): `geometry` moves the painting symmetry.
-    pub(crate) fn set_canvas_map(&mut self, geometry: localpaint_geom::Affine, samplers: localpaint_geom::Affine) {
+    pub(crate) fn set_canvas_map(&mut self, geometry: localraster_geom::Affine, samplers: localraster_geom::Affine) {
         self.sampler_map = Some(samplers);
         self.symmetry_map = Some(geometry);
     }
@@ -120,7 +120,7 @@ impl Session {
     pub fn add_document(&mut self, mut doc: Document, path: Option<String>) -> usize {
         // Persisted IDs can overlap the allocator, so check every replacement too.
         while self.docs.iter().any(|st| st.doc.id == doc.id) {
-            doc.id = localpaint_doc::DocId::fresh();
+            doc.id = localraster_doc::DocId::fresh();
         }
         self.open_document_order.push(doc.id);
         let mut st = DocState::new(doc, path);

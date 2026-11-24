@@ -7,12 +7,12 @@
 //! layers with locked transparency; the Background Eraser refuses them. Both respect the selection,
 //! work in the layer's own colour model and depth, and are one undo step per click / stroke.
 
-use localpaint_algo::selection as sel;
-use localpaint_doc::{Document, Layer, LayerContent, LayerId};
-use localpaint_geom::Rect;
-use localpaint_paint::Stroke;
-use localpaint_paint::bg_erase::{BgEraseSettings, apply_background_eraser, background_eraser_effect, background_eraser_stroke};
-use localpaint_paint::replace::{Limits, Sampling};
+use localraster_algo::selection as sel;
+use localraster_doc::{Document, Layer, LayerContent, LayerId};
+use localraster_geom::Rect;
+use localraster_paint::Stroke;
+use localraster_paint::bg_erase::{BgEraseSettings, apply_background_eraser, background_eraser_effect, background_eraser_stroke};
+use localraster_paint::replace::{Limits, Sampling};
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;
@@ -122,8 +122,8 @@ fn magic_eraser(s: &mut Session, p: &Value) -> Result<Value> {
         let surf = l.surface_mut().ok_or_else(|| bad(CMD, "not a pixel layer"))?;
         let fmt = surf.format();
         // Locked transparency: paint the background colour instead (Photoshop).
-        let lock_color = lock.then(|| localpaint_raster::from_rgba(&fmt, [bg[0], bg[1], bg[2], 1.0]));
-        Ok(localpaint_algo::erase::magic_erase(surf, &region, opacity, selection.as_ref(), lock_color.as_deref()))
+        let lock_color = lock.then(|| localraster_raster::from_rgba(&fmt, [bg[0], bg[1], bg[2], 1.0]));
+        Ok(localraster_algo::erase::magic_erase(surf, &region, opacity, selection.as_ref(), lock_color.as_deref()))
     })?;
     Ok(damage(s, dmg, true))
 }
@@ -172,7 +172,7 @@ fn background_eraser(s: &mut Session, p: &Value) -> Result<Value> {
         let surf = l.surface_mut().ok_or_else(|| bad(CMD, "not a pixel layer"))?;
         if let Some(colors) = colors {
             let effect = selected_background_effect(surf, &bs, colors, bg);
-            Ok(localpaint_paint::retouch::apply_dab_stroke(surf, &background_eraser_stroke(&stroke), selection.as_ref(), false, 0, effect))
+            Ok(localraster_paint::retouch::apply_dab_stroke(surf, &background_eraser_stroke(&stroke), selection.as_ref(), false, 0, effect))
         } else {
             Ok(apply_background_eraser(surf, &stroke, &bs, selection.as_ref()))
         }
@@ -181,22 +181,22 @@ fn background_eraser(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 fn selected_background_effect(
-    pre: &localpaint_raster::Surface,
+    pre: &localraster_raster::Surface,
     bs: &BgEraseSettings,
     colors: crate::color_channels::ColorChannels,
     bg: [f32; 4],
 ) -> crate::retouch_cmds::DabEffect {
     let fmt = pre.format();
     let alpha = fmt.mode.color_channels();
-    let background = localpaint_raster::from_rgba(&fmt, [bg[0], bg[1], bg[2], 1.0]);
+    let background = localraster_raster::from_rgba(&fmt, [bg[0], bg[1], bg[2], 1.0]);
     // Opaque Backgrounds have no alpha sample. The matching algorithm uses a temporary opaque
     // alpha to calculate erased coverage; the real layer keeps its original format and identity.
-    let opaque = pre.convert(localpaint_color::PixelFormat::new(fmt.mode, fmt.sample, true));
+    let opaque = pre.convert(localraster_color::PixelFormat::new(fmt.mode, fmt.sample, true));
     let Some(mut effect) = background_eraser_effect(&opaque, bs) else {
         return Box::new(|_, _| {});
     };
     Box::new(move |region, footprint| {
-        use localpaint_paint::retouch::Region;
+        use localraster_paint::retouch::Region;
         let count = region.ch.max(1);
         let before = region.data.clone();
         let mut work = Region::new(region.rect, alpha + 1);
@@ -244,7 +244,7 @@ pub fn live_background_eraser(s: &Session, p: &Value) -> Result<crate::retouch_c
     crate::retouch_cmds::LiveDab::with_effect_on(doc, CMD, &json!({}), stroke, Some(id), 0, |pre| match background_eraser_effect(pre, &bs) {
         Some(effect) => Box::new(effect),
         // No alpha: the commit erases nothing either.
-        None => Box::new(|_: &mut localpaint_paint::retouch::Region, _: &localpaint_paint::retouch::Footprint| {}),
+        None => Box::new(|_: &mut localraster_paint::retouch::Region, _: &localraster_paint::retouch::Footprint| {}),
     })?
     .with_tail_preview()
 }

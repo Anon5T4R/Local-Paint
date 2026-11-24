@@ -1,5 +1,5 @@
 use super::*;
-use localpaint_doc::LayerId;
+use localraster_doc::LayerId;
 use serde_json::json;
 
 fn session() -> Session {
@@ -59,7 +59,7 @@ fn scrub_keeps_content_a_raster() {
 fn write_png(path: &str, w: u32, h: u32, color: &str) {
     let mut s = Session::new();
     s.execute("file.new", json!({"width": w, "height": h, "background": color})).unwrap();
-    let bytes = localpaint_io::export(&s.active().unwrap().doc, "png", &localpaint_io::ExportOptions::default()).unwrap().bytes;
+    let bytes = localraster_io::export(&s.active().unwrap().doc, "png", &localraster_io::ExportOptions::default()).unwrap().bytes;
     std::fs::write(path, bytes).unwrap();
 }
 
@@ -115,7 +115,7 @@ fn video_frames_to_layers_takes_every_tiff_page() {
         let surf = l.surface().unwrap();
         let b = surf.content_bounds();
         assert_eq!((b.width(), b.height()), (w, h), "{name}");
-        let px = surf.read_region(localpaint_geom::Rect::new(b.x0, b.y0, b.x0 + 1, b.y0 + 1));
+        let px = surf.read_region(localraster_geom::Rect::new(b.x0, b.y0, b.x0 + 1, b.y0 + 1));
         assert!((px[0] * 255.0 - level).abs() < 0.6 && px[3] == 1.0, "{name}: {px:?}");
     }
     let single = format!("{dir}/single.tif");
@@ -229,7 +229,7 @@ fn animated_gif_keeps_transparency() {
     // Each frame has a transparent index and is cleared before the next (disposal 2).
     let packed: Vec<u8> = gif.windows(4).filter(|w| w[..3] == [0x21, 0xF9, 0x04]).map(|w| w[3]).collect();
     assert_eq!(packed, [0x09, 0x09]);
-    let px = localpaint_compose::flatten(&localpaint_io::import("t.gif", &gif).unwrap().document).px;
+    let px = localraster_compose::flatten(&localraster_io::import("t.gif", &gif).unwrap().document).px;
     assert_eq!(px[0][3], 0.0, "the corner stays transparent");
     assert_eq!(px[3 * 8 + 3], [1.0, 0.0, 0.0, 1.0], "the square stays red");
 }
@@ -328,7 +328,7 @@ fn edits_to_a_frame_survive_scrubbing_and_render() {
     s.execute("file.export.renderVideo", json!({"dir": out, "format": "png"})).unwrap();
     let stem = s.active().unwrap().doc.name.rsplit_once('.').map_or(s.active().unwrap().doc.name.clone(), |(a, _)| a.to_string());
     let f1 = std::fs::read(format!("{out}/{stem}_0001.png")).unwrap();
-    let doc = localpaint_io::import("f1.png", &f1).unwrap().document;
+    let doc = localraster_io::import("f1.png", &f1).unwrap().document;
     let flat = crate::file_cmds::flattened(&doc, doc.pixel_format());
     let q = flat.pixel(2, 2);
     assert!(q[2] > 0.99 && q[0] < 0.01, "rendered frame 1 is blue: {q:?}");
@@ -383,7 +383,7 @@ fn tga_sequence_frames_keep_their_transparency() {
     write_tga(&format!("{dir}/f01.tga"));
     write_tga(&format!("{dir}/f02.tga"));
     let frames =
-        load_frames(&dir, localpaint_color::PixelFormat::new(localpaint_color::ColorMode::Rgb, localpaint_color::SampleType::U8, true)).unwrap().frames;
+        load_frames(&dir, localraster_color::PixelFormat::new(localraster_color::ColorMode::Rgb, localraster_color::SampleType::U8, true)).unwrap().frames;
     assert_eq!(frames.len(), 2);
     for f in &frames {
         assert_eq!(f.pixel(2, 6), vec![1.0, 0.0, 0.0, 1.0]);
@@ -396,7 +396,7 @@ fn tga_sequence_frames_keep_their_transparency() {
 
 /// An animated GIF of solid `w`x`h` frames: one `(colour, delay in centiseconds)` each.
 fn write_gif(path: &str, w: u32, h: u32, frames: &[([u8; 3], u16)]) {
-    use localpaint_codecs::web::{GifFrame, encode_gif_animated};
+    use localraster_codecs::web::{GifFrame, encode_gif_animated};
     let list: Vec<GifFrame> =
         frames.iter().map(|&(c, delay_cs)| GifFrame { indices: vec![0; (w * h) as usize], palette: vec![c], transparent: None, delay_cs }).collect();
     std::fs::write(path, encode_gif_animated(w, h, &list, true).unwrap()).unwrap();
@@ -495,7 +495,7 @@ fn video_frames_to_layers_takes_every_gif_frame() {
 /// An animated WebP of solid `w`x`h` frames: one `(colour, duration in ms)` each, every frame a
 /// lossless still in an ANMF chunk.
 fn write_webp(path: &str, w: u32, h: u32, frames: &[([u8; 3], u32)]) {
-    use localpaint_codecs::{ChannelLayout, EncodeOptions, Format, Image, encode};
+    use localraster_codecs::{ChannelLayout, EncodeOptions, Format, Image, encode};
     let chunk = |id: &[u8; 4], data: &[u8]| {
         let mut c = id.to_vec();
         c.extend_from_slice(&(data.len() as u32).to_le_bytes());
@@ -555,8 +555,8 @@ fn video_frames_to_layers_takes_every_webp_frame() {
 fn a_still_webp_is_one_frame_at_the_default_30_fps() {
     let dir = tmpdir("webpin-still");
     let path = format!("{dir}/still.webp");
-    let img = localpaint_codecs::Image::from_u8(8, 8, localpaint_codecs::ChannelLayout::Rgb, [255, 0, 0].repeat(64)).unwrap();
-    std::fs::write(&path, localpaint_codecs::encode(&img, localpaint_codecs::Format::WebP, &Default::default()).unwrap()).unwrap();
+    let img = localraster_codecs::Image::from_u8(8, 8, localraster_codecs::ChannelLayout::Rgb, [255, 0, 0].repeat(64)).unwrap();
+    std::fs::write(&path, localraster_codecs::encode(&img, localraster_codecs::Format::WebP, &Default::default()).unwrap()).unwrap();
     let mut s = session();
     let r = s.execute("layer.videoLayers.newVideoLayerFromFile", json!({"path": path})).unwrap();
     assert_eq!(r["frames"], 1);

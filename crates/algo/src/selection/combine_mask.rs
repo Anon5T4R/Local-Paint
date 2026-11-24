@@ -3,9 +3,9 @@
 
 use super::{SelectionMode, combine, coverage8};
 use crate::photo_util::par_map;
-use localpaint_color::PixelFormat;
-use localpaint_geom::{Rect, TILE_SIZE, TileCoord};
-use localpaint_raster::{Surface, Tile};
+use localraster_color::PixelFormat;
+use localraster_geom::{Rect, TILE_SIZE, TileCoord};
+use localraster_raster::{Surface, Tile};
 use std::sync::Arc;
 
 /// Combines a mask covering only `band` (zero elsewhere). Add and Subtract retain the old

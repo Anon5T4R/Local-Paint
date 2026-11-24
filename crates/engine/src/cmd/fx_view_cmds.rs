@@ -2,7 +2,7 @@
 //! shared disclosure triangle). View state ([`crate::DocState::fx_collapsed`]): no history step, and a
 //! clean document stays clean.
 
-use localpaint_doc::{Layer, LayerContent, LayerId};
+use localraster_doc::{Layer, LayerContent, LayerId};
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;

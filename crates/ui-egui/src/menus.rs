@@ -2,7 +2,7 @@
 
 use serde_json::{Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::state::DialogKind;
 
 mod bar;
@@ -43,7 +43,7 @@ use state::{checked, translated_menu_label};
 /// commands also usable through shortcuts. Camera Raw, the SVG editor choice and full-window workspaces
 /// (`distort_ui::modal_workspace`) block menu commands entirely, and a pending crop blocks the
 /// commands Photoshop greys during one (`crop_ui::blocks`).
-pub(crate) fn modal_allows(app: &LocalPaintApp, id: &str) -> bool {
+pub(crate) fn modal_allows(app: &LocalRasterApp, id: &str) -> bool {
     if app.camera_raw.is_some() || app.smart_svg.modal_open() || crate::distort_ui::modal_workspace(app).is_some() || crate::crop_ui::blocks(app, id) {
         return false;
     }
@@ -54,9 +54,9 @@ pub(crate) fn modal_allows(app: &LocalPaintApp, id: &str) -> bool {
 pub const TOP_MENUS: [&str; 10] = ["File", "Edit", "Image", "Layer", "Type", "Select", "Filter", "View", "Window", "Help"];
 
 /// UI-level commands (handled by the shell rather than the engine): id, label, menu, shortcut.
-/// The table is the engine's ([`localpaint_engine::shell_commands::SHELL_COMMANDS`]), so the
+/// The table is the engine's ([`localraster_engine::shell_commands::SHELL_COMMANDS`]), so the
 /// commands and their keys exist without this UI (headless shortcut sets, lists, conflicts).
-pub const UI_COMMANDS: &[(&str, &str, &[&str], Option<&str>)] = localpaint_engine::shell_commands::SHELL_COMMANDS;
+pub const UI_COMMANDS: &[(&str, &str, &[&str], Option<&str>)] = localraster_engine::shell_commands::SHELL_COMMANDS;
 
 /// Window › <document>: the open documents, listed at the end of the Window menu as in Photoshop.
 /// The id ends in the document's index, which is its tab's position.
@@ -72,7 +72,7 @@ mod open_recent_tests {
 
     #[test]
     fn tracks_dedupes_caps_and_lists() {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.push_recent("/tmp/a.png");
         app.push_recent("/tmp/b.psd");
         app.push_recent("/tmp/a.png"); // de-dupe → moves to front
@@ -119,16 +119,16 @@ mod open_recent_tests {
 
     #[test]
     fn opening_a_file_records_it_as_recent() {
-        use localpaint_color::{ColorMode, SampleType};
-        use localpaint_geom::Size;
+        use localraster_color::{ColorMode, SampleType};
+        use localraster_geom::Size;
         let services = crate::Services {
-            import: Some(Box::new(|_n: &str, _b: &[u8], _opts: &localpaint_io::ImportOptions| {
-                Ok((localpaint_doc::Document::new("t", Size::new(4, 4), ColorMode::Rgb, SampleType::U8), Vec::new()))
+            import: Some(Box::new(|_n: &str, _b: &[u8], _opts: &localraster_io::ImportOptions| {
+                Ok((localraster_doc::Document::new("t", Size::new(4, 4), ColorMode::Rgb, SampleType::U8), Vec::new()))
             })),
             ..Default::default()
         };
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), services);
-        let path = std::env::temp_dir().join("localpaint_recent_test.pcraft");
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), services);
+        let path = std::env::temp_dir().join("localraster_recent_test.pcraft");
         std::fs::write(&path, b"x").unwrap();
         let p = path.to_string_lossy().to_string();
         let ctx = egui::Context::default();
@@ -149,7 +149,7 @@ mod quick_export_label_tests {
 
     #[test]
     fn file_quick_export_menu_reflects_selected_format_without_renaming_layer_export() {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         for (value, expected) in [("png", "PNG"), ("jpg", "JPG"), ("gif", "GIF"), ("webp", "WebP"), ("exr", "EXR")] {
             app.run("prefs.set", json!({"values": {"export.quickExportFormat": value}})).unwrap();
             let items = menu_items(&app);
@@ -184,7 +184,7 @@ mod reveal_label_tests {
 
     #[test]
     fn smart_objects_reveal_item_names_the_platform_file_manager() {
-        let app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         let id = "layer.smartObjects.revealInFinder";
         let items = menu_items(&app);
         let reveal: Vec<_> = items.iter().filter(|i| i.id == id).collect();
@@ -208,8 +208,8 @@ mod window_documents_tests {
     use super::*;
     use serde_json::json;
 
-    fn app(docs: usize) -> LocalPaintApp {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    fn app(docs: usize) -> LocalRasterApp {
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         for _ in 0..docs {
             app.run("file.new", json!({"width": 64, "height": 48})).unwrap();
         }
@@ -218,7 +218,7 @@ mod window_documents_tests {
     }
 
     /// The rows after Window's last own item: a separator and the documents.
-    fn listed(app: &LocalPaintApp) -> Vec<(String, String, Option<bool>)> {
+    fn listed(app: &LocalRasterApp) -> Vec<(String, String, Option<bool>)> {
         let items = menu_items(app);
         let window: Vec<&MenuItem> = items.iter().filter(|i| i.path == ["Window"]).collect();
         let at = window.iter().position(|i| i.id.starts_with(DOCUMENT_ITEM)).unwrap_or(window.len());
@@ -270,7 +270,7 @@ mod window_documents_tests {
         let items = menu_items(&app);
         let row = items.iter().find(|i| i.id == "window.document.0").unwrap();
         assert_eq!(translated_menu_label(de, row), "Layers");
-        let bar = crate::native_menu::localpaint_layout(&items, de, "de").bar;
+        let bar = crate::native_menu::localraster_layout(&items, de, "de").bar;
         assert_eq!(bar.find("window.document.0").map(|i| i.label.as_str()), Some("Layers"));
         let panel = items.iter().find(|i| i.path == ["Window"] && i.label == "Layers").unwrap();
         assert_eq!(bar.find(&panel.id).map(|i| i.label.clone()), Some(translated_menu_label(de, panel)), "Window › Layers is still translated");

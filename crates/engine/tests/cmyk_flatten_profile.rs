@@ -8,9 +8,9 @@
 
 use std::sync::Arc;
 
-use localpaint_color::convert::{CmykSpace, with_cmyk_space};
-use localpaint_engine::Session;
-use localpaint_geom::Rect;
+use localraster_color::convert::{CmykSpace, with_cmyk_space};
+use localraster_engine::Session;
+use localraster_geom::Rect;
 use serde_json::json;
 
 const W: i32 = 8;
@@ -34,7 +34,7 @@ const INKS: [[f32; 4]; 8] = [
 ];
 
 fn profile() -> Arc<Vec<u8>> {
-    localpaint_cms::synth::cmyk_profile(&localpaint_cms::synth::CmykParams {
+    localraster_cms::synth::cmyk_profile(&localraster_cms::synth::CmykParams {
         description: "Test Uncoated".into(),
         tvi: [0.26, 0.26, 0.26, 0.3],
         ..Default::default()
@@ -59,10 +59,10 @@ fn document(depth: u32, tag: bool) -> Session {
         let fmt = bg.format();
         with_cmyk_space(if tag { space.as_ref() } else { None }, || {
             for (x, rgb) in RGB.iter().enumerate() {
-                let mut px = localpaint_raster::from_rgba(&fmt, [rgb[0], rgb[1], rgb[2], 1.0]);
+                let mut px = localraster_raster::from_rgba(&fmt, [rgb[0], rgb[1], rgb[2], 1.0]);
                 for _ in 0..3 {
-                    let back = localpaint_raster::to_rgba(&fmt, &px);
-                    px = localpaint_raster::from_rgba(&fmt, back);
+                    let back = localraster_raster::to_rgba(&fmt, &px);
+                    px = localraster_raster::from_rgba(&fmt, back);
                 }
                 bg.write_pixel(x as i32, 0, &px);
             }

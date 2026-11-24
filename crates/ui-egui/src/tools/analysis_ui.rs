@@ -9,11 +9,11 @@
 //! shares them; this module only maps pointer input and draws the numbered markers.
 
 use egui::{Align2, Color32, CornerRadius, FontId, Pos2, RichText, Stroke, pos2, vec2};
-use localpaint_doc::{Document, Ruler};
+use localraster_doc::{Document, Ruler};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::canvas::{ToolEvent, ViewXform};
 use crate::state::Tool;
 use crate::theme::Tokens;
@@ -79,7 +79,7 @@ pub fn handles(id: &str) -> bool {
     PANELS.contains(&id)
 }
 
-pub fn checked(app: &LocalPaintApp, id: &str) -> Option<bool> {
+pub fn checked(app: &LocalRasterApp, id: &str) -> Option<bool> {
     match id {
         "window.panel.measurementLog" => Some(app.ui.analysis.measurement_log),
         "window.panel.notes" => Some(app.ui.analysis.notes),
@@ -88,7 +88,7 @@ pub fn checked(app: &LocalPaintApp, id: &str) -> Option<bool> {
         _ => {
             // View › Proof Setup simulations: checked while that proof is shown.
             // A check item with no document too: an item's kind never changes (native menus).
-            let kind = id.strip_prefix("view.proofSetup.").and_then(localpaint_engine::proof_sim::ProofKind::from_id)?;
+            let kind = id.strip_prefix("view.proofSetup.").and_then(localraster_engine::proof_sim::ProofKind::from_id)?;
             let Some(d) = app.session.active() else { return Some(false) };
             let pv = app.session.color.proof(d.doc.id);
             Some(pv.enabled && pv.setup.kind == kind)
@@ -106,7 +106,7 @@ fn fields(v: Value) -> Map<String, Value> {
 
 /// Menu front ends: panel toggles, tool selection, dialogs and pickers in front of the engine's
 /// analysis commands. `None` when `id` isn't ours (or the engine should run it directly).
-pub fn menu(app: &mut LocalPaintApp, id: &str, params: &Value) -> Option<Result<Value, String>> {
+pub fn menu(app: &mut LocalRasterApp, id: &str, params: &Value) -> Option<Result<Value, String>> {
     let a = &mut app.ui.analysis;
     match id {
         "window.panel.measurementLog" | "window.panel.notes" => {
@@ -167,7 +167,7 @@ pub fn menu(app: &mut LocalPaintApp, id: &str, params: &Value) -> Option<Result<
         "file.import.notes" => match app.active_doc_id() {
             Ok(doc) => app.pick_file_bytes(move |app, name, bytes| {
                 app.refocus(doc)?;
-                let r = localpaint_engine::notes_cmds::import_notes_from(&mut app.session, &name, &bytes).map_err(|e| e.to_string());
+                let r = localraster_engine::notes_cmds::import_notes_from(&mut app.session, &name, &bytes).map_err(|e| e.to_string());
                 if r.is_ok() {
                     app.ui.analysis.notes = true;
                     app.sync_views();
@@ -181,7 +181,7 @@ pub fn menu(app: &mut LocalPaintApp, id: &str, params: &Value) -> Option<Result<
     })
 }
 
-fn open(app: &mut LocalPaintApp, kind: &str, f: Value) -> Result<Value, String> {
+fn open(app: &mut LocalRasterApp, kind: &str, f: Value) -> Result<Value, String> {
     app.ui.analysis.dialog = Some((kind.to_string(), fields(f)));
     Ok(json!({"dialog": kind}))
 }
@@ -194,7 +194,7 @@ fn suggested_length(d: &Document) -> f64 {
 }
 
 /// Export the Measurement Log (or the given rows) as CSV through the save picker.
-fn export_log(app: &mut LocalPaintApp, rows: Option<Vec<u64>>) -> Result<Value, String> {
+fn export_log(app: &mut LocalRasterApp, rows: Option<Vec<u64>>) -> Result<Value, String> {
     let p = rows.map_or(json!({}), |r| json!({"rows": r}));
     let csv = app.run("measurementLog.export", p)?;
     let text = csv["csv"].as_str().unwrap_or_default().to_string();
@@ -207,7 +207,7 @@ fn export_log(app: &mut LocalPaintApp, rows: Option<Vec<u64>>) -> Result<Value, 
 
 // ------------------------------------------------------------------ tools
 
-fn tolerance(app: &LocalPaintApp) -> f64 {
+fn tolerance(app: &LocalRasterApp) -> f64 {
     7.0 / f64::from(app.point_zoom().max(0.01))
 }
 
@@ -226,12 +226,12 @@ fn constrain(from: [f64; 2], to: [f64; 2], shift: bool) -> [f64; 2] {
     [from[0] + l * a.cos(), from[1] + l * a.sin()]
 }
 
-fn set_ruler(app: &mut LocalPaintApp, r: Ruler) {
+fn set_ruler(app: &mut LocalRasterApp, r: Ruler) {
     let _ = app.run("image.analysis.rulerTool", json!({"start": r.start, "end": r.end, "protractor": r.protractor}));
 }
 
 /// Pointer input for the Ruler, Count, Note and Color Sampler tools. Returns true when consumed.
-pub fn pointer(app: &mut LocalPaintApp, ev: ToolEvent, mods: egui::Modifiers) -> bool {
+pub fn pointer(app: &mut LocalRasterApp, ev: ToolEvent, mods: egui::Modifiers) -> bool {
     let tool = app.active_tool();
     if !matches!(tool, Tool::Ruler | Tool::Count | Tool::Note | Tool::ColorSampler) {
         return false;
@@ -381,7 +381,7 @@ fn nearest_sampler(points: &[[f64; 2]], at: [f64; 2], tol: f64) -> Option<usize>
 }
 
 /// Show a command error in the status bar without treating the sample-limit message as a fault.
-fn status_on_err(app: &mut LocalPaintApp, r: Result<Value, String>) {
+fn status_on_err(app: &mut LocalRasterApp, r: Result<Value, String>) {
     if let Err(e) = r {
         app.ui.status = e;
         app.ui.status_error = false;
@@ -413,7 +413,7 @@ fn handle(painter: &egui::Painter, p: Pos2) {
 }
 
 /// Ruler line (while the Ruler tool is active), count markers and note icons.
-pub fn draw_overlay(app: &LocalPaintApp, painter: &egui::Painter, xf: &ViewXform) {
+pub fn draw_overlay(app: &LocalRasterApp, painter: &egui::Painter, xf: &ViewXform) {
     let Some(doc) = app.session.active().map(|d| d.doc.clone()) else { return };
     let v = &app.ui.view;
     if app.ui.tool == Tool::Ruler
@@ -494,7 +494,7 @@ fn readout(ui: &mut egui::Ui, label: &str, value: Option<f64>) {
 }
 
 /// Options bar of the Ruler, Count, Note and Color Sampler tools. Returns true when drawn.
-pub fn options_bar(app: &mut LocalPaintApp, ui: &mut egui::Ui, tool: Tool) -> bool {
+pub fn options_bar(app: &mut LocalRasterApp, ui: &mut egui::Ui, tool: Tool) -> bool {
     let Some(doc) = app.session.active().map(|d| d.doc.clone()) else {
         return matches!(tool, Tool::Ruler | Tool::Count | Tool::Note | Tool::ColorSampler);
     };
@@ -502,7 +502,7 @@ pub fn options_bar(app: &mut LocalPaintApp, ui: &mut egui::Ui, tool: Tool) -> bo
         Tool::Ruler => {
             let sc = doc.measurement.scale.clone();
             let f = if app.ui.analysis.use_measurement_scale { sc.factor() } else { 1.0 };
-            let info = doc.measurement.ruler.map(|r| localpaint_engine::analysis_cmds::ruler_info(&r, &sc));
+            let info = doc.measurement.ruler.map(|r| localraster_engine::analysis_cmds::ruler_info(&r, &sc));
             let g = |k: &str| info.as_ref().and_then(|i| i[k].as_f64());
             readout(ui, "X:", g("x").map(|v| v * f));
             readout(ui, "Y:", g("y").map(|v| v * f));
@@ -539,7 +539,7 @@ pub fn options_bar(app: &mut LocalPaintApp, ui: &mut egui::Ui, tool: Tool) -> bo
                     let _ = app.run("count.setGroup", json!({"group": gi, "visible": !g.visible}));
                 }
                 let rgb = g.color.to_rgb();
-                // Local Paint's Color Picker (sRGB), as everywhere else (#2144).
+                // Local Raster's Color Picker (sRGB), as everywhere else (#2144).
                 if crate::widgets::color_swatch_button(ui, color32(rgb), tl!("Color")).clicked() {
                     crate::color_picker_ui::open_for_command(
                         app,
@@ -596,7 +596,7 @@ pub fn options_bar(app: &mut LocalPaintApp, ui: &mut egui::Ui, tool: Tool) -> bo
             ui.label(
                 RichText::new(crate::i18n::fmt(
                     tl!("{n} of {max} sample points"),
-                    &[("n", &n.to_string()), ("max", &localpaint_engine::sampler_cmds::MAX_SAMPLERS.to_string())],
+                    &[("n", &n.to_string()), ("max", &localraster_engine::sampler_cmds::MAX_SAMPLERS.to_string())],
                 ))
                 .color(t.text)
                 .size(11.0),
@@ -649,7 +649,7 @@ pub(crate) fn title_row(ui: &mut egui::Ui, title: &str) -> bool {
 }
 
 /// A floating panel window; `movable` follows Window › Workspace › Lock Workspace.
-pub(crate) fn panel_window(app: &LocalPaintApp, ctx: &egui::Context, id: &str, title: &str, offset: egui::Vec2, width: f32, body: impl FnOnce(&mut egui::Ui)) {
+pub(crate) fn panel_window(app: &LocalRasterApp, ctx: &egui::Context, id: &str, title: &str, offset: egui::Vec2, width: f32, body: impl FnOnce(&mut egui::Ui)) {
     let t = Tokens::get(ctx);
     let canvas = app.last_canvas_rect;
     egui::Window::new(title)
@@ -669,7 +669,7 @@ pub(crate) fn panel_window(app: &LocalPaintApp, ctx: &egui::Context, id: &str, t
 }
 
 /// Draws the open panels and dialogs.
-pub fn windows(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub fn windows(app: &mut LocalRasterApp, ctx: &egui::Context) {
     if app.ui.analysis.measurement_log {
         let mut act: Option<(&str, Value)> = None;
         let mut close = false;
@@ -697,11 +697,11 @@ pub fn windows(app: &mut LocalPaintApp, ctx: &egui::Context) {
                     }
                 });
             });
-            let cols: Vec<&str> = localpaint_engine::analysis_cmds::log_columns(&rows).into_iter().filter(|c| *c != "histogram").collect();
+            let cols: Vec<&str> = localraster_engine::analysis_cmds::log_columns(&rows).into_iter().filter(|c| *c != "histogram").collect();
             egui::ScrollArea::both().max_height(220.0).max_width(620.0).show(ui, |ui| {
                 egui::Grid::new("mlog-grid").striped(true).spacing(vec2(10.0, 2.0)).show(ui, |ui| {
                     for c in &cols {
-                        let name = localpaint_engine::analysis_cmds::COLUMNS.iter().find(|x| x.0 == *c).map_or(*c, |x| x.1);
+                        let name = localraster_engine::analysis_cmds::COLUMNS.iter().find(|x| x.0 == *c).map_or(*c, |x| x.1);
                         ui.label(RichText::new(tl!(name)).color(t.text_dim).size(10.5).strong());
                     }
                     ui.end_row();
@@ -763,14 +763,14 @@ pub fn windows(app: &mut LocalPaintApp, ctx: &egui::Context) {
 
 /// Selecting note `i` shows its author and colour in the Note tool's options bar, as Photoshop
 /// does (#7940); a new note then takes them unless they are changed.
-fn show_note_options(app: &mut LocalPaintApp, i: usize) {
+fn show_note_options(app: &mut LocalRasterApp, i: usize) {
     let Some(note) = app.session.active().and_then(|d| d.doc.notes.get(i)) else { return };
     let (author, color) = (note.author.clone(), note.color.to_rgb());
     app.ui.analysis.note_author = author;
     app.ui.analysis.note_color = color;
 }
 
-fn notes_panel(app: &mut LocalPaintApp, ctx: &egui::Context) {
+fn notes_panel(app: &mut LocalRasterApp, ctx: &egui::Context) {
     let notes = app.session.active().map(|d| d.doc.notes.clone()).unwrap_or_default();
     let n = notes.len();
     let mut sel = app.ui.analysis.note_selected.filter(|i| *i < n).or((n > 0).then_some(0));
@@ -877,7 +877,7 @@ pub fn dialog_command(kind: &str, f: &Map<String, Value>) -> Option<(&'static st
     })
 }
 
-fn dialog(app: &mut LocalPaintApp, ctx: &egui::Context) {
+fn dialog(app: &mut LocalRasterApp, ctx: &egui::Context) {
     let Some((kind, mut f)) = app.ui.analysis.dialog.clone() else { return };
     let t = Tokens::get(ctx);
     let title = match kind.as_str() {
@@ -928,8 +928,8 @@ fn dialog(app: &mut LocalPaintApp, ctx: &egui::Context) {
                                     .map(|a| a.iter().filter_map(Value::as_str).map(String::from).collect())
                                     .unwrap_or_default();
                                 let mut changed = false;
-                                for key in localpaint_engine::analysis_cmds::available(source) {
-                                    let name = localpaint_engine::analysis_cmds::COLUMNS.iter().find(|c| c.0 == key).map_or(key, |c| c.1);
+                                for key in localraster_engine::analysis_cmds::available(source) {
+                                    let name = localraster_engine::analysis_cmds::COLUMNS.iter().find(|c| c.0 == key).map_or(key, |c| c.1);
                                     let mut on = list.iter().any(|x| x == key);
                                     if crate::widgets::checkbox(ui, &mut on, name).changed() {
                                         list.retain(|x| x != key);

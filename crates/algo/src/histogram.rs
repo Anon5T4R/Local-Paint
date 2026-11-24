@@ -185,9 +185,9 @@ mod tests {
 
     #[test]
     fn rgb_and_gray_at_all_depths_use_the_same_float_contract() {
-        use localpaint_color::{ColorMode, PixelFormat, SampleType};
-        use localpaint_geom::Rect;
-        use localpaint_raster::Surface;
+        use localraster_color::{ColorMode, PixelFormat, SampleType};
+        use localraster_geom::Rect;
+        use localraster_raster::Surface;
         for mode in [ColorMode::Rgb, ColorMode::Grayscale] {
             for sample in SampleType::ALL {
                 let mut surface = Surface::new(PixelFormat::new(mode, sample, true));

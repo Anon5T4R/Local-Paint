@@ -6,14 +6,14 @@ use egui::{Key, Modifiers, Pos2, pos2, vec2};
 use egui_kittest::Harness;
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
-fn harness() -> Harness<'static, LocalPaintApp> {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn harness() -> Harness<'static, LocalRasterApp> {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     app.sync_views();
     let mut h = Harness::builder().with_size(vec2(1200.0, 800.0)).build_ui_state(
-        |ui, app: &mut LocalPaintApp| {
+        |ui, app: &mut LocalRasterApp| {
             let ctx = ui.ctx().clone();
             // Fonts set up after the first frame only apply from the next one.
             if !ctx.fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
@@ -25,23 +25,23 @@ fn harness() -> Harness<'static, LocalPaintApp> {
         },
         app,
     );
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
     h.run_steps(4);
     h
 }
 
-fn zoom(h: &Harness<'static, LocalPaintApp>) -> f32 {
+fn zoom(h: &Harness<'static, LocalRasterApp>) -> f32 {
     h.state().current_zoom()
 }
 
-fn open_dialog(h: &mut Harness<'static, LocalPaintApp>) {
+fn open_dialog(h: &mut Harness<'static, LocalRasterApp>) {
     crate::dialogs::open_command_dialog(h.state_mut(), "image.adjustments.brightnessContrast", "Brightness/Contrast…");
     h.run_steps(3);
     assert_eq!(h.state().ui.dialogs.len(), 1);
 }
 
 /// A point on the canvas well away from the centred dialog.
-fn free_canvas(h: &Harness<'static, LocalPaintApp>) -> Pos2 {
+fn free_canvas(h: &Harness<'static, LocalRasterApp>) -> Pos2 {
     let r = h.state().last_canvas_rect;
     pos2(r.left() + 60.0, r.bottom() - 60.0)
 }
@@ -97,11 +97,11 @@ fn color_range_eyedropper_picks_on_the_canvas() {
     let mut h = harness();
     crate::color_range_ui::open(h.state_mut());
     h.run_steps(4);
-    let points = |h: &Harness<'static, LocalPaintApp>| {
+    let points = |h: &Harness<'static, LocalRasterApp>| {
         let f = &h.state().ui.dialogs.last().unwrap().fields;
         (f["points"].as_array().unwrap().len(), f["points"].clone())
     };
-    let click = |h: &mut Harness<'static, LocalPaintApp>, p: Pos2, modifiers: Modifiers| {
+    let click = |h: &mut Harness<'static, LocalRasterApp>, p: Pos2, modifiers: Modifiers| {
         h.hover_at(p);
         h.run_steps(1);
         h.event_modifiers(egui::Event::PointerButton { pos: p, button: egui::PointerButton::Primary, pressed: true, modifiers }, modifiers);
@@ -212,12 +212,12 @@ fn temporary_zoom_works_under_a_dialog() {
     h.hover_at(p);
     h.run_steps(1);
     let (z0, doc0) = (zoom(&h), doc_at(&h, p));
-    let held = |h: &mut Harness<'static, LocalPaintApp>, pressed: bool, m: Modifiers| {
+    let held = |h: &mut Harness<'static, LocalRasterApp>, pressed: bool, m: Modifiers| {
         h.event(egui::Event::ModifiersChanged(m));
         h.event(egui::Event::Key { key: Key::Space, physical_key: None, pressed, repeat: false, modifiers: m });
         h.run_steps(1);
     };
-    let button = |h: &mut Harness<'static, LocalPaintApp>, pos: Pos2, pressed: bool, m: Modifiers| {
+    let button = |h: &mut Harness<'static, LocalRasterApp>, pos: Pos2, pressed: bool, m: Modifiers| {
         h.event_modifiers(egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: m }, m);
         h.run_steps(1);
     };
@@ -250,12 +250,12 @@ fn temporary_zoom_works_under_a_dialog() {
     assert_eq!(h.state().ui.dialogs.len(), 1);
 }
 
-fn press(h: &mut Harness<'static, LocalPaintApp>, p: Pos2, pressed: bool) {
+fn press(h: &mut Harness<'static, LocalRasterApp>, p: Pos2, pressed: bool) {
     h.event(egui::Event::PointerButton { pos: p, button: egui::PointerButton::Primary, pressed, modifiers: Modifiers::NONE });
     h.run_steps(1);
 }
 
-fn picker_color(h: &Harness<'static, LocalPaintApp>) -> String {
+fn picker_color(h: &Harness<'static, LocalRasterApp>) -> String {
     let d = h.state().ui.dialogs.last().unwrap();
     d.fields.get("color").and_then(serde_json::Value::as_str).unwrap().to_string()
 }
@@ -393,7 +393,7 @@ fn command_click_under_curves_adds_one_point_per_press_not_per_frame() {
         (view.zoom, view.center, view.fit_pending) = (4.0, [200.0, 150.0], false);
         let dialog = crate::adjust_dialog::open(h.state_mut(), "image.adjustments.curves").unwrap();
         h.run_steps(3);
-        let points = |h: &Harness<'static, LocalPaintApp>| {
+        let points = |h: &Harness<'static, LocalRasterApp>| {
             let d = h.state().ui.dialogs.iter().find(|d| d.id == dialog).unwrap();
             d.fields.get("points").and_then(serde_json::Value::as_array).map_or(0, Vec::len)
         };
@@ -426,7 +426,7 @@ fn command_click_under_curves_adds_one_point_per_press_not_per_frame() {
 /// Type tool (#206): Alt+←/→ at a collapsed caret kerns the pair before it by 20/1000 em (100
 /// with ⌘/Ctrl), one history step per press; ⌘/Ctrl+←/→ moves by word; Alt+Shift+→ extends
 /// the selection by a word.
-fn wheel(h: &Harness<'static, LocalPaintApp>, dy: f32, modifiers: Modifiers) {
+fn wheel(h: &Harness<'static, LocalRasterApp>, dy: f32, modifiers: Modifiers) {
     h.event_modifiers(
         egui::Event::MouseWheel {
             source: egui::MouseWheelSource::Unknown,
@@ -440,19 +440,19 @@ fn wheel(h: &Harness<'static, LocalPaintApp>, dy: f32, modifiers: Modifiers) {
 }
 
 /// The document point under screen point `p` (no flip).
-fn doc_at(h: &Harness<'static, LocalPaintApp>, p: Pos2) -> [f32; 2] {
+fn doc_at(h: &Harness<'static, LocalRasterApp>, p: Pos2) -> [f32; 2] {
     let v = &h.state().ui.views[0];
     let c = h.state().last_canvas_rect.center();
     [v.center[0] + (p.x - c.x) / v.zoom, v.center[1] + (p.y - c.y) / v.zoom]
 }
 
 /// The whole window (status bar and Navigator included) on a 400 × 300 document.
-fn app_window() -> Harness<'static, LocalPaintApp> {
-    let mut s = localpaint_engine::Session::new();
+fn app_window() -> Harness<'static, LocalRasterApp> {
+    let mut s = localraster_engine::Session::new();
     s.execute("file.new", json!({"width": 400, "height": 300})).unwrap();
     let mut h = Harness::builder().with_size(vec2(1440.0, 900.0)).with_max_steps(64).build_eframe(move |cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        LocalPaintApp::new(s, crate::Services::default())
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        LocalRasterApp::new(s, crate::Services::default())
     });
     h.run_steps(8);
     h
@@ -474,7 +474,7 @@ fn the_wheel_reaches_12800_percent_and_stops_dead_there() {
     let r = h.state().last_canvas_rect;
     let p = pos2(r.center().x - 150.0, r.center().y - 90.0);
     // The document point under `p`, through the canvas inside the rulers.
-    let doc_at = |h: &Harness<'static, LocalPaintApp>, p: Pos2| {
+    let doc_at = |h: &Harness<'static, LocalRasterApp>, p: Pos2| {
         let (app, v) = (h.state(), &h.state().ui.views[0]);
         let c = crate::rulers::content_rect(app, app.last_canvas_rect).center();
         [v.center[0] + (p.x - c.x) / v.zoom, v.center[1] + (p.y - c.y) / v.zoom]
@@ -653,23 +653,23 @@ fn alt_scroll_zooms_when_the_modifier_state_misses_the_held_alt() {
 
 #[test]
 fn type_tool_alt_arrows_kern_the_pair() {
-    use localpaint_doc::text::Kerning;
+    use localraster_doc::text::Kerning;
     let mut h = harness();
     let id = h.state_mut().run("type.create", json!({"x": 20, "y": 80, "text": "AVA To", "size": 40, "font": "Inter"})).unwrap()["layer"].as_u64().unwrap();
-    let text = |h: &Harness<'static, LocalPaintApp>| {
+    let text = |h: &Harness<'static, LocalRasterApp>| {
         let st = h.state().session.active().unwrap();
-        match &st.doc.layer(localpaint_doc::LayerId(id)).unwrap().content {
-            localpaint_doc::LayerContent::Text(t) => t.clone(),
+        match &st.doc.layer(localraster_doc::LayerId(id)).unwrap().content {
+            localraster_doc::LayerContent::Text(t) => t.clone(),
             _ => panic!("not text"),
         }
     };
-    let kern = |h: &Harness<'static, LocalPaintApp>| {
+    let kern = |h: &Harness<'static, LocalRasterApp>| {
         let t = text(h);
         let r = t.char_runs();
         (r[0].style.kerning, r[0].style.kern, r.len())
     };
-    let steps = |h: &Harness<'static, LocalPaintApp>| h.state().session.active().unwrap().history.entries().len();
-    let metric = localpaint_text::shared().lock().unwrap().pair_kerning(&text(&h), 72.0, 0).unwrap().round();
+    let steps = |h: &Harness<'static, LocalRasterApp>| h.state().session.active().unwrap().history.entries().len();
+    let metric = localraster_text::shared().lock().unwrap().pair_kerning(&text(&h), 72.0, 0).unwrap().round();
     h.state_mut().ui.text_edit = Some(crate::state::TextEdit {
         layer: id,
         document: None,
@@ -720,7 +720,7 @@ fn type_tool_alt_arrows_kern_the_pair() {
 }
 
 /// Starts a type editing session on `layer` with `anchor..caret` selected.
-fn edit_type(h: &mut Harness<'static, LocalPaintApp>, layer: u64, anchor: usize, caret: usize) {
+fn edit_type(h: &mut Harness<'static, LocalRasterApp>, layer: u64, anchor: usize, caret: usize) {
     h.state_mut().ui.text_edit = Some(crate::state::TextEdit {
         layer,
         document: None,
@@ -736,15 +736,15 @@ fn edit_type(h: &mut Harness<'static, LocalPaintApp>, layer: u64, anchor: usize,
     h.run_steps(2);
 }
 
-fn type_layer(h: &Harness<'static, LocalPaintApp>, id: u64) -> localpaint_doc::TextLayer {
-    match &h.state().session.active().unwrap().doc.layer(localpaint_doc::LayerId(id)).unwrap().content {
-        localpaint_doc::LayerContent::Text(t) => t.clone(),
+fn type_layer(h: &Harness<'static, LocalRasterApp>, id: u64) -> localraster_doc::TextLayer {
+    match &h.state().session.active().unwrap().doc.layer(localraster_doc::LayerId(id)).unwrap().content {
+        localraster_doc::LayerContent::Text(t) => t.clone(),
         _ => panic!("not text"),
     }
 }
 
 /// The character style of character `c` of a type layer.
-fn char_style(h: &Harness<'static, LocalPaintApp>, id: u64, c: usize) -> localpaint_doc::text::CharStyle {
+fn char_style(h: &Harness<'static, LocalRasterApp>, id: u64, c: usize) -> localraster_doc::text::CharStyle {
     let t = type_layer(h, id);
     let byte = t.text.char_indices().nth(c).map_or(t.text.len(), |(i, _)| i);
     let mut end = 0;
@@ -759,7 +759,7 @@ fn char_style(h: &Harness<'static, LocalPaintApp>, id: u64, c: usize) -> localpa
 }
 
 /// The paragraph style of the paragraph holding character `c`.
-fn para_style(h: &Harness<'static, LocalPaintApp>, id: u64, c: usize) -> localpaint_doc::text::ParagraphStyle {
+fn para_style(h: &Harness<'static, LocalRasterApp>, id: u64, c: usize) -> localraster_doc::text::ParagraphStyle {
     let t = type_layer(h, id);
     let byte = t.text.char_indices().nth(c).map_or(t.text.len(), |(i, _)| i);
     let mut end = 0;
@@ -773,7 +773,7 @@ fn para_style(h: &Harness<'static, LocalPaintApp>, id: u64, c: usize) -> localpa
         .style
 }
 
-fn history(h: &Harness<'static, LocalPaintApp>) -> Vec<String> {
+fn history(h: &Harness<'static, LocalRasterApp>) -> Vec<String> {
     h.state().session.active().unwrap().history.entries()
 }
 
@@ -782,7 +782,7 @@ fn history(h: &Harness<'static, LocalPaintApp>) -> Vec<String> {
 /// ⇧⌘K/U/B/I (Color Settings, Desaturate, Auto Color, Inverse).
 #[test]
 fn type_tool_format_keys_toggle_character_styles() {
-    use localpaint_doc::text::{Caps, CharStyle};
+    use localraster_doc::text::{Caps, CharStyle};
     let mut h = harness();
     // A selection, so Select ▸ Inverse would be enabled if the key reached it.
     h.state_mut().run("select.all", json!({})).unwrap();
@@ -863,7 +863,7 @@ fn global_cmd_shift_keys_still_work_outside_type_editing() {
     h.key_press_modifiers(cmd_shift, Key::K);
     h.run_steps(3);
     assert_eq!(h.state().ui.dialogs.len(), 1, "Color Settings opens");
-    assert!(!char_style(&h, id, 0).faux_italic && char_style(&h, id, 0).caps == localpaint_doc::text::Caps::Normal);
+    assert!(!char_style(&h, id, 0).faux_italic && char_style(&h, id, 0).caps == localraster_doc::text::Caps::Normal);
 }
 
 /// ⌥↑/↓ leading (2 pt, 10 with ⌘), ⇧⌥↑/↓ baseline shift and ⌥←/→ tracking over a selection
@@ -874,7 +874,7 @@ fn type_tool_format_keys_step_leading_baseline_and_tracking() {
     let id = h.state_mut().run("type.create", json!({"x": 20, "y": 80, "text": "Hello world", "size": 10})).unwrap()["layer"].as_u64().unwrap();
     edit_type(&mut h, id, 0, 5);
     let before = history(&h).len();
-    let press = |h: &mut Harness<'static, LocalPaintApp>, m: Modifiers, k: Key| {
+    let press = |h: &mut Harness<'static, LocalRasterApp>, m: Modifiers, k: Key| {
         h.key_press_modifiers(m, k);
         h.run_steps(2);
     };
@@ -938,7 +938,7 @@ fn type_tool_format_keys_survive_hostile_state() {
     h.key_press_modifiers(Modifiers::ALT, Key::ArrowDown);
     h.run_steps(2);
     assert!(h.state().ui.text_edit.is_none(), "an edit of a missing layer ends");
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     for ed in [None, Some(1)] {
         app.ui.text_edit = ed.map(|layer| crate::state::TextEdit {
             layer,
@@ -963,7 +963,7 @@ fn type_tool_format_keys_survive_hostile_state() {
 /// The Character panel's kerning field reads and parses Photoshop's values.
 #[test]
 fn kerning_field_values() {
-    use localpaint_doc::text::Kerning;
+    use localraster_doc::text::Kerning;
     assert_eq!(crate::type_tool::kerning_label((Kerning::Metrics, 0.0)), "Metrics");
     assert_eq!(crate::type_tool::kerning_label((Kerning::Optical, 0.0)), "Optical");
     assert_eq!(crate::type_tool::kerning_label((Kerning::Off, 0.0)), "0");
@@ -982,7 +982,7 @@ fn kerning_field_values() {
 fn eyedropper_and_alt_sampling_show_a_pipette() {
     let mut h = harness();
     let p = h.state().last_canvas_rect.center();
-    let cursor = |h: &mut Harness<'static, LocalPaintApp>| {
+    let cursor = |h: &mut Harness<'static, LocalRasterApp>| {
         h.hover_at(p);
         h.run_steps(2);
         h.output().platform_output.cursor_icon
@@ -995,7 +995,7 @@ fn eyedropper_and_alt_sampling_show_a_pipette() {
     h.state_mut().run("prefs.set", json!({"values": {"cursors.other": "precise"}})).unwrap();
     // Every platform reports the crosshair. The desktop builds also hand the OS a black-and-white
     // bitmap for it (`tool_cursor`, #1160, #1343), with `Crosshair` underneath as the fallback.
-    let precise = |h: &mut Harness<'static, LocalPaintApp>| {
+    let precise = |h: &mut Harness<'static, LocalRasterApp>| {
         let icon = cursor(h);
         (icon, h.output().platform_output.cursor_image.is_some())
     };
@@ -1060,7 +1060,7 @@ fn hand_tool_shows_an_open_hand_and_a_fist_while_panning() {
     let p = h.state().last_canvas_rect.center();
     let windows = cfg!(target_os = "windows");
     // The icon the OS gets, and the bitmap for it if any.
-    let pointer = |h: &Harness<'static, LocalPaintApp>| {
+    let pointer = |h: &Harness<'static, LocalRasterApp>| {
         let out = &h.output().platform_output;
         (out.cursor_icon, out.cursor_image.as_ref().map(|i| i.rgba.clone()))
     };
@@ -1150,12 +1150,12 @@ fn pen_shows_the_close_path_pointer_over_the_first_anchor() {
     h.state_mut().ui.tool = crate::state::Tool::Pen;
     let owner = crate::vector_ui::capture_pen_owner(h.state());
     h.state_mut().ui.pen = Some(crate::vector_ui::PenPath { knots: vec![[[50.0, 50.0]; 3], [[150.0, 50.0]; 3]], owner, ..Default::default() });
-    let screen = |h: &Harness<'static, LocalPaintApp>, x: f32, y: f32| {
+    let screen = |h: &Harness<'static, LocalRasterApp>, x: f32, y: f32| {
         let v = &h.state().ui.views[0];
         let c = h.state().last_canvas_rect.center();
         pos2(c.x + (x - v.center[0]) * v.zoom, c.y + (y - v.center[1]) * v.zoom)
     };
-    let pointer = |h: &mut Harness<'static, LocalPaintApp>, x: f32, y: f32| {
+    let pointer = |h: &mut Harness<'static, LocalRasterApp>, x: f32, y: f32| {
         let p = screen(h, x, y);
         h.hover_at(p);
         h.run_steps(2);
@@ -1228,7 +1228,7 @@ fn escape_with_targa_options_open_does_not_deselect() {
 
 /// How much of the 400 × 300 document is on screen: the visible document span on each axis,
 /// clipped to the image (0 when the image has left the view on that axis).
-fn visible_image(h: &Harness<'static, LocalPaintApp>) -> [f32; 2] {
+fn visible_image(h: &Harness<'static, LocalRasterApp>) -> [f32; 2] {
     let r = h.state().last_canvas_rect;
     let (a, b) = (doc_at(h, r.min), doc_at(h, r.max));
     [(b[0].min(400.0) - a[0].max(0.0)).max(0.0), (b[1].min(300.0) - a[1].max(0.0)).max(0.0)]
@@ -1294,7 +1294,7 @@ fn move_tool_controls_rotate_from_just_outside_the_box() {
     h.state_mut().ui.tool = crate::state::Tool::Move;
     h.state_mut().ui.tool_options.move_show_transform = true;
     h.run_steps(3);
-    let screen = |h: &Harness<'static, LocalPaintApp>, x: f32, y: f32| {
+    let screen = |h: &Harness<'static, LocalRasterApp>, x: f32, y: f32| {
         let v = &h.state().ui.views[0];
         let c = h.state().last_canvas_rect.center();
         pos2(c.x + (x - v.center[0]) * v.zoom, c.y + (y - v.center[1]) * v.zoom)

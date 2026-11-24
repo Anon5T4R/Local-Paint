@@ -5,13 +5,13 @@
 #[cfg(test)]
 use egui::Pos2;
 use egui::{Color32, Rect, Sense, Stroke, pos2, vec2};
-use localpaint_doc::vector::Path;
-use localpaint_doc::{Document, LayerContent};
-use localpaint_geom::Affine;
+use localraster_doc::vector::Path;
+use localraster_doc::{Document, LayerContent};
+use localraster_geom::Affine;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::canvas::ViewXform;
 use crate::shape_gradient_ui::GradientChoices;
 use crate::shape_paint_ui::{PaintChange, paint_param, swatch};
@@ -74,12 +74,12 @@ fn arrow_default_link_id() -> egui::Id {
 }
 
 /// Reset the checkbox whenever the selected document, layer or shape changes.
-pub(crate) fn track_arrow_default_selection(app: &LocalPaintApp, ctx: &egui::Context) {
+pub(crate) fn track_arrow_default_selection(app: &LocalRasterApp, ctx: &egui::Context) {
     let target = app.session.active().and_then(|st| {
         let id = st.active_layer?;
         let layer = st.doc.layer(id)?;
         match &layer.content {
-            LayerContent::Shape(sh) if matches!(sh.live.as_ref(), Some(localpaint_doc::vector::LiveShape::ArrowLine { .. })) => Some((st.doc.id.0, id.0)),
+            LayerContent::Shape(sh) if matches!(sh.live.as_ref(), Some(localraster_doc::vector::LiveShape::ArrowLine { .. })) => Some((st.doc.id.0, id.0)),
             _ => None,
         }
     });
@@ -95,10 +95,10 @@ pub(crate) fn track_arrow_default_selection(app: &LocalPaintApp, ctx: &egui::Con
 
 /// Copy only the selected arrow's live parameters into new-arrow defaults.
 /// Existing shapes and geometry are not modified.
-fn copy_arrow_to_tool_defaults(app: &mut LocalPaintApp, id: localpaint_doc::LayerId) {
+fn copy_arrow_to_tool_defaults(app: &mut LocalRasterApp, id: localraster_doc::LayerId) {
     let values = app.session.active().and_then(|st| st.doc.layer(id)).and_then(|layer| match &layer.content {
         LayerContent::Shape(sh) => match sh.live.as_ref() {
-            Some(localpaint_doc::vector::LiveShape::ArrowLine { start, end, width, length, concavity, weight, .. }) => {
+            Some(localraster_doc::vector::LiveShape::ArrowLine { start, end, width, length, concavity, weight, .. }) => {
                 {
                     // Live dimensions may exceed new-arrow input limits after scaling.
                     // Clamp only the defaults, never the existing shape.
@@ -181,7 +181,7 @@ pub struct Resumed {
     #[serde(default)]
     pub layer: Option<u64>,
     pub index: usize,
-    pub was: localpaint_doc::vector::Subpath,
+    pub was: localraster_doc::vector::Subpath,
 }
 
 impl PenPath {
@@ -216,7 +216,7 @@ pub(crate) struct PenOwner {
     source: Weak<Document>,
     target: PenTarget,
     options: ToolOptions,
-    layer: Option<localpaint_doc::LayerId>,
+    layer: Option<localraster_doc::LayerId>,
     vector_mask: bool,
     foreground: [f32; 4],
     background: [f32; 4],
@@ -247,7 +247,7 @@ enum PenTarget {
 /// Where the Pen draws now: a new shape layer (Shape mode), else the work or saved path selected
 /// in the Paths panel (the new path joins it, #4721), else the targeted vector mask, else a new
 /// Work Path that replaces the old one.
-pub(crate) fn capture_pen_owner(app: &LocalPaintApp) -> Option<PenOwner> {
+pub(crate) fn capture_pen_owner(app: &LocalRasterApp) -> Option<PenOwner> {
     let st = app.session.active()?;
     let target = if app.ui.tool_options.vector_mode == "shape" {
         let mut open_stroke = app.ui.tool_options.shape_stroke.params();
@@ -275,12 +275,12 @@ pub(crate) fn capture_pen_owner(app: &LocalPaintApp) -> Option<PenOwner> {
 }
 
 impl PenOwner {
-    fn valid(&self, app: &LocalPaintApp) -> bool {
+    fn valid(&self, app: &LocalRasterApp) -> bool {
         app.session.active().is_some_and(|st| st.doc.id == self.document && st.revision == self.revision && self.source.ptr_eq(&Arc::downgrade(&st.doc)))
     }
 }
 
-use localpaint_doc::DocId;
+use localraster_doc::DocId;
 use std::sync::{Arc, Weak};
 
 use path_ops::{selected_document_geometry, targeted_vector_mask_id};
@@ -288,7 +288,7 @@ pub(crate) use pen::{finish_pen_if_left, freeform_finish_owned};
 use shapes::{fill_param, stroke_param};
 
 /// Commit a valid source-owned draft on a tab switch; otherwise cancel with an actionable diagnostic.
-pub(crate) fn cancel_stale_pen(app: &mut LocalPaintApp) -> bool {
+pub(crate) fn cancel_stale_pen(app: &mut LocalRasterApp) -> bool {
     let Some(pen) = app.ui.pen.as_ref() else { return false };
     if pen.owner.as_ref().is_some_and(|o| o.valid(app)) {
         return false;

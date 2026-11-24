@@ -1,11 +1,11 @@
-//! Layer styles (effects): data only. Rendering lives in `localpaint-compose`,
-//! PSD mapping in `localpaint-io`.
+//! Layer styles (effects): data only. Rendering lives in `localraster-compose`,
+//! PSD mapping in `localraster-io`.
 //!
 //! Angles are in degrees, counter-clockwise from 3 o'clock, and give the
 //! direction the light comes *from* (Photoshop convention). Sizes and
 //! distances are in pixels, opacities and percentages in `0..=1`.
 
-use localpaint_color::{BlendMode, Color};
+use localraster_color::{BlendMode, Color};
 use serde::{Deserialize, Serialize};
 
 use crate::adjust::CurvePoint;
@@ -313,7 +313,7 @@ pub enum Effect {
 impl Effect {
     /// This effect with its colours in `mode`'s model ([`Color::in_mode`]): a layer's effect
     /// colours are in its document's mode, as Image › Mode keeps them.
-    pub fn in_mode(mut self, mode: localpaint_color::ColorMode) -> Effect {
+    pub fn in_mode(mut self, mode: localraster_color::ColorMode) -> Effect {
         let cc = |c: &mut Color| *c = c.in_mode(mode);
         let paint = |p: &mut FxPaint| match p {
             FxPaint::Color(c) => cc(c),

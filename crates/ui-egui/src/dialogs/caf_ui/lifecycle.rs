@@ -1,8 +1,8 @@
 use super::preview::{Base, Preview, cancel_preview, compute_base, plan_params, points_limit, rebase, refresh};
-use super::{CMD, CafOpts, CafTool, CafWorkspace, LocalPaintApp, MAX_CAF_EDITS, MAX_CAF_POINTS, PROXY_SIDE, REMEMBERED, Rect, Step, Value};
+use super::{CMD, CafOpts, CafTool, CafWorkspace, LocalRasterApp, MAX_CAF_EDITS, MAX_CAF_POINTS, PROXY_SIDE, REMEMBERED, Rect, Step, Value};
 
 /// Opens the workspace on the active layer and its selection.
-pub fn open(app: &mut LocalPaintApp) -> Result<(), String> {
+pub fn open(app: &mut LocalRasterApp) -> Result<(), String> {
     if !app.session.is_enabled(CMD) {
         return Err("Content-Aware Fill needs a selection on a pixel layer".into());
     }
@@ -55,7 +55,7 @@ pub fn open(app: &mut LocalPaintApp) -> Result<(), String> {
     };
     w.brush_add = w.opts.sampling == "custom";
     let base = compute_base(app, &w)?;
-    w.brush_size = localpaint_algo::content_aware::default_brush_size(bounds(&base));
+    w.brush_size = localraster_algo::content_aware::default_brush_size(bounds(&base));
     w.set_base(base);
     w.stale();
     app.distort.caf = Some(w);
@@ -71,13 +71,13 @@ pub(super) fn bounds(b: &Base) -> Rect {
     })
 }
 
-fn remember(app: &mut LocalPaintApp, opts: &CafOpts) {
+fn remember(app: &mut LocalRasterApp, opts: &CafOpts) {
     let v = opts.to_json();
     app.session.prefs.edit(|p| p.dialogs.insert(REMEMBERED.into(), v));
 }
 
 /// Apply: fill with the current state (one history step); the workspace stays open.
-pub fn apply(app: &mut LocalPaintApp) -> Result<Value, String> {
+pub fn apply(app: &mut LocalRasterApp) -> Result<Value, String> {
     let Some(w) = app.distort.caf.as_mut() else { return Err("Content-Aware Fill is not open".into()) };
     w.end_stroke();
     let p = plan_params(w, true);
@@ -93,7 +93,7 @@ pub fn apply(app: &mut LocalPaintApp) -> Result<Value, String> {
 /// OK: fill and close. A fill that fails (nothing to sample from, a fill area too large, …)
 /// leaves the workspace open with the error in its panel, so the areas can be fixed and OK
 /// pressed again instead of the work being thrown away.
-pub fn commit(app: &mut LocalPaintApp) {
+pub fn commit(app: &mut LocalRasterApp) {
     match apply(app) {
         Ok(_) => close(app),
         Err(e) => report(app, e),
@@ -101,7 +101,7 @@ pub fn commit(app: &mut LocalPaintApp) {
 }
 
 /// An Apply or OK that failed: the error in the panel and the status bar.
-pub(super) fn report(app: &mut LocalPaintApp, e: String) {
+pub(super) fn report(app: &mut LocalRasterApp, e: String) {
     if let Some(w) = app.distort.caf.as_mut() {
         w.error = Some(e.clone());
     }
@@ -110,7 +110,7 @@ pub(super) fn report(app: &mut LocalPaintApp, e: String) {
 }
 
 /// Cancel (button, Esc): closes; what was applied stays. The settings are kept.
-pub fn cancel(app: &mut LocalPaintApp) {
+pub fn cancel(app: &mut LocalRasterApp) {
     if let Some(w) = app.distort.caf.as_ref() {
         let opts = w.opts.clone();
         remember(app, &opts);
@@ -118,13 +118,13 @@ pub fn cancel(app: &mut LocalPaintApp) {
     close(app);
 }
 
-pub(super) fn close(app: &mut LocalPaintApp) {
+pub(super) fn close(app: &mut LocalRasterApp) {
     if let Some(w) = app.distort.caf.take() {
         cancel_preview(w);
     }
 }
 
-pub(super) fn undo(app: &mut LocalPaintApp) {
+pub(super) fn undo(app: &mut LocalRasterApp) {
     let Some(w) = app.distort.caf.as_mut() else { return };
     w.end_stroke();
     let Some(step) = w.undo.pop() else { return };
@@ -159,7 +159,7 @@ pub(super) fn undo(app: &mut LocalPaintApp) {
     }
 }
 
-pub(super) fn redo(app: &mut LocalPaintApp) {
+pub(super) fn redo(app: &mut LocalRasterApp) {
     let Some(w) = app.distort.caf.as_mut() else { return };
     w.end_stroke();
     let Some(step) = w.redo.pop() else { return };
@@ -193,7 +193,7 @@ pub(super) fn redo(app: &mut LocalPaintApp) {
 }
 
 /// A lasso edit of the fill area (or Expand / Contract), undoable.
-pub(super) fn fill_edit(app: &mut LocalPaintApp, edit: Value) {
+pub(super) fn fill_edit(app: &mut LocalRasterApp, edit: Value) {
     let Some(w) = app.distort.caf.as_mut() else { return };
     w.end_stroke();
     // The engine's limits, kept here (see `begin_stroke`).
@@ -221,7 +221,7 @@ pub(super) fn fill_edit(app: &mut LocalPaintApp, edit: Value) {
 
 /// A new sampling option (Auto, Rectangular, Custom): the brush strokes start over and the brush
 /// takes the option's mode (Custom adds, the others subtract).
-pub(super) fn set_sampling(app: &mut LocalPaintApp, sampling: &str) {
+pub(super) fn set_sampling(app: &mut LocalRasterApp, sampling: &str) {
     let Some(w) = app.distort.caf.as_mut() else { return };
     if w.opts.sampling == sampling && w.strokes.is_empty() {
         return;
@@ -235,7 +235,7 @@ pub(super) fn set_sampling(app: &mut LocalPaintApp, sampling: &str) {
 }
 
 /// Reset buttons: the sampling options, the fill settings, or everything.
-pub(super) fn reset(app: &mut LocalPaintApp, what: &str) {
+pub(super) fn reset(app: &mut LocalRasterApp, what: &str) {
     let Some(w) = app.distort.caf.as_mut() else { return };
     let d = CafOpts::default();
     match what {

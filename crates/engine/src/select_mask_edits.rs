@@ -10,12 +10,12 @@
 
 use std::collections::BTreeSet;
 
-use localpaint_algo::matting;
-use localpaint_algo::segment::{grabcut, quick, subject};
-use localpaint_algo::selection::{self as sel, Region, SelectionMode, combine_region};
-use localpaint_doc::{Document, LayerId};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_algo::matting;
+use localraster_algo::segment::{grabcut, quick, subject};
+use localraster_algo::selection::{self as sel, Region, SelectionMode, combine_region};
+use localraster_doc::{Document, LayerId};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 use serde_json::Value;
 
 use crate::smartselect_cmds::with_doc_sampler;
@@ -228,7 +228,7 @@ pub fn check_strokes(strokes: &[matting::EdgeStroke], canvas: Rect) -> Result<()
 /// sparse selection nor a huge canvas costs a canvas-sized buffer (the #8783 review).
 fn invert(base: Option<&Surface>, canvas: Rect) -> Option<Surface> {
     let outside = base.map_or(0.0, |b| b.default_pixel().first().copied().unwrap_or(0.0).clamp(0.0, 1.0));
-    let mut s = Surface::new(localpaint_color::PixelFormat::GRAY8);
+    let mut s = Surface::new(localraster_color::PixelFormat::GRAY8);
     if outside < 1.0 {
         s.fill_rect(canvas, &[1.0 - outside]);
     }
@@ -390,17 +390,17 @@ mod tests {
     #[test]
     fn tiled_invert_matches_the_dense_one() {
         let canvas = Rect::new(0, 0, 600, 333);
-        let mut soft = Surface::new(localpaint_color::PixelFormat::GRAY8);
+        let mut soft = Surface::new(localraster_color::PixelFormat::GRAY8);
         soft.fill_rect(Rect::new(250, 20, 900, 300), &[1.0]);
         soft.fill_rect(Rect::new(10, 10, 40, 30), &[0.4]);
-        let mut white = Surface::with_default(localpaint_color::PixelFormat::GRAY8, &[1.0]);
+        let mut white = Surface::with_default(localraster_color::PixelFormat::GRAY8, &[1.0]);
         white.fill_rect(Rect::new(300, 100, 520, 140), &[0.0]);
         for base in [None, Some(soft), Some(white)] {
             let got = bytes(invert(base.as_ref(), canvas).as_ref(), canvas);
             assert_eq!(got, dense_invert(base.as_ref(), canvas));
         }
         // Inverting everything selects nothing.
-        let mut all = Surface::new(localpaint_color::PixelFormat::GRAY8);
+        let mut all = Surface::new(localraster_color::PixelFormat::GRAY8);
         all.fill_rect(canvas, &[1.0]);
         assert!(invert(Some(&all), canvas).is_none());
     }
@@ -408,8 +408,8 @@ mod tests {
     /// A huge canvas inverts without a canvas-sized buffer, and a run of Inverts costs one.
     #[test]
     fn invert_on_a_huge_canvas_and_runs_of_inverts() {
-        let doc = Document::new("huge", localpaint_doc::Size::new(100_000, 100_000), localpaint_doc::ColorMode::Rgb, localpaint_color::SampleType::U8);
-        let mut small = Surface::new(localpaint_color::PixelFormat::GRAY8);
+        let doc = Document::new("huge", localraster_doc::Size::new(100_000, 100_000), localraster_doc::ColorMode::Rgb, localraster_color::SampleType::U8);
+        let mut small = Surface::new(localraster_color::PixelFormat::GRAY8);
         small.fill_rect(Rect::new(10, 10, 20, 20), &[1.0]);
         let t = std::time::Instant::now();
         let one = apply(&doc, None, Some(small.clone()), &[SelectionEdit::Invert]).expect("almost everything selected");
@@ -430,9 +430,9 @@ mod tests {
     /// subtraction paint only the tiles they cross, and keep the selection there was.
     #[test]
     fn thin_edits_across_a_huge_canvas_paint_only_their_tiles() {
-        let doc = Document::new("huge", localpaint_doc::Size::new(100_000, 100_000), localpaint_doc::ColorMode::Rgb, localpaint_color::SampleType::U8);
+        let doc = Document::new("huge", localraster_doc::Size::new(100_000, 100_000), localraster_doc::ColorMode::Rgb, localraster_color::SampleType::U8);
         let canvas = doc.bounds();
-        let mut small = Surface::new(localpaint_color::PixelFormat::GRAY8);
+        let mut small = Surface::new(localraster_color::PixelFormat::GRAY8);
         small.fill_rect(Rect::new(10, 60, 20, 70), &[1.0]);
         let diagonal = vec![(0.0, 0.0), (99_999.0, 99_999.0)];
         let brush = SelectionEdit::Brush { points: diagonal.clone(), size: 1.0, hardness: 100.0, add: true };

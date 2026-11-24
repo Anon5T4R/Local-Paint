@@ -7,9 +7,9 @@
 use crate::common;
 
 use common::Features;
-use localpaint_color::{ColorMode, SampleType};
-use localpaint_io::*;
-use localpaint_psd::PsdFile;
+use localraster_color::{ColorMode, SampleType};
+use localraster_io::*;
+use localraster_psd::PsdFile;
 
 fn be(b: &[u8], at: usize, long: bool) -> usize {
     if long { u64::from_be_bytes(b[at..at + 8].try_into().unwrap()) as usize } else { u32::from_be_bytes(b[at..at + 4].try_into().unwrap()) as usize }

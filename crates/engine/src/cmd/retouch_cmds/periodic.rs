@@ -38,8 +38,8 @@ pub(super) struct Composite<'a> {
 
 impl Composite<'_> {
     pub fn draw(&mut self, dirty: Rect, brush: &BrushSettings, points: &[StrokePoint], mut paint: impl FnMut(Rect) -> Result<Region>) -> Result<Rect> {
-        let ctx = localpaint_paint::BrushContext::new(brush);
-        let mut generator = localpaint_paint::dynamics::DabGenerator::new(brush, 1.0);
+        let ctx = localraster_paint::BrushContext::new(brush);
+        let mut generator = localraster_paint::dynamics::DabGenerator::new(brush, 1.0);
         let (mut primary, mut dual) = (Vec::new(), Vec::new());
         generator.push(points, &mut primary, &mut dual);
         generator.finish(&mut primary, &mut dual);
@@ -111,8 +111,8 @@ impl Composite<'_> {
     #[allow(clippy::too_many_arguments)]
     fn fold_dab(
         &self,
-        ctx: &localpaint_paint::BrushContext,
-        dab: &localpaint_paint::Dab,
+        ctx: &localraster_paint::BrushContext,
+        dab: &localraster_paint::Dab,
         bounds: Rect,
         dst: Rect,
         dual: bool,
@@ -188,7 +188,7 @@ impl PatchStroke {
         Self { coverage: vec![0.0; len], depth: vec![0.0; len], paint: Region::new(rect, channels) }
     }
 
-    fn accumulate(&mut self, dab: &localpaint_paint::Dab, footprint: &PatchStroke, alpha: Option<usize>) {
+    fn accumulate(&mut self, dab: &localraster_paint::Dab, footprint: &PatchStroke, alpha: Option<usize>) {
         let rect = self.paint.rect;
         for y in rect.y0..rect.y1 {
             for x in rect.x0..rect.x1 {

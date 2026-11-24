@@ -1,5 +1,5 @@
 use super::begin::warps_type;
-use super::{BezierMesh, CursorIcon, LocalPaintApp, SplitTool, ToolEvent, ViewXform, Warp, WarpDrag, WarpStyle, json};
+use super::{BezierMesh, CursorIcon, LocalRasterApp, SplitTool, ToolEvent, ViewXform, Warp, WarpDrag, WarpStyle, json};
 
 /// An anchor or a handle on a section line. The inner control points of a patch are not shown.
 pub(super) fn on_section_edge(i: usize, j: usize) -> bool {
@@ -67,7 +67,7 @@ pub(super) fn split_cursor(m: &BezierMesh, tool: SplitTool, (s, t): (f64, f64), 
 
 /// Armed split tool, or Option held: the guide tracks the pointer and the split lands on release.
 /// Returns false when this event is an ordinary control-point drag.
-fn split_gesture(app: &mut LocalPaintApp, ev: ToolEvent, mods: egui::Modifiers) -> bool {
+fn split_gesture(app: &mut LocalRasterApp, ev: ToolEvent, mods: egui::Modifiers) -> bool {
     let armed = app.transform_preview.as_ref().and_then(|p| p.split_tool);
     let placing = app.transform_preview.as_ref().is_some_and(|p| p.split_placing);
     match ev {
@@ -116,7 +116,7 @@ fn split_gesture(app: &mut LocalPaintApp, ev: ToolEvent, mods: egui::Modifiers) 
 /// handles along); a press anywhere else inside the grid pulls the surface under the pointer.
 /// Preset warps turn into a custom mesh when the press grabs something. An armed split tool, or
 /// Ctrl / Option held, places a split where the pointer is released instead.
-pub(super) fn warp_pointer(app: &mut LocalPaintApp, ev: ToolEvent, tol: f64, mods: egui::Modifiers) {
+pub(super) fn warp_pointer(app: &mut LocalRasterApp, ev: ToolEvent, tol: f64, mods: egui::Modifiers) {
     // Type takes only the warp styles: nothing on the canvas to drag or split (#3004).
     if warps_type(app) {
         return;
@@ -153,7 +153,7 @@ pub(super) fn warp_pointer(app: &mut LocalPaintApp, ev: ToolEvent, tol: f64, mod
 }
 
 /// Runs a warp-edit command against the mesh in the open Warp session and writes the mesh back.
-pub fn edit_session_warp(app: &mut LocalPaintApp, id: &str, params: &serde_json::Value) -> Result<(), String> {
+pub fn edit_session_warp(app: &mut LocalRasterApp, id: &str, params: &serde_json::Value) -> Result<(), String> {
     let Some(w) = app.ui.transform.as_ref().and_then(|t| t.warp.clone()) else { return Err("not warping".into()) };
     if warps_type(app) {
         return Err("Warp on type takes only the warp styles".into());
@@ -177,7 +177,7 @@ pub fn edit_session_warp(app: &mut LocalPaintApp, id: &str, params: &serde_json:
 }
 
 /// Applies a split-warp command to the mesh being edited (at the box centre unless `at`).
-pub fn split(app: &mut LocalPaintApp, id: &str, at: Option<[f64; 2]>) -> Result<(), String> {
+pub fn split(app: &mut LocalRasterApp, id: &str, at: Option<[f64; 2]>) -> Result<(), String> {
     let mut p = json!({});
     if let Some(a) = at {
         p["at"] = json!(a);

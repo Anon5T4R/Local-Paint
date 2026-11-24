@@ -11,8 +11,8 @@
 //! [`effects::gradient_t`] (and the GPU's `gradient_t`) already take, so both compositors share
 //! one layout.
 
-use localpaint_doc::GradientStyle;
-use localpaint_geom::Rect;
+use localraster_doc::GradientStyle;
+use localraster_geom::Rect;
 
 use crate::effects;
 

@@ -7,11 +7,11 @@ The desktop control protocol is newline-delimited JSON over a TCP listener bound
 {"id":1,"method":"ui.inspect","params":{}}
 ```
 
-The current method catalog includes engine execution and discovery, application open/save operations, UI inspection and input, screenshots, and document/control helpers. The authoritative method and parameter tables are maintained in [`docs/control-protocol.md`](https://github.com/Anon5T4R/Local-Paint/blob/main/docs/control-protocol.md).
+The current method catalog includes engine execution and discovery, application open/save operations, UI inspection and input, screenshots, and document/control helpers. The authoritative method and parameter tables are maintained in [`docs/control-protocol.md`](https://github.com/Anon5T4R/Local-Raster/blob/main/docs/control-protocol.md).
 
 Implementation is split across:
 
-- `apps/localpaint/src/control_server.rs`: loopback TCP transport;
+- `apps/localraster/src/control_server.rs`: loopback TCP transport;
 - `crates/ui-egui/src/control.rs`: live application handlers;
 - `crates/automation/src/bridge.rs`: MCP-to-GUI client.
 

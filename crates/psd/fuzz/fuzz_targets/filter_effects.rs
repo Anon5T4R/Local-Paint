@@ -4,7 +4,7 @@
 //! re-parse to the same value and re-serialise byte for byte.
 #![no_main]
 use libfuzzer_sys::fuzz_target;
-use localpaint_psd::filter_effects::FilterEffects;
+use localraster_psd::filter_effects::FilterEffects;
 fuzz_target!(|data: &[u8]| {
     let Ok(fx) = FilterEffects::parse(data) else { return };
     for it in &fx.items {

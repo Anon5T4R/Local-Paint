@@ -21,9 +21,9 @@
 //! every ink's Lab equivalent in image resource 1066 (Alternate Duotone Colors): version 1, a
 //! count, then one 10-byte colour per ink in the same order.
 
-use localpaint_doc::adjust::CurvePoint;
-use localpaint_doc::{Duotone, DuotoneInk};
-use localpaint_psd::aco::AcoColor;
+use localraster_doc::adjust::CurvePoint;
+use localraster_doc::{Duotone, DuotoneInk};
+use localraster_psd::aco::AcoColor;
 
 /// Length of the block Photoshop writes.
 pub(crate) const BLOCK_LEN: usize = 524;

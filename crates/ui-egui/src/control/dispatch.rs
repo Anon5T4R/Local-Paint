@@ -4,14 +4,14 @@ use super::params::{
     BUTTONS, KEY_MODIFIERS, MAX_CLICKS, POINTER_MODIFIERS, UI_SET_FIELDS, bool_field, err, f32_field, f32_range, input_choice, input_modifiers, input_number,
     input_object, merged_object, modifiers_from, num_field, ok, screen_point, uint_field, whole_object,
 };
-use super::{ControlRequest, DialogKind, LocalPaintApp, Outcome, SHELL_DIALOG, Tool, ToolEvent, Value, json, run_waiting, tool_event, wrap};
+use super::{ControlRequest, DialogKind, LocalRasterApp, Outcome, SHELL_DIALOG, Tool, ToolEvent, Value, json, run_waiting, tool_event, wrap};
 
 /// A domain handler: `Some` when it owns the request's method, `None` to let the next one try.
-type Handler = fn(&mut LocalPaintApp, &egui::Context, &ControlRequest) -> Option<Outcome>;
+type Handler = fn(&mut LocalRasterApp, &egui::Context, &ControlRequest) -> Option<Outcome>;
 
-pub(super) fn dispatch(app: &mut LocalPaintApp, ctx: &egui::Context, req: &ControlRequest) -> Outcome {
+pub(super) fn dispatch(app: &mut LocalRasterApp, ctx: &egui::Context, req: &ControlRequest) -> Outcome {
     const HANDLERS: [Handler; 5] = [engine_methods, shell_methods, dialog_methods, input_methods, app_methods];
-    HANDLERS.iter().find_map(|handler| handler(app, ctx, req)).unwrap_or_else(|| err(localpaint_engine::command_hints::unknown_method(&req.method, METHODS)))
+    HANDLERS.iter().find_map(|handler| handler(app, ctx, req)).unwrap_or_else(|| err(localraster_engine::command_hints::unknown_method(&req.method, METHODS)))
 }
 
 fn str_param<'a>(p: &'a Value, key: &str) -> Option<&'a str> {
@@ -28,7 +28,7 @@ fn wait_param(p: &Value) -> bool {
 
 // ---- engine commands, menus and jobs ----
 
-fn engine_methods(app: &mut LocalPaintApp, ctx: &egui::Context, req: &ControlRequest) -> Option<Outcome> {
+fn engine_methods(app: &mut LocalRasterApp, ctx: &egui::Context, req: &ControlRequest) -> Option<Outcome> {
     Some(match req.method.as_str() {
         "ui.context.choose" => context_choose(app, ctx, &req.params),
         "engine.execute" | "ui.menu.invoke" => execute_command(app, ctx, req),
@@ -49,7 +49,7 @@ fn engine_methods(app: &mut LocalPaintApp, ctx: &egui::Context, req: &ControlReq
     })
 }
 
-fn context_choose(app: &mut LocalPaintApp, ctx: &egui::Context, p: &Value) -> Outcome {
+fn context_choose(app: &mut LocalRasterApp, ctx: &egui::Context, p: &Value) -> Outcome {
     let Some(id) = str_param(p, "id") else { return err("missing `id`") };
     if app.ui.canvas_tool_menu.is_none() && app.ui.brush_mode_menu.is_some() {
         return mode_menu_choose(app, ctx, id);
@@ -70,7 +70,7 @@ fn context_choose(app: &mut LocalPaintApp, ctx: &egui::Context, p: &Value) -> Ou
 }
 
 /// A row of the painting tools' Shift+right-click menu, by its English label (`brushModeMenu.choices`).
-fn mode_menu_choose(app: &mut LocalPaintApp, ctx: &egui::Context, label: &str) -> Outcome {
+fn mode_menu_choose(app: &mut LocalRasterApp, ctx: &egui::Context, label: &str) -> Outcome {
     let item = match crate::brush_mode_menu::find(app, label) {
         Ok(item) => item,
         Err(e) => return err(e),
@@ -85,11 +85,11 @@ fn mode_menu_choose(app: &mut LocalPaintApp, ctx: &egui::Context, label: &str) -
     ok(json!({"choice": label, "brushPicker": app.ui.brush_picker.is_some()}))
 }
 
-fn execute_command(app: &mut LocalPaintApp, ctx: &egui::Context, req: &ControlRequest) -> Outcome {
+fn execute_command(app: &mut LocalRasterApp, ctx: &egui::Context, req: &ControlRequest) -> Outcome {
     let p = &req.params;
     let Some(id) = str_param(p, "command").or(str_param(p, "id")) else { return err("missing `command`") };
-    if req.method == "engine.execute" && METHODS.contains(&id) && localpaint_engine::commands::find(id).is_none() {
-        return err(localpaint_engine::command_hints::protocol_method_as_command(id));
+    if req.method == "engine.execute" && METHODS.contains(&id) && localraster_engine::commands::find(id).is_none() {
+        return err(localraster_engine::command_hints::protocol_method_as_command(id));
     }
     let params = p.get("params").cloned().unwrap_or(json!({}));
     let wait = wait_param(p);
@@ -114,17 +114,17 @@ fn execute_command(app: &mut LocalPaintApp, ctx: &egui::Context, req: &ControlRe
     // `engine.execute` is programmatic: engine commands run directly with their default
     // params and never open a dialog (an agent would otherwise get a modal instead of a
     // result). `ui.menu.invoke` behaves like a menu click, so it may open the dialog.
-    if req.method == "engine.execute" && localpaint_engine::commands::find(id).is_some() {
+    if req.method == "engine.execute" && localraster_engine::commands::find(id).is_some() {
         return run_waiting(app, wait, |app| app.run(id, params));
     }
     run_waiting(app, wait, |app| crate::menus::invoke(app, ctx, id, params))
 }
 
-fn jobs_cancel(app: &mut LocalPaintApp, p: &Value) -> Outcome {
+fn jobs_cancel(app: &mut LocalRasterApp, p: &Value) -> Outcome {
     let all = p.get("job").is_none_or(Value::is_null);
     match p.get("job").and_then(Value::as_u64) {
-        Some(j) if app.session.job(localpaint_engine::jobs::JobId(j)).is_some() => {
-            let cancelled = crate::jobs_ui::cancel(app, localpaint_engine::jobs::JobId(j));
+        Some(j) if app.session.job(localraster_engine::jobs::JobId(j)).is_some() => {
+            let cancelled = crate::jobs_ui::cancel(app, localraster_engine::jobs::JobId(j));
             ok(json!({"cancelled": usize::from(cancelled)}))
         }
         Some(j) => err(format!("no running job {j}")),
@@ -139,7 +139,7 @@ fn jobs_cancel(app: &mut LocalPaintApp, p: &Value) -> Outcome {
 
 // ---- the shell: view state, windows, GPU, focus, screenshots ----
 
-fn shell_methods(app: &mut LocalPaintApp, ctx: &egui::Context, req: &ControlRequest) -> Option<Outcome> {
+fn shell_methods(app: &mut LocalRasterApp, ctx: &egui::Context, req: &ControlRequest) -> Option<Outcome> {
     let p = &req.params;
     Some(match req.method.as_str() {
         "ui.set" => ui_set(app, ctx, p),
@@ -175,7 +175,7 @@ fn shell_methods(app: &mut LocalPaintApp, ctx: &egui::Context, req: &ControlRequ
     })
 }
 
-fn simulate_gpu_loss(app: &mut LocalPaintApp, ctx: &egui::Context, p: &Value) -> Outcome {
+fn simulate_gpu_loss(app: &mut LocalRasterApp, ctx: &egui::Context, p: &Value) -> Outcome {
     if p.get("destroy").and_then(Value::as_bool).unwrap_or(false) {
         let destroyed = app.destroy_window_device();
         ctx.request_repaint();
@@ -183,9 +183,9 @@ fn simulate_gpu_loss(app: &mut LocalPaintApp, ctx: &egui::Context, p: &Value) ->
     }
     let error = p.get("error").and_then(Value::as_bool).unwrap_or(false);
     let fault = if error {
-        localpaint_gpu::Fault::Error("simulated error (ui.gpu.simulateLoss)".into())
+        localraster_gpu::Fault::Error("simulated error (ui.gpu.simulateLoss)".into())
     } else {
-        localpaint_gpu::Fault::Lost("simulated (ui.gpu.simulateLoss)".into())
+        localraster_gpu::Fault::Lost("simulated (ui.gpu.simulateLoss)".into())
     };
     let active = match app.gpu_health() {
         Some(h) => {
@@ -199,7 +199,7 @@ fn simulate_gpu_loss(app: &mut LocalPaintApp, ctx: &egui::Context, p: &Value) ->
     ok(json!({"wasActive": active, "gpuInfo": app.perf.gpu_info}))
 }
 
-fn screenshot(app: &mut LocalPaintApp, ctx: &egui::Context, p: &Value) -> Outcome {
+fn screenshot(app: &mut LocalRasterApp, ctx: &egui::Context, p: &Value) -> Outcome {
     let parsed =
         input_object(p, None, &["path", "focus"]).and_then(|p| Ok((input_choice(&p, "path", "path", &[])?.map(str::to_string), bool_field(&p, "focus")?)));
     let (path, focus) = match parsed {
@@ -210,7 +210,7 @@ fn screenshot(app: &mut LocalPaintApp, ctx: &egui::Context, p: &Value) -> Outcom
     if focus.unwrap_or(true) {
         ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
     }
-    // The capture itself is admitted by `LocalPaintApp::drain_control` (budget and
+    // The capture itself is admitted by `LocalRasterApp::drain_control` (budget and
     // geometry) and issued from a later `App::ui` pass once open/close animations
     // (modals, popups) have settled (see `screenshot.rs`).
     let token = app.ui.alloc_id();
@@ -220,7 +220,7 @@ fn screenshot(app: &mut LocalPaintApp, ctx: &egui::Context, p: &Value) -> Outcom
 
 // ---- ui.set: every field is validated and materialized into a `UiSet` before the first one is applied ----
 
-fn ui_set(app: &mut LocalPaintApp, ctx: &egui::Context, p: &Value) -> Outcome {
+fn ui_set(app: &mut LocalRasterApp, ctx: &egui::Context, p: &Value) -> Outcome {
     if let Some(field) = p.as_object().and_then(|o| o.keys().find(|k| !UI_SET_FIELDS.contains(&k.as_str()))) {
         return err(format!("unknown field `{field}` (fields: {})", UI_SET_FIELDS.join(", ")));
     }
@@ -241,7 +241,7 @@ struct UiSet {
 }
 
 impl UiSet {
-    fn parse(app: &LocalPaintApp, p: &Value) -> std::result::Result<Self, String> {
+    fn parse(app: &LocalRasterApp, p: &Value) -> std::result::Result<Self, String> {
         let tools = ToolSet::parse(app, p)?;
         let crop = CropSet::parse(app, p)?;
         let panels = PanelSet::parse(app, p)?;
@@ -255,7 +255,7 @@ impl UiSet {
     }
 
     /// Apply (nothing but the final `brushSize` command can fail).
-    fn apply(mut self, app: &mut LocalPaintApp, ctx: &egui::Context, p: &Value) -> std::result::Result<Value, String> {
+    fn apply(mut self, app: &mut LocalRasterApp, ctx: &egui::Context, p: &Value) -> std::result::Result<Value, String> {
         self.tools.apply(app);
         self.crop.apply(app);
         self.panels.apply_options(app);
@@ -284,8 +284,8 @@ fn theme_param(p: &Value) -> std::result::Result<Option<crate::theme::ThemeKind>
 // -- tools: stroke, tool, gradient, eyedropper, Content-Aware Move, tile grid, layer filter --
 
 struct ToolSet {
-    gradient_blend: Option<localpaint_color::BlendMode>,
-    shape_stroke: Option<Option<localpaint_doc::ShapeStroke>>,
+    gradient_blend: Option<localraster_color::BlendMode>,
+    shape_stroke: Option<Option<localraster_doc::ShapeStroke>>,
     tool: Option<Tool>,
     gradient_classic: Option<bool>,
     stroke_trace: Option<&'static str>,
@@ -300,7 +300,7 @@ struct ToolSet {
 }
 
 impl ToolSet {
-    fn parse(app: &LocalPaintApp, p: &Value) -> std::result::Result<Self, String> {
+    fn parse(app: &LocalRasterApp, p: &Value) -> std::result::Result<Self, String> {
         Ok(Self {
             gradient_blend: gradient_blend_param(p)?,
             shape_stroke: shape_stroke_param(app, p)?,
@@ -321,7 +321,7 @@ impl ToolSet {
         })
     }
 
-    fn apply(self, app: &mut LocalPaintApp) {
+    fn apply(self, app: &mut LocalRasterApp) {
         if let Some(stroke) = &self.shape_stroke {
             if let Some(stroke) = stroke {
                 app.ui.tool_options.stroke_width = stroke.width;
@@ -363,7 +363,7 @@ impl ToolSet {
         }
     }
 
-    fn apply_gradient_and_trace(&self, app: &mut LocalPaintApp) {
+    fn apply_gradient_and_trace(&self, app: &mut LocalRasterApp) {
         let gradient_before = app.ui.tool_options.clone();
         if let Some(mode) = self.gradient_blend {
             app.ui.tool_options.gradient_blend_mode = mode;
@@ -395,16 +395,16 @@ fn pen_path_op_param(p: &Value) -> std::result::Result<Option<String>, String> {
         .ok_or_else(|| "penPathOp must be one of newLayer, combine, subtract, intersect, exclude".to_string())
 }
 
-fn gradient_blend_param(p: &Value) -> std::result::Result<Option<localpaint_color::BlendMode>, String> {
+fn gradient_blend_param(p: &Value) -> std::result::Result<Option<localraster_color::BlendMode>, String> {
     let Some(value) = p.get("gradientBlendMode") else { return Ok(None) };
     let Some(name) = value.as_str() else { return Err("gradientBlendMode must be a blend mode name".into()) };
-    localpaint_engine::commands::blend_from_str(name)
-        .filter(|m| localpaint_color::BlendMode::LAYER_MODES.contains(m))
+    localraster_engine::commands::blend_from_str(name)
+        .filter(|m| localraster_color::BlendMode::LAYER_MODES.contains(m))
         .map(Some)
         .ok_or_else(|| format!("unknown gradient blend mode `{name}`"))
 }
 
-fn shape_stroke_param(app: &LocalPaintApp, p: &Value) -> std::result::Result<Option<Option<localpaint_doc::ShapeStroke>>, String> {
+fn shape_stroke_param(app: &LocalRasterApp, p: &Value) -> std::result::Result<Option<Option<localraster_doc::ShapeStroke>>, String> {
     let Some(v) = p.get("shapeStroke") else { return Ok(None) };
     if let Some(object) = v.as_object() {
         let keys = ["width", "opacity", "align", "cap", "join", "miterLimit", "dashes", "dashOffset"];
@@ -413,8 +413,8 @@ fn shape_stroke_param(app: &LocalPaintApp, p: &Value) -> std::result::Result<Opt
         }
     }
     let o = &app.ui.tool_options;
-    let base = o.shape_stroke.stroke(o.stroke_width, localpaint_doc::Fill::Solid(localpaint_doc::Color::BLACK));
-    Ok(Some(localpaint_engine::vector_cmds::parse_stroke(v, Some(base), localpaint_doc::Color::BLACK)?))
+    let base = o.shape_stroke.stroke(o.stroke_width, localraster_doc::Fill::Solid(localraster_doc::Color::BLACK));
+    Ok(Some(localraster_engine::vector_cmds::parse_stroke(v, Some(base), localraster_doc::Color::BLACK)?))
 }
 
 fn tool_param(p: &Value) -> std::result::Result<Option<Tool>, String> {
@@ -442,14 +442,14 @@ fn stroke_trace_param(p: &Value) -> std::result::Result<Option<&'static str>, St
 
 fn eyedropper_size_param(p: &Value) -> std::result::Result<Option<u32>, String> {
     let Some(v) = p.get("eyedropperSampleSize") else { return Ok(None) };
-    localpaint_engine::sample_cmds::size_param("ui.set", &json!({"size": v}))
+    localraster_engine::sample_cmds::size_param("ui.set", &json!({"size": v}))
         .map(Some)
-        .map_err(|_| format!("eyedropperSampleSize must be \"point\" or one of {:?}", localpaint_engine::sample_cmds::SAMPLE_SIZES))
+        .map_err(|_| format!("eyedropperSampleSize must be \"point\" or one of {:?}", localraster_engine::sample_cmds::SAMPLE_SIZES))
 }
 
 fn eyedropper_sample_param(p: &Value) -> std::result::Result<Option<String>, String> {
     let Some(v) = p.get("eyedropperSample") else { return Ok(None) };
-    let ids: Vec<&str> = localpaint_engine::sample_cmds::SampleLayers::ALL.iter().map(|(_, n)| *n).collect();
+    let ids: Vec<&str> = localraster_engine::sample_cmds::SampleLayers::ALL.iter().map(|(_, n)| *n).collect();
     let id = v.as_str().filter(|id| ids.contains(id)).ok_or_else(|| format!("eyedropperSample must be one of {}", ids.join(", ")))?;
     Ok(Some(id.to_string()))
 }
@@ -465,7 +465,7 @@ struct CropSet {
 }
 
 impl CropSet {
-    fn parse(app: &LocalPaintApp, p: &Value) -> std::result::Result<Self, String> {
+    fn parse(app: &LocalRasterApp, p: &Value) -> std::result::Result<Self, String> {
         // The Crop tool's overlay menu (#1919).
         let overlay = crop_overlay_param(p)?;
         let overlay_show = crop_overlay_show_param(p)?;
@@ -480,7 +480,7 @@ impl CropSet {
         Ok(Self { overlay, overlay_show, orientation, content_aware, shield })
     }
 
-    fn apply(self, app: &mut LocalPaintApp) {
+    fn apply(self, app: &mut LocalRasterApp) {
         let o = &mut app.ui.tool_options;
         if let Some(k) = self.overlay {
             o.crop_overlay = k;
@@ -551,7 +551,7 @@ struct PanelSet {
 }
 
 impl PanelSet {
-    fn parse(app: &LocalPaintApp, p: &Value) -> std::result::Result<Self, String> {
+    fn parse(app: &LocalRasterApp, p: &Value) -> std::result::Result<Self, String> {
         Ok(Self {
             // The Histogram panel: its options, the dragged tonal range ([from, to] levels or
             // null) and Uncached Refresh.
@@ -573,7 +573,7 @@ impl PanelSet {
     }
 
     /// Everything that precedes the theme.
-    fn apply_options(&mut self, app: &mut LocalPaintApp) {
+    fn apply_options(&mut self, app: &mut LocalRasterApp) {
         self.apply_histogram(app);
         if let Some(v) = self.panels.take() {
             app.ui.panels = v;
@@ -585,7 +585,7 @@ impl PanelSet {
         }
     }
 
-    fn apply_histogram(&mut self, app: &mut LocalPaintApp) {
+    fn apply_histogram(&mut self, app: &mut LocalRasterApp) {
         if let Some(h) = self.histogram_panel.take() {
             app.ui.histogram_panel = h;
             crate::histogram_panel::persist_options(app);
@@ -598,7 +598,7 @@ impl PanelSet {
         }
     }
 
-    fn apply_mask_targets(&self, app: &mut LocalPaintApp) {
+    fn apply_mask_targets(&self, app: &mut LocalRasterApp) {
         if let Some(m) = self.mask_target {
             app.end_filter_mask_view();
             app.ui.filter_mask_target = None;
@@ -626,7 +626,7 @@ impl PanelSet {
         }
     }
 
-    fn apply_dock(&mut self, app: &mut LocalPaintApp) {
+    fn apply_dock(&mut self, app: &mut LocalRasterApp) {
         if let Some(v) = self.dock_tabs.take() {
             app.ui.dock_tabs = v;
         }
@@ -636,7 +636,7 @@ impl PanelSet {
         }
     }
 
-    fn apply_color_and_width(&mut self, app: &mut LocalPaintApp, ctx: &egui::Context) {
+    fn apply_color_and_width(&mut self, app: &mut LocalRasterApp, ctx: &egui::Context) {
         if let Some(v) = self.color_panel.take() {
             app.ui.color_panel = v;
         }
@@ -653,7 +653,7 @@ fn histogram_range_param(p: &Value) -> std::result::Result<Option<Option<[u8; 2]
 }
 
 /// Target the active smart object's filter mask (FILE-215-3): it needs smart filters.
-fn filter_mask_target_param(app: &LocalPaintApp, p: &Value) -> std::result::Result<Option<bool>, String> {
+fn filter_mask_target_param(app: &LocalRasterApp, p: &Value) -> std::result::Result<Option<bool>, String> {
     let target = bool_field(p, "filterMaskTarget")?;
     if target == Some(true) {
         check_filter_mask_target(app)?;
@@ -661,11 +661,11 @@ fn filter_mask_target_param(app: &LocalPaintApp, p: &Value) -> std::result::Resu
     Ok(target)
 }
 
-fn check_filter_mask_target(app: &LocalPaintApp) -> std::result::Result<(), String> {
-    use localpaint_engine::channel_cmds::ChannelTarget;
+fn check_filter_mask_target(app: &LocalRasterApp) -> std::result::Result<(), String> {
+    use localraster_engine::channel_cmds::ChannelTarget;
     let st = app.session.active().ok_or("filterMaskTarget needs an open document")?;
     let l = st.active_layer.and_then(|id| st.doc.layer(id)).ok_or("filterMaskTarget needs an active layer")?;
-    if !matches!(&l.content, localpaint_doc::LayerContent::Smart(sm) if !sm.smart_filters.is_empty()) {
+    if !matches!(&l.content, localraster_doc::LayerContent::Smart(sm) if !sm.smart_filters.is_empty()) {
         return Err("filterMaskTarget needs an active smart object with smart filters".into());
     }
     let composite = matches!(st.channel_view.target, ChannelTarget::Composite | ChannelTarget::LayerMask | ChannelTarget::VectorMask);
@@ -685,7 +685,7 @@ struct ViewSet {
 }
 
 impl ViewSet {
-    fn parse(app: &LocalPaintApp, p: &Value) -> std::result::Result<Self, String> {
+    fn parse(app: &LocalRasterApp, p: &Value) -> std::result::Result<Self, String> {
         let zoom = f32_field(p, "zoom")?;
         let rotation = f32_field(p, "rotation")?;
         if rotation.is_some() && app.session.active_index().is_none() {
@@ -696,7 +696,7 @@ impl ViewSet {
         Ok(Self { zoom, rotation, center, fit })
     }
 
-    fn apply(&self, app: &mut LocalPaintApp) {
+    fn apply(&self, app: &mut LocalRasterApp) {
         let Some(i) = app.session.active_index() else { return };
         if self.zoom.is_some() || self.center.is_some() || self.rotation.is_some() || self.fit {
             app.ui.views[i].zoom_animating = false;
@@ -753,7 +753,7 @@ struct BrushSet {
 }
 
 impl BrushSet {
-    fn parse(app: &LocalPaintApp, p: &Value) -> std::result::Result<Self, String> {
+    fn parse(app: &LocalRasterApp, p: &Value) -> std::result::Result<Self, String> {
         let section = uint_field(p, "brushSection")?;
         let tab = uint_field(p, "brushTab")?;
         let brushes_view = brushes_view_param(p)?;
@@ -776,7 +776,7 @@ impl BrushSet {
         })
     }
 
-    fn apply(&self, app: &mut LocalPaintApp) -> std::result::Result<(), String> {
+    fn apply(&self, app: &mut LocalRasterApp) -> std::result::Result<(), String> {
         if let Some(i) = self.section {
             app.ui.brush_section = (i as usize).min(crate::brush_panel::SECTIONS.len() - 1);
         }
@@ -793,7 +793,7 @@ impl BrushSet {
         Ok(())
     }
 
-    fn apply_picker(&self, app: &mut LocalPaintApp) {
+    fn apply_picker(&self, app: &mut LocalRasterApp) {
         let list = &mut app.ui.brush_picker_list;
         if let Some(v) = self.picker_name {
             list.show_name = v;
@@ -818,7 +818,7 @@ fn brushes_view_param(p: &Value) -> std::result::Result<Option<crate::brush_pane
     serde_json::from_value(v.clone()).map(Some).map_err(|e| format!("brushesView: {e} (list, grid)"))
 }
 
-fn check_picker_parts(app: &LocalPaintApp, parts: [Option<bool>; 3]) -> std::result::Result<(), String> {
+fn check_picker_parts(app: &LocalRasterApp, parts: [Option<bool>; 3]) -> std::result::Result<(), String> {
     if parts.iter().all(Option::is_none) {
         return Ok(());
     }
@@ -853,15 +853,15 @@ fn picker_param(p: &Value) -> std::result::Result<Option<Option<[f32; 2]>>, Stri
 /// applied; non-numeric values keep the API's historical silent no-op.
 fn brush_size_param(p: &Value) -> std::result::Result<Option<f64>, String> {
     let Some(size) = p.get("brushSize").and_then(Value::as_f64) else { return Ok(None) };
-    if !size.is_finite() || size > f64::from(localpaint_paint::MAX_BRUSH_SIZE) {
-        return Err(format!("brushSize must be finite and at most {} px", localpaint_paint::MAX_BRUSH_SIZE));
+    if !size.is_finite() || size > f64::from(localraster_paint::MAX_BRUSH_SIZE) {
+        return Err(format!("brushSize must be finite and at most {} px", localraster_paint::MAX_BRUSH_SIZE));
     }
     Ok(Some(size))
 }
 
 // ---- dialogs ----
 
-fn dialog_methods(app: &mut LocalPaintApp, ctx: &egui::Context, req: &ControlRequest) -> Option<Outcome> {
+fn dialog_methods(app: &mut LocalRasterApp, ctx: &egui::Context, req: &ControlRequest) -> Option<Outcome> {
     let p = &req.params;
     let s = |k: &str| str_param(p, k);
     let u = |k: &str| u64_param(p, k);
@@ -899,7 +899,7 @@ fn dialog_methods(app: &mut LocalPaintApp, ctx: &egui::Context, req: &ControlReq
     })
 }
 
-fn dialog_open(app: &mut LocalPaintApp, p: &Value) -> Outcome {
+fn dialog_open(app: &mut LocalRasterApp, p: &Value) -> Outcome {
     let kind = match str_param(p, "kind").unwrap_or("") {
         "newDocument" | "NewDocument" => DialogKind::NewDocument,
         "about" | "About" => DialogKind::About,
@@ -917,7 +917,7 @@ fn dialog_open(app: &mut LocalPaintApp, p: &Value) -> Outcome {
 }
 
 /// The dialog kinds that open through their own module rather than `open_dialog`.
-fn open_named_dialog(app: &mut LocalPaintApp, p: &Value, kind: &str) -> Outcome {
+fn open_named_dialog(app: &mut LocalRasterApp, p: &Value, kind: &str) -> Outcome {
     let opened = |id: Option<u64>, missing: &str| match id {
         Some(id) => ok(json!({"dialog": id})),
         None => err(missing),
@@ -929,14 +929,14 @@ fn open_named_dialog(app: &mut LocalPaintApp, p: &Value, kind: &str) -> Outcome 
         "deleteCropPreset" => opened(crate::crop_presets::open_delete(app), "no crop presets are saved"),
         "command" | "Command" => {
             let Some(cmd) = str_param(p, "command") else { return err("command dialogs need `command`") };
-            let label = localpaint_engine::commands::find(cmd).map(|c| c.label).unwrap_or(cmd);
+            let label = localraster_engine::commands::find(cmd).map(|c| c.label).unwrap_or(cmd);
             ok(json!({"dialog": crate::dialogs::open_command_dialog(app, cmd, label)}))
         }
         other => err(format!("unknown dialog kind `{other}`")),
     }
 }
 
-fn color_picker_dialog(app: &mut LocalPaintApp, p: &Value) -> Outcome {
+fn color_picker_dialog(app: &mut LocalRasterApp, p: &Value) -> Outcome {
     if let Some(style) = p.get("textStyle") {
         return text_style_color_picker(app, p, style);
     }
@@ -963,7 +963,7 @@ fn color_picker_dialog(app: &mut LocalPaintApp, p: &Value) -> Outcome {
     ok(json!({"dialog": crate::color_picker_ui::open(app, target)}))
 }
 
-fn text_style_color_picker(app: &mut LocalPaintApp, p: &Value, style: &Value) -> Outcome {
+fn text_style_color_picker(app: &mut LocalRasterApp, p: &Value, style: &Value) -> Outcome {
     if ["parent", "effect", "field", "target"].iter().any(|key| p.get(*key).is_some()) {
         return err("textStyle cannot be combined with another picker target");
     }
@@ -982,7 +982,7 @@ fn text_style_color_picker(app: &mut LocalPaintApp, p: &Value, style: &Value) ->
     }
 }
 
-fn shell_dialog_set(app: &mut LocalPaintApp, p: &Value) -> Outcome {
+fn shell_dialog_set(app: &mut LocalRasterApp, p: &Value) -> Outcome {
     let Some(field) = str_param(p, "field") else { return err("need `dialog` and `field`") };
     let value = p.get("value").cloned().unwrap_or(Value::Null);
     match app.ui.shell.dialog.as_mut() {
@@ -994,7 +994,7 @@ fn shell_dialog_set(app: &mut LocalPaintApp, p: &Value) -> Outcome {
     }
 }
 
-fn shell_dialog_confirm(app: &mut LocalPaintApp, ctx: &egui::Context) -> Outcome {
+fn shell_dialog_confirm(app: &mut LocalRasterApp, ctx: &egui::Context) -> Outcome {
     let Some((kind, fields)) = app.ui.shell.dialog.clone() else { return err("no shell dialog is open") };
     if let Some((command, params)) = crate::workspace_ui::dialog_command(&kind, &fields)
         && let Some(authorize) = app.services.automation_command.as_ref()
@@ -1005,7 +1005,7 @@ fn shell_dialog_confirm(app: &mut LocalPaintApp, ctx: &egui::Context) -> Outcome
     wrap(crate::workspace_ui::confirm(app, ctx))
 }
 
-fn discard_dialog_confirm(app: &mut LocalPaintApp, ctx: &egui::Context, choice: &str) -> Outcome {
+fn discard_dialog_confirm(app: &mut LocalRasterApp, ctx: &egui::Context, choice: &str) -> Outcome {
     if choice != "cancel"
         && let Some((command, params)) = crate::discard_ui::pending_command(app)
         && let Some(authorize) = app.services.automation_command.as_ref()
@@ -1016,7 +1016,7 @@ fn discard_dialog_confirm(app: &mut LocalPaintApp, ctx: &egui::Context, choice: 
     wrap(crate::discard_ui::answer_control(app, ctx, choice))
 }
 
-fn dialog_set(app: &mut LocalPaintApp, p: &Value) -> Outcome {
+fn dialog_set(app: &mut LocalRasterApp, p: &Value) -> Outcome {
     let (Some(id), Some(field)) = (u64_param(p, "dialog"), str_param(p, "field")) else { return err("need `dialog` and `field`") };
     let value = p.get("value").cloned().unwrap_or(Value::Null);
     match app.ui.dialog_mut(id) {
@@ -1033,7 +1033,7 @@ fn dialog_set(app: &mut LocalPaintApp, p: &Value) -> Outcome {
     }
 }
 
-fn dialog_confirm_or_apply(app: &mut LocalPaintApp, req: &ControlRequest, id: u64) -> Outcome {
+fn dialog_confirm_or_apply(app: &mut LocalRasterApp, req: &ControlRequest, id: u64) -> Outcome {
     let apply = req.method == "ui.dialog.apply";
     let command = app.ui.dialogs.iter().find(|dialog| dialog.id == id).and_then(|dialog| {
         if apply {
@@ -1053,7 +1053,7 @@ fn dialog_confirm_or_apply(app: &mut LocalPaintApp, req: &ControlRequest, id: u6
 
 // ---- synthetic input: pointer events, clicks, keys, text ----
 
-fn input_methods(app: &mut LocalPaintApp, ctx: &egui::Context, req: &ControlRequest) -> Option<Outcome> {
+fn input_methods(app: &mut LocalRasterApp, ctx: &egui::Context, req: &ControlRequest) -> Option<Outcome> {
     let p = &req.params;
     Some(match req.method.as_str() {
         "ui.pointer" => pointer(app, ctx, p),
@@ -1069,7 +1069,7 @@ fn input_methods(app: &mut LocalPaintApp, ctx: &egui::Context, req: &ControlRequ
     })
 }
 
-fn click(app: &mut LocalPaintApp, ctx: &egui::Context, p: &Value, click: bool) -> Outcome {
+fn click(app: &mut LocalRasterApp, ctx: &egui::Context, p: &Value, click: bool) -> Outcome {
     let fields: &[&str] = if click { &["x", "y", "button", "count"] } else { &["x", "y"] };
     let parsed = (|| -> std::result::Result<_, String> {
         let p = input_object(p, None, fields)?;
@@ -1100,7 +1100,7 @@ fn click(app: &mut LocalPaintApp, ctx: &egui::Context, p: &Value, click: bool) -
     Outcome::AfterInput
 }
 
-fn key(app: &mut LocalPaintApp, ctx: &egui::Context, p: &Value) -> Outcome {
+fn key(app: &mut LocalRasterApp, ctx: &egui::Context, p: &Value) -> Outcome {
     let parsed = (|| -> std::result::Result<_, String> {
         let p = input_object(p, None, &["key", "modifiers", "shift", "alt", "command", "ctrl"])?;
         let Some(name) = input_choice(&p, "key", "key", &[])? else { return Err("missing `key`".into()) };
@@ -1146,7 +1146,7 @@ struct PointerGesture {
     mods: egui::Modifiers,
 }
 
-fn pointer(app: &mut LocalPaintApp, ctx: &egui::Context, p: &Value) -> Outcome {
+fn pointer(app: &mut LocalRasterApp, ctx: &egui::Context, p: &Value) -> Outcome {
     // Every field and event is validated before the first event runs, so a rejected call
     // changes nothing (#2449).
     let parsed = match parse_pointer(p) {
@@ -1212,11 +1212,11 @@ fn parse_pointer_event(i: usize, e: &Value) -> std::result::Result<PointerSample
 }
 
 /// Whether a modal tool, picker or context menu took the event instead of the canvas.
-fn pointer_event_intercepted(app: &mut LocalPaintApp, ctx: &egui::Context, g: &PointerGesture, s: &PointerSample) -> bool {
+fn pointer_event_intercepted(app: &mut LocalRasterApp, ctx: &egui::Context, g: &PointerGesture, s: &PointerSample) -> bool {
     pointer_eyedropper_took(app, ctx, g, s) || color_range_took(app, g, s) || (g.secondary && secondary_menu_took(app, ctx, g, s))
 }
 
-fn pointer_eyedropper_took(app: &mut LocalPaintApp, ctx: &egui::Context, g: &PointerGesture, s: &PointerSample) -> bool {
+fn pointer_eyedropper_took(app: &mut LocalRasterApp, ctx: &egui::Context, g: &PointerGesture, s: &PointerSample) -> bool {
     let (x, y) = (s.x, s.y);
     let down = matches!(s.ev, ToolEvent::Down { .. });
     // With the Color Picker on top the image is its eyedropper, as for the mouse.
@@ -1253,7 +1253,7 @@ fn pointer_eyedropper_took(app: &mut LocalPaintApp, ctx: &egui::Context, g: &Poi
 
 /// The dialog owns all pointer events, including Up: no underlying brush stroke
 /// or context menu may leak through while inspecting a Color Range preview.
-fn color_range_took(app: &mut LocalPaintApp, g: &PointerGesture, s: &PointerSample) -> bool {
+fn color_range_took(app: &mut LocalRasterApp, g: &PointerGesture, s: &PointerSample) -> bool {
     if !app.ui.dialogs.last().is_some_and(|d| crate::color_range_ui::owns(&d.fields)) {
         return false;
     }
@@ -1271,11 +1271,11 @@ fn color_range_took(app: &mut LocalPaintApp, g: &PointerGesture, s: &PointerSamp
 
 /// Right-click: the transform box's menu, the layer list, or a canvas menu. Whether it opens
 /// only on the press, the event is consumed either way.
-fn secondary_menu_took(app: &mut LocalPaintApp, ctx: &egui::Context, g: &PointerGesture, s: &PointerSample) -> bool {
+fn secondary_menu_took(app: &mut LocalRasterApp, ctx: &egui::Context, g: &PointerGesture, s: &PointerSample) -> bool {
     secondary_transform_or_crop_took(app, ctx, g, s) || secondary_canvas_menu_took(app, ctx, g, s)
 }
 
-fn secondary_transform_or_crop_took(app: &mut LocalPaintApp, ctx: &egui::Context, g: &PointerGesture, s: &PointerSample) -> bool {
+fn secondary_transform_or_crop_took(app: &mut LocalRasterApp, ctx: &egui::Context, g: &PointerGesture, s: &PointerSample) -> bool {
     let (x, y) = (s.x, s.y);
     let down = matches!(s.ev, ToolEvent::Down { .. });
     // Right-click while transforming: the box's menu, as on the canvas.
@@ -1310,7 +1310,7 @@ fn secondary_transform_or_crop_took(app: &mut LocalPaintApp, ctx: &egui::Context
     false
 }
 
-fn secondary_canvas_menu_took(app: &mut LocalPaintApp, ctx: &egui::Context, g: &PointerGesture, s: &PointerSample) -> bool {
+fn secondary_canvas_menu_took(app: &mut LocalRasterApp, ctx: &egui::Context, g: &PointerGesture, s: &PointerSample) -> bool {
     let (x, y) = (s.x, s.y);
     let down = matches!(s.ev, ToolEvent::Down { .. });
     if crate::canvas_tool_menu::pasteboard_at(app, app.ui.tool, [x, y]) {
@@ -1338,7 +1338,7 @@ fn secondary_canvas_menu_took(app: &mut LocalPaintApp, ctx: &egui::Context, g: &
 }
 
 /// Hand an event nothing intercepted to the active tool.
-fn forward_pointer_event(app: &mut LocalPaintApp, g: &PointerGesture, s: PointerSample) {
+fn forward_pointer_event(app: &mut LocalRasterApp, g: &PointerGesture, s: PointerSample) {
     // A simulated pen: tilt/rotation reach the stroke like a real stylus's (see `stylus`).
     if s.pen != (None, None, None) {
         let (tilt_x, tilt_y, rotation) = (s.pen.0.unwrap_or(0.0), s.pen.1.unwrap_or(0.0), s.pen.2.unwrap_or(0.0));
@@ -1365,7 +1365,7 @@ fn forward_pointer_event(app: &mut LocalPaintApp, g: &PointerGesture, s: Pointer
 
 // ---- the application: open, save, quit ----
 
-fn app_methods(app: &mut LocalPaintApp, ctx: &egui::Context, req: &ControlRequest) -> Option<Outcome> {
+fn app_methods(app: &mut LocalRasterApp, ctx: &egui::Context, req: &ControlRequest) -> Option<Outcome> {
     let p = &req.params;
     Some(match req.method.as_str() {
         "app.open" => match str_param(p, "path") {
@@ -1388,7 +1388,7 @@ fn app_methods(app: &mut LocalPaintApp, ctx: &egui::Context, req: &ControlReques
     })
 }
 
-fn app_open(app: &mut LocalPaintApp, path: &str) -> Outcome {
+fn app_open(app: &mut LocalRasterApp, path: &str) -> Outcome {
     if let Some(outcome) = open_pcraft_directory(app, path) {
         return outcome;
     }
@@ -1410,8 +1410,8 @@ fn app_open(app: &mut LocalPaintApp, path: &str) -> Outcome {
 /// Directory .pcraft (the native on-disk form) loads through a capability-scoped
 /// source; the single-file (zip) form falls back to the bytes path, as do all
 /// other formats. `None` means "not a directory .pcraft".
-fn open_pcraft_directory(app: &mut LocalPaintApp, path: &str) -> Option<Outcome> {
-    if !path.rsplit_once('.').is_some_and(|(_, ext)| ext.eq_ignore_ascii_case(localpaint_format::EXTENSION)) {
+fn open_pcraft_directory(app: &mut LocalRasterApp, path: &str) -> Option<Outcome> {
+    if !path.rsplit_once('.').is_some_and(|(_, ext)| ext.eq_ignore_ascii_case(localraster_format::EXTENSION)) {
         return None;
     }
     let open = app.services.automation_open_pcraft.as_mut()?;

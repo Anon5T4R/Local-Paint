@@ -1,5 +1,5 @@
 [package]
-name = "localpaint-affinity-fuzz"
+name = "localraster-affinity-fuzz"
 version = "0.0.0"
 publish = false
 edition = "2024"
@@ -11,12 +11,12 @@ cargo-fuzz = true
 [workspace]
 
 [features]
-io = ["dep:localpaint-io"]
+io = ["dep:localraster-io"]
 
 [dependencies]
 libfuzzer-sys = "0.4"
-localpaint-affinity = { path = "..", features = ["synth"] }
-localpaint-io = { path = "../../io", optional = true }
+localraster-affinity = { path = "..", features = ["synth"] }
+localraster-io = { path = "../../io", optional = true }
 
 [[bin]]
 name = "preview"

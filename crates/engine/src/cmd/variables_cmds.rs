@@ -6,10 +6,10 @@
 
 use std::sync::Arc;
 
-use localpaint_algo::resample::{Resample, resize_surface, translate_surface};
-use localpaint_doc::text::{ParagraphRun, TextRun};
-use localpaint_doc::variables::Value as VarValue;
-use localpaint_doc::{DataSet, DataValue, Document, LayerContent, LayerId, PixelAlign, PixelMethod, VarKind, VariableDef, Variables};
+use localraster_algo::resample::{Resample, resize_surface, translate_surface};
+use localraster_doc::text::{ParagraphRun, TextRun};
+use localraster_doc::variables::Value as VarValue;
+use localraster_doc::{DataSet, DataValue, Document, LayerContent, LayerId, PixelAlign, PixelMethod, VarKind, VariableDef, Variables};
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;
@@ -234,7 +234,7 @@ fn replace_pixels(doc: &mut Document, layer: LayerId, path: &str, method: PixelM
     let dx = (target.x0 as f64 + (tw - sw) * fx).round() as i32;
     let dy = (target.y0 as f64 + (th - sh) * fy).round() as i32;
     let placed = translate_surface(&scaled, dx, dy);
-    let placed = if clip { localpaint_algo::resample::crop_surface(&placed, target) } else { placed };
+    let placed = if clip { localraster_algo::resample::crop_surface(&placed, target) } else { placed };
     if let Some(l) = doc.layer_mut(layer)
         && let LayerContent::Raster(sfc) = &mut l.content
     {
@@ -460,8 +460,8 @@ pub fn export_data_sets_with(s: &Session, p: &Value, mut write: impl FnMut(&str,
         let mut doc = (*original).clone();
         apply_to_doc(&mut doc, &vars, set)?;
         // An untrusted session's PSD export embeds no file a linked smart object names.
-        let opts = localpaint_io::ExportOptions { read_linked_files: s.authorize.is_none(), ..Default::default() };
-        let bytes = localpaint_io::export(&doc, format, &opts).map(|r| r.bytes).map_err(|e| EngineError::Other(format!("export `{}`: {e}", set.name)))?;
+        let opts = localraster_io::ExportOptions { read_linked_files: s.authorize.is_none(), ..Default::default() };
+        let bytes = localraster_io::export(&doc, format, &opts).map(|r| r.bytes).map_err(|e| EngineError::Other(format!("export `{}`: {e}", set.name)))?;
         write(name, &bytes)?;
         written.push(name.clone());
     }

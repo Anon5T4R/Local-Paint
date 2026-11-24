@@ -3,7 +3,7 @@
 
 use crate::common;
 use common::*;
-use localpaint_codecs::*;
+use localraster_codecs::*;
 
 const W: u32 = 24;
 const H: u32 = 16;

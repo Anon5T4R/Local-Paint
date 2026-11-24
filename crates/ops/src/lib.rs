@@ -1,6 +1,6 @@
 //! Undo/redo history.
 //!
-//! Because pixel tiles are `Arc`-shared copy-on-write (see `localpaint-raster`), a full
+//! Because pixel tiles are `Arc`-shared copy-on-write (see `localraster-raster`), a full
 //! [`Document`] clone costs O(layers + tiles) pointer copies, not pixel copies. History therefore
 //! stores whole-document snapshots per transaction, which is simple, obviously correct, and the
 //! same approach Photoshop's History panel exposes to users (one state per step).
@@ -14,7 +14,7 @@
 use std::collections::{HashSet, VecDeque};
 use std::sync::Arc;
 
-use localpaint_doc::{Document, LayerId};
+use localraster_doc::{Document, LayerId};
 
 mod tiles;
 

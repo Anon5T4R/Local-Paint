@@ -2,7 +2,7 @@
 //! Spherize, Wave, Ripple, Polar Coordinates. All are centred on the
 //! reference bounds.
 
-use localpaint_geom::Rect;
+use localraster_geom::Rect;
 
 use crate::image::{Edge, Image};
 use crate::noise::hash01;

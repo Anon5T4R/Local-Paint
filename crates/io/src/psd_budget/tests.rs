@@ -1,5 +1,5 @@
 use super::*;
-use localpaint_psd::{ColorMode, Compression, Version, testgen};
+use localraster_psd::{ColorMode, Compression, Version, testgen};
 
 #[test]
 fn retained_storage_is_summed_but_workspace_is_reused() {
@@ -56,8 +56,8 @@ fn large_off_canvas_layer_is_rejected_without_decoding_its_tiny_data() {
     let mut bytes = file.to_bytes().unwrap();
     bytes.truncate(bytes.len() - file.image_data.data.len() - 2);
     assert!(matches!(crate::import("huge.psd", &bytes), Err(IoError::PsdImportBudget { .. })));
-    let source = localpaint_psd::Source::new(bytes);
-    assert!(matches!(crate::import_source_for_open_with("huge.psd", source, &localpaint_raster::Interrupt::NONE), Err(IoError::PsdImportBudget { .. })));
+    let source = localraster_psd::Source::new(bytes);
+    assert!(matches!(crate::import_source_for_open_with("huge.psd", source, &localraster_raster::Interrupt::NONE), Err(IoError::PsdImportBudget { .. })));
 }
 
 #[test]
@@ -65,7 +65,7 @@ fn user_mask_bounds_count_even_when_the_layer_is_small() {
     let mut file = testgen::small(Version::Psd, Compression::Raw);
     let before = estimate(&file);
     // The generator's first record has a user mask. Modify its parsed mask in place.
-    if let localpaint_psd::layer::MaskData::Mask(mask) = &mut file.layers_mut()[0].mask {
+    if let localraster_psd::layer::MaskData::Mask(mask) = &mut file.layers_mut()[0].mask {
         mask.rect = Rect::from_xywh(0, 0, 20_000, 20_000);
     } else {
         panic!("fixture needs a parsed mask");
@@ -109,8 +109,8 @@ fn accepted_off_canvas_pixels_and_depths_are_preserved() {
             assert_eq!(doc.depth, crate::pixels::sample_for_depth(depth));
             let bytes = file.to_bytes().unwrap();
             let opened = crate::import("small.psd", &bytes).unwrap().document;
-            let rect = localpaint_geom::Rect::new(-8, -8, 32, 24);
-            assert_eq!(localpaint_compose::render(&opened, rect), localpaint_compose::render(&doc, rect));
+            let rect = localraster_geom::Rect::new(-8, -8, 32, 24);
+            assert_eq!(localraster_compose::render(&opened, rect), localraster_compose::render(&doc, rect));
         }
     }
 }
@@ -124,8 +124,8 @@ fn legacy_conversion_reports_a_rejected_import_instead_of_decoding_it() {
     assert!(warnings.iter().any(|warning| warning.contains("pixel memory")));
 }
 
-fn pattern_block(mode: u32, depth: u16, width: u32, height: u32) -> localpaint_psd::TaggedBlock {
-    use localpaint_psd::patterns::{PsdPattern, mode_channels, write_pattern_block};
+fn pattern_block(mode: u32, depth: u16, width: u32, height: u32) -> localraster_psd::TaggedBlock {
+    use localraster_psd::patterns::{PsdPattern, mode_channels, write_pattern_block};
     let len = (width as usize * depth as usize).div_ceil(8) * height as usize;
     let p = PsdPattern {
         mode,
@@ -138,7 +138,7 @@ fn pattern_block(mode: u32, depth: u16, width: u32, height: u32) -> localpaint_p
         channels: vec![vec![0; len]; mode_channels(mode)],
         alpha: None,
     };
-    localpaint_psd::TaggedBlock::new(*b"Patt", write_pattern_block(&[p]).unwrap())
+    localraster_psd::TaggedBlock::new(*b"Patt", write_pattern_block(&[p]).unwrap())
 }
 
 #[test]
@@ -181,14 +181,14 @@ fn an_unknown_color_mode_pays_for_the_layers_it_imports_as_rgb() {
     let rgb = testgen::small(Version::Psd, Compression::Raw);
     assert!(!rgb.layers().is_empty() && !super::super::psd_import::merged_needed(&rgb), "the fixture must import its layers alone");
     let mut unknown = rgb.clone();
-    unknown.header.color_mode = localpaint_psd::ColorMode::Unknown(5);
+    unknown.header.color_mode = localraster_psd::ColorMode::Unknown(5);
     assert!(unknown.header.validate().is_ok());
     let required = estimate(&unknown);
     assert!(required >= estimate(&rgb), "the layers import as RGB and are counted");
     let bytes = unknown.to_bytes().unwrap();
     let opts = crate::ImportOptions { psd_max_pixel_bytes: required - 1, ..Default::default() };
     assert!(matches!(crate::import_with_options("mode5.psd", &bytes, &opts), Err(IoError::PsdImportBudget { .. })));
-    let source = localpaint_psd::Source::new(bytes);
-    let refused = crate::import_source_with_limit("mode5.psd", source, &localpaint_raster::Interrupt::NONE, required - 1);
+    let source = localraster_psd::Source::new(bytes);
+    let refused = crate::import_source_with_limit("mode5.psd", source, &localraster_raster::Interrupt::NONE, required - 1);
     assert!(matches!(refused, Err(IoError::PsdImportBudget { .. })), "{:?}", refused.map(|(r, _)| r.warnings));
 }

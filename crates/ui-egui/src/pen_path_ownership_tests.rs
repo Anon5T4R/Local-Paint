@@ -1,40 +1,40 @@
 //! Pen drafts and explicit document paths retain their destination until a single commit.
 
 use egui::Modifiers;
-use localpaint_doc::{LayerContent, Path};
+use localraster_doc::{LayerContent, Path};
 use serde_json::{Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::canvas::{ToolEvent, tool_event};
 use crate::state::Tool;
 use crate::vector_ui;
 
-fn app(tool: Tool) -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+fn app(tool: Tool) -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
     app.ui.tool = tool;
     app
 }
 
-fn steps(app: &LocalPaintApp) -> usize {
+fn steps(app: &LocalRasterApp) -> usize {
     app.session.active().unwrap().history.past_len()
 }
 
-fn seed(app: &mut LocalPaintApp, name: &str, y: f64) {
+fn seed(app: &mut LocalRasterApp, name: &str, y: f64) {
     app.run("path.set", json!({"name": name, "path": {"subpaths": [{"closed": false, "knots": [[10.0, y], [90.0, y]]}]}})).unwrap();
 }
 
-fn path(app: &LocalPaintApp, name: &str) -> Path {
+fn path(app: &LocalRasterApp, name: &str) -> Path {
     let doc = &app.session.active().unwrap().doc;
     if name == "work" { doc.work_path.clone().unwrap() } else { doc.paths.iter().find(|p| p.name == name).unwrap().path.clone() }
 }
 
-fn click(app: &mut LocalPaintApp, x: f64, y: f64) {
+fn click(app: &mut LocalRasterApp, x: f64, y: f64) {
     tool_event(app, ToolEvent::Down { x, y, pressure: 1.0 }, Modifiers::NONE);
     tool_event(app, ToolEvent::Up { x, y }, Modifiers::NONE);
 }
 
-fn draft(app: &mut LocalPaintApp) {
+fn draft(app: &mut LocalRasterApp) {
     click(app, 30.0, 60.0);
     click(app, 130.0, 60.0);
 }
@@ -136,7 +136,7 @@ fn captured_pen_paint_preserves_float_colour_and_alpha_after_toolbar_changes() {
         vector_ui::pen_commit(&mut app, closed);
         let st = app.session.active().unwrap();
         let LayerContent::Shape(shape) = &st.doc.layer(st.active_layer.unwrap()).unwrap().content else { panic!("expected Pen shape") };
-        let paint = |c: [f32; 4]| localpaint_doc::Fill::Solid(localpaint_doc::Color::rgba(c[0], c[1], c[2], c[3]));
+        let paint = |c: [f32; 4]| localraster_doc::Fill::Solid(localraster_doc::Color::rgba(c[0], c[1], c[2], c[3]));
         assert_eq!(shape.fill, closed.then(|| paint(foreground)));
         assert_eq!(shape.stroke.as_ref().unwrap().paint, paint(if closed { background } else { foreground }));
     }

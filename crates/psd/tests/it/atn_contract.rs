@@ -1,7 +1,7 @@
 //! Public-API contract for the `.atn` parser, against independently encoded wire fixtures.
-use localpaint_psd::PsdError;
-use localpaint_psd::atn::{self, AtnAction, AtnEvent, AtnFile, AtnItem};
-use localpaint_psd::descriptor::{Class, Descriptor, Id, MAX_DEPTH, ObjectArray, ReferenceItem, UnicodeString, Value};
+use localraster_psd::PsdError;
+use localraster_psd::atn::{self, AtnAction, AtnEvent, AtnFile, AtnItem};
+use localraster_psd::descriptor::{Class, Descriptor, Id, MAX_DEPTH, ObjectArray, ReferenceItem, UnicodeString, Value};
 
 #[path = "common/atn_roundtrip.rs"]
 mod atn_roundtrip;

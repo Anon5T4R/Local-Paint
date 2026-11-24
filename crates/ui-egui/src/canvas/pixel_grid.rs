@@ -12,10 +12,10 @@
 //! document (AGENTS.md rule 8).
 
 use egui::{Color32, Painter, Stroke};
-use localpaint_doc::Document;
-use localpaint_geom::Rect as DRect;
+use localraster_doc::Document;
+use localraster_geom::Rect as DRect;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::canvas::ViewXform;
 
 /// The grid shows above this zoom (1.0 = 100%). Shared with the GPU canvas.
@@ -152,7 +152,7 @@ pub fn cache_region(visible: DRect, bounds: DRect) -> DRect {
 
 impl GridLines {
     fn build(doc: &Document, revision: u64, preview_key: u64, region: DRect) -> Self {
-        let segs = if region.is_empty() { Vec::new() } else { segments(&localpaint_compose::render(doc, region).px, region) };
+        let segs = if region.is_empty() { Vec::new() } else { segments(&localraster_compose::render(doc, region).px, region) };
         Self { revision, preview_key, region, segs }
     }
 
@@ -164,7 +164,7 @@ impl GridLines {
 
 /// Draw the grid of document `idx` over the CPU-composited canvas. `visible` is the document
 /// area in view (document pixels); `output` the display the canvas is drawn for.
-pub fn paint(app: &mut LocalPaintApp, painter: &Painter, xf: &ViewXform, idx: usize, output: Option<u32>, visible: DRect) {
+pub fn paint(app: &mut LocalRasterApp, painter: &Painter, xf: &ViewXform, idx: usize, output: Option<u32>, visible: DRect) {
     let Some((id, revision)) = app.session.documents().get(idx).map(|st| (st.doc.id, st.revision)) else { return };
     let (doc, preview_key) = crate::canvas::display_doc(app, idx);
     let need = visible.intersect(&doc.bounds());

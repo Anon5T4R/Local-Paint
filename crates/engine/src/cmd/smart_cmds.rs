@@ -19,18 +19,18 @@
 //! Converting a layer embeds it as an in-memory `.pcraft` bundle of a nested document (exactly
 //! lossless, layered, any depth/model). PSD placed layers keep their source in the preserved
 //! global `lnk2` block (found by uuid), and keep Photoshop's rendering until something changes,
-//! so an unedited PSD still round-trips byte for byte. PSD export (`localpaint_io::smart_map`)
+//! so an unedited PSD still round-trips byte for byte. PSD export (`localraster_io::smart_map`)
 //! writes every smart object back as one: its source embedded in `lnk2` (a `.pcraft` source as a
 //! PSB), its smart filters in `filterFX` and its filter mask in `FEid`.
 
 use std::sync::{Arc, Mutex};
 
-use localpaint_algo::resample::translate_surface;
-use localpaint_algo::transform::Homography;
-use localpaint_color::{BlendMode, ColorMode, PixelFormat, SampleType};
-use localpaint_doc::{DocId, Document, Layer, LayerContent, LayerId, LayerMask, Metadata, SmartContentsId, SmartFilter, SmartObject, SmartSource};
-use localpaint_geom::{Affine, Rect, Size};
-use localpaint_raster::Surface;
+use localraster_algo::resample::translate_surface;
+use localraster_algo::transform::Homography;
+use localraster_color::{BlendMode, ColorMode, PixelFormat, SampleType};
+use localraster_doc::{DocId, Document, Layer, LayerContent, LayerId, LayerMask, Metadata, SmartContentsId, SmartFilter, SmartObject, SmartSource};
+use localraster_geom::{Affine, Rect, Size};
+use localraster_raster::Surface;
 use serde_json::{Value, json};
 use stack_cache::{Stage, StageKey};
 
@@ -50,8 +50,8 @@ pub struct SmartLink {
 /// PSD placed-layer keys that describe the smart object's source; stale once we change it.
 const PLACED_KEYS: [&[u8; 4]; 3] = [b"SoLd", b"PlLd", b"SoLE"];
 
-/// Command id of a Photoshop smart filter Local Paint does not implement (kept verbatim from PSD).
-pub use localpaint_io::smart_map::UNSUPPORTED_FILTER;
+/// Command id of a Photoshop smart filter Local Raster does not implement (kept verbatim from PSD).
+pub use localraster_io::smart_map::UNSUPPORTED_FILTER;
 
 fn other(msg: impl Into<String>) -> EngineError {
     EngineError::Other(msg.into())
@@ -65,13 +65,13 @@ fn bad(cmd: &str, msg: impl Into<String>) -> EngineError {
 
 /// Encodes a document as embedded smart-object contents: an in-memory `.pcraft` bundle.
 pub fn encode_source(doc: &Document) -> Result<Vec<u8>> {
-    localpaint_format::save_to_bytes(doc, &Default::default()).map_err(|e| other(format!("can't encode smart object contents: {e}")))
+    localraster_format::save_to_bytes(doc, &Default::default()).map_err(|e| other(format!("can't encode smart object contents: {e}")))
 }
 
 /// Decodes smart-object contents (a `.pcraft` bundle, PSD/PSB, or any flat image format).
 pub fn decode_source(file_name: &str, bytes: &[u8]) -> Result<Document> {
-    if localpaint_io::svg::is_svg(bytes) {
-        return localpaint_io::svg::import_svg_bounded_images(file_name, bytes, 24_000_000)
+    if localraster_io::svg::is_svg(bytes) {
+        return localraster_io::svg::import_svg_bounded_images(file_name, bytes, 24_000_000)
             .map(|imported| imported.document)
             .map_err(|e| other(format!("can't read SVG smart object contents: {e}")));
     }

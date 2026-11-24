@@ -1,9 +1,9 @@
 //! The command registry. Ids follow Photoshop's menu structure (see the parity checklist).
 
-use localpaint_color::{BlendMode, Color, ColorMode, SampleType};
-use localpaint_doc::{Adjustment, Document, Fill, Layer, LayerContent, LayerId, LayerMask, Size};
-use localpaint_geom::{Rect, TILE_SIZE};
-use localpaint_raster::Surface;
+use localraster_color::{BlendMode, Color, ColorMode, SampleType};
+use localraster_doc::{Adjustment, Document, Fill, Layer, LayerContent, LayerId, LayerMask, Size};
+use localraster_geom::{Rect, TILE_SIZE};
+use localraster_raster::Surface;
 use serde_json::{Map, Value, json};
 
 use crate::{EngineError, Result, Session, inspect, pixels};
@@ -33,8 +33,8 @@ fn turn(s: &mut Session, label: &str, t: crate::canvas_geom::Turn) -> Result<Val
         let a = t.affine(f64::from(d.doc.size.width), f64::from(d.doc.size.height));
         // Sampler points are pixel indices, not pixel edges: map the pixel's centre, so the point
         // lands on the same pixel `Turn::pixel_map` moves the pixels to (`w - 1 - x`).
-        let half = localpaint_geom::Affine::translate(0.5, 0.5);
-        s.set_canvas_map(a, half.then(&a).then(&localpaint_geom::Affine::translate(-0.5, -0.5)));
+        let half = localraster_geom::Affine::translate(0.5, 0.5);
+        s.set_canvas_map(a, half.then(&a).then(&localraster_geom::Affine::translate(-0.5, -0.5)));
     }
     s.edit(label, |doc, _| {
         crate::canvas_geom::turn_canvas(doc, t);
@@ -369,7 +369,7 @@ fn build() -> Vec<CommandSpec> {
         // Select
         cmd!("select.all", "All", ["Select"], Some("Cmd+A"), "{}", has_doc, |s, _| {
             s.edit("Select All", |doc, _| {
-                let mut m = Surface::new(localpaint_color::PixelFormat::GRAY8);
+                let mut m = Surface::new(localraster_color::PixelFormat::GRAY8);
                 m.fill_rect(doc.bounds(), &[1.0]);
                 doc.selection = Some(m);
                 Ok(())
@@ -389,8 +389,8 @@ fn build() -> Vec<CommandSpec> {
         }),
         cmd!("select.inverse", "Inverse", ["Select"], Some("Cmd+Shift+I"), "{}", has_selection, |s, _| {
             s.edit("Inverse", |doc, _| {
-                let old = doc.selection.take().unwrap_or_else(|| Surface::new(localpaint_color::PixelFormat::GRAY8));
-                doc.selection = Some(localpaint_algo::selection::inverse_surface(&old, doc.bounds()));
+                let old = doc.selection.take().unwrap_or_else(|| Surface::new(localraster_color::PixelFormat::GRAY8));
+                doc.selection = Some(localraster_algo::selection::inverse_surface(&old, doc.bounds()));
                 Ok(())
             })?;
             Ok(Value::Null)
@@ -423,11 +423,11 @@ fn build() -> Vec<CommandSpec> {
                     let area = doc.bounds();
                     // A marquee dragged past the canvas stops at its edge (Photoshop); the ellipse
                     // keeps the dragged shape and is only cut there.
-                    use localpaint_algo::selection as sel;
+                    use localraster_algo::selection as sel;
                     let shape = if ellipse {
                         sel::ellipse_surface(r, area, aa)
                     } else {
-                        let mut s = Surface::new(localpaint_color::PixelFormat::GRAY8);
+                        let mut s = Surface::new(localraster_color::PixelFormat::GRAY8);
                         s.fill_rect(r.intersect(&area), &[1.0]);
                         s
                     };
@@ -443,7 +443,7 @@ fn build() -> Vec<CommandSpec> {
                         ("subtract", Some(o)) => sel::combine_sparse(&o, &shape, area, |a, b| a * (1.0 - b)),
                         ("intersect", Some(o)) => sel::combine_surfaces(&o, &shape, area, |a, b| a.min(b)),
                         // With no existing selection, neither operation can select new pixels.
-                        ("subtract" | "intersect", None) => Surface::new(localpaint_color::PixelFormat::GRAY8),
+                        ("subtract" | "intersect", None) => Surface::new(localraster_color::PixelFormat::GRAY8),
                         _ => shape,
                     };
                     // Sparse Add/Subtract keeps untouched pixels outside the canvas. Only pixels
@@ -652,7 +652,7 @@ fn build() -> Vec<CommandSpec> {
                     // The Background has no opacity, fill or blend mode: like Photoshop, setting
                     // one that changes its look turns it into a normal layer ("Layer 0") first.
                     let num = |k: &str| p.get(k).and_then(Value::as_f64).is_some_and(|v| v < 1.0);
-                    let blends = p.get("blend").and_then(Value::as_str).and_then(blend_from_str).is_some_and(|b| b != localpaint_color::BlendMode::Normal);
+                    let blends = p.get("blend").and_then(Value::as_str).and_then(blend_from_str).is_some_and(|b| b != localraster_color::BlendMode::Normal);
                     for &id in &ids {
                         if num("opacity") || num("fill") || blends {
                             crate::extra_cmds::background_to_layer(doc, id);
@@ -673,7 +673,7 @@ fn build() -> Vec<CommandSpec> {
                         if let Some(v) = p.get("blend").and_then(Value::as_str) {
                             let b = blend_from_str(v).ok_or_else(|| bad("layer.setProps", format!("unknown blend mode `{v}`")))?;
                             // Pass Through is a group's mode only, as in Photoshop.
-                            if b == localpaint_color::BlendMode::PassThrough && !l.is_group() {
+                            if b == localraster_color::BlendMode::PassThrough && !l.is_group() {
                                 return Err(bad("layer.setProps", format!("Pass Through applies to groups only; layer {} isn't one", l.id.0)));
                             }
                             l.blend = b;
@@ -805,7 +805,7 @@ fn build() -> Vec<CommandSpec> {
                 let mut bg = Layer::raster("Background", fmt);
                 bg.locks.transparency = true;
                 bg.locks.position = true;
-                *crate::pixels_mut(&mut bg)? = localpaint_compose::flatten_to_surface(doc, fmt, Some([1.0, 1.0, 1.0]));
+                *crate::pixels_mut(&mut bg)? = localraster_compose::flatten_to_surface(doc, fmt, Some([1.0, 1.0, 1.0]));
                 *active = Some(bg.id);
                 doc.layers = vec![bg];
                 Ok(())
@@ -955,7 +955,7 @@ fn build() -> Vec<CommandSpec> {
                         saturation: -100.0,
                         lightness: 0.0,
                         colorize: false,
-                        ranges: localpaint_doc::adjust::HueRange::defaults(),
+                        ranges: localraster_doc::adjust::HueRange::defaults(),
                     },
                     p,
                 )
@@ -1112,7 +1112,7 @@ fn build() -> Vec<CommandSpec> {
                 let (x, y) = (coord("x")?, coord("y")?);
                 let d = s.active().ok_or(EngineError::NoDocument)?;
                 // At i32::MAX the 1x1 rect saturates to empty: a pixel that far out is transparent.
-                let px = localpaint_compose::render(&d.doc, Rect::from_xywh(x, y, 1, 1)).px.first().copied().unwrap_or_default();
+                let px = localraster_compose::render(&d.doc, Rect::from_xywh(x, y, 1, 1)).px.first().copied().unwrap_or_default();
                 Ok(json!(px))
             },
             journal: false,

@@ -42,12 +42,12 @@ fn display_image_matches_egui_unmultiplied_conversion() {
             [v, (i % 257) as f32 / 256.0, 1.0 - (i % 113) as f32 / 112.0, (i % 6) as f32 / 5.0]
         })
         .collect();
-    let buf = localpaint_compose::Buffer { rect: localpaint_geom::Rect::new(0, 0, n as i32, 1), px };
-    let reference = |img: localpaint_raster::Rgba8Image| egui::ColorImage::from_rgba_unmultiplied([img.width as usize, img.height as usize], &img.pixels);
+    let buf = localraster_compose::Buffer { rect: localraster_geom::Rect::new(0, 0, n as i32, 1), px };
+    let reference = |img: localraster_raster::Rgba8Image| egui::ColorImage::from_rgba_unmultiplied([img.width as usize, img.height as usize], &img.pixels);
     assert_eq!(super::display_image(None, &buf).pixels, reference(buf.to_rgba8()).pixels);
-    let mut doc = localpaint_doc::Document::new("t", localpaint_geom::Size::new(1, 1), localpaint_doc::ColorMode::Rgb, localpaint_doc::SampleType::U8);
-    doc.icc_profile = Some(localpaint_cms::Builtin::AdobeRgbCompat.profile().to_bytes());
-    let mut color = localpaint_engine::color_cmds::ColorState::default();
+    let mut doc = localraster_doc::Document::new("t", localraster_geom::Size::new(1, 1), localraster_doc::ColorMode::Rgb, localraster_doc::SampleType::U8);
+    doc.icc_profile = Some(localraster_cms::Builtin::AdobeRgbCompat.profile().to_bytes());
+    let mut color = localraster_engine::color_cmds::ColorState::default();
     color.settings.monitor_profile = "srgb".into();
     let d = color.canvas_display(&doc).unwrap();
     assert!(!d.is_identity());
@@ -69,7 +69,7 @@ fn the_cpu_canvas_shows_a_filter_dialogs_preview() {
         (size, px)
     };
     for (size, zoom) in [([64u32, 48u32], 1.0f32), ([2400, 2200], 0.25)] {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.background_jobs = false;
         app.run("file.new", json!({"width": size[0], "height": size[1], "background": "white"})).unwrap();
         app.run("edit.fill", json!({"color": "#3399cc"})).unwrap();
@@ -82,14 +82,14 @@ fn the_cpu_canvas_shows_a_filter_dialogs_preview() {
         let (tex_size, shown) = pixels(&ctx, tex);
         let preview = app.filter_preview.as_ref().and_then(|p| p.result.clone()).expect("the dialog's preview");
         let (display, _) = canvas_display(&app, &preview, None);
-        let expected = display_image(display.as_deref(), &localpaint_compose::flatten(&preview));
+        let expected = display_image(display.as_deref(), &localraster_compose::flatten(&preview));
         assert_eq!(tex_size, expected.size, "{size:?}: the preview's own size (a proxy when zoomed out)");
         assert_eq!(shown, expected.pixels, "{size:?}: the canvas shows the preview");
         assert_ne!(shown.first(), plain.first(), "{size:?}: not the unfiltered document");
     }
     // A preview that changes the canvas's dimensions covers its own area, centred on the
     // document's (as the GPU canvas centres it), rather than being stretched over it.
-    let size = |w, h| localpaint_geom::Size::new(w, h);
+    let size = |w, h| localraster_geom::Size::new(w, h);
     assert_eq!(preview_bounds(size(64, 32), size(64, 32), 1), DRect::new(0, 0, 64, 32));
     assert_eq!(preview_bounds(size(2401, 2200), size(1201, 1100), 2), DRect::new(0, 0, 2401, 2200), "a proxy");
     assert_eq!(preview_bounds(size(64, 32), size(32, 64), 1), DRect::new(16, -16, 48, 48), "rotated");
@@ -98,7 +98,7 @@ fn the_cpu_canvas_shows_a_filter_dialogs_preview() {
 
     // Image › Image Rotation › Arbitrary 90° on a 64×32 document: its 32×64 preview is drawn over
     // the centred 32×64 area.
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.background_jobs = false;
     app.run("file.new", json!({"width": 64, "height": 32, "background": "white"})).unwrap();
     let id = crate::filter_dialog::open(&mut app, "image.rotation.arbitrary").unwrap();
@@ -121,14 +121,14 @@ fn the_cpu_canvas_shows_a_filter_dialogs_preview() {
     let t = ensure_texture_in_view(&mut app, &ctx, 0, None, None).unwrap();
     assert_eq!(t.bounds, DRect::new(0, 0, 64, 32), "after Cancel");
     assert_eq!(app.session.active().unwrap().revision, revision, "the document untouched");
-    assert_eq!(app.session.active().unwrap().doc.size, localpaint_geom::Size::new(64, 32));
+    assert_eq!(app.session.active().unwrap().doc.size, localraster_geom::Size::new(64, 32));
 }
 
 /// A channel overlay drawn from a size-changing preview covers the preview's own area, as the
 /// image does, not the document's: a 90° rotation of a 64×32 document shows a 32×64 overlay.
 #[test]
 fn a_channel_overlay_follows_a_size_changing_preview() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.background_jobs = false;
     app.run("file.new", json!({"width": 64, "height": 32, "background": "white"})).unwrap();
     app.run("channel.new", json!({"name": "Alpha", "fill": "black"})).unwrap();
@@ -171,7 +171,7 @@ fn a_channel_overlay_follows_a_size_changing_preview() {
 
 #[test]
 fn inline_filter_preview_is_composited_and_recorded_once() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.background_jobs = false;
     app.run("file.new", json!({"width": 320, "height": 240})).unwrap();
     crate::filter_dialog::open(&mut app, "filter.stylize.solarize").unwrap();
@@ -192,13 +192,13 @@ fn inline_filter_preview_is_composited_and_recorded_once() {
 /// actually requests is the one under test.
 #[test]
 fn filter_preview_at_100_percent_is_full_resolution() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.background_jobs = false;
     app.run("file.new", json!({"width": 2400, "height": 2200})).unwrap();
     assert_eq!(crate::proxy::preview_factor(&app.session.active().unwrap().doc, true), 2, "big enough for a proxy");
     crate::filter_dialog::open(&mut app, "filter.stylize.solarize").unwrap();
     let ctx = egui::Context::default();
-    let preview_at = |app: &mut LocalPaintApp, zoom: f32| {
+    let preview_at = |app: &mut LocalRasterApp, zoom: f32| {
         app.ui.views.get_mut(0).expect("the new document's view").zoom = zoom;
         assert_eq!(app.current_zoom(), zoom);
         let (k, _, size) = ensure_filter_preview(app, 0, &ctx).expect("a preview");
@@ -215,12 +215,12 @@ fn filter_preview_at_100_percent_is_full_resolution() {
 /// Resolution Previews still decides whether there is a proxy at all (#6326).
 #[test]
 fn filter_preview_factor_caps_at_the_view_without_overriding_the_preference() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     // 9 MP: reduced previews halve it (empty tiles, so nothing is allocated).
     app.run("file.new", json!({"width": 3000, "height": 3000, "background": "transparent"})).unwrap();
     let doc = app.session.active().unwrap().doc.clone();
     let params = json!({"amount": 100, "radius": 4.0, "threshold": 0});
-    let k = |app: &mut LocalPaintApp, zoom: f32| {
+    let k = |app: &mut LocalRasterApp, zoom: f32| {
         app.ui.views.get_mut(0).expect("the new document's view").zoom = zoom;
         super::filter_preview_factor(app, &doc, "filter.sharpen.unsharpMask", &params)
     };
@@ -243,12 +243,12 @@ fn filter_preview_factor_caps_at_the_view_without_overriding_the_preference() {
 fn every_filter_previews_off_the_ui_thread_and_a_newer_value_cancels_the_old() {
     // Dragging Gaussian Blur's radius to 1000 px froze the window: the preview ran inline in
     // the frame, and every slider step waited for the previous blur to finish.
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 64, "height": 48})).unwrap();
     app.background_jobs = true;
     crate::filter_dialog::open(&mut app, "filter.blur.gaussianBlur").unwrap();
     let ctx = egui::Context::default();
-    let wait_for = |app: &mut LocalPaintApp, radius: f64| {
+    let wait_for = |app: &mut LocalRasterApp, radius: f64| {
         let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
         while app.filter_preview.as_ref().is_none_or(|p| p.key.params["radius"].as_f64() != Some(radius)) {
             assert!(std::time::Instant::now() < deadline, "no preview for radius {radius}");
@@ -308,7 +308,7 @@ fn every_filter_previews_off_the_ui_thread_and_a_newer_value_cancels_the_old() {
 // finishes when the returned sender is signalled. Gating it here keeps these tests off the
 // clock: `supersede` cancels a running job once the values have been still for SETTLE_MS, so a
 // test that relies on a real blur beating a 150 ms timer is a test that fails on a loaded box.
-fn gated_blur_preview(app: &mut LocalPaintApp, ctx: &egui::Context) -> (std::sync::mpsc::Sender<()>, f64) {
+fn gated_blur_preview(app: &mut LocalRasterApp, ctx: &egui::Context) -> (std::sync::mpsc::Sender<()>, f64) {
     let d = app.ui.dialogs.first().expect("a dialog is open");
     let st = app.session.active().expect("a document is active");
     let command = "filter.blur.gaussianBlur";
@@ -347,7 +347,7 @@ fn gated_blur_preview(app: &mut LocalPaintApp, ctx: &egui::Context) -> (std::syn
                 &Default::default(),
             )
             .map(|d| {
-                let buffer = localpaint_compose::flatten(&d);
+                let buffer = localraster_compose::flatten(&d);
                 (std::sync::Arc::new(d), buffer)
             });
             crate::dialogs::filter_preview_worker::Computed { result, ms: 0.0 }
@@ -359,7 +359,7 @@ fn gated_blur_preview(app: &mut LocalPaintApp, ctx: &egui::Context) -> (std::syn
 // The worker hands its result to the channel only after `compute` returns, so a signal sent
 // from inside `compute` would still race that send. These tests drive the canvas until the
 // state they need appears instead of assuming a timing.
-fn drive_until(app: &mut LocalPaintApp, ctx: &egui::Context, what: &str, done: impl Fn(&LocalPaintApp) -> bool) {
+fn drive_until(app: &mut LocalRasterApp, ctx: &egui::Context, what: &str, done: impl Fn(&LocalRasterApp) -> bool) {
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
     while !done(app) {
         assert!(std::time::Instant::now() < deadline, "timed out waiting for {what}");
@@ -372,7 +372,7 @@ fn drive_until(app: &mut LocalPaintApp, ctx: &egui::Context, what: &str, done: i
 fn a_preview_computed_mid_drag_reaches_the_canvas_and_then_converges() {
     // A drag used to paint nothing at all: every completion was dropped for carrying stale
     // parameters, so the canvas only ever showed an effect once the pointer had come to rest.
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 64, "height": 48})).unwrap();
     app.background_jobs = true;
     crate::filter_dialog::open(&mut app, "filter.blur.gaussianBlur").unwrap();
@@ -407,7 +407,7 @@ fn a_preview_computed_mid_drag_reaches_the_canvas_and_then_converges() {
 
 #[test]
 fn a_mid_drag_frame_does_not_replace_a_frame_that_is_already_exact() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 64, "height": 48})).unwrap();
     app.background_jobs = true;
     crate::filter_dialog::open(&mut app, "filter.blur.gaussianBlur").unwrap();
@@ -445,7 +445,7 @@ fn a_mid_drag_frame_does_not_replace_a_frame_that_is_already_exact() {
 
 #[test]
 fn a_mid_drag_empty_result_leaves_the_preview_alone() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 64, "height": 48})).unwrap();
     app.background_jobs = true;
     crate::filter_dialog::open(&mut app, "filter.blur.gaussianBlur").unwrap();
@@ -496,7 +496,7 @@ fn a_mid_drag_empty_result_leaves_the_preview_alone() {
 
 #[test]
 fn a_reopened_dialog_never_paints_the_previous_dialogs_preview() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 64, "height": 48})).unwrap();
     app.background_jobs = true;
     crate::filter_dialog::open(&mut app, "filter.blur.gaussianBlur").unwrap();
@@ -540,10 +540,10 @@ use super::*;
 
 /// #569: displays 1 (sRGB) and 4 (Display P3) side by side, and a document filled with an
 /// sRGB colour.
-fn app_on_two_displays() -> LocalPaintApp {
-    use localpaint_engine::color_cmds::resolve_profile;
-    use localpaint_engine::display_color::Display;
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+fn app_on_two_displays() -> LocalRasterApp {
+    use localraster_engine::color_cmds::resolve_profile;
+    use localraster_engine::display_color::Display;
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 64, "height": 64})).unwrap();
     app.run("edit.fill", json!({"color": "#cc8040"})).unwrap();
     let icc = |id: &str| Some(resolve_profile(id, None, None).unwrap().to_bytes());
@@ -557,7 +557,7 @@ fn app_on_two_displays() -> LocalPaintApp {
 #[test]
 #[ignore = "manual texture-retention measurement on six 6 MP documents"]
 fn closed_canvas_memory_measurement() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     let ctx = egui::Context::default();
     ctx.input_mut(|i| i.max_texture_side = 8192);
     for cycle in 1..=6 {
@@ -567,7 +567,7 @@ fn closed_canvas_memory_measurement() {
         ctx.tex_manager().write().take_delta().clear();
         app.run("file.close", json!({})).unwrap();
         let bytes: usize = ctx.tex_manager().read().allocated().map(|(_, m)| m.bytes_used()).sum();
-        println!("closed cycle={cycle} texture_bytes={bytes} rss={:?}", localpaint_testkit::perf::current_rss_bytes());
+        println!("closed cycle={cycle} texture_bytes={bytes} rss={:?}", localraster_testkit::perf::current_rss_bytes());
     }
 }
 
@@ -675,7 +675,7 @@ fn cpu_canvas_shows_crisp_pixels_when_zoomed_in() {
     // #4810: above 100% the CPU canvas shows each pixel as a square, like the GPU canvas's
     // sharp nearest filter; below 100% it still filters. Both the first upload and a
     // damage-rect update carry the sampling, since the renderer takes it from each delta.
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 2, "height": 2})).unwrap();
     let ctx = egui::Context::default();
     let tex = ensure_texture(&mut app, &ctx, 0, None).unwrap().0;
@@ -702,7 +702,7 @@ fn cpu_canvas_shows_crisp_pixels_when_zoomed_in() {
 #[test]
 fn cpu_canvas_texture_fits_the_device_limit() {
     for (side, (w, h), want) in [(2048, (2600, 1700), [1300, 850]), (2048, (5000, 2000), [1666, 666]), (8192, (5000, 2000), [2500, 1000])] {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
         app.run("file.new", json!({"width": w, "height": h})).unwrap();
         let ctx = egui::Context::default();
         ctx.input_mut(|i| i.max_texture_side = side);
@@ -718,7 +718,7 @@ fn cpu_canvas_texture_fits_the_device_limit() {
 fn cpu_canvas_of_a_reduced_document_stays_bilinear() {
     // Over MAX_TEXTURE the texture holds one texel per `factor` pixels: a texel is not a
     // document pixel, so showing it as a square would draw blocks that aren't in the image.
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": MAX_TEXTURE + 1, "height": 2})).unwrap();
     let ctx = egui::Context::default();
     let (tex, scale) = ensure_texture(&mut app, &ctx, 0, None).unwrap();
@@ -775,7 +775,7 @@ fn cpu_canvas_detail_plan_shows_large_documents_at_full_resolution() {
 
 #[test]
 fn cpu_canvas_detail_shows_a_large_documents_own_pixels_at_100_percent() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 3 * MAX_TEXTURE, "height": 8})).unwrap();
     app.run("select.rect", json!({"x": 101, "y": 0, "width": 1, "height": 8})).unwrap();
     app.run("edit.fill", json!({"color": "#000000"})).unwrap();
@@ -834,7 +834,7 @@ fn cpu_canvas_detail_shows_a_large_documents_own_pixels_at_100_percent() {
 
 #[test]
 fn gpu_display_luts_are_per_display() {
-    let _gpu = localpaint_testkit::gpu_lock();
+    let _gpu = localraster_testkit::gpu_lock();
     let Ok(rs) = std::panic::catch_unwind(|| egui_kittest::wgpu::create_render_state(crate::gpu_canvas::wgpu_setup(), Default::default())) else {
         eprintln!("skipping: no GPU adapter");
         return;
@@ -865,8 +865,8 @@ fn gpu_display_luts_are_per_display() {
 /// effect reach, rendered over it) equals a new thumbnail of the edited document.
 #[test]
 fn navigator_damage_updates_match_a_full_thumbnail() {
-    use localpaint_compose::{render_reduced_damage, thumbnail_buffer, thumbnail_size};
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    use localraster_compose::{render_reduced_damage, thumbnail_buffer, thumbnail_size};
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 1500, "height": 900, "background": "white"})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     app.run("select.rect", json!({"x": 200, "y": 150, "width": 300, "height": 200})).unwrap();
@@ -911,7 +911,7 @@ fn tab_context_uses_clicked_document_and_existing_close_commands() {
     assert!(items[3].3, "a saved document can be revealed in the file manager");
     assert!(!tab_context_items(2, 3, false)[3].3, "an unsaved document cannot");
     assert!(!tab_context_items(0, 1, false)[1].3);
-    assert!(items.iter().all(|(_, id, _, _)| localpaint_engine::commands::find(id).is_some()));
+    assert!(items.iter().all(|(_, id, _, _)| localraster_engine::commands::find(id).is_some()));
 }
 
 #[test]
@@ -926,19 +926,19 @@ fn document_tab_close_button_sits_on_the_platform_side() {
     use egui::os::OperatingSystem as Os;
     use egui_kittest::kittest::Queryable;
     for (os, after_title) in [(Os::Windows, true), (Os::Nix, true), (Os::Mac, false)] {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
         app.sync_views();
         // Drawn from the second frame, once the Pro theme is set.
         let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(600.0, 40.0)).build_ui_state(
-            |ui, (app, ready): &mut (LocalPaintApp, bool)| {
+            |ui, (app, ready): &mut (LocalRasterApp, bool)| {
                 if *ready {
                     tabs(app, ui);
                 }
             },
             (app, false),
         );
-        LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::Pro);
+        LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::Pro);
         h.ctx.set_os(os);
         h.state_mut().1 = true;
         h.run_steps(2);
@@ -958,21 +958,21 @@ fn document_tab_close_button_sits_on_the_platform_side() {
 fn middle_clicking_a_tab_closes_that_document() {
     use egui_kittest::kittest::Queryable;
     for kind in [crate::theme::ThemeKind::Studio, crate::theme::ThemeKind::Pro] {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         for name in ["keep", "doomed", "active"] {
             app.run("file.new", json!({"width": 8, "height": 8, "name": name})).unwrap();
         }
         app.sync_views();
         assert_eq!(app.session.active_index(), Some(2));
         let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(700.0, 40.0)).build_ui_state(
-            |ui, (app, ready): &mut (LocalPaintApp, bool)| {
+            |ui, (app, ready): &mut (LocalRasterApp, bool)| {
                 if *ready {
                     tabs(app, ui);
                 }
             },
             (app, false),
         );
-        LocalPaintApp::setup_context(&h.ctx, kind);
+        LocalRasterApp::setup_context(&h.ctx, kind);
         h.state_mut().1 = true;
         h.run_steps(2);
         h.get_by_label_contains("doomed").click_button(egui::PointerButton::Middle);
@@ -989,19 +989,19 @@ fn middle_clicking_a_tab_closes_that_document() {
 #[test]
 fn middle_clicking_an_edited_tab_prompts_instead_of_discarding() {
     use egui_kittest::kittest::Queryable;
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 8, "height": 8, "name": "edited"})).unwrap();
     app.run("edit.fill", json!({"color": "#ff0000"})).unwrap();
     app.sync_views();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(700.0, 40.0)).build_ui_state(
-        |ui, (app, ready): &mut (LocalPaintApp, bool)| {
+        |ui, (app, ready): &mut (LocalRasterApp, bool)| {
             if *ready {
                 tabs(app, ui);
             }
         },
         (app, false),
     );
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::Pro);
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::Pro);
     h.state_mut().1 = true;
     h.run_steps(2);
     h.get_by_label_contains("edited").click_button(egui::PointerButton::Middle);
@@ -1013,18 +1013,18 @@ fn middle_clicking_an_edited_tab_prompts_instead_of_discarding() {
 #[test]
 fn spectrum_document_tabs_meet_canvas_without_a_gap() {
     for kind in [crate::theme::ThemeKind::Pro, crate::theme::ThemeKind::ProMedium] {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 80, "height": 60})).unwrap();
         app.sync_views();
         let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(680.0, 480.0)).build_ui_state(
-            |ui, (app, ready): &mut (LocalPaintApp, bool)| {
+            |ui, (app, ready): &mut (LocalRasterApp, bool)| {
                 if *ready {
                     egui::CentralPanel::default().frame(egui::Frame::NONE).show(ui, |ui| document_area(app, ui));
                 }
             },
             (app, false),
         );
-        LocalPaintApp::setup_context(&h.ctx, kind);
+        LocalRasterApp::setup_context(&h.ctx, kind);
         h.state_mut().1 = true;
         h.run_steps(3);
         let app = &h.state().0;
@@ -1037,18 +1037,18 @@ fn spectrum_document_tabs_meet_canvas_without_a_gap() {
 #[test]
 fn large_tabs_preference_increases_tab_strip_height() {
     use egui_kittest::kittest::Queryable;
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
     app.sync_views();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(600.0, 60.0)).build_ui_state(
-        |ui, (app, ready): &mut (LocalPaintApp, bool)| {
+        |ui, (app, ready): &mut (LocalRasterApp, bool)| {
             if *ready {
                 tabs(app, ui);
             }
         },
         (app, false),
     );
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::Pro);
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::Pro);
     h.state_mut().1 = true;
     h.run_steps(2);
     let normal_h = h.get_by_label_contains("Untitled @").rect().height();
@@ -1062,7 +1062,7 @@ fn large_tabs_preference_increases_tab_strip_height() {
 
 #[test]
 fn tab_close_others_prompts_for_unsaved_nonactive_document() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 8, "height": 8, "name": "Keep"})).unwrap();
     app.run("file.new", json!({"width": 8, "height": 8, "name": "Edited"})).unwrap();
     app.run("edit.fill", json!({"color": "#ff0000"})).unwrap();
@@ -1095,20 +1095,20 @@ fn tab_drop_index_and_move_target_cover_reorder_drops() {
 fn dragging_a_tab_reorders_the_documents() {
     use egui_kittest::kittest::Queryable;
     for kind in [crate::theme::ThemeKind::Studio, crate::theme::ThemeKind::Pro] {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         for name in ["a", "b", "c"] {
             app.run("file.new", json!({"width": 8, "height": 8, "name": name})).unwrap();
         }
         app.sync_views();
         let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(700.0, 40.0)).build_ui_state(
-            |ui, (app, ready): &mut (LocalPaintApp, bool)| {
+            |ui, (app, ready): &mut (LocalRasterApp, bool)| {
                 if *ready {
                     tabs(app, ui);
                 }
             },
             (app, false),
         );
-        LocalPaintApp::setup_context(&h.ctx, kind);
+        LocalRasterApp::setup_context(&h.ctx, kind);
         h.state_mut().1 = true;
         h.run_steps(2);
         let b = h.get_by_label_contains("b").rect();
@@ -1136,20 +1136,20 @@ fn dragging_a_tab_off_the_strip_floats_it_in_a_window() {
     assert!(torn_off(strip, egui::pos2(50.0, 26.0 + TEAR_OFF + 1.0)));
     assert!(torn_off(strip, egui::pos2(50.0, -TEAR_OFF - 1.0)), "dragged up, off the window's top");
     for kind in [crate::theme::ThemeKind::Studio, crate::theme::ThemeKind::Pro] {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         for name in ["a", "b", "c"] {
             app.run("file.new", json!({"width": 8, "height": 8, "name": name})).unwrap();
         }
         app.sync_views();
         let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(700.0, 300.0)).build_ui_state(
-            |ui, (app, ready): &mut (LocalPaintApp, bool)| {
+            |ui, (app, ready): &mut (LocalRasterApp, bool)| {
                 if *ready {
                     tabs(app, ui);
                 }
             },
             (app, false),
         );
-        LocalPaintApp::setup_context(&h.ctx, kind);
+        LocalRasterApp::setup_context(&h.ctx, kind);
         h.state_mut().1 = true;
         h.run_steps(2);
         let b = h.get_by_label_contains("b").rect();
@@ -1169,8 +1169,8 @@ fn dragging_a_tab_off_the_strip_floats_it_in_a_window() {
 }
 
 /// An app with a 64 × 64 white document, a clone source and the Clone Stamp at `size` px.
-fn clone_overlay_app(size: f32) -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+fn clone_overlay_app(size: f32) -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 64, "height": 64})).unwrap();
     app.run("cloneSource.set", json!({"source": [16, 16]})).unwrap();
     app.ui.tool = Tool::CloneStamp;
@@ -1179,7 +1179,7 @@ fn clone_overlay_app(size: f32) -> LocalPaintApp {
 }
 
 /// One frame of the overlay at (32, 32): its shapes and texture uploads.
-fn clone_overlay_frame(ctx: &egui::Context, app: &mut LocalPaintApp, xf: &ViewXform) -> egui::FullOutput {
+fn clone_overlay_frame(ctx: &egui::Context, app: &mut LocalRasterApp, xf: &ViewXform) -> egui::FullOutput {
     ctx.run_ui(Default::default(), |ui| {
         let painter = ui.ctx().layer_painter(egui::LayerId::new(egui::Order::Foreground, egui::Id::unique("clone-test")));
         draw_clone_preview(app, &painter, xf, [32.0, 32.0], None);
@@ -1188,7 +1188,7 @@ fn clone_overlay_frame(ctx: &egui::Context, app: &mut LocalPaintApp, xf: &ViewXf
 
 /// The overlay texture a frame uploaded and the alpha at a document pixel, read from the
 /// document area the overlay covers (transparent outside it).
-fn clone_overlay_alpha(app: &LocalPaintApp, output: &mut egui::FullOutput) -> impl Fn(i32, i32) -> u8 + use<> {
+fn clone_overlay_alpha(app: &LocalRasterApp, output: &mut egui::FullOutput) -> impl Fn(i32, i32) -> u8 + use<> {
     let cache = app.clone_preview.as_ref().expect("an overlay was drawn");
     let image = output
         .textures_delta
@@ -1360,8 +1360,8 @@ fn clone_overlay_is_clipped_to_a_shaped_tip() {
 
 #[test]
 fn wayland_start_screen_hint_does_not_claim_file_drop_works() {
-    let x11 = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
-    let wayland = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services { is_wayland: true, ..Default::default() });
+    let x11 = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
+    let wayland = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services { is_wayland: true, ..Default::default() });
     assert!(start_screen_drop_hint(&x11).starts_with("Drop"));
     // Pasting a copied image file works on Wayland (#338): the hint says how.
     let hint = start_screen_drop_hint(&wayland);
@@ -1369,25 +1369,25 @@ fn wayland_start_screen_hint_does_not_claim_file_drop_works() {
     assert!(hint.ends_with(&format!("paste a copied image with {}.", crate::notices::paste_hint(&wayland))), "{hint}");
 }
 
-/// A tiling window manager can hand Local Paint a canvas narrower than the Home card (460
+/// A tiling window manager can hand Local Raster a canvas narrower than the Home card (460
 /// points): the two buttons must stay inside the window instead of being clipped at its edges.
 #[test]
 fn start_screen_buttons_stay_inside_a_narrow_canvas() {
     use egui_kittest::kittest::Queryable;
     for width in [390.0, 420.0, 520.0] {
-        let app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(width, 760.0)).build_ui_state(
-            |ui, (app, ready): &mut (LocalPaintApp, bool)| {
+            |ui, (app, ready): &mut (LocalRasterApp, bool)| {
                 if *ready {
                     egui::CentralPanel::default().frame(egui::Frame::NONE).show(ui, |ui| document_area(app, ui));
                 }
             },
             (app, false),
         );
-        LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::default());
+        LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::default());
         h.state_mut().1 = true;
         h.run_steps(3);
-        for label in ["New document", "Local Paint website"] {
+        for label in ["New document", "Local Raster website"] {
             for node in h.query_all_by_label_contains(label) {
                 let r = node.rect();
                 assert!(r.left() >= 0.0 && r.right() <= width, "`{label}` is clipped in a {width}-point-wide canvas: {r:?}");
@@ -1400,17 +1400,17 @@ fn start_screen_buttons_stay_inside_a_narrow_canvas() {
 #[test]
 fn home_recent_list_hides_when_the_preference_is_off() {
     use egui_kittest::kittest::Queryable;
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
-    app.push_recent("/tmp/localpaint-217/hidden.psd");
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
+    app.push_recent("/tmp/localraster-217/hidden.psd");
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(900.0, 760.0)).build_ui_state(
-        |ui, (app, ready): &mut (LocalPaintApp, bool)| {
+        |ui, (app, ready): &mut (LocalRasterApp, bool)| {
             if *ready {
                 egui::CentralPanel::default().frame(egui::Frame::NONE).show(ui, |ui| document_area(app, ui));
             }
         },
         (app, false),
     );
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::default());
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::default());
     h.state_mut().1 = true;
     h.run_steps(3);
     assert!(h.query_by_label("hidden.psd").is_some(), "listed by default");
@@ -1425,22 +1425,22 @@ fn home_recent_list_hides_when_the_preference_is_off() {
 #[test]
 fn home_recent_entries_can_be_removed() {
     use egui_kittest::kittest::Queryable;
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     for name in ["c.tif", "b.psd", "a.png"] {
-        app.push_recent(&format!("/tmp/localpaint-2691/{name}"));
+        app.push_recent(&format!("/tmp/localraster-2691/{name}"));
     }
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(900.0, 760.0)).build_ui_state(
-        |ui, (app, ready): &mut (LocalPaintApp, bool)| {
+        |ui, (app, ready): &mut (LocalRasterApp, bool)| {
             if *ready {
                 egui::CentralPanel::default().frame(egui::Frame::NONE).show(ui, |ui| document_area(app, ui));
             }
         },
         (app, false),
     );
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::default());
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::default());
     h.state_mut().1 = true;
     h.run_steps(3);
-    let listed = |h: &egui_kittest::Harness<'_, (LocalPaintApp, bool)>| {
+    let listed = |h: &egui_kittest::Harness<'_, (LocalRasterApp, bool)>| {
         let app = &h.state().0;
         assert_eq!(app.session.prefs().file_handling.recent_files, app.ui.recent_files, "stored in the preferences");
         app.ui.recent_files.iter().map(|p| crate::file_open::display_name(p)).collect::<Vec<_>>()
@@ -1550,7 +1550,7 @@ fn view_transform_roundtrip() {
 
 #[test]
 fn eyedropper_ring_colors_pair_the_sampled_and_current_colours() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 40, "height": 20, "background": "transparent"})).unwrap();
     app.run("shape.create", json!({"kind": "rect", "rect": [0, 0, 20, 20], "fill": "#ff0000"})).unwrap();
     app.run("tools.setColors", json!({"foreground": [0.0, 0.2, 1.0, 1.0]})).unwrap();
@@ -1568,7 +1568,7 @@ fn eyedropper_ring_colors_pair_the_sampled_and_current_colours() {
 
 #[test]
 fn eyedropper_drag_updates_the_sampled_colour() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 40, "height": 20, "background": "transparent"})).unwrap();
     app.run("shape.create", json!({"kind": "rect", "rect": [0, 0, 20, 20], "fill": "#ff0000"})).unwrap();
     app.run("shape.create", json!({"kind": "rect", "rect": [20, 0, 20, 20], "fill": "#00ff00"})).unwrap();
@@ -1586,14 +1586,14 @@ fn eyedropper_drag_updates_the_sampled_colour() {
 /// edit its mask, as in Photoshop, instead of failing with "not a pixel layer".
 #[test]
 fn fills_on_an_adjustment_layer_edit_its_mask_when_the_icon_is_targeted() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 40, "height": 20, "background": "white"})).unwrap();
     app.run("layer.newAdjustmentLayer.curves", json!({})).unwrap();
     // Click the Curves icon thumbnail: the panel targets the layer, not its mask.
     app.ui.mask_target = false;
     app.sync_mask_targets();
     assert!(!app.ui.mask_target, "the panel's target is the icon");
-    let mask_at = |app: &LocalPaintApp| {
+    let mask_at = |app: &LocalRasterApp| {
         let st = app.session.active().unwrap();
         st.doc.layer(st.active_layer.unwrap()).unwrap().mask.as_ref().unwrap().surface.sample_channel(10, 10, 0)
     };
@@ -1618,7 +1618,7 @@ fn fills_on_an_adjustment_layer_edit_its_mask_when_the_icon_is_targeted() {
 
 #[test]
 fn alt_with_a_painting_tool_samples_the_foreground_instead_of_painting() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 40, "height": 20, "background": "transparent"})).unwrap();
     app.run("shape.create", json!({"kind": "rect", "rect": [0, 0, 20, 20], "fill": "#ff0000"})).unwrap();
     app.run("shape.create", json!({"kind": "rect", "rect": [20, 0, 20, 20], "fill": "#00ff00"})).unwrap();
@@ -1665,7 +1665,7 @@ fn mask_view_uploads_each_live_stroke_before_release() {
     for depth in [8, 16, 32] {
         for mode in ["gray", "overlay"] {
             for (width, factor) in [(120u32, 1u32), (513, 3)] {
-                let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+                let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
                 app.run("file.new", json!({"width": width, "height": 60, "depth": depth})).unwrap();
                 app.run("layer.layerMask.revealAll", json!({})).unwrap();
                 app.run("view.layerMask", json!({"mode": mode})).unwrap();
@@ -1753,7 +1753,7 @@ fn mask_view_uploads_each_live_stroke_before_release() {
 #[test]
 fn channel_views_show_live_targets_and_discarded_strokes() {
     for target in ["quickMask", "alpha", "red"] {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
         app.run("file.new", json!({"width": 120, "height": 60})).unwrap();
         match target {
             "quickMask" => {
@@ -1841,7 +1841,7 @@ fn channel_views_show_live_targets_and_discarded_strokes() {
 /// The held drag shows true mixed paint while Alt sampling remains separate from painting.
 #[test]
 fn mixer_drag_shows_actual_mixed_paint_before_release_and_alt_never_paints() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width":120,"height":60,"background":"#00ff00"})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     app.run("tools.setColors", json!({"foreground":"#ff0000"})).unwrap();
@@ -1881,7 +1881,7 @@ fn mixer_drag_shows_actual_mixed_paint_before_release_and_alt_never_paints() {
 #[test]
 fn mixer_release_includes_a_new_endpoint_and_deferred_frame_samples() {
     for (deferred, failed) in [(false, false), (true, false), (false, true)] {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
         app.run("file.new", json!({"width":120,"height":60,"background":"#00ff00"})).unwrap();
         app.run("layer.new.layer", json!({})).unwrap();
         app.run("tools.setBrush", json!({"size":12,"pressureSize":false})).unwrap();
@@ -1910,7 +1910,7 @@ fn mixer_release_includes_a_new_endpoint_and_deferred_frame_samples() {
 #[test]
 fn mixer_control_tool_switch_before_release_cancels_every_preview_path() {
     for preview in 0..3 {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
         app.run("file.new", json!({"width":120,"height":60,"background":"#00ff00"})).unwrap();
         app.run("layer.new.layer", json!({})).unwrap();
         app.run("tools.setBrush", json!({"size":12,"pressureSize":false})).unwrap();
@@ -1945,7 +1945,7 @@ fn mixer_control_tool_switch_before_release_cancels_every_preview_path() {
 #[test]
 fn mixer_escape_and_tool_switch_cancel_without_an_edit() {
     for mode in 0..4 {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
         app.run("file.new", json!({"width":120,"height":60,"background":"#00ff00"})).unwrap();
         app.run("layer.new.layer", json!({})).unwrap();
         app.ui.tool = Tool::MixerBrush;
@@ -1979,7 +1979,7 @@ fn mixer_escape_and_tool_switch_cancel_without_an_edit() {
 /// Control-driven strokes remain live in a background window, matching the ordinary Brush.
 #[test]
 fn mixer_background_window_keeps_and_commits_control_strokes() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width":120,"height":60,"background":"transparent"})).unwrap();
     app.run("tools.setBrush", json!({"brush":{"size":12,"pressureSize":false}})).unwrap();
     let steps = app.session.active().unwrap().history.past_len();
@@ -2005,7 +2005,7 @@ fn mixer_background_window_keeps_and_commits_control_strokes() {
 #[test]
 fn mixer_drag_above_the_preview_size_paints_on_release() {
     for locked in [false, true] {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
         app.run("file.new", json!({"width":120,"height":60,"background":"#00ff00"})).unwrap();
         app.run("layer.new.layer", json!({})).unwrap();
         if locked {
@@ -2032,7 +2032,7 @@ fn mixer_drag_above_the_preview_size_paints_on_release() {
 /// ⌥ with a held temporary tool (macOS ⌘ = Move) is that tool's, not a Mixer Brush paint load.
 #[test]
 fn mixer_alt_with_a_held_temporary_tool_does_not_load_paint() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width":120,"height":60,"background":"#00ff00"})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     app.ui.tool = Tool::MixerBrush;
@@ -2049,7 +2049,7 @@ fn mixer_alt_with_a_held_temporary_tool_does_not_load_paint() {
 #[test]
 fn brush_drag_shows_the_real_stroke_and_commits_it() {
     // The drag used to draw a hard, flat stand-in and only showed the soft brush on release.
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 120, "height": 60, "background": "transparent"})).unwrap();
     app.run("tools.setBrush", json!({"brush": {"size": 20, "hardness": 0.0}})).unwrap();
     app.ui.tool = Tool::Brush;
@@ -2080,7 +2080,7 @@ fn live_stroke_uses_pen_tilt_and_updates_a_reduced_texture_partially() {
     // Pen tilt drives the size; the preview must use the tilt the commit gets. The document
     // is wider than MAX_TEXTURE, so the CPU texture is reduced (factor 2) and each step
     // must update only the reduced pixels it touched.
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     let ctx = egui::Context::default();
     ctx.input_mut(|i| i.max_texture_side = 8192);
     app.run("file.new", json!({"width": 4097, "height": 90, "background": "transparent"})).unwrap();
@@ -2112,8 +2112,8 @@ fn live_stroke_uses_pen_tilt_and_updates_a_reduced_texture_partially() {
 /// Brush drag along y = 40 with one canvas frame per pointer move; returns the document the
 /// canvas showed at the last move, the committed one, and whether the release refreshed only
 /// the stroke's rectangle.
-fn drag_frames(smoothing: f32, xs: &[f64]) -> (std::sync::Arc<Document>, std::sync::Arc<Document>, bool, LocalPaintApp) {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+fn drag_frames(smoothing: f32, xs: &[f64]) -> (std::sync::Arc<Document>, std::sync::Arc<Document>, bool, LocalRasterApp) {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     let ctx = egui::Context::default();
     app.run("file.new", json!({"width": 200, "height": 80, "background": "transparent"})).unwrap();
     app.run("tools.setBrush", json!({"brush": {"size": 16, "hardness": 0.5}})).unwrap();
@@ -2157,7 +2157,7 @@ fn release_shows_nothing_new_without_smoothing() {
 fn navigator_keeps_its_image_during_a_live_brush_stroke() {
     // #1631: every step of a live stroke is a new preview key, so a navigator keyed by it
     // re-composited the whole document per frame while painting. It waits for the release.
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 200, "height": 80, "background": "transparent"})).unwrap();
     app.ui.tool = Tool::Brush;
     let m = egui::Modifiers::NONE;
@@ -2188,7 +2188,7 @@ fn smoothed_stroke_shows_its_catch_up_tail_while_drawing() {
     let (_, rough, _, _) = drag_frames(0.0, &xs);
     assert!(!same_pixels(&rough, &done), "smoothing changes the stroke");
     // And the commit is what `paint.stroke` gives with that smoothing.
-    let mut s = localpaint_engine::Session::new();
+    let mut s = localraster_engine::Session::new();
     s.execute("file.new", json!({"width": 200, "height": 80, "background": "transparent"})).unwrap();
     s.execute("tools.setBrush", json!({"brush": {"size": 16, "hardness": 0.5, "smoothing": {"amount": 0.5}}})).unwrap();
     let mut pts = vec![json!([10.0, 40.0, 1.0])];
@@ -2202,7 +2202,7 @@ fn smoothed_stroke_shows_its_catch_up_tail_while_drawing() {
 fn smoothing_preview_redraws_the_tail_each_step() {
     // The tail drawn at one step must not linger once the brush moves on: a sharp turn would
     // leave a stale tail behind if it weren't restored.
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 200, "height": 120, "background": "transparent"})).unwrap();
     app.run("tools.setBrush", json!({"brush": {"size": 10, "hardness": 1.0, "smoothing": {"amount": 0.6}}})).unwrap();
     app.ui.tool = Tool::Brush;
@@ -2219,7 +2219,7 @@ fn smoothing_preview_redraws_the_tail_each_step() {
 }
 
 /// Shapes the drag preview paints for `app` this frame.
-fn drag_preview_shapes(app: &mut LocalPaintApp, ctx: &egui::Context, zoom: f32) -> Vec<egui::epaint::ClippedShape> {
+fn drag_preview_shapes(app: &mut LocalRasterApp, ctx: &egui::Context, zoom: f32) -> Vec<egui::epaint::ClippedShape> {
     let out = ctx.run_ui(egui::RawInput::default(), |ui| {
         let ctx = ui.ctx();
         let rect = Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0));
@@ -2241,7 +2241,7 @@ fn a_huge_view_centre_draws_the_selection_outline_without_overflow() {
     // Zoomed far out the quantisation step, and so the padding, is largest (64 · 256 px).
     let cases = [([1e30, 1e30], false), ([-1e30, -1e30], false), ([3e9, -3e9], false), ([512.0, 512.0], true)];
     for ((centre, traced), zoom) in cases.into_iter().flat_map(|c| [(c, 1.0), (c, 1.0 / 64.0)]) {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
         app.run("file.new", json!({"width": 1024, "height": 1024})).unwrap();
         app.run("select.rect", json!({"x": 0, "y": 0, "width": 512, "height": 512})).unwrap();
         app.sync_views();
@@ -2266,7 +2266,7 @@ fn a_one_pixel_selection_traces_at_hundred_percent_on_a_scaled_display() {
     // 1 px selection still traces at 100 % on a 2x display (a points-based step sampled every
     // second pixel and lost it: zero segments).
     let ctx = egui::Context::default();
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
     app.run("select.rect", json!({"x": 50, "y": 50, "width": 1, "height": 100})).unwrap();
     app.run("view.actualPixels", json!({})).unwrap();
@@ -2288,12 +2288,12 @@ fn a_secondary_canvas_does_not_overwrite_the_main_canvas_scale() {
     // #1943 review: a document window can sit on a display with another scale; only the
     // primary canvas records `app.ppp`, so the main mapping doesn't change under it.
     let ctx = egui::Context::default();
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     app.run("view.actualPixels", json!({})).unwrap();
     app.sync_views();
     let view = app.ui.views[0].clone();
-    let frame = |app: &mut LocalPaintApp, ppp: f32, primary: bool| {
+    let frame = |app: &mut LocalRasterApp, ppp: f32, primary: bool| {
         let mut input = egui::RawInput::default();
         input.viewports.entry(egui::ViewportId::ROOT).or_default().native_pixels_per_point = Some(ppp);
         let mut out = ctx.run_ui(input, |ui| {
@@ -2317,7 +2317,7 @@ fn a_flicked_hand_drag_glides_on_only_with_flick_panning() {
     // keeps the view gliding for a while; off, the view stops where the drag ended.
     for flick in [true, false] {
         let ctx = egui::Context::default();
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
         app.run("file.new", json!({"width": 2000, "height": 1500})).unwrap();
         app.run("prefs.set", json!({"path": "tools.enableFlickPanning", "value": flick})).unwrap();
         app.ui.tool = Tool::Hand;
@@ -2328,7 +2328,7 @@ fn a_flicked_hand_drag_glides_on_only_with_flick_panning() {
         view.fit_pending = false;
         view.fill_pending = false;
         let rect = Rect::from_min_size(Pos2::ZERO, vec2(400.0, 300.0));
-        let mut frame = |app: &mut LocalPaintApp, events: Vec<egui::Event>| -> View {
+        let mut frame = |app: &mut LocalRasterApp, events: Vec<egui::Event>| -> View {
             let input = egui::RawInput { screen_rect: Some(rect), events, ..Default::default() };
             let mut out = ctx.run_ui(input, |ui| {
                 view = canvas_view(app, ui, 0, rect, view.clone(), true);
@@ -2373,7 +2373,7 @@ fn a_secondary_canvas_hand_pans_while_a_transform_is_open() {
     // #2302 review: `app.ui.transform` is global, but only the primary canvas draws and drives
     // the box. A secondary window's Hand must still pan while the main window transforms.
     let ctx = egui::Context::default();
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     app.run("select.rect", json!({"x": 100, "y": 100, "width": 100, "height": 60})).unwrap();
@@ -2390,7 +2390,7 @@ fn a_secondary_canvas_hand_pans_while_a_transform_is_open() {
     view0.fill_pending = false;
     let center0 = view0.center;
     let rect = Rect::from_min_size(Pos2::ZERO, vec2(400.0, 300.0));
-    let frame = |app: &mut LocalPaintApp, events: Vec<egui::Event>| -> View {
+    let frame = |app: &mut LocalRasterApp, events: Vec<egui::Event>| -> View {
         let input = egui::RawInput { screen_rect: Some(rect), events, ..Default::default() };
         let mut seen = view0.clone();
         let mut out = ctx.run_ui(input, |ui| {
@@ -2416,7 +2416,7 @@ fn letting_go_of_alt_during_an_alt_sample_press_does_not_paint() {
     // #7802: Alt-pressing with the Brush samples a colour on the press. If Alt was let go
     // before egui recognised the drag, that drag started a stroke from the sampled point.
     let ctx = egui::Context::default();
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300, "background": "white"})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     app.run("view.actualPixels", json!({})).unwrap();
@@ -2428,7 +2428,7 @@ fn letting_go_of_alt_during_an_alt_sample_press_does_not_paint() {
     view.fit_pending = false;
     view.fill_pending = false;
     let rect = Rect::from_min_size(Pos2::ZERO, vec2(400.0, 300.0));
-    let frame = |app: &mut LocalPaintApp, events: Vec<egui::Event>| {
+    let frame = |app: &mut LocalRasterApp, events: Vec<egui::Event>| {
         let input = egui::RawInput { screen_rect: Some(rect), events, ..Default::default() };
         let mut out = ctx.run_ui(input, |ui| {
             canvas_view(app, ui, 0, rect, view.clone(), true);
@@ -2469,7 +2469,7 @@ fn letting_go_of_alt_during_a_mixer_brush_sample_press_does_not_paint() {
     // As #7802 for the Brush: an Alt-press with the Mixer Brush loads paint from the canvas.
     // If Alt was let go before egui recognised the drag, that drag started a Mixer stroke.
     let ctx = egui::Context::default();
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300, "background": "white"})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     app.run("view.actualPixels", json!({})).unwrap();
@@ -2481,7 +2481,7 @@ fn letting_go_of_alt_during_a_mixer_brush_sample_press_does_not_paint() {
     view.fit_pending = false;
     view.fill_pending = false;
     let rect = Rect::from_min_size(Pos2::ZERO, vec2(400.0, 300.0));
-    let frame = |app: &mut LocalPaintApp, events: Vec<egui::Event>| {
+    let frame = |app: &mut LocalRasterApp, events: Vec<egui::Event>| {
         let input = egui::RawInput { screen_rect: Some(rect), events, ..Default::default() };
         let mut out = ctx.run_ui(input, |ui| {
             canvas_view(app, ui, 0, rect, view.clone(), true);
@@ -2520,7 +2520,7 @@ fn guides_draw_over_the_transform_preview_and_under_its_box() {
     // the moving pixels. The preview is image content, drawn before the grid and guides like
     // the document is; the box and handles still go over them, as in Photoshop.
     let ctx = egui::Context::default();
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     app.run("select.rect", json!({"x": 100, "y": 100, "width": 100, "height": 60})).unwrap();
@@ -2565,14 +2565,14 @@ fn guides_draw_over_the_puppet_perspective_and_vanishing_point_previews() {
     // Warp and Vanishing Point's paste are image content. They were drawn with their pins and
     // planes, after the guides, hiding every guide across them; the guides now go over them,
     // the mesh lines, pins and planes over the guides, as in Photoshop.
-    for command in ["edit.puppetWarp", "edit.perspectiveWarp", localpaint_engine::vp_cmds::VP] {
+    for command in ["edit.puppetWarp", "edit.perspectiveWarp", localraster_engine::vp_cmds::VP] {
         let ctx = egui::Context::default();
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
         app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
         app.run("layer.new.layer", json!({})).unwrap();
         app.run("select.rect", json!({"x": 100, "y": 100, "width": 100, "height": 60})).unwrap();
         app.run("edit.fill", json!({"color": "#ff0000"})).unwrap();
-        if command == localpaint_engine::vp_cmds::VP {
+        if command == localraster_engine::vp_cmds::VP {
             app.run("edit.copy", json!({})).unwrap();
         }
         app.run("select.deselect", json!({})).unwrap();
@@ -2581,7 +2581,7 @@ fn guides_draw_over_the_puppet_perspective_and_vanishing_point_previews() {
         app.ui.extras.rulers = false;
         app.sync_views();
         crate::distort_ui::menu(&mut app, &ctx, command, &json!({})).expect("an on-canvas mode").expect("it starts");
-        if command == localpaint_engine::vp_cmds::VP {
+        if command == localraster_engine::vp_cmds::VP {
             // A plane over the document; the clipboard pastes onto it.
             for (x, y) in [(20.0, 280.0), (380.0, 280.0), (300.0, 40.0), (100.0, 40.0)] {
                 crate::distort_ui::pointer(&mut app, ToolEvent::Down { x, y, pressure: 1.0 }, egui::Modifiers::NONE);
@@ -2615,7 +2615,7 @@ fn guides_draw_over_the_puppet_perspective_and_vanishing_point_previews() {
         let preview = shapes.iter().position(|s| match s {
             egui::Shape::Mesh(m) if m.texture_id != egui::TextureId::default() => {
                 let r = m.calc_bounds();
-                if command == localpaint_engine::vp_cmds::VP { r.width() > 10.0 && r.width() < 300.0 && r.min.x < 150.0 && r.max.x > 150.0 } else { near(r) }
+                if command == localraster_engine::vp_cmds::VP { r.width() > 10.0 && r.width() < 300.0 && r.min.x < 150.0 && r.max.x > 150.0 } else { near(r) }
             }
             _ => false,
         });
@@ -2652,12 +2652,12 @@ fn brush_drags_paint_no_stand_in_shape_over_the_canvas() {
     // as the brush; zoomed in, egui tessellated it into hard black wedges fanning out from the
     // start. The canvas shows the real stroke (`LiveStroke`) and nothing is drawn over it.
     let ctx = egui::Context::default();
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 120, "height": 60})).unwrap();
     app.run("tools.setBrush", json!({"brush": {"size": 30, "hardness": 0.0}})).unwrap();
     // A smoothed stroke also draws its string line (see
     // `smoothed_brush_drag_draws_the_string_from_brush_to_pointer`): that is no stand-in shape.
-    let overlay = |app: &mut LocalPaintApp, ctx: &egui::Context| {
+    let overlay = |app: &mut LocalRasterApp, ctx: &egui::Context| {
         drag_preview_shapes(app, ctx, 12.0).iter().filter(|s| !matches!(s.shape, egui::Shape::LineSegment { .. } | egui::Shape::Circle(_))).count()
     };
     for tool in [Tool::Brush, Tool::Eraser] {
@@ -2678,10 +2678,10 @@ fn brush_drags_paint_no_stand_in_shape_over_the_canvas() {
 fn smoothed_brush_drag_draws_the_string_from_brush_to_pointer() {
     // #3479: with smoothing the brush lags behind the pointer; a line joins them while drawing.
     let ctx = egui::Context::default();
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 120, "height": 60})).unwrap();
     app.ui.tool = Tool::Brush;
-    let lines = |app: &mut LocalPaintApp| drag_preview_shapes(app, &ctx, 4.0).iter().filter(|s| matches!(s.shape, egui::Shape::LineSegment { .. })).count();
+    let lines = |app: &mut LocalRasterApp| drag_preview_shapes(app, &ctx, 4.0).iter().filter(|s| matches!(s.shape, egui::Shape::LineSegment { .. })).count();
     for (amount, string) in [(0.0, false), (0.8, true)] {
         app.run("tools.setBrush", json!({"brush": {"size": 10, "smoothing": {"amount": amount}}})).unwrap();
         tool_event(&mut app, ToolEvent::Down { x: 10.0, y: 30.0, pressure: 1.0 }, egui::Modifiers::NONE);
@@ -2701,7 +2701,7 @@ fn retouch_drags_show_the_footprint_without_wedges() {
     // past the radius is tinted.
     for hardness in [1.0, 0.0] {
         let ctx = egui::Context::default();
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
         app.run("file.new", json!({"width": 120, "height": 60})).unwrap();
         app.run("tools.setBrush", json!({"brush": {"size": 30, "hardness": hardness}})).unwrap();
         app.ui.tool = Tool::Remove;
@@ -2717,9 +2717,9 @@ fn retouch_drags_show_the_footprint_without_wedges() {
         }
         drag_preview_shapes(&mut app, &ctx, 12.0);
         // The stroke the removal gets on release, and the pixels its hole takes.
-        let points = app.drag.as_ref().unwrap().points.iter().map(|p| localpaint_paint::StrokePoint::new(p[0], p[1], p[2] as f32)).collect();
-        let brush = localpaint_engine::retouch_cmds::stroke_brush(&app.session.tools.brush, &json!({}));
-        let (b, cov) = localpaint_paint::retouch::stroke_coverage(&localpaint_paint::Stroke { brush, points });
+        let points = app.drag.as_ref().unwrap().points.iter().map(|p| localraster_paint::StrokePoint::new(p[0], p[1], p[2] as f32)).collect();
+        let brush = localraster_engine::retouch_cmds::stroke_brush(&app.session.tools.brush, &json!({}));
+        let (b, cov) = localraster_paint::retouch::stroke_coverage(&localraster_paint::Stroke { brush, points });
         let trail = app.trail.as_ref().unwrap();
         assert_eq!(trail.scale(), 1.0);
         let mut beyond = 0;
@@ -2744,7 +2744,7 @@ fn retouch_drags_show_the_footprint_without_wedges() {
 fn spot_healing_trail_is_the_coverage_the_heal_uses() {
     // #2364: a soft brush with pen-pressure size showed as a hard footprint at full size.
     let ctx = egui::Context::default();
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 120, "height": 60})).unwrap();
     let brush = json!({"size": 30, "hardness": 0.0, "shapeDynamics": {"enabled": true, "size": {"control": "penPressure"}}});
     app.run("tools.setBrush", json!({ "brush": brush })).unwrap();
@@ -2755,9 +2755,9 @@ fn spot_healing_trail_is_the_coverage_the_heal_uses() {
         drag_preview_shapes(&mut app, &ctx, 12.0);
     }
     // The stroke the heal gets on release, and its coverage.
-    let points = app.drag.as_ref().unwrap().points.iter().map(|p| localpaint_paint::StrokePoint::new(p[0], p[1], p[2] as f32)).collect();
-    let brush = localpaint_engine::retouch_cmds::stroke_brush(&app.session.tools.brush, &json!({}));
-    let (b, cov) = localpaint_paint::retouch::stroke_coverage(&localpaint_paint::Stroke { brush, points });
+    let points = app.drag.as_ref().unwrap().points.iter().map(|p| localraster_paint::StrokePoint::new(p[0], p[1], p[2] as f32)).collect();
+    let brush = localraster_engine::retouch_cmds::stroke_brush(&app.session.tools.brush, &json!({}));
+    let (b, cov) = localraster_paint::retouch::stroke_coverage(&localraster_paint::Stroke { brush, points });
     let trail = app.trail.as_ref().unwrap();
     let mut soft = 0;
     for y in 0..60 {
@@ -2770,13 +2770,13 @@ fn spot_healing_trail_is_the_coverage_the_heal_uses() {
     }
     assert!(soft > 50, "a soft brush shows a soft edge");
     // Half pressure halves the 30 px tip: nothing past its (soft) reach.
-    let reach = localpaint_paint::tip_reach(7.5, app.session.tools.brush.hardness).ceil() as usize + 2;
+    let reach = localraster_paint::tip_reach(7.5, app.session.tools.brush.hardness).ceil() as usize + 2;
     assert_eq!(trail.coverage(50, 30 + reach), 0, "half pressure halves the 30 px tip");
 }
 
 #[test]
 fn layer_style_dialog_previews_live_and_cancel_restores() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 16, "height": 16})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     let fx = |d: &Document| d.layers.iter().map(|l| l.effects.items.len()).sum::<usize>();
@@ -2802,7 +2802,7 @@ fn layer_style_dialog_previews_live_and_cancel_restores() {
 #[test]
 fn layer_style_opened_during_free_transform_applies_the_box_and_previews() {
     for placed in [true, false] {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
         app.run("file.new", json!({"width": 64, "height": 64})).unwrap();
         app.run("layer.new.layer", json!({})).unwrap();
         app.run("select.rect", json!({"x": 8, "y": 8, "width": 16, "height": 16})).unwrap();
@@ -2821,9 +2821,9 @@ fn layer_style_opened_during_free_transform_applies_the_box_and_previews() {
         crate::layer_style::open(&mut app, Some("dropShadow")).unwrap();
         assert!(app.ui.transform.is_none() && app.transform_preview.is_none(), "placed {placed}: the box is applied");
         let (shown, _) = display_doc(&mut app, 0);
-        let rect = localpaint_geom::Rect::new(0, 0, 64, 64);
-        let with = localpaint_compose::render(&shown, rect);
-        let without = localpaint_compose::render(&app.session.documents()[0].doc, rect);
+        let rect = localraster_geom::Rect::new(0, 0, 64, 64);
+        let with = localraster_compose::render(&shown, rect);
+        let without = localraster_compose::render(&app.session.documents()[0].doc, rect);
         assert!(
             with.get(16 + dx, 16)[0] < 0.1 && with.get(16 + dx, 16)[2] > 0.9,
             "placed {placed}: the blue block where the box left it, not the white under it"
@@ -2838,7 +2838,7 @@ fn layer_style_opened_during_free_transform_applies_the_box_and_previews() {
 
 #[test]
 fn fill_view_covers_the_canvas_and_centres_the_document() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 400, "height": 200})).unwrap();
     let doc = app.session.active().unwrap().doc.clone();
     let mut view = View { fill_pending: true, ..View::default() };
@@ -2874,7 +2874,7 @@ fn fill_view_covers_the_canvas_and_centres_the_document() {
 
 #[test]
 fn a_hundred_percent_is_one_physical_pixel_per_document_pixel() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 400, "height": 200})).unwrap();
     app.sync_views();
     for ppp in [1.0f32, 1.25, 2.0] {
@@ -2933,12 +2933,12 @@ fn zoom_about_centres_the_clicked_point_with_the_preference() {
 
 #[test]
 fn damage_grows_by_nested_effect_reach() {
-    use localpaint_doc::{Effect, Layer};
-    let fmt = localpaint_color::PixelFormat::RGBA8;
+    use localraster_doc::{Effect, Layer};
+    let fmt = localraster_color::PixelFormat::RGBA8;
     assert_eq!(effect_reach(&[Layer::raster("plain", fmt)]), 0);
     let mut inner = Layer::raster("inner", fmt);
     inner.effects.items.push(Effect::default_drop_shadow());
-    let m = localpaint_compose::effects::margin(&inner);
+    let m = localraster_compose::effects::margin(&inner);
     let mut group = Layer::group("g", vec![inner.clone()]);
     group.effects.items.push(Effect::default_drop_shadow());
     assert_eq!(effect_reach(std::slice::from_ref(&inner)), m);
@@ -2957,7 +2957,7 @@ fn tab_reorder_keeps_floating_documents_in_place() {
 
 #[test]
 fn arrange_layout_only_includes_docked_documents() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     for name in ["first", "floating", "last"] {
         app.run("file.new", json!({"width": 80, "height": 60, "name": name})).unwrap();
     }
@@ -2975,7 +2975,7 @@ fn arrange_layout_only_includes_docked_documents() {
 #[test]
 fn torn_off_document_is_not_drawn_again_in_the_main_window() {
     for kind in [crate::theme::ThemeKind::Pro, crate::theme::ThemeKind::Studio] {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 80, "height": 60, "name": "floating"})).unwrap();
         app.run("file.new", json!({"width": 80, "height": 60, "name": "docked"})).unwrap();
         app.sync_views();
@@ -2985,14 +2985,14 @@ fn torn_off_document_is_not_drawn_again_in_the_main_window() {
         assert_eq!(app.session.active_index(), Some(0), "{kind:?}: the floated page remains active");
         assert_eq!(main_canvas_document(&app), Some(1), "{kind:?}: the main canvas picks a docked page instead");
         let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(680.0, 480.0)).build_ui_state(
-            |ui, (app, ready): &mut (LocalPaintApp, bool)| {
+            |ui, (app, ready): &mut (LocalRasterApp, bool)| {
                 if *ready {
                     egui::CentralPanel::default().frame(egui::Frame::NONE).show(ui, |ui| document_area(app, ui));
                 }
             },
             (app, false),
         );
-        LocalPaintApp::setup_context(&h.ctx, kind);
+        LocalRasterApp::setup_context(&h.ctx, kind);
         h.state_mut().1 = true;
         h.run_steps(3);
         let tabs = h.state().0.tab_strip.as_ref().map(|s| s.tabs.iter().map(|(doc, _)| *doc).collect::<Vec<_>>());

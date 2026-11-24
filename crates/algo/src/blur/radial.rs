@@ -4,8 +4,8 @@
 //! sampler. The hot loop keeps channels together, reads each bilinear tap once,
 //! and preserves the upstream alpha arithmetic for every sample.
 
-use localpaint_geom::Rect;
-use localpaint_raster::Interrupt;
+use localraster_geom::Rect;
+use localraster_raster::Interrupt;
 
 use crate::image::Image;
 use crate::{Ctx, RadialMethod, RadialQuality};

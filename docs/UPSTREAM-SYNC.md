@@ -12,7 +12,7 @@ Porta/rebrand da suíte Local: o main é nosso, o upstream é fonte de mudanças
 - Prova (conferida em 2026-11-21): 15 dos 17 arquivos testáveis de `fab871da^..fab871da` batem com o
   upstream; os dois que não batem (`docs/development.md`, `crates/engine/src/cmd/atn_cmds.rs`) foram
   editados no rebrand.
-- Fork: `Anon5T4R/Local-Paint`, versão própria na linha `0.20.x`.
+- Fork: `Anon5T4R/Local-Raster`, versão própria na linha `0.20.x`.
 - Nada é lido de `C:\Dev\storytold` em build, teste ou release; a pasta é só referência local para a
   skill `sync-upstream`.
 

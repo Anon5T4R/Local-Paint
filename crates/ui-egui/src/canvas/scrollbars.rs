@@ -366,15 +366,15 @@ mod tests {
         use serde_json::json;
 
         use super::super::*;
-        use crate::LocalPaintApp;
+        use crate::LocalRasterApp;
 
-        fn harness(overscroll: bool) -> Harness<'static, LocalPaintApp> {
-            let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        fn harness(overscroll: bool) -> Harness<'static, LocalRasterApp> {
+            let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
             app.run("file.new", json!({"width": 2000, "height": 1500})).unwrap();
             app.run("prefs.set", json!({"path": "tools.overscroll", "value": overscroll})).unwrap();
             app.sync_views();
             let mut h = Harness::builder().with_size(vec2(1000.0, 700.0)).build_ui_state(
-                |ui, app: &mut LocalPaintApp| {
+                |ui, app: &mut LocalRasterApp| {
                     let ctx = ui.ctx().clone();
                     if !ctx.fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                         return;
@@ -383,16 +383,16 @@ mod tests {
                 },
                 app,
             );
-            LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::default());
+            LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::default());
             h.run_steps(4);
             h
         }
 
-        fn view(h: &Harness<'static, LocalPaintApp>) -> View {
+        fn view(h: &Harness<'static, LocalRasterApp>) -> View {
             h.state().ui.views[0].clone()
         }
 
-        fn set_view(h: &mut Harness<'static, LocalPaintApp>, zoom: f32, center: [f32; 2]) {
+        fn set_view(h: &mut Harness<'static, LocalRasterApp>, zoom: f32, center: [f32; 2]) {
             let v = &mut h.state_mut().ui.views[0];
             v.zoom = zoom;
             v.center = center;
@@ -400,7 +400,7 @@ mod tests {
         }
 
         /// Centre and length of the horizontal thumb, in screen points.
-        fn h_thumb(h: &Harness<'static, LocalPaintApp>) -> (Pos2, f32) {
+        fn h_thumb(h: &Harness<'static, LocalRasterApp>) -> (Pos2, f32) {
             let r = h.state().last_canvas_rect;
             let v = view(h);
             let s = Span::of(v.doc_size[0] as f32, v.center[0], r.width(), v.zoom).unwrap();
@@ -410,7 +410,7 @@ mod tests {
             (pos2(bar.left() + at + len / 2.0, bar.center().y), len)
         }
 
-        fn drag(h: &mut Harness<'static, LocalPaintApp>, p: Pos2, by: f32) {
+        fn drag(h: &mut Harness<'static, LocalRasterApp>, p: Pos2, by: f32) {
             h.event(egui::Event::PointerMoved(p));
             h.run_steps(1);
             h.event(egui::Event::PointerButton { pos: p, button: PointerButton::Primary, pressed: true, modifiers: Modifiers::NONE });
@@ -423,7 +423,7 @@ mod tests {
             h.run_steps(2);
         }
 
-        fn click(h: &mut Harness<'static, LocalPaintApp>, p: Pos2) {
+        fn click(h: &mut Harness<'static, LocalRasterApp>, p: Pos2) {
             h.event(egui::Event::PointerMoved(p));
             h.run_steps(1);
             h.event(egui::Event::PointerButton { pos: p, button: PointerButton::Primary, pressed: true, modifiers: Modifiers::NONE });

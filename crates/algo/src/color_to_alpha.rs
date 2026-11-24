@@ -16,10 +16,10 @@
 //! above `opacity` fully opaque, linear in between (`0` and `1` leave `a` as computed).
 //!
 //! The arithmetic runs on the stored channel values of the document (encoded, not linearised, at
-//! every depth). That is the space Local Paint's Normal blending composites in, so the unmixed
+//! every depth). That is the space Local Raster's Normal blending composites in, so the unmixed
 //! layer over a fill of the removed colour gives back the original pixels exactly.
 
-use localpaint_geom::Rect;
+use localraster_geom::Rect;
 
 use crate::Ctx;
 use crate::fxutil::{MAXC, native, ncol};
@@ -96,8 +96,8 @@ pub(crate) fn color_to_alpha(src: &Image, out: Rect, ctx: &Ctx, color: [f32; 4],
 mod tests {
     use super::*;
     use crate::{FilterParams, apply, output_area};
-    use localpaint_color::{ColorMode, PixelFormat, SampleType};
-    use localpaint_raster::Surface;
+    use localraster_color::{ColorMode, PixelFormat, SampleType};
+    use localraster_raster::Surface;
 
     fn close(a: f32, b: f32, tol: f32) -> bool {
         (a - b).abs() <= tol

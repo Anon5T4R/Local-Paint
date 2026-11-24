@@ -1,5 +1,5 @@
 //! Catalog metadata, strict tool envelopes and live resources.
-use super::{Arc, Backend, BatchParams, DocIndex, ListParams, LocalPaintMcp, McpError, Parameters, RunParams, ServerHandler, Value, json};
+use super::{Arc, Backend, BatchParams, DocIndex, ListParams, LocalRasterMcp, McpError, Parameters, RunParams, ServerHandler, Value, json};
 use rmcp::RoleServer;
 use rmcp::model::{
     CallToolRequestParams, CallToolResponse, Implementation, ListResourcesResult, ListToolsResult, PaginatedRequestParams, ReadResourceRequestParams,
@@ -7,9 +7,12 @@ use rmcp::model::{
 };
 use rmcp::service::RequestContext;
 
-const DOCUMENT: &str = "localpaint://document";
-const COMMANDS: &str = "localpaint://commands";
-const INSTRUCTIONS: &str = "Local Paint image editor. Start with doc_new/doc_open, discover ids and parameter docs with command_list, edit with command_run or command_batch (one history step per command). Inspect with doc_inspect and render_preview; doc_save writes native .pcraft or exports by extension. File paths are relative to the read/write roots granted at launch. ui_inspect/ui_screenshot and other ui_* tools require bridge mode. Read localpaint://document and localpaint://commands for live JSON state.";
+const DOCUMENT: &str = "localraster://document";
+const COMMANDS: &str = "localraster://commands";
+/// The resource URIs under Local Paint's old scheme, still answered so a client that remembered them keeps working.
+const OLD_DOCUMENT: &str = "localpaint://document";
+const OLD_COMMANDS: &str = "localpaint://commands";
+const INSTRUCTIONS: &str = "Local Raster image editor. Start with doc_new/doc_open, discover ids and parameter docs with command_list, edit with command_run or command_batch (one history step per command). Inspect with doc_inspect and render_preview; doc_save writes native .pcraft or exports by extension. File paths are relative to the read/write roots granted at launch. ui_inspect/ui_screenshot and other ui_* tools require bridge mode. Read localraster://document and localraster://commands for live JSON state.";
 
 fn annotated(mut tool: Tool) -> Tool {
     let words = tool.name.replace('_', " ");
@@ -26,10 +29,10 @@ fn annotated(mut tool: Tool) -> Tool {
     tool
 }
 
-impl ServerHandler for LocalPaintMcp {
+impl ServerHandler for LocalRasterMcp {
     fn get_info(&self) -> ServerConfig {
         ServerConfig::new(ServerCapabilities::builder().enable_tools().enable_resources().build())
-            .with_server_info(Implementation::new("localpaint", env!("CARGO_PKG_VERSION")))
+            .with_server_info(Implementation::new("localraster", env!("CARGO_PKG_VERSION")))
             .with_instructions(INSTRUCTIONS)
     }
 
@@ -72,8 +75,8 @@ impl ServerHandler for LocalPaintMcp {
 
     async fn read_resource(&self, request: ReadResourceRequestParams, _: RequestContext<RoleServer>) -> Result<ReadResourceResponse, McpError> {
         let result = match request.uri.as_str() {
-            DOCUMENT => self.doc_inspect(Parameters(DocIndex::default())).await?,
-            COMMANDS => self.command_list(Parameters(ListParams::default())).await?,
+            DOCUMENT | OLD_DOCUMENT => self.doc_inspect(Parameters(DocIndex::default())).await?,
+            COMMANDS | OLD_COMMANDS => self.command_list(Parameters(ListParams::default())).await?,
             uri => return Err(McpError::resource_not_found(format!("unknown resource `{uri}`"), None)),
         };
         let text = result.content.iter().filter_map(|c| c.as_text()).map(|t| t.text.as_str()).collect::<Vec<_>>().join("\n");

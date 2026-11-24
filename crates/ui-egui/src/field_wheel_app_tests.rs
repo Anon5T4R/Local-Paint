@@ -7,13 +7,13 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::state::Tool;
 
-fn harness() -> Harness<'static, LocalPaintApp> {
+fn harness() -> Harness<'static, LocalRasterApp> {
     let mut h = Harness::builder().with_size(vec2(1440.0, 900.0)).with_max_steps(64).build_eframe(move |cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 64, "height": 48})).unwrap();
         app.ui.tool = Tool::Brush;
         app
@@ -23,11 +23,11 @@ fn harness() -> Harness<'static, LocalPaintApp> {
 }
 
 /// The value field showing `value`: the options bar's Smoothing is the brush's only one at 10.
-fn field<'a>(h: &'a Harness<'_, LocalPaintApp>, value: &str) -> egui_kittest::Node<'a> {
+fn field<'a>(h: &'a Harness<'_, LocalRasterApp>, value: &str) -> egui_kittest::Node<'a> {
     h.query_all_by_role(Role::SpinButton).find(|n| n.value().as_deref() == Some(value)).unwrap()
 }
 
-fn wheel(h: &mut Harness<'_, LocalPaintApp>, at: egui::Pos2, lines: f32, modifiers: egui::Modifiers) {
+fn wheel(h: &mut Harness<'_, LocalRasterApp>, at: egui::Pos2, lines: f32, modifiers: egui::Modifiers) {
     h.hover_at(at);
     h.run_steps(1);
     h.event(egui::Event::MouseWheel {
@@ -41,7 +41,7 @@ fn wheel(h: &mut Harness<'_, LocalPaintApp>, at: egui::Pos2, lines: f32, modifie
 }
 
 /// (zoom, centre) of the document's view.
-fn view(h: &Harness<'_, LocalPaintApp>) -> (f32, [f32; 2]) {
+fn view(h: &Harness<'_, LocalRasterApp>) -> (f32, [f32; 2]) {
     let v = &h.state().ui.views[0];
     (v.zoom, v.center)
 }

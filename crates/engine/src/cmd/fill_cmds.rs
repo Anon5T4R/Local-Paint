@@ -5,9 +5,9 @@
 //! transparency. The selection (or the whole canvas) is filled, as one history step ("Fill").
 //! Every parameter is validated: a bad one is an error, never a panic.
 
-use localpaint_color::BlendMode;
-use localpaint_geom::{Rect, TILE_SIZE};
-use localpaint_raster::{Surface, from_rgba_into, to_rgba};
+use localraster_color::BlendMode;
+use localraster_geom::{Rect, TILE_SIZE};
+use localraster_raster::{Surface, from_rgba_into, to_rgba};
 use serde_json::{Value, json};
 
 use crate::commands::{blend_from_str, color_param, layer_param};
@@ -113,11 +113,11 @@ pub fn fill(s: &mut Session, p: &Value) -> Result<Value> {
         "pattern" => {
             let pat = crate::pattern_cmds::resolve_param(s, CMD, p)?;
             let (scale, angle, _, phase) = crate::pattern_cmds::placement(CMD, p)?;
-            let tile = localpaint_compose::pattern::Tile::new(&pat).ok_or_else(|| bad("the pattern is empty or too large to paint"))?;
+            let tile = localraster_compose::pattern::Tile::new(&pat).ok_or_else(|| bad("the pattern is empty or too large to paint"))?;
             // Photoshop's Fill uses the canvas origin.
-            let place = localpaint_compose::pattern::Placement::new(Rect::EMPTY, false, phase, scale, angle);
+            let place = localraster_compose::pattern::Placement::new(Rect::EMPTY, false, phase, scale, angle);
             out["pattern"] = json!(pat.id);
-            Source::Pixels(area, localpaint_compose::pattern::render(&tile, &place, area))
+            Source::Pixels(area, localraster_compose::pattern::render(&tile, &place, area))
         }
         "history" => {
             // A History panel row `state` or a `snapshot`, else the History Brush's source.
@@ -144,7 +144,7 @@ pub fn fill(s: &mut Session, p: &Value) -> Result<Value> {
     }
     // The document's own CMYK profile converts the fill colour, like the compositor and brush.
     let cmyk = crate::brush_cmds::doc_cmyk_space(s);
-    localpaint_color::convert::with_cmyk_space(cmyk.as_ref(), || {
+    localraster_color::convert::with_cmyk_space(cmyk.as_ref(), || {
         s.edit("Fill", |doc, _| {
             let sel = doc.selection.clone();
             let (surf, lock) = crate::channel_cmds::target_surface(doc, id, p)?;
@@ -165,7 +165,7 @@ fn color_source(s: &Session, c: [f32; 4]) -> Source {
 
 /// `source`'s opaque colour as samples of `fmt` (alpha last, as in [`from_rgba_into`]), or `None`
 /// for a source that is not one colour. A CMYK pick keeps its inks in a CMYK target.
-fn encode_color(fmt: &localpaint_color::PixelFormat, source: &Source, enc: &mut [f32; 8]) -> Option<usize> {
+fn encode_color(fmt: &localraster_color::PixelFormat, source: &Source, enc: &mut [f32; 8]) -> Option<usize> {
     let (rgba, cmyk) = match source {
         Source::Color(c) if c[3] >= 1.0 => (*c, None),
         Source::Cmyk { rgba, cmyk } => (*rgba, Some(*cmyk)),
@@ -173,7 +173,7 @@ fn encode_color(fmt: &localpaint_color::PixelFormat, source: &Source, enc: &mut 
     };
     let n = from_rgba_into(fmt, rgba, enc);
     if let Some(k) = cmyk
-        && fmt.mode == localpaint_color::ColorMode::Cmyk
+        && fmt.mode == localraster_color::ColorMode::Cmyk
     {
         enc[..4].copy_from_slice(&k);
     }
@@ -223,7 +223,7 @@ pub(crate) fn blend_color_mask(
     blend_into(surf, area, &source, Some(coverage), Blend { mode, opacity, keep_alpha: preserve_transparency, restore: false })
 }
 
-/// The selection filled from its surroundings (`localpaint_algo::content_aware`), as straight
+/// The selection filled from its surroundings (`localraster_algo::content_aware`), as straight
 /// RGBA over the sampling window. Only the selected pixels are used.
 fn content_aware(surf: &Surface, sel: &Surface, canvas: Rect, color_adaptation: bool, seed: u64) -> Result<Source> {
     let hole_bounds = sel.content_bounds().intersect(&canvas);
@@ -238,7 +238,7 @@ fn content_aware(surf: &Surface, sel: &Surface, canvas: Rect, color_adaptation: 
 }
 
 /// The pixels `is_hole` picks inside `hole_bounds` filled from their surroundings
-/// (`localpaint_algo::content_aware`): Photoshop's sampling window around `hole_bounds`, sampling
+/// (`localraster_algo::content_aware`): Photoshop's sampling window around `hole_bounds`, sampling
 /// only the non-hole pixels `usable` allows. Returns the window and its pixels in the surface's
 /// own channels (the hole filled, the rest as read). Shared by Edit › Fill › Content-Aware and the
 /// Crop tool's Content-Aware fill (#3823).
@@ -251,7 +251,7 @@ pub(crate) fn content_aware_native(
     is_hole: impl Fn(i32, i32) -> bool,
     usable: impl Fn(i32, i32) -> bool,
 ) -> Result<(Rect, Vec<f32>)> {
-    use localpaint_algo::content_aware::{FillOptions, color_level, fill, rotation_level};
+    use localraster_algo::content_aware::{FillOptions, color_level, fill, rotation_level};
     let window = sampling_window(hole_bounds, canvas);
     let n = surf.format().channels();
     let (w, h) = window_size(window)?;
@@ -281,11 +281,11 @@ pub(crate) fn content_aware_native(
 }
 
 /// Photoshop's Content-Aware sampling window around the selection bounds `hole`
-/// ([`localpaint_algo::content_aware::sampling_window`]): Edit › Fill, the workspace's Rectangular
+/// ([`localraster_algo::content_aware::sampling_window`]): Edit › Fill, the workspace's Rectangular
 /// and Auto areas and the retouching tools all copy from within it. Worked out in i64, so a loaded
 /// document declaring an absurd selection can't overflow it (#963).
 pub(crate) fn sampling_window(hole: Rect, canvas: Rect) -> Rect {
-    localpaint_algo::content_aware::sampling_window(hole.intersect(&canvas), canvas)
+    localraster_algo::content_aware::sampling_window(hole.intersect(&canvas), canvas)
 }
 
 /// The size of a Content-Aware sampling window, or an error for a window too large to read and
@@ -410,20 +410,20 @@ fn blend_into(surf: &mut Surface, area: Rect, source: &Source, sel: Option<&Surf
 /// The selection's coverage over one tile (its channel 0).
 pub(crate) struct Mask<'a> {
     bytes: &'a [u8],
-    fmt: localpaint_color::PixelFormat,
+    fmt: localraster_color::PixelFormat,
     origin: Rect,
 }
 
 impl<'a> Mask<'a> {
     /// `sel` over the tile at `tc` (its default pixel where it has no tile there).
-    pub(crate) fn of(sel: &'a Surface, tc: localpaint_geom::TileCoord) -> Self {
+    pub(crate) fn of(sel: &'a Surface, tc: localraster_geom::TileCoord) -> Self {
         Mask { bytes: sel.tile(tc).map_or(sel.default_bytes(), |t| t.bytes()), fmt: sel.format(), origin: tc.rect() }
     }
     pub(crate) fn at(&self, x: i32, y: i32) -> f32 {
         let bpp = self.fmt.bytes_per_pixel();
         // A default-pixel mask is one pixel long: every position reads it.
         let i = if self.bytes.len() == bpp { 0 } else { ((y - self.origin.y0) as usize * TILE_SIZE as usize + (x - self.origin.x0) as usize) * bpp };
-        self.bytes.get(i..i + bpp).map_or(0.0, |px| localpaint_color::read_sample(px, self.fmt.sample, 0))
+        self.bytes.get(i..i + bpp).map_or(0.0, |px| localraster_color::read_sample(px, self.fmt.sample, 0))
     }
     /// Fully selected over `r`?
     pub(crate) fn full(&self, r: Rect) -> bool {
@@ -436,7 +436,7 @@ impl<'a> Mask<'a> {
 }
 
 /// Blend into one tile's encoded pixels (`bytes`, the tile at `origin`) over `tr`.
-fn blend_tile(bytes: &mut [u8], fmt: &localpaint_color::PixelFormat, origin: Rect, tr: Rect, source: &Source, mask: Option<&Mask>, b: Blend) {
+fn blend_tile(bytes: &mut [u8], fmt: &localraster_color::PixelFormat, origin: Rect, tr: Rect, source: &Source, mask: Option<&Mask>, b: Blend) {
     let Blend { mode, opacity, keep_alpha, restore } = b;
     let n = fmt.channels();
     let bpp = fmt.bytes_per_pixel();
@@ -448,7 +448,7 @@ fn blend_tile(bytes: &mut [u8], fmt: &localpaint_color::PixelFormat, origin: Rec
     let opaque = match encode_color(fmt, source, &mut enc) {
         Some(m) if mode == BlendMode::Normal => {
             let mut bytes = vec![0u8; bpp];
-            localpaint_raster::encode_pixel(fmt, enc.get(..m.min(n)).unwrap_or(&[]), &mut bytes);
+            localraster_raster::encode_pixel(fmt, enc.get(..m.min(n)).unwrap_or(&[]), &mut bytes);
             // Keeping alpha: copy the colour samples only (alpha is the last sample).
             let keep = if keep_alpha && fmt.alpha { bpp - bpp / n.max(1) } else { bpp };
             Some((bytes, keep))
@@ -473,13 +473,13 @@ fn blend_tile(bytes: &mut [u8], fmt: &localpaint_color::PixelFormat, origin: Rec
                 continue;
             }
             for (c, v) in px.iter_mut().enumerate().take(n) {
-                *v = localpaint_color::read_sample(pb, fmt.sample, c);
+                *v = localraster_color::read_sample(pb, fmt.sample, c);
             }
             let d = to_rgba(fmt, &px[..n.min(8)]);
             let mut c = source.at(x, y);
             if mode == BlendMode::Dissolve {
                 // Dissolve: each pixel is either fully painted or untouched, with the coverage as odds.
-                k = if localpaint_color::dither_noise(x, y) < c[3] * k { 1.0 } else { 0.0 };
+                k = if localraster_color::dither_noise(x, y) < c[3] * k { 1.0 } else { 0.0 };
                 c[3] = 1.0;
                 if k <= 0.0 {
                     continue;
@@ -491,15 +491,15 @@ fn blend_tile(bytes: &mut [u8], fmt: &localpaint_color::PixelFormat, origin: Rec
             } else if keep {
                 // Alpha kept: source atop, so a half-transparent pixel takes the new colour by the
                 // source alpha alone (#5783).
-                localpaint_color::blend::composite_atop(blend, d, c, k)
+                localraster_color::blend::composite_atop(blend, d, c, k)
             } else {
-                localpaint_color::blend::composite(blend, d, c, k)
+                localraster_color::blend::composite(blend, d, c, k)
             };
             if keep {
                 o[3] = d[3];
             }
             let m = from_rgba_into(fmt, o, &mut enc);
-            localpaint_raster::encode_pixel(fmt, enc.get(..m.min(n)).unwrap_or(&[]), pb);
+            localraster_raster::encode_pixel(fmt, enc.get(..m.min(n)).unwrap_or(&[]), pb);
         }
     }
 }

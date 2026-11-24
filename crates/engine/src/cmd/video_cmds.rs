@@ -4,8 +4,8 @@
 //! writes it back into the playhead's frame before anything re-syncs. Headless and scriptable. Frame persistence in `.pcraft` is a
 //! follow-up; a saved document keeps the current frame as the layer's content.
 
-use localpaint_doc::{Document, Layer, LayerContent, Timeline, VideoData};
-use localpaint_raster::Surface;
+use localraster_doc::{Document, Layer, LayerContent, Timeline, VideoData};
+use localraster_raster::Surface;
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;
@@ -106,7 +106,7 @@ fn edit_video(s: &mut Session, label: &str, f: impl FnOnce(&mut VideoData, usize
     Ok(json!({"frames": count}))
 }
 
-fn blank_of(fmt: localpaint_color::PixelFormat) -> Surface {
+fn blank_of(fmt: localraster_color::PixelFormat) -> Surface {
     Surface::new(fmt)
 }
 
@@ -253,12 +253,12 @@ fn fps_from_delays(delays: &[u32]) -> Option<f32> {
     best.map(|(d, _)| 1000.0 / d as f32)
 }
 
-/// `localpaint_io::import_gif_frames` / `import_webp_frames`.
+/// `localraster_io::import_gif_frames` / `import_webp_frames`.
 type ImportFrames = fn(
     &str,
     &[u8],
-    &mut dyn FnMut(localpaint_doc::Document, u32) -> std::result::Result<(), localpaint_io::IoError>,
-) -> std::result::Result<usize, localpaint_io::IoError>;
+    &mut dyn FnMut(localraster_doc::Document, u32) -> std::result::Result<(), localraster_io::IoError>,
+) -> std::result::Result<usize, localraster_io::IoError>;
 
 /// Frame storage one footage import may keep (whole tiles, all frames together).
 const MAX_FOOTAGE_BYTES: u64 = 2 << 30;
@@ -266,7 +266,7 @@ const MAX_FOOTAGE_BYTES: u64 = 2 << 30;
 /// Load frames from `path`: a single image (1 frame, or every frame of an animated GIF or WebP), or a
 /// directory of images (sorted = an image sequence). Each becomes a full raster frame in the
 /// document's format.
-fn load_frames(path: &str, fmt: localpaint_color::PixelFormat) -> Result<Footage> {
+fn load_frames(path: &str, fmt: localraster_color::PixelFormat) -> Result<Footage> {
     let p = std::path::Path::new(path);
     let is_img = |f: &std::path::Path| {
         matches!(
@@ -297,7 +297,7 @@ fn load_frames(path: &str, fmt: localpaint_color::PixelFormat) -> Result<Footage
         if frames.len() >= crate::timeline_cmds::MAX_DURATION {
             return Err(format!("the footage has more than {} frames", crate::timeline_cmds::MAX_DURATION));
         }
-        let tile = u64::from(localpaint_geom::TILE_SIZE.unsigned_abs()).pow(2) * surface.format().bytes_per_pixel() as u64;
+        let tile = u64::from(localraster_geom::TILE_SIZE.unsigned_abs()).pow(2) * surface.format().bytes_per_pixel() as u64;
         kept_bytes = kept_bytes.saturating_add(tile.saturating_mul(surface.tile_count() as u64));
         if kept_bytes > MAX_FOOTAGE_BYTES {
             return Err(format!("the footage needs more than {} MiB of frames", MAX_FOOTAGE_BYTES >> 20));
@@ -309,9 +309,9 @@ fn load_frames(path: &str, fmt: localpaint_color::PixelFormat) -> Result<Footage
         let bytes = std::fs::read(f).map_err(|e| EngineError::Other(format!("read `{}`: {e}", f.display())))?;
         let name = f.to_string_lossy();
         // A GIF (a still one is its only frame) or an animated WebP brings every frame.
-        let animation = match localpaint_codecs::detect(&bytes) {
-            Some(localpaint_codecs::Format::Gif) => Some(localpaint_io::import_gif_frames as ImportFrames),
-            Some(localpaint_codecs::Format::WebP) if localpaint_codecs::webp_is_animated(&bytes) => Some(localpaint_io::import_webp_frames as ImportFrames),
+        let animation = match localraster_codecs::detect(&bytes) {
+            Some(localraster_codecs::Format::Gif) => Some(localraster_io::import_gif_frames as ImportFrames),
+            Some(localraster_codecs::Format::WebP) if localraster_codecs::webp_is_animated(&bytes) => Some(localraster_io::import_webp_frames as ImportFrames),
             _ => None,
         };
         if let Some(import) = animation {
@@ -319,7 +319,7 @@ fn load_frames(path: &str, fmt: localpaint_color::PixelFormat) -> Result<Footage
             let done = import(&name, &bytes, &mut |doc, delay_ms| {
                 if let Err(msg) = keep(&mut frames, crate::file_cmds::flattened(&doc, fmt)) {
                     over = Some(msg);
-                    return Err(localpaint_io::IoError::Cancelled);
+                    return Err(localraster_io::IoError::Cancelled);
                 }
                 delays.push(delay_ms);
                 Ok(())
@@ -332,7 +332,7 @@ fn load_frames(path: &str, fmt: localpaint_color::PixelFormat) -> Result<Footage
         }
         // A multi-page TIFF: every full-resolution page of the main chain, in order, as the
         // GIF's frames are (#6379). Thumbnails, reduced-resolution copies and masks are left out.
-        if localpaint_codecs::detect(&bytes) == Some(localpaint_codecs::Format::Tiff) {
+        if localraster_codecs::detect(&bytes) == Some(localraster_codecs::Format::Tiff) {
             let (pages, complete) = tiff_pages(&bytes);
             if pages.len() > 1 {
                 // A damaged or looping page chain, or one past the 10,000-directory limit, lists
@@ -345,7 +345,7 @@ fn load_frames(path: &str, fmt: localpaint_color::PixelFormat) -> Result<Footage
                     )));
                 }
                 for page in pages {
-                    let doc = localpaint_io::import_tiff_page(&name, &bytes, Some(page))
+                    let doc = localraster_io::import_tiff_page(&name, &bytes, Some(page))
                         .map_err(|e| EngineError::Other(format!("`{}` page {}: {e}", f.display(), page + 1)))?
                         .document;
                     frames.push(crate::file_cmds::flattened(&doc, fmt));
@@ -356,7 +356,7 @@ fn load_frames(path: &str, fmt: localpaint_color::PixelFormat) -> Result<Footage
         let mut doc = crate::file_cmds::import(&name, &bytes)?;
         // A Targa's alpha opens as a channel (as in Photoshop); a frame's alpha is transparency.
         if f.extension().is_some_and(|e| e.eq_ignore_ascii_case("tga")) {
-            localpaint_io::tga_alpha_channel_to_transparency(&mut doc);
+            localraster_io::tga_alpha_channel_to_transparency(&mut doc);
         }
         keep(&mut frames, crate::file_cmds::flattened_checked(&doc, fmt, "layer.videoLayers.newVideoLayerFromFile")?)
             .map_err(|msg| EngineError::Other(format!("`{}`: {msg}", f.display())))?;
@@ -388,7 +388,7 @@ fn new_from_file(s: &mut Session, p: &Value) -> Result<Value> {
         let mut l = Layer::raster(name, fmt);
         let mut v = VideoData::new(frames, fps);
         v.original_frames = Some(v.frames.clone());
-        v.source = localpaint_doc::VideoSource::File { path: path.clone() };
+        v.source = localraster_doc::VideoSource::File { path: path.clone() };
         // The first frame is the layer's content before it is placed: an active artboard takes
         // the layer only when its content is on the board, as `frames_to_layers` does.
         if let (Some(first), LayerContent::Raster(surf)) = (v.frames.first(), &mut l.content) {
@@ -414,7 +414,7 @@ fn replace_footage(s: &mut Session, p: &Value) -> Result<Value> {
     edit_video(s, "Replace Footage", move |v, _| {
         v.original_frames = Some(frames.clone());
         v.frames = frames;
-        v.source = localpaint_doc::VideoSource::File { path: path.clone() };
+        v.source = localraster_doc::VideoSource::File { path: path.clone() };
         Ok(())
     })
 }
@@ -441,7 +441,7 @@ fn reload_frame(s: &mut Session, _p: &Value) -> Result<Value> {
             .ok_or_else(|| EngineError::BadParams { cmd: "layer.videoLayers.reloadFrame".into(), msg: "not a video layer".into() })?;
         (v.source.clone(), st.doc.pixel_format())
     };
-    let localpaint_doc::VideoSource::File { path } = src else {
+    let localraster_doc::VideoSource::File { path } = src else {
         return Err(EngineError::BadParams { cmd: "layer.videoLayers.reloadFrame".into(), msg: "this layer has no file source to reload".into() });
     };
     // The footage path is stored in the document.
@@ -455,11 +455,11 @@ fn reload_frame(s: &mut Session, _p: &Value) -> Result<Value> {
 }
 
 /// The pages of a TIFF that are pages of the document: full-resolution directories of the main
-/// chain (not SubIFDs, thumbnails or masks), by index into [`localpaint_codecs::tiff_info`]'s
+/// chain (not SubIFDs, thumbnails or masks), by index into [`localraster_codecs::tiff_info`]'s
 /// pages, and whether the walk listed every directory. Empty when the file can't be listed.
 fn tiff_pages(bytes: &[u8]) -> (Vec<usize>, bool) {
-    let Ok(info) = localpaint_codecs::tiff_info(bytes) else { return (Vec::new(), true) };
-    let pages = info.pages.iter().enumerate().filter(|(_, p)| p.parent.is_none() && p.kind == localpaint_codecs::TiffPageKind::Page).map(|(i, _)| i).collect();
+    let Ok(info) = localraster_codecs::tiff_info(bytes) else { return (Vec::new(), true) };
+    let pages = info.pages.iter().enumerate().filter(|(_, p)| p.parent.is_none() && p.kind == localraster_codecs::TiffPageKind::Page).map(|(i, _)| i).collect();
     (pages, info.complete)
 }
 
@@ -562,7 +562,7 @@ pub fn render_video_with(
                 return Err(cancelled());
             }
         }
-        let gif = localpaint_codecs::web::encode_gif_animated(w as u32, h as u32, &gframes, true).map_err(|e| EngineError::Other(e.to_string()))?;
+        let gif = localraster_codecs::web::encode_gif_animated(w as u32, h as u32, &gframes, true).map_err(|e| EngineError::Other(e.to_string()))?;
         let name = format!("{stem}.gif");
         write(&name, &gif)?;
         if !progress(frames, frames) {
@@ -574,7 +574,7 @@ pub fn render_video_with(
 
     // Image sequence.
     // PSD / PSB frames would embed the files linked smart objects name: not for a restricted session.
-    let opts = localpaint_io::ExportOptions { read_linked_files: s.authorize.is_none(), ..Default::default() };
+    let opts = localraster_io::ExportOptions { read_linked_files: s.authorize.is_none(), ..Default::default() };
     let mut files = Vec::new();
     for f in 0..frames {
         let mut doc = base.clone();
@@ -583,7 +583,7 @@ pub fn render_video_with(
         }
         sync(&mut doc);
         let path = format!("{stem}_{f:04}.{format}");
-        let bytes = localpaint_io::export(&doc, format, &opts).map(|r| r.bytes).map_err(|e| EngineError::Other(format!("render frame {f}: {e}")))?;
+        let bytes = localraster_io::export(&doc, format, &opts).map(|r| r.bytes).map_err(|e| EngineError::Other(format!("render frame {f}: {e}")))?;
         write(&path, &bytes)?;
         files.push(path);
         if !progress(f + 1, frames) {
@@ -596,8 +596,8 @@ pub fn render_video_with(
 /// One animated GIF frame from straight RGBA pixels, as Save for Web's GIF does (#3061): pixels
 /// under 50 % opacity get the frame's transparent index, the rest are drawn opaque, and the
 /// palette is built from the visible pixels with one entry kept for transparency.
-fn gif_frame(mut px: Vec<[f32; 4]>, w: usize, delay_cs: u16) -> Result<localpaint_codecs::web::GifFrame> {
-    use localpaint_algo::quantize::{self, Dither, Forced, PaletteKind};
+fn gif_frame(mut px: Vec<[f32; 4]>, w: usize, delay_cs: u16) -> Result<localraster_codecs::web::GifFrame> {
+    use localraster_algo::quantize::{self, Dither, Forced, PaletteKind};
     let transparent = px.iter().any(|p| p[3] < 0.5);
     let visible: Vec<[f32; 4]> = px.iter().filter(|p| p[3] >= 0.5).map(|p| [p[0], p[1], p[2], 1.0]).collect();
     // A fully transparent frame still needs a palette.
@@ -609,7 +609,7 @@ fn gif_frame(mut px: Vec<[f32; 4]>, w: usize, delay_cs: u16) -> Result<localpain
         pal.len() - 1
     });
     let indices = quantize::quantize(&mut px, w, &pal, Dither::None, 1.0, t);
-    Ok(localpaint_codecs::web::GifFrame { indices, palette: pal, transparent: t.map(|i| i as u8), delay_cs })
+    Ok(localraster_codecs::web::GifFrame { indices, palette: pal, transparent: t.map(|i| i as u8), delay_cs })
 }
 
 macro_rules! spec {

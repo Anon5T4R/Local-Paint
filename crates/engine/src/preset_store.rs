@@ -51,8 +51,8 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::io::Read;
 use std::sync::{Arc, Mutex, PoisonError};
 
-use localpaint_paint::tile::PREVIEW_SIDE;
-use localpaint_paint::{BrushPreset, BrushSettings, GrayTile, Pattern, PresetCaptures, StoredTile, TipShape};
+use localraster_paint::tile::PREVIEW_SIDE;
+use localraster_paint::{BrushPreset, BrushSettings, GrayTile, Pattern, PresetCaptures, StoredTile, TipShape};
 use serde::{Deserialize, Serialize};
 
 use crate::Session;
@@ -226,7 +226,7 @@ impl PresetBackend for DirBackend {
             return Err(format!("{name}: a symbolic link is not a preset file"));
         }
         // No-follow: a link swapped in after the check above is replaced, never written through.
-        localpaint_format::atomic_write_no_follow(&path, bytes).map_err(|e| format!("{name}: {e}"))
+        localraster_format::atomic_write_no_follow(&path, bytes).map_err(|e| format!("{name}: {e}"))
     }
     fn remove(&self, name: &str) -> Result<(), String> {
         match std::fs::remove_file(self.path(name)?) {
@@ -294,7 +294,7 @@ pub fn decode_tip(bytes: &[u8]) -> Result<GrayTile, String> {
 fn decode_tip_max(bytes: &[u8], max_side: u32) -> Result<GrayTile, String> {
     let head = bytes.get(..TIP_HEADER).ok_or("truncated tip header")?;
     if &head[..6] != TIP_MAGIC {
-        return Err("not a Local Paint tip".into());
+        return Err("not a Local Raster tip".into());
     }
     let bits = head[6];
     let u32_at = |i: usize| u32::from_le_bytes([head[i], head[i + 1], head[i + 2], head[i + 3]]);
@@ -577,7 +577,7 @@ pub struct PresetStore {
     cache: Mutex<TipCache>,
     /// The stored pattern last read in full, so painting with it again doesn't re-read its file
     /// (a texture can be tens of megabytes). One: the pattern in use.
-    pattern_cache: Mutex<Option<localpaint_doc::Pattern>>,
+    pattern_cache: Mutex<Option<localraster_doc::Pattern>>,
 }
 
 /// A loaded store: the presets on disk plus what the session should hide.
@@ -1079,7 +1079,7 @@ impl PresetStore {
 
     /// The full pixels of a stored pattern the library holds as a preview: the last one read is
     /// kept, so only switching patterns reads a file.
-    pub fn load_pattern(&self, id: &str) -> Result<localpaint_doc::Pattern, String> {
+    pub fn load_pattern(&self, id: &str) -> Result<localraster_doc::Pattern, String> {
         let mut cache = self.pattern_cache.lock().unwrap_or_else(PoisonError::into_inner);
         if let Some(p) = cache.as_ref().filter(|p| p.id == id) {
             return Ok(p.clone());
@@ -1125,7 +1125,7 @@ impl PresetStore {
 
 fn builtin_names() -> &'static [String] {
     static NAMES: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
-    NAMES.get_or_init(|| localpaint_paint::presets::builtin().into_iter().map(|p| p.name).collect())
+    NAMES.get_or_init(|| localraster_paint::presets::builtin().into_iter().map(|p| p.name).collect())
 }
 
 impl Session {

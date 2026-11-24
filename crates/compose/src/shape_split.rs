@@ -6,11 +6,11 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::sync::{Mutex, OnceLock};
 
-use localpaint_color::{PixelFormat, SampleType};
-use localpaint_doc::vector::ShapeLayer;
-use localpaint_doc::{Layer, LayerContent};
-use localpaint_geom::{Rect, TileCoord};
-use localpaint_raster::Surface;
+use localraster_color::{PixelFormat, SampleType};
+use localraster_doc::vector::ShapeLayer;
+use localraster_doc::{Layer, LayerContent};
+use localraster_geom::{Rect, TileCoord};
+use localraster_raster::Surface;
 
 /// (fill, stroke), last use, and the shape's pixels the stroke was fitted to (kept alive so
 /// their tile addresses, part of the key, can't be reused).
@@ -74,7 +74,7 @@ pub fn split(sh: &ShapeLayer, canvas: Rect, depth: SampleType) -> Option<(Surfac
     let fmt = PixelFormat::RGBA8.with_sample(depth);
     let fill_only = ShapeLayer { stroke: None, cache: None, ..sh.clone() };
     let stroke_only = ShapeLayer { fill: None, cache: None, ..sh.clone() };
-    let mut parts = (localpaint_vector::render_shape(&fill_only, fmt, canvas), localpaint_vector::render_shape(&stroke_only, fmt, canvas));
+    let mut parts = (localraster_vector::render_shape(&fill_only, fmt, canvas), localraster_vector::render_shape(&stroke_only, fmt, canvas));
     if let Some(cache) = &sh.cache {
         fit_stroke(&parts.0, &mut parts.1, cache, canvas);
     }
@@ -198,9 +198,9 @@ fn fit_stroke_rect(fill: &Surface, stroke: &mut Surface, cache: &Surface, r: Rec
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_color::Color;
-    use localpaint_doc::Fill;
-    use localpaint_doc::vector::{Path, ShapeStroke, Subpath};
+    use localraster_color::Color;
+    use localraster_doc::Fill;
+    use localraster_doc::vector::{Path, ShapeStroke, Subpath};
 
     fn shape(x: f64) -> ShapeLayer {
         ShapeLayer {

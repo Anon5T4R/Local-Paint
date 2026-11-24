@@ -8,14 +8,14 @@
 #[cfg(feature = "corpus")]
 use std::path::Path;
 
-use localpaint_doc::text::{CharStyle, Kerning, TextRun};
-use localpaint_doc::{Document, Layer, LayerContent, TextLayer};
-use localpaint_text::engine_data::Value as E;
+use localraster_doc::text::{CharStyle, Kerning, TextRun};
+use localraster_doc::{Document, Layer, LayerContent, TextLayer};
+use localraster_text::engine_data::Value as E;
 
 /// `(AutoKerning, Kerning)` of every UTF-16 unit of the engine text of a `TySh` block.
 fn kerning_fields(tysh: &[u8]) -> Vec<(bool, i64)> {
-    let t = localpaint_text::psd::parse_tysh(tysh).unwrap();
-    let e = localpaint_text::psd::engine_data(&t.text).unwrap();
+    let t = localraster_text::psd::parse_tysh(tysh).unwrap();
+    let e = localraster_text::psd::engine_data(&t.text).unwrap();
     let runs = e.path(&["EngineDict", "StyleRun", "RunArray"]).and_then(E::as_array).unwrap();
     let lens = e.path(&["EngineDict", "StyleRun", "RunLengthArray"]).and_then(E::as_array).unwrap();
     let mut out = Vec::new();
@@ -58,16 +58,16 @@ fn manual_and_off_kerning_round_trip_through_psd() {
     use Kerning::{Metrics as M, Off as O};
     // "AVATAR Wave": +100 after A, -50 after T, characters 6..8 without automatic kerning.
     let t = layer("AVATAR Wave", &[(1, O, 100.0), (2, M, 0.0), (1, O, -50.0), (2, M, 0.0), (3, O, 0.0), (2, M, 0.0)]);
-    let mut doc = Document::new("k", localpaint_geom::Size::new(64, 32), localpaint_color::ColorMode::Rgb, localpaint_color::SampleType::U8);
+    let mut doc = Document::new("k", localraster_geom::Size::new(64, 32), localraster_color::ColorMode::Rgb, localraster_color::SampleType::U8);
     let mut t2 = t.clone();
-    localpaint_text::TextEngine::new().render_layer(&mut t2, doc.resolution_dpi, doc.pixel_format());
+    localraster_text::TextEngine::new().render_layer(&mut t2, doc.resolution_dpi, doc.pixel_format());
     doc.layers.push(Layer::new("kerned", LayerContent::Text(t2)));
-    let bytes = localpaint_io::export(&doc, "k.psd", &Default::default()).unwrap().bytes;
-    let back = localpaint_io::import("k.psd", &bytes).unwrap().document;
+    let bytes = localraster_io::export(&doc, "k.psd", &Default::default()).unwrap().bytes;
+    let back = localraster_io::import("k.psd", &bytes).unwrap().document;
     let LayerContent::Text(b) = &back.layers[0].content else { panic!("not text") };
     assert_eq!(chars(b), chars(&t));
 
-    let tysh = localpaint_text::psd::build_tysh(&t, 72.0, None);
+    let tysh = localraster_text::psd::build_tysh(&t, 72.0, None);
     let f = kerning_fields(&tysh);
     // 11 characters + the trailing paragraph break.
     assert_eq!(f.len(), 12);
@@ -80,21 +80,21 @@ fn manual_and_off_kerning_round_trip_through_psd() {
 }
 
 /// #1348: the automatic mode (Metrics/Optical) lives in the document `Txt2` block, one model
-/// object per `TextIndex`. A Local Paint-authored PSD must carry it or a reopened layer falls
+/// object per `TextIndex`. A Local Raster-authored PSD must carry it or a reopened layer falls
 /// back to Metrics — Optical used to be silently lost.
 #[test]
 fn optical_kerning_round_trips_through_psd() {
     use Kerning::{Metrics as M, Optical as P};
     let t1 = layer("AVATAR", &[(4, P, 0.0), (2, M, 0.0)]);
     let t2 = layer("Wave", &[(2, M, 0.0), (2, P, 0.0)]);
-    let mut doc = Document::new("k", localpaint_geom::Size::new(64, 32), localpaint_color::ColorMode::Rgb, localpaint_color::SampleType::U8);
+    let mut doc = Document::new("k", localraster_geom::Size::new(64, 32), localraster_color::ColorMode::Rgb, localraster_color::SampleType::U8);
     for (name, want) in [("one", &t1), ("two", &t2)] {
         let mut t = want.clone();
-        localpaint_text::TextEngine::new().render_layer(&mut t, doc.resolution_dpi, doc.pixel_format());
+        localraster_text::TextEngine::new().render_layer(&mut t, doc.resolution_dpi, doc.pixel_format());
         doc.layers.push(Layer::new(name, LayerContent::Text(t)));
     }
-    let bytes = localpaint_io::export(&doc, "k.psd", &Default::default()).unwrap().bytes;
-    let back = localpaint_io::import("k.psd", &bytes).unwrap().document;
+    let bytes = localraster_io::export(&doc, "k.psd", &Default::default()).unwrap().bytes;
+    let back = localraster_io::import("k.psd", &bytes).unwrap().document;
     for (want, l) in [(&t1, &back.layers[0]), (&t2, &back.layers[1])] {
         let LayerContent::Text(b) = &l.content else { panic!("not text") };
         assert_eq!(chars(b), chars(want), "{}", l.name);
@@ -106,15 +106,15 @@ fn optical_kerning_round_trips_through_psd() {
 /// Optical layer still does, because its mode lives only in `Txt2`.
 #[test]
 fn fresh_metrics_text_writes_no_txt2_block() {
-    use localpaint_doc::text::Kerning;
+    use localraster_doc::text::Kerning;
     let saves_txt2 = |kerning: Kerning| {
         let t = layer("AV", &[(2, kerning, 0.0)]);
-        let mut doc = Document::new("k", localpaint_geom::Size::new(64, 32), localpaint_color::ColorMode::Rgb, localpaint_color::SampleType::U8);
+        let mut doc = Document::new("k", localraster_geom::Size::new(64, 32), localraster_color::ColorMode::Rgb, localraster_color::SampleType::U8);
         let mut r = t.clone();
-        localpaint_text::TextEngine::new().render_layer(&mut r, doc.resolution_dpi, doc.pixel_format());
+        localraster_text::TextEngine::new().render_layer(&mut r, doc.resolution_dpi, doc.pixel_format());
         doc.layers.push(Layer::new("t", LayerContent::Text(r)));
-        let bytes = localpaint_io::export(&doc, "k.psd", &Default::default()).unwrap().bytes;
-        localpaint_psd::PsdFile::from_bytes(&bytes).unwrap().global_blocks.iter().any(|b| &b.key == b"Txt2")
+        let bytes = localraster_io::export(&doc, "k.psd", &Default::default()).unwrap().bytes;
+        localraster_psd::PsdFile::from_bytes(&bytes).unwrap().global_blocks.iter().any(|b| &b.key == b"Txt2")
     };
     assert!(!saves_txt2(Kerning::Metrics), "a plain Metrics layer must not write the empty Txt2 stub");
     assert!(saves_txt2(Kerning::Optical), "Optical lives only in Txt2");
@@ -124,20 +124,20 @@ fn fresh_metrics_text_writes_no_txt2_block() {
 /// preserved TySh pointer so each layer restores its own automatic kerning mode.
 #[test]
 fn duplicate_preserved_text_indices_get_distinct_txt2_objects() {
-    let mut doc = Document::new("k", localpaint_geom::Size::new(64, 32), localpaint_color::ColorMode::Rgb, localpaint_color::SampleType::U8);
+    let mut doc = Document::new("k", localraster_geom::Size::new(64, 32), localraster_color::ColorMode::Rgb, localraster_color::SampleType::U8);
     let cases = [("optical", "AV", Kerning::Optical), ("metrics", "BC", Kerning::Metrics)];
     for (name, text, mode) in cases {
         let mut t = layer(text, &[(text.len(), mode, 0.0)]);
-        localpaint_text::TextEngine::new().render_layer(&mut t, doc.resolution_dpi, doc.pixel_format());
-        let raw = localpaint_text::psd::build_tysh(&t, doc.resolution_dpi, None);
-        t.psd_raw = Some(std::sync::Arc::new(localpaint_text::psd::set_text_index(&raw, 0).unwrap()));
+        localraster_text::TextEngine::new().render_layer(&mut t, doc.resolution_dpi, doc.pixel_format());
+        let raw = localraster_text::psd::build_tysh(&t, doc.resolution_dpi, None);
+        t.psd_raw = Some(std::sync::Arc::new(localraster_text::psd::set_text_index(&raw, 0).unwrap()));
         doc.layers.push(Layer::new(name, LayerContent::Text(t)));
     }
-    let bytes = localpaint_io::export(&doc, "k.psd", &Default::default()).unwrap().bytes;
-    let file = localpaint_psd::PsdFile::from_bytes(&bytes).unwrap();
-    let txt2 = file.global_blocks.iter().find(|b| &b.key == b"Txt2").and_then(|b| localpaint_text::psd::parse_txt2(&b.data)).unwrap();
+    let bytes = localraster_io::export(&doc, "k.psd", &Default::default()).unwrap().bytes;
+    let file = localraster_psd::PsdFile::from_bytes(&bytes).unwrap();
+    let txt2 = file.global_blocks.iter().find(|b| &b.key == b"Txt2").and_then(|b| localraster_text::psd::parse_txt2(&b.data)).unwrap();
     assert_eq!(txt2.path(&["1", "1"]).and_then(E::as_array).unwrap().len(), 2);
-    let back = localpaint_io::import("k.psd", &bytes).unwrap().document;
+    let back = localraster_io::import("k.psd", &bytes).unwrap().document;
     for (i, expected) in [Kerning::Optical, Kerning::Metrics].into_iter().enumerate() {
         let LayerContent::Text(t) = &back.layers[i].content else { panic!("expected text layer") };
         assert!(chars(t).iter().all(|(mode, _)| *mode == expected), "layer {i} used another layer's Txt2 object");
@@ -149,25 +149,25 @@ fn duplicate_preserved_text_indices_get_distinct_txt2_objects() {
 /// (#7773, 70 of 74 layers on the #7698 file).
 #[test]
 fn new_text_layer_below_keeps_the_preserved_text_indices() {
-    let mut doc = Document::new("k", localpaint_geom::Size::new(64, 32), localpaint_color::ColorMode::Rgb, localpaint_color::SampleType::U8);
+    let mut doc = Document::new("k", localraster_geom::Size::new(64, 32), localraster_color::ColorMode::Rgb, localraster_color::SampleType::U8);
     for (i, text) in ["AV", "BC"].into_iter().enumerate() {
         let mut t = layer(text, &[(2, Kerning::Optical, 0.0)]);
-        localpaint_text::TextEngine::new().render_layer(&mut t, doc.resolution_dpi, doc.pixel_format());
-        let raw = localpaint_text::psd::build_tysh(&t, doc.resolution_dpi, None);
-        t.psd_raw = Some(std::sync::Arc::new(localpaint_text::psd::set_text_index(&raw, i as i32).unwrap()));
+        localraster_text::TextEngine::new().render_layer(&mut t, doc.resolution_dpi, doc.pixel_format());
+        let raw = localraster_text::psd::build_tysh(&t, doc.resolution_dpi, None);
+        t.psd_raw = Some(std::sync::Arc::new(localraster_text::psd::set_text_index(&raw, i as i32).unwrap()));
         doc.layers.push(Layer::new(text, LayerContent::Text(t)));
     }
     let mut t = layer("new", &[(3, Kerning::Metrics, 0.0)]);
-    localpaint_text::TextEngine::new().render_layer(&mut t, doc.resolution_dpi, doc.pixel_format());
+    localraster_text::TextEngine::new().render_layer(&mut t, doc.resolution_dpi, doc.pixel_format());
     doc.layers.insert(0, Layer::new("new", LayerContent::Text(t)));
-    let bytes = localpaint_io::export(&doc, "k.psd", &Default::default()).unwrap().bytes;
-    let back = localpaint_io::import("k.psd", &bytes).unwrap().document;
+    let bytes = localraster_io::export(&doc, "k.psd", &Default::default()).unwrap().bytes;
+    let back = localraster_io::import("k.psd", &bytes).unwrap().document;
     let indices: Vec<_> = back
         .layers
         .iter()
         .map(|l| {
             let LayerContent::Text(t) = &l.content else { panic!("not text") };
-            (l.name.as_str(), t.psd_raw.as_deref().and_then(|d| localpaint_text::psd::text_index(d)))
+            (l.name.as_str(), t.psd_raw.as_deref().and_then(|d| localraster_text::psd::text_index(d)))
         })
         .collect();
     assert_eq!(indices, [("new", Some(2)), ("AV", Some(0)), ("BC", Some(1))]);
@@ -202,41 +202,41 @@ type Reopened = (String, Option<i32>, Vec<String>);
 /// "Hi"'s style run in the saved `Txt2`. The kept layers are styled as their objects are (font
 /// and size too), so their objects are saved unchanged, which this checks.
 fn add_type_layer(objects: &[(&str, &str)], kept: &[(&str, i32)], at: usize) -> (Vec<Reopened>, E) {
-    let mut doc = Document::new("k", localpaint_geom::Size::new(64, 32), localpaint_color::ColorMode::Rgb, localpaint_color::SampleType::U8);
+    let mut doc = Document::new("k", localraster_geom::Size::new(64, 32), localraster_color::ColorMode::Rgb, localraster_color::SampleType::U8);
     for (text, index) in kept {
         let mut t = layer(text, &[(text.len(), Kerning::Metrics, 0.0)]);
         // `photoshop_txt2` writes MyriadPro-Regular at 12 pt (the document is at 72 dpi).
         t.runs[0].style.size_pt = 12.0;
         t.runs[0].style.postscript_name = Some("MyriadPro-Regular".into());
         t.sync_summary();
-        localpaint_text::TextEngine::new().render_layer(&mut t, doc.resolution_dpi, doc.pixel_format());
-        let raw = localpaint_text::psd::set_text_index(&localpaint_text::psd::build_tysh(&t, doc.resolution_dpi, None), *index).unwrap();
+        localraster_text::TextEngine::new().render_layer(&mut t, doc.resolution_dpi, doc.pixel_format());
+        let raw = localraster_text::psd::set_text_index(&localraster_text::psd::build_tysh(&t, doc.resolution_dpi, None), *index).unwrap();
         // As opening the file does: a kept layer's style holds what its `Txt2` object says (#8415:
         // a layer whose style disagrees with its object is saved as a style edit).
-        localpaint_text::psd::apply_txt2(&mut t, &raw, &localpaint_text::psd::parse_txt2(&photoshop_txt2(objects)).unwrap());
+        localraster_text::psd::apply_txt2(&mut t, &raw, &localraster_text::psd::parse_txt2(&photoshop_txt2(objects)).unwrap());
         t.psd_raw = Some(std::sync::Arc::new(raw));
         doc.layers.push(Layer::new(*text, LayerContent::Text(t)));
     }
     doc.metadata.psd_global_blocks = vec![(*b"8BIM", *b"Txt2", std::sync::Arc::new(photoshop_txt2(objects)))];
     let mut t = layer("Hi", &[(2, Kerning::Metrics, 0.0)]);
     t.runs[0].style.size_pt = 30.0;
-    localpaint_text::TextEngine::new().render_layer(&mut t, doc.resolution_dpi, doc.pixel_format());
-    t.psd_raw = Some(std::sync::Arc::new(localpaint_text::psd::build_tysh(&t, doc.resolution_dpi, None)));
+    localraster_text::TextEngine::new().render_layer(&mut t, doc.resolution_dpi, doc.pixel_format());
+    t.psd_raw = Some(std::sync::Arc::new(localraster_text::psd::build_tysh(&t, doc.resolution_dpi, None)));
     doc.layers.insert(at, Layer::new("Hi", LayerContent::Text(t)));
-    let bytes = localpaint_io::export(&doc, "k.psd", &Default::default()).unwrap().bytes;
-    let file = localpaint_psd::PsdFile::from_bytes(&bytes).unwrap();
-    let txt2 = file.global_blocks.iter().find(|b| &b.key == b"Txt2").and_then(|b| localpaint_text::psd::parse_txt2(&b.data)).unwrap();
-    let back = localpaint_io::import("k.psd", &bytes).unwrap().document;
+    let bytes = localraster_io::export(&doc, "k.psd", &Default::default()).unwrap().bytes;
+    let file = localraster_psd::PsdFile::from_bytes(&bytes).unwrap();
+    let txt2 = file.global_blocks.iter().find(|b| &b.key == b"Txt2").and_then(|b| localraster_text::psd::parse_txt2(&b.data)).unwrap();
+    let back = localraster_io::import("k.psd", &bytes).unwrap().document;
     let layers: Vec<_> = back
         .layers
         .iter()
         .map(|l| {
             let LayerContent::Text(t) = &l.content else { panic!("not text") };
-            let index = t.psd_raw.as_deref().and_then(|d| localpaint_text::psd::text_index(d));
+            let index = t.psd_raw.as_deref().and_then(|d| localraster_text::psd::text_index(d));
             (l.name.clone(), index, t.char_runs().iter().flat_map(|r| r.style.features.iter().filter(|f| f.tag != "calt").map(|f| f.tag.clone())).collect())
         })
         .collect();
-    let source = localpaint_text::psd::parse_txt2(&photoshop_txt2(objects)).unwrap();
+    let source = localraster_text::psd::parse_txt2(&photoshop_txt2(objects)).unwrap();
     let object = |txt2: &E, i: i32| txt2.path(&["1", "1"]).and_then(E::as_array).and_then(|a| a.get(usize::try_from(i).ok()?)).cloned();
     for (text, index) in kept {
         assert_eq!(object(&txt2, *index), object(&source, *index), "{text}: the kept layer's object is saved unchanged");
@@ -291,15 +291,15 @@ fn new_text_layer_at_the_bottom_keeps_index_0_where_it_was() {
 /// Alternates on "Hello " edited to "world" without them comes back without `salt`.
 #[test]
 fn edited_text_layer_takes_its_own_style_runs() {
-    let mut doc = Document::new("k", localpaint_geom::Size::new(64, 32), localpaint_color::ColorMode::Rgb, localpaint_color::SampleType::U8);
+    let mut doc = Document::new("k", localraster_geom::Size::new(64, 32), localraster_color::ColorMode::Rgb, localraster_color::SampleType::U8);
     let mut t = layer("world", &[(5, Kerning::Metrics, 0.0)]);
-    localpaint_text::TextEngine::new().render_layer(&mut t, doc.resolution_dpi, doc.pixel_format());
-    let raw = localpaint_text::psd::build_tysh(&t, doc.resolution_dpi, None);
-    t.psd_raw = Some(std::sync::Arc::new(localpaint_text::psd::set_text_index(&raw, 0).unwrap()));
+    localraster_text::TextEngine::new().render_layer(&mut t, doc.resolution_dpi, doc.pixel_format());
+    let raw = localraster_text::psd::build_tysh(&t, doc.resolution_dpi, None);
+    t.psd_raw = Some(std::sync::Arc::new(localraster_text::psd::set_text_index(&raw, 0).unwrap()));
     doc.layers.push(Layer::new("edited", LayerContent::Text(t)));
     doc.metadata.psd_global_blocks = vec![(*b"8BIM", *b"Txt2", std::sync::Arc::new(photoshop_txt2(&[("Hello world", "/28 true")])))];
-    let bytes = localpaint_io::export(&doc, "k.psd", &Default::default()).unwrap().bytes;
-    let back = localpaint_io::import("k.psd", &bytes).unwrap().document;
+    let bytes = localraster_io::export(&doc, "k.psd", &Default::default()).unwrap().bytes;
+    let back = localraster_io::import("k.psd", &bytes).unwrap().document;
     let LayerContent::Text(t) = &back.layers[0].content else { panic!("not text") };
     assert_eq!(t.text, "world");
     assert!(t.char_runs().iter().all(|r| r.style.features.iter().all(|f| f.tag == "calt")), "the old text's salt came back");
@@ -311,18 +311,18 @@ fn edited_text_layer_takes_its_own_style_runs() {
 #[test]
 fn hostile_text_index_never_sizes_the_save() {
     let t = layer("AV", &[(1, Kerning::Metrics, 0.0), (1, Kerning::Optical, 0.0)]);
-    let mut doc = Document::new("k", localpaint_geom::Size::new(64, 32), localpaint_color::ColorMode::Rgb, localpaint_color::SampleType::U8);
+    let mut doc = Document::new("k", localraster_geom::Size::new(64, 32), localraster_color::ColorMode::Rgb, localraster_color::SampleType::U8);
     let mut r = t.clone();
-    localpaint_text::TextEngine::new().render_layer(&mut r, doc.resolution_dpi, doc.pixel_format());
+    localraster_text::TextEngine::new().render_layer(&mut r, doc.resolution_dpi, doc.pixel_format());
     // An invalid index is remapped into the saved Txt2 rather than preserved.
-    r.psd_raw = Some(std::sync::Arc::new(localpaint_text::psd::set_text_index(&localpaint_text::psd::build_tysh(&r, 72.0, None), i32::MAX).unwrap()));
+    r.psd_raw = Some(std::sync::Arc::new(localraster_text::psd::set_text_index(&localraster_text::psd::build_tysh(&r, 72.0, None), i32::MAX).unwrap()));
     doc.layers.push(Layer::new("hostile", LayerContent::Text(r)));
-    let bytes = localpaint_io::export(&doc, "k.psd", &Default::default()).unwrap().bytes;
-    let file = localpaint_psd::PsdFile::from_bytes(&bytes).unwrap();
-    let txt2 = file.global_blocks.iter().find(|b| &b.key == b"Txt2").and_then(|b| localpaint_text::psd::parse_txt2(&b.data)).unwrap();
+    let bytes = localraster_io::export(&doc, "k.psd", &Default::default()).unwrap().bytes;
+    let file = localraster_psd::PsdFile::from_bytes(&bytes).unwrap();
+    let txt2 = file.global_blocks.iter().find(|b| &b.key == b"Txt2").and_then(|b| localraster_text::psd::parse_txt2(&b.data)).unwrap();
     let slots = txt2.path(&["1", "1"]).and_then(E::as_array).unwrap();
     assert!(slots.len() <= 8, "a file-controlled TextIndex sized the save: {} slots", slots.len());
-    let back = localpaint_io::import("k.psd", &bytes).unwrap().document;
+    let back = localraster_io::import("k.psd", &bytes).unwrap().document;
     let LayerContent::Text(b) = &back.layers[0].content else { panic!("not text") };
     assert_eq!(b.text, "AV");
     assert_eq!(chars(b), chars(&t), "a remapped TextIndex must still restore Optical kerning");
@@ -337,24 +337,24 @@ fn txt2_extras_survive_a_resave_of_unchanged_text() {
         ("0".into(), E::Dict(vec![("0".into(), E::String("AV\r".into())), ("6".into(), E::Dict(vec![("0".into(), E::Array(vec![]))]))])),
         ("21".into(), E::Dict(vec![("1".into(), E::Array(vec![E::Real(10.0), E::Real(20.0)]))])),
     ]);
-    let prev = localpaint_text::engine_data::write_bare(&[
+    let prev = localraster_text::engine_data::write_bare(&[
         ("98".into(), E::Dict(vec![("0".into(), E::Int(14))])),
         ("0".into(), E::dict()),
         ("1".into(), E::Dict(vec![("1".into(), E::Array(vec![obj]))])),
     ]);
     let save = |text: &str| {
         let t = layer(text, &[(text.len(), Kerning::Metrics, 0.0)]);
-        let mut doc = Document::new("k", localpaint_geom::Size::new(64, 32), localpaint_color::ColorMode::Rgb, localpaint_color::SampleType::U8);
+        let mut doc = Document::new("k", localraster_geom::Size::new(64, 32), localraster_color::ColorMode::Rgb, localraster_color::SampleType::U8);
         let mut r = t.clone();
-        localpaint_text::TextEngine::new().render_layer(&mut r, doc.resolution_dpi, doc.pixel_format());
+        localraster_text::TextEngine::new().render_layer(&mut r, doc.resolution_dpi, doc.pixel_format());
         // The file's layer: its `TySh` names object 0.
-        let raw = localpaint_text::psd::build_tysh(&r, doc.resolution_dpi, None);
-        r.psd_raw = Some(std::sync::Arc::new(localpaint_text::psd::set_text_index(&raw, 0).unwrap()));
+        let raw = localraster_text::psd::build_tysh(&r, doc.resolution_dpi, None);
+        r.psd_raw = Some(std::sync::Arc::new(localraster_text::psd::set_text_index(&raw, 0).unwrap()));
         doc.layers.push(Layer::new("kept", LayerContent::Text(r)));
         doc.metadata.psd_global_blocks.push((*b"8BIM", *b"Txt2", std::sync::Arc::new(prev.clone())));
-        let bytes = localpaint_io::export(&doc, "k.psd", &Default::default()).unwrap().bytes;
-        let file = localpaint_psd::PsdFile::from_bytes(&bytes).unwrap();
-        localpaint_text::psd::parse_txt2(&file.global_blocks.iter().find(|b| &b.key == b"Txt2").unwrap().data).unwrap()
+        let bytes = localraster_io::export(&doc, "k.psd", &Default::default()).unwrap().bytes;
+        let file = localraster_psd::PsdFile::from_bytes(&bytes).unwrap();
+        localraster_text::psd::parse_txt2(&file.global_blocks.iter().find(|b| &b.key == b"Txt2").unwrap().data).unwrap()
     };
     let kept = save("AV");
     let object = kept.path(&["1", "1"]).and_then(E::as_array).unwrap()[0].clone();
@@ -368,13 +368,13 @@ fn txt2_extras_survive_a_resave_of_unchanged_text() {
 #[test]
 fn hostile_kerning_values() {
     let t = layer("AV", &[(1, Kerning::Off, f32::NAN), (1, Kerning::Metrics, f32::INFINITY)]);
-    let tysh = localpaint_text::psd::build_tysh(&t, 72.0, None);
+    let tysh = localraster_text::psd::build_tysh(&t, 72.0, None);
     assert!(kerning_fields(&tysh).iter().all(|f| f.1 == 0));
-    let back = localpaint_text::psd::text_layer_from_tysh(&tysh, 72.0).unwrap();
+    let back = localraster_text::psd::text_layer_from_tysh(&tysh, 72.0).unwrap();
     assert!(chars(&back).iter().all(|c| c.1 == 0.0));
     // Huge values clamp.
     let t = layer("AV", &[(1, Kerning::Off, 1e30), (1, Kerning::Metrics, 0.0)]);
-    let f = kerning_fields(&localpaint_text::psd::build_tysh(&t, 72.0, None));
+    let f = kerning_fields(&localraster_text::psd::build_tysh(&t, 72.0, None));
     assert_eq!(f[1].1, 10_000);
 }
 
@@ -408,7 +408,7 @@ fn photoshop_kerning_oracles() {
     use Kerning::{Metrics as M, Off as O, Optical as P};
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../corpus/photoshop/text");
     assert!(dir.is_dir(), "{} is missing: run `cargo xtask corpus --all`", dir.display());
-    let mut engine = localpaint_text::TextEngine::with_system_fonts();
+    let mut engine = localraster_text::TextEngine::with_system_fonts();
     let arial = engine.fonts.has_family("Arial");
     // "AVATAR Wavy To. LT" (18 characters).
     let all = |m: Kerning| vec![(m, 0.0f32); 18];
@@ -426,9 +426,9 @@ fn photoshop_kerning_oracles() {
     ];
     for (name, want, same_fields, worst_max, mean_max) in cases {
         let bytes = std::fs::read(dir.join(name)).unwrap_or_else(|e| panic!("{name}: {e}"));
-        let file = localpaint_psd::PsdFile::from_bytes(&bytes).unwrap();
-        let txt2 = file.global_blocks.iter().find(|b| &b.key == b"Txt2").and_then(|b| localpaint_text::psd::parse_txt2(&b.data)).unwrap();
-        let doc = localpaint_io::import(name, &bytes).unwrap().document;
+        let file = localraster_psd::PsdFile::from_bytes(&bytes).unwrap();
+        let txt2 = file.global_blocks.iter().find(|b| &b.key == b"Txt2").and_then(|b| localraster_text::psd::parse_txt2(&b.data)).unwrap();
+        let doc = localraster_io::import(name, &bytes).unwrap().document;
         let t = doc
             .layers
             .iter()
@@ -440,14 +440,14 @@ fn photoshop_kerning_oracles() {
         assert_eq!(chars(t), want, "{name}");
 
         let original = t.psd_raw.as_ref().map(|r| r.to_vec()).unwrap();
-        let tysh = localpaint_text::psd::parse_tysh(&original).unwrap();
-        let rebuilt = localpaint_text::psd::build_tysh(t, doc.resolution_dpi, None);
+        let tysh = localraster_text::psd::parse_tysh(&original).unwrap();
+        let rebuilt = localraster_text::psd::build_tysh(t, doc.resolution_dpi, None);
         if same_fields {
             assert_eq!(kerning_fields(&rebuilt), kerning_fields(&original), "{name}");
         }
         // Re-import (with the document's Txt2, as an exported file keeps it): same model.
-        let mut back = localpaint_text::psd::text_layer_from_tysh(&rebuilt, doc.resolution_dpi).unwrap();
-        localpaint_text::psd::apply_txt2(&mut back, &rebuilt, &txt2);
+        let mut back = localraster_text::psd::text_layer_from_tysh(&rebuilt, doc.resolution_dpi).unwrap();
+        localraster_text::psd::apply_txt2(&mut back, &rebuilt, &txt2);
         assert_eq!(chars(&back), want, "{name} after export");
 
         // Layout against Photoshop's glyph positions (needs Arial, as Photoshop used).
@@ -456,7 +456,7 @@ fn photoshop_kerning_oracles() {
             continue;
         }
         let index = match &tysh.text.get("TextIndex") {
-            Some(localpaint_psd::descriptor::Value::Integer(i)) => *i as usize,
+            Some(localraster_psd::descriptor::Value::Integer(i)) => *i as usize,
             _ => panic!("{name}: no TextIndex"),
         };
         let ps = photoshop_positions(&txt2, index).unwrap();

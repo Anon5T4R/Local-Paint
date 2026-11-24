@@ -5,15 +5,15 @@
 
 use egui::Modifiers;
 use egui_kittest::kittest::Queryable;
-use localpaint_doc::{Layer, LayerContent, LayerId};
+use localraster_doc::{Layer, LayerContent, LayerId};
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
 /// Background, then `A` and `B` on top of it; `A` and `B` are selected when `both`, otherwise
 /// only `B` is (`B` active either way).
-fn selected(both: bool) -> (egui_kittest::Harness<'static, LocalPaintApp>, LayerId, LayerId) {
-    let mut s = localpaint_engine::Session::new();
+fn selected(both: bool) -> (egui_kittest::Harness<'static, LocalRasterApp>, LayerId, LayerId) {
+    let mut s = localraster_engine::Session::new();
     s.execute("file.new", json!({"width": 8, "height": 8})).unwrap();
     let a = LayerId(s.execute("layer.new.layer", json!({"name": "A"})).unwrap()["layer"].as_u64().unwrap());
     let b = LayerId(s.execute("layer.new.layer", json!({"name": "B"})).unwrap()["layer"].as_u64().unwrap());
@@ -22,20 +22,20 @@ fn selected(both: bool) -> (egui_kittest::Harness<'static, LocalPaintApp>, Layer
         s.execute("layer.select", json!({"layer": b.0, "mode": "add"})).unwrap();
     }
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1200.0, 800.0)).with_max_steps(64).build_eframe(|cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        LocalPaintApp::new(s, crate::Services::default())
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        LocalRasterApp::new(s, crate::Services::default())
     });
     h.run_steps(4);
     (h, a, b)
 }
 
-fn groups(h: &egui_kittest::Harness<'static, LocalPaintApp>) -> Vec<Layer> {
+fn groups(h: &egui_kittest::Harness<'static, LocalRasterApp>) -> Vec<Layer> {
     h.state().session.active().unwrap().doc.walk().into_iter().map(|(_, _, l)| l).filter(|l| l.is_group()).cloned().collect()
 }
 
 /// The one group holds `[a, b]` in order, sits next to the background, is the only selected layer
 /// and, as in Photoshop, is collapsed: its layers' rows are not drawn.
-fn assert_grouped(h: &egui_kittest::Harness<'static, LocalPaintApp>, a: LayerId, b: LayerId) {
+fn assert_grouped(h: &egui_kittest::Harness<'static, LocalRasterApp>, a: LayerId, b: LayerId) {
     let groups = groups(h);
     assert_eq!(groups.len(), 1);
     let children: Vec<LayerId> = groups[0].children().unwrap().iter().map(|l| l.id).collect();
@@ -150,16 +150,16 @@ fn command_click_on_new_layer_adds_it_below_the_active_layer() {
 }
 
 /// Background, then `A` and `B` on top of it with both selected (`B` active).
-fn two_selected() -> (egui_kittest::Harness<'static, LocalPaintApp>, LayerId, LayerId) {
-    let mut s = localpaint_engine::Session::new();
+fn two_selected() -> (egui_kittest::Harness<'static, LocalRasterApp>, LayerId, LayerId) {
+    let mut s = localraster_engine::Session::new();
     s.execute("file.new", json!({"width": 8, "height": 8})).unwrap();
     let a = LayerId(s.execute("layer.new.layer", json!({"name": "A"})).unwrap()["layer"].as_u64().unwrap());
     let b = LayerId(s.execute("layer.new.layer", json!({"name": "B"})).unwrap()["layer"].as_u64().unwrap());
     s.execute("layer.select", json!({"layer": a.0})).unwrap();
     s.execute("layer.select", json!({"layer": b.0, "mode": "add"})).unwrap();
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1200.0, 800.0)).with_max_steps(64).build_eframe(|cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        LocalPaintApp::new(s, crate::Services::default())
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        LocalRasterApp::new(s, crate::Services::default())
     });
     h.run_steps(4);
     (h, a, b)

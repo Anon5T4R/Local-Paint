@@ -13,9 +13,9 @@
 //! first. Neither oracle has a moved start or flipped type, so those are written into the path
 //! itself (see [`frame_path`]).
 
-use localpaint_doc::text::TextShape;
-use localpaint_doc::vector::{Knot, PathOp, Subpath};
-use localpaint_geom::{Affine, Point};
+use localraster_doc::text::TextShape;
+use localraster_doc::vector::{Knot, PathOp, Subpath};
+use localraster_geom::{Affine, Point};
 
 use crate::engine_data::Value as E;
 
@@ -207,7 +207,7 @@ fn starting_at(path: &Subpath, s: f64) -> Subpath {
 }
 
 /// The path a frame is written with for `TextShape::Path { path, start, flip }`: flipped type is
-/// the path run backwards and a moved start the path from there on (exactly how Local Paint lays
+/// the path run backwards and a moved start the path from there on (exactly how Local Raster lays
 /// type on a path out), so Photoshop, which starts at the path's beginning, sets the same type.
 pub(crate) fn frame_path(path: &Subpath, start: f32, flip: bool) -> Subpath {
     let path = if flip { reversed(path) } else { path.clone() };

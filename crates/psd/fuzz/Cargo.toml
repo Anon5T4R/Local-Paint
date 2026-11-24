@@ -1,11 +1,11 @@
 [package]
-name = "localpaint-psd-fuzz"
+name = "localraster-psd-fuzz"
 version = "0.0.0"
 publish = false
 edition = "2024"
 license = "MIT OR Apache-2.0"
 
-# Standalone: excluded from the localpaint workspace.
+# Standalone: excluded from the localraster workspace.
 [workspace]
 
 [package.metadata]
@@ -13,7 +13,7 @@ cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "0.4"
-localpaint-psd = { path = ".." }
+localraster-psd = { path = ".." }
 
 [[bin]]
 name = "parse"

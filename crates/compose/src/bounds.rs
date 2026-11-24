@@ -5,8 +5,8 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, Weak};
 
-use localpaint_geom::Rect;
-use localpaint_raster::{Surface, Tile};
+use localraster_geom::Rect;
+use localraster_raster::{Surface, Tile};
 
 struct Entry {
     tile: Weak<Tile>,
@@ -41,7 +41,7 @@ pub fn content_bounds(s: &Surface) -> Rect {
     }
     let fmt = s.format();
     let mut dp = vec![0u8; fmt.bytes_per_pixel()];
-    localpaint_raster::encode_pixel(&fmt, &s.default_pixel(), &mut dp);
+    localraster_raster::encode_pixel(&fmt, &s.default_pixel(), &mut dp);
     let mut c = cache().lock().unwrap_or_else(|e| e.into_inner());
     if c.entries.len() > c.sweep_at {
         c.entries.retain(|_, e| e.tile.strong_count() > 0);
@@ -83,7 +83,7 @@ mod tests {
 
     #[test]
     fn a_shared_tile_reads_the_same_bounds_at_every_coordinate() {
-        let mut s = Surface::new(localpaint_color::PixelFormat::RGBA8);
+        let mut s = Surface::new(localraster_color::PixelFormat::RGBA8);
         s.fill_rect(Rect::new(-300, 10, 1300, 900), &[0.2, 0.4, 0.6, 1.0]);
         assert_eq!(content_bounds(&s), Rect::new(-300, 10, 1300, 900));
         assert_eq!(content_bounds(&s), s.content_bounds(), "cached");

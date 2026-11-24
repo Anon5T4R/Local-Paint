@@ -3,9 +3,9 @@ use super::{Document, EngineError, Layer, LayerContent, Result, Session, Value, 
 
 /// Whether saving `doc` as a TIFF writes Photoshop layer data (anything beyond a lone
 /// Background layer). The UI asks before such a save when the "ask before saving layered TIFF"
-/// preference is on; see `localpaint_io::tiff_layers`.
+/// preference is on; see `localraster_io::tiff_layers`.
 pub fn tiff_would_write_layers(doc: &Document) -> bool {
-    localpaint_io::tiff_layers::would_write_layers(doc)
+    localraster_io::tiff_layers::would_write_layers(doc)
 }
 
 /// What a headless save writes beyond the format: JPEG quality and format, TIFF layers, Targa
@@ -15,19 +15,19 @@ pub(crate) struct SaveOpts {
     /// Photoshop's 0–12 JPEG scale.
     pub quality: Option<f64>,
     /// JPEG Options › Format Options (`"jpegFormat"`); unset, Baseline ("Standard").
-    pub jpeg_format: Option<localpaint_codecs::JpegFormat>,
+    pub jpeg_format: Option<localraster_codecs::JpegFormat>,
     /// TIFF: keep the layers. Off unless a command's params ask (`"tiffLayers": true`).
     pub tiff_layers: bool,
     /// Targa: 24 or 32 bits per pixel (`"tgaBits"`); unset, 32 with an alpha channel or
     /// transparency, else 24.
-    pub tga_bits: Option<localpaint_io::TgaBits>,
+    pub tga_bits: Option<localraster_io::TgaBits>,
     /// DPX: 8, 10, 12 or 16 bits per sample (`"dpxBits"`); unset, 8 for an 8-bit document, else 16.
-    pub dpx_bits: Option<localpaint_io::DpxBits>,
+    pub dpx_bits: Option<localraster_io::DpxBits>,
     /// TIFF: the image compression (`"tiffCompression": "none" | "lzw" | "zip"`); unset, none.
-    pub tiff_compression: Option<localpaint_codecs::TiffCompression>,
+    pub tiff_compression: Option<localraster_codecs::TiffCompression>,
     /// DDS: the compression and whether to write the mip chain (`"ddsCompression"`,
     /// `"ddsMipmaps"`); unset, uncompressed without mipmaps.
-    pub dds: localpaint_io::DdsOptions,
+    pub dds: localraster_io::DdsOptions,
     /// PSD/PSB: embed the thumbnail resource (Preferences › File Handling › Image Previews).
     pub image_previews: bool,
     /// PSD/PSB: write the real merged image (Preferences › File Handling › Maximize PSD and PSB
@@ -44,7 +44,7 @@ impl Default for SaveOpts {
             tga_bits: None,
             dpx_bits: None,
             tiff_compression: None,
-            dds: localpaint_io::DdsOptions::default(),
+            dds: localraster_io::DdsOptions::default(),
             image_previews: true,
             psd_maximize_compatibility: true,
         }
@@ -87,12 +87,12 @@ impl From<Option<f64>> for SaveOpts {
 /// The Targa bits per pixel in `p` (`"tgaBits": 24 | 32`; absent or null: the automatic choice).
 /// Anything else is a bad parameter of command `cmd`. Shared by every save that takes it (the
 /// engine's commands, the app's Save As and control channel, the headless server).
-pub fn tga_bits_param(p: &Value, cmd: &str) -> Result<Option<localpaint_io::TgaBits>> {
+pub fn tga_bits_param(p: &Value, cmd: &str) -> Result<Option<localraster_io::TgaBits>> {
     match p.get("tgaBits") {
         None | Some(Value::Null) => Ok(None),
         Some(v) => v
             .as_u64()
-            .and_then(localpaint_io::TgaBits::from_bits)
+            .and_then(localraster_io::TgaBits::from_bits)
             .map(Some)
             .ok_or_else(|| EngineError::BadParams { cmd: cmd.into(), msg: format!("`tgaBits` must be 24 or 32, got {v}") }),
     }
@@ -100,8 +100,8 @@ pub fn tga_bits_param(p: &Value, cmd: &str) -> Result<Option<localpaint_io::TgaB
 
 /// The TIFF compression in `p` (`"tiffCompression": "none" | "lzw" | "zip"`, Photoshop's TIFF
 /// Options; absent or null: none). Anything else is a bad parameter of command `cmd` (#5301).
-pub fn tiff_compression_param(p: &Value, cmd: &str) -> Result<Option<localpaint_codecs::TiffCompression>> {
-    use localpaint_codecs::TiffCompression;
+pub fn tiff_compression_param(p: &Value, cmd: &str) -> Result<Option<localraster_codecs::TiffCompression>> {
+    use localraster_codecs::TiffCompression;
     match p.get("tiffCompression") {
         None | Some(Value::Null) => Ok(None),
         Some(v) => match v.as_str() {
@@ -116,10 +116,10 @@ pub fn tiff_compression_param(p: &Value, cmd: &str) -> Result<Option<localpaint_
 /// The JPEG format in `p` (`"jpegFormat": "baseline" | "optimized" | "progressive"`; absent or
 /// null: Baseline). Anything else is a bad parameter of command `cmd`. Shared like
 /// [`tga_bits_param`].
-pub fn jpeg_format_param(p: &Value, cmd: &str) -> Result<Option<localpaint_codecs::JpegFormat>> {
+pub fn jpeg_format_param(p: &Value, cmd: &str) -> Result<Option<localraster_codecs::JpegFormat>> {
     match p.get("jpegFormat") {
         None | Some(Value::Null) => Ok(None),
-        Some(v) => v.as_str().and_then(localpaint_codecs::JpegFormat::parse).map(Some).ok_or_else(|| EngineError::BadParams {
+        Some(v) => v.as_str().and_then(localraster_codecs::JpegFormat::parse).map(Some).ok_or_else(|| EngineError::BadParams {
             cmd: cmd.into(),
             msg: format!("`jpegFormat` must be \"baseline\", \"optimized\" or \"progressive\", got {v}"),
         }),
@@ -134,12 +134,12 @@ pub fn jpeg_quality(q: f64) -> u8 {
 
 /// The DPX bits per sample in `p` (`"dpxBits": 8 | 10 | 12 | 16`; absent or null: the document's
 /// depth). Anything else is a bad parameter of command `cmd`.
-pub fn dpx_bits_param(p: &Value, cmd: &str) -> Result<Option<localpaint_io::DpxBits>> {
+pub fn dpx_bits_param(p: &Value, cmd: &str) -> Result<Option<localraster_io::DpxBits>> {
     match p.get("dpxBits") {
         None | Some(Value::Null) => Ok(None),
         Some(v) => v
             .as_u64()
-            .and_then(localpaint_io::DpxBits::from_bits)
+            .and_then(localraster_io::DpxBits::from_bits)
             .map(Some)
             .ok_or_else(|| EngineError::BadParams { cmd: cmd.into(), msg: format!("`dpxBits` must be 8, 10, 12 or 16, got {v}") }),
     }
@@ -149,13 +149,13 @@ pub fn dpx_bits_param(p: &Value, cmd: &str) -> Result<Option<localpaint_io::DpxB
 /// and `"ddsMipmaps": bool`. `None` when neither is given (Save As then asks); either alone
 /// leaves the other at its default (uncompressed, no mipmaps). Anything else is a bad parameter
 /// of command `cmd`.
-pub fn dds_param(p: &Value, cmd: &str) -> Result<Option<localpaint_io::DdsOptions>> {
+pub fn dds_param(p: &Value, cmd: &str) -> Result<Option<localraster_io::DdsOptions>> {
     let bad = |msg: String| EngineError::BadParams { cmd: cmd.into(), msg };
     let compression = match p.get("ddsCompression") {
         None | Some(Value::Null) => None,
         Some(v) => Some(
             v.as_str()
-                .and_then(localpaint_io::DdsCompression::from_name)
+                .and_then(localraster_io::DdsCompression::from_name)
                 .ok_or_else(|| bad(format!("`ddsCompression` must be \"none\", \"bc1\", \"bc2\" or \"bc3\", got {v}")))?,
         ),
     };
@@ -166,14 +166,14 @@ pub fn dds_param(p: &Value, cmd: &str) -> Result<Option<localpaint_io::DdsOption
     if compression.is_none() && mipmaps.is_none() {
         return Ok(None);
     }
-    Ok(Some(localpaint_io::DdsOptions { compression: compression.unwrap_or_default(), mipmaps: mipmaps.unwrap_or(false) }))
+    Ok(Some(localraster_io::DdsOptions { compression: compression.unwrap_or_default(), mipmaps: mipmaps.unwrap_or(false) }))
 }
 
 /// Encodes `doc` for `path`'s extension.
 pub(crate) fn encode(doc: &Document, path: &str, save: impl Into<SaveOpts>) -> Result<(Vec<u8>, Vec<String>)> {
     crate::allocation::checkpoint("saving document")?;
     let save = save.into();
-    let mut opts = localpaint_io::ExportOptions {
+    let mut opts = localraster_io::ExportOptions {
         tiff_layers: save.tiff_layers,
         tga_bits: save.tga_bits,
         image_previews: save.image_previews,
@@ -186,7 +186,7 @@ pub(crate) fn encode(doc: &Document, path: &str, save: impl Into<SaveOpts>) -> R
     };
     // No quality chosen: write the file the way it was opened (a JPEG at its own quality, a WebP
     // lossy or lossless as it was), as Photoshop's Save does.
-    localpaint_io::apply_file_encoding(doc, &mut opts.encode);
+    localraster_io::apply_file_encoding(doc, &mut opts.encode);
     opts.encode.dpx_bits = save.dpx_bits;
     if let Some(c) = save.tiff_compression {
         opts.encode.tiff_compression = c;
@@ -202,7 +202,7 @@ pub(crate) fn encode(doc: &Document, path: &str, save: impl Into<SaveOpts>) -> R
     if let Some(f) = save.jpeg_format {
         opts.encode.jpeg_format = f;
     }
-    localpaint_io::export(doc, path, &opts).map(|r| (r.bytes, r.warnings)).map_err(|e| EngineError::Other(format!("{path}: {e}")))
+    localraster_io::export(doc, path, &opts).map(|r| (r.bytes, r.warnings)).map_err(|e| EngineError::Other(format!("{path}: {e}")))
 }
 
 pub(crate) fn save_doc(doc: &Document, path: &str, save: impl Into<SaveOpts>) -> Result<Vec<String>> {

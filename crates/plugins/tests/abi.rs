@@ -3,10 +3,10 @@
 
 use std::time::{Duration, Instant};
 
-use localpaint_color::{PixelFormat, SampleType};
-use localpaint_geom::Rect;
-use localpaint_plugins::{Error, Limits, Plugin};
-use localpaint_raster::Surface;
+use localraster_color::{PixelFormat, SampleType};
+use localraster_geom::Rect;
+use localraster_plugins::{Error, Limits, Plugin};
+use localraster_raster::Surface;
 use serde_json::json;
 
 const INVERT: &[u8] = include_bytes!("fixtures/invert.wasm");
@@ -68,9 +68,9 @@ fn run_err(bytes: &[u8], limits: Limits) -> (Error, Duration) {
 fn example_invert_loads_and_reports_its_manifest() {
     let p = Plugin::load(INVERT, Limits::default()).unwrap();
     let m = p.manifest();
-    assert_eq!(m.id, "org.localpaint.example.invert");
+    assert_eq!(m.id, "org.localraster.example.invert");
     assert_eq!(m.name, "Invert (WebAssembly)");
-    assert_eq!(m.kind, localpaint_plugins::Kind::Filter);
+    assert_eq!(m.kind, localraster_plugins::Kind::Filter);
     assert!(m.params.is_empty());
     assert!(p.size() < 4096, "the example stays tiny: {} bytes", p.size());
 }
@@ -310,30 +310,30 @@ fn memory_cap_limits_bands() {
 fn registry_install_list_remove() {
     // Its own id: the registry is process-wide and tests run in parallel.
     let id = "test.registry";
-    let p = localpaint_plugins::registry::install_bytes(&module(r#"{"id":"test.registry","name":"R","kind":"filter"}"#, 1, "(i32.const 0)", "")).unwrap();
+    let p = localraster_plugins::registry::install_bytes(&module(r#"{"id":"test.registry","name":"R","kind":"filter"}"#, 1, "(i32.const 0)", "")).unwrap();
     assert_eq!(p.id(), id);
-    let rev = localpaint_plugins::registry::revision();
-    assert!(localpaint_plugins::registry::list().iter().any(|p| p.id() == id));
-    assert!(localpaint_plugins::registry::get(id).is_some());
-    assert!(localpaint_plugins::registry::remove(id));
-    assert!(!localpaint_plugins::registry::remove(id));
-    assert!(localpaint_plugins::registry::get(id).is_none());
-    assert!(localpaint_plugins::registry::revision() > rev);
+    let rev = localraster_plugins::registry::revision();
+    assert!(localraster_plugins::registry::list().iter().any(|p| p.id() == id));
+    assert!(localraster_plugins::registry::get(id).is_some());
+    assert!(localraster_plugins::registry::remove(id));
+    assert!(!localraster_plugins::registry::remove(id));
+    assert!(localraster_plugins::registry::get(id).is_none());
+    assert!(localraster_plugins::registry::revision() > rev);
 }
 
 #[test]
 fn folder_loading_skips_bad_files() {
-    let dir = std::env::temp_dir().join(format!("localpaint-plugins-test-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("localraster-plugins-test-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     std::fs::write(dir.join("a-invert.wasm"), INVERT).unwrap();
     std::fs::write(dir.join("b-broken.wasm"), b"\0asm junk").unwrap();
     std::fs::write(dir.join("notes.txt"), b"ignored").unwrap();
-    let r = localpaint_plugins::registry::load_folder(&dir).unwrap();
-    assert_eq!(r.loaded, ["org.localpaint.example.invert"]);
+    let r = localraster_plugins::registry::load_folder(&dir).unwrap();
+    assert_eq!(r.loaded, ["org.localraster.example.invert"]);
     assert_eq!(r.failed.len(), 1);
     assert!(r.failed[0].0.ends_with("b-broken.wasm"));
-    assert!(localpaint_plugins::registry::load_folder(&dir.join("missing")).is_err());
-    assert!(localpaint_plugins::registry::load_file(&dir, Limits::default()).is_err(), "a directory is not a module");
+    assert!(localraster_plugins::registry::load_folder(&dir.join("missing")).is_err());
+    assert!(localraster_plugins::registry::load_file(&dir, Limits::default()).is_err(), "a directory is not a module");
     std::fs::remove_dir_all(&dir).ok();
 }
 
@@ -396,7 +396,7 @@ fn content_spread_over_millions_of_bands_is_refused_before_planning_them() {
 #[cfg(unix)]
 #[test]
 fn a_fifo_in_place_of_a_module_file_does_not_block_loading() {
-    let dir = std::env::temp_dir().join(format!("localpaint-plugin-fifo-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("localraster-plugin-fifo-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("evil.wasm");
     let _ = std::fs::remove_file(&path);
@@ -408,7 +408,7 @@ fn a_fifo_in_place_of_a_module_file_does_not_block_loading() {
     let (tx, rx) = std::sync::mpsc::channel();
     let p = path.clone();
     std::thread::spawn(move || {
-        let _ = tx.send(localpaint_plugins::registry::load_file(&p, Limits::default()).map(|_| ()));
+        let _ = tx.send(localraster_plugins::registry::load_file(&p, Limits::default()).map(|_| ()));
     });
     let r = rx.recv_timeout(Duration::from_secs(10)).expect("loading a FIFO must not block");
     assert!(matches!(r, Err(Error::Io(_))), "{r:?}");

@@ -3,10 +3,10 @@
 //! (the transposed pass) and two images short enough for the exact full-resolution seam search.
 //! Prints an FNV-style hash of each output's bits (over 32-bit words), so a speed-up can be checked
 //! to choose exactly the same seams.
-//! `cargo run --release -p localpaint-algo --example bench_seam_cas [reps] [case filter]`
+//! `cargo run --release -p localraster-algo --example bench_seam_cas [reps] [case filter]`
 use std::time::Instant;
 
-use localpaint_algo::seam::carve;
+use localraster_algo::seam::carve;
 
 /// Smooth gradients, a few hard-edged shapes and fine noise: enough structure that seams are
 /// steered by content, as in a photo.

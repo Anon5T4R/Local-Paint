@@ -1,6 +1,6 @@
 //! Shared round-trip invariant for the `.atn` parser contract suite.
-use localpaint_psd::atn::{self, AtnFile};
-use localpaint_psd::descriptor::{Descriptor, Value};
+use localraster_psd::atn::{self, AtnFile};
+use localraster_psd::descriptor::{Descriptor, Value};
 
 fn scalar(value: &mut f64, bits: &mut Vec<u64>) {
     bits.push(value.to_bits());

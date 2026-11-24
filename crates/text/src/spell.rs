@@ -301,16 +301,16 @@ mod tests {
     #[test]
     fn misspellings_and_user_words() {
         let d = Dictionary::from_list("#10\nhello\nworld\nParis\n");
-        let text = "Hello wrld, Paris paris localpaint 42x";
+        let text = "Hello wrld, Paris paris localraster 42x";
         let m: Vec<String> = d.misspellings(text, &none()).into_iter().map(|m| m.word).collect();
-        assert_eq!(m, vec!["wrld", "paris", "localpaint"]);
-        let user: HashSet<String> = ["localpaint".to_string()].into();
+        assert_eq!(m, vec!["wrld", "paris", "localraster"]);
+        let user: HashSet<String> = ["localraster".to_string()].into();
         assert_eq!(d.misspellings(text, &user).len(), 2);
         let mm = &d.misspellings(text, &none())[0];
         assert_eq!(&text[mm.start..mm.end], "wrld");
     }
 
-    /// `cargo test --release -p localpaint-text -- --ignored --nocapture spell_timing`
+    /// `cargo test --release -p localraster-text -- --ignored --nocapture spell_timing`
     #[test]
     #[ignore]
     fn spell_timing() {

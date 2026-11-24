@@ -14,11 +14,11 @@
 //! A pending quad belongs to the document it was drawn on, like the Crop tool's frame.
 
 use egui::{Color32, Pos2, Stroke};
-use localpaint_algo::transform::{Homography, convex_quad};
-use localpaint_engine::prefs::Unit;
+use localraster_algo::transform::{Homography, convex_quad};
+use localraster_engine::prefs::Unit;
 use serde_json::{Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::canvas::{ToolEvent, ViewXform};
 use crate::state::Tool;
 
@@ -41,19 +41,19 @@ pub struct PerspectiveCrop {
     /// Corners clicked so far, before the fourth makes the quad.
     pub clicks: Vec<[f64; 2]>,
     /// The document the pending quad belongs to.
-    doc: Option<localpaint_doc::DocId>,
+    doc: Option<localraster_doc::DocId>,
 }
 
-fn active(app: &LocalPaintApp) -> bool {
+fn active(app: &LocalRasterApp) -> bool {
     app.ui.tool == Tool::PerspectiveCrop && app.session.active().is_some()
 }
 
 /// A quad or corners clicked or a drag in progress.
-pub fn pending(app: &LocalPaintApp) -> bool {
+pub fn pending(app: &LocalRasterApp) -> bool {
     app.ui.perspective_crop.is_some() || !app.pcrop.clicks.is_empty() || app.pcrop.drag.is_some()
 }
 
-pub fn cancel(app: &mut LocalPaintApp) {
+pub fn cancel(app: &mut LocalRasterApp) {
     app.ui.perspective_crop = None;
     app.pcrop.drag = None;
     app.pcrop.clicks.clear();
@@ -61,7 +61,7 @@ pub fn cancel(app: &mut LocalPaintApp) {
 
 /// Another document became active: its pending quad is dropped (also from `sync_views`, so it is
 /// never drawn on the other document).
-pub(crate) fn cancel_stale(app: &mut LocalPaintApp) {
+pub(crate) fn cancel_stale(app: &mut LocalRasterApp) {
     let doc = app.session.active().map(|st| st.doc.id);
     if pending(app) && app.pcrop.doc.is_some() && app.pcrop.doc != doc {
         cancel(app);
@@ -88,7 +88,7 @@ fn inside(q: &[[f64; 2]; 4], p: [f64; 2]) -> bool {
 }
 
 /// Pointer events (document px) with the tool. True when consumed.
-pub fn pointer(app: &mut LocalPaintApp, ev: ToolEvent) -> bool {
+pub fn pointer(app: &mut LocalRasterApp, ev: ToolEvent) -> bool {
     if app.ui.tool != Tool::PerspectiveCrop {
         app.pcrop.drag = None;
         return false;
@@ -142,7 +142,7 @@ pub fn pointer(app: &mut LocalPaintApp, ev: ToolEvent) -> bool {
     true
 }
 
-fn drag_to(app: &mut LocalPaintApp, p: [f64; 2]) {
+fn drag_to(app: &mut LocalRasterApp, p: [f64; 2]) {
     match app.pcrop.drag {
         Some(Drag::New { start, .. }) => app.pcrop.drag = Some(Drag::New { start, cur: p }),
         Some(Drag::Corner { index, offset }) => {
@@ -160,7 +160,7 @@ fn drag_to(app: &mut LocalPaintApp, p: [f64; 2]) {
 
 /// `image.perspectiveCrop`'s size params from W, H and the resolution (the Crop tool's fields):
 /// lengths in physical units convert at the typed resolution, else the document's.
-pub(crate) fn size_params(app: &LocalPaintApp, p: &mut Value) {
+pub(crate) fn size_params(app: &LocalRasterApp, p: &mut Value) {
     let o = &app.ui.tool_options;
     let res = crate::crop_size::resolution_ppi(o);
     let dpi = res.unwrap_or_else(|| app.session.active().map_or(72.0, |st| f64::from(st.doc.resolution_dpi)));
@@ -183,7 +183,7 @@ pub(crate) fn size_params(app: &LocalPaintApp, p: &mut Value) {
 }
 
 /// ↵: crops to the pending quad. An invalid quad stays for fixing, with the engine's reason.
-pub fn commit(app: &mut LocalPaintApp) {
+pub fn commit(app: &mut LocalRasterApp) {
     cancel_stale(app);
     let Some(q) = app.ui.perspective_crop else { return };
     let mut p = json!({"corners": q});
@@ -194,7 +194,7 @@ pub fn commit(app: &mut LocalPaintApp) {
 }
 
 /// ↵ commits and Esc cancels while the tool has something pending. True when a key was taken.
-pub fn keys(app: &mut LocalPaintApp, ctx: &egui::Context) -> bool {
+pub fn keys(app: &mut LocalRasterApp, ctx: &egui::Context) -> bool {
     if !active(app) || !pending(app) {
         return false;
     }
@@ -217,7 +217,7 @@ fn grid_steps(side: f32) -> usize {
 }
 
 /// The quad, its perspective grid and corner handles; corners clicked so far; the box being drawn.
-pub fn draw_overlay(app: &LocalPaintApp, painter: &egui::Painter, xf: &ViewXform) {
+pub fn draw_overlay(app: &LocalRasterApp, painter: &egui::Painter, xf: &ViewXform) {
     if app.ui.tool != Tool::PerspectiveCrop {
         return;
     }
@@ -272,7 +272,7 @@ pub fn draw_overlay(app: &LocalPaintApp, painter: &egui::Painter, xf: &ViewXform
 
 /// Options bar: W, ⇄, H, the resolution (the Crop tool's fields), Front Image, Clear, Show Grid,
 /// and cancel / commit.
-pub fn options_bar(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+pub fn options_bar(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     crate::crop_size::fields(&mut app.ui.tool_options, ui);
     if crate::widgets::secondary_button(ui, tl!("Front Image"), 0.0).clicked()
         && let Some((size, dpi)) = app.session.active().map(|st| (st.doc.size, f64::from(st.doc.resolution_dpi)))
@@ -302,18 +302,18 @@ pub fn options_bar(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_doc::{Color, ColorMode, Document, SampleType, Size};
+    use localraster_doc::{Color, ColorMode, Document, SampleType, Size};
 
     /// A straight drag (no width or no height) leaves no zero-area box that only Esc could clear,
     /// and a plain click still counts as a corner click.
     #[test]
     fn a_drag_without_area_leaves_no_quad() {
         let doc = Document::with_background("p", Size::new(200, 150), ColorMode::Rgb, SampleType::U8, Color::WHITE);
-        let mut s = localpaint_engine::Session::new();
+        let mut s = localraster_engine::Session::new();
         s.add_document(doc, None);
-        let mut app = LocalPaintApp::new(s, crate::Services::default());
+        let mut app = LocalRasterApp::new(s, crate::Services::default());
         app.ui.tool = Tool::PerspectiveCrop;
-        let ev = |app: &mut LocalPaintApp, e| assert!(pointer(app, e));
+        let ev = |app: &mut LocalRasterApp, e| assert!(pointer(app, e));
         for (x1, y1) in [(10.0, 60.0), (90.0, 10.0)] {
             ev(&mut app, ToolEvent::Down { x: 10.0, y: 10.0, pressure: 1.0 });
             ev(&mut app, ToolEvent::Move { x: x1, y: y1, pressure: 1.0 });
@@ -332,11 +332,11 @@ mod tests {
     #[test]
     fn drag_a_box_move_a_corner_and_commit() {
         let doc = Document::with_background("p", Size::new(200, 150), ColorMode::Rgb, SampleType::U8, Color::WHITE);
-        let mut s = localpaint_engine::Session::new();
+        let mut s = localraster_engine::Session::new();
         s.add_document(doc, None);
-        let mut app = LocalPaintApp::new(s, crate::Services::default());
+        let mut app = LocalRasterApp::new(s, crate::Services::default());
         app.ui.tool = Tool::PerspectiveCrop;
-        let ev = |app: &mut LocalPaintApp, e| assert!(pointer(app, e));
+        let ev = |app: &mut LocalRasterApp, e| assert!(pointer(app, e));
         ev(&mut app, ToolEvent::Down { x: 20.0, y: 10.0, pressure: 1.0 });
         ev(&mut app, ToolEvent::Move { x: 120.0, y: 90.0, pressure: 1.0 });
         ev(&mut app, ToolEvent::Up { x: 120.0, y: 90.0 });
@@ -358,15 +358,15 @@ mod tests {
     fn the_options_bar_swap_button_swaps_w_and_h() {
         use egui_kittest::kittest::Queryable;
         let doc = Document::with_background("p", Size::new(200, 150), ColorMode::Rgb, SampleType::U8, Color::WHITE);
-        let mut s = localpaint_engine::Session::new();
+        let mut s = localraster_engine::Session::new();
         s.add_document(doc, None);
-        let mut app = LocalPaintApp::new(s, crate::Services::default());
+        let mut app = LocalRasterApp::new(s, crate::Services::default());
         app.ui.tool = Tool::PerspectiveCrop;
         app.ui.tool_options.crop_width = "4 in".into();
         app.ui.tool_options.crop_height = "6 in".into();
         assert_ne!(app.ui.tool_options.crop_ratio, crate::crop_size::WHR);
         let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1400.0, 60.0)).build_ui_state(
-            |ui, app: &mut LocalPaintApp| {
+            |ui, app: &mut LocalRasterApp| {
                 if !ui.ctx().fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                     return;
                 }
@@ -374,7 +374,7 @@ mod tests {
             },
             app,
         );
-        LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ProMedium);
+        LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ProMedium);
         h.run_steps(4);
         h.get_by_label("Swaps height and width").click();
         h.run_steps(2);
@@ -386,14 +386,14 @@ mod tests {
     /// never drawn on the other one; on its own document it stays.
     #[test]
     fn switching_documents_drops_the_pending_quad() {
-        let mut s = localpaint_engine::Session::new();
+        let mut s = localraster_engine::Session::new();
         for name in ["a", "b"] {
             s.add_document(Document::with_background(name, Size::new(200, 150), ColorMode::Rgb, SampleType::U8, Color::WHITE), None);
         }
         s.set_active(0);
-        let mut app = LocalPaintApp::new(s, crate::Services::default());
+        let mut app = LocalRasterApp::new(s, crate::Services::default());
         app.ui.tool = Tool::PerspectiveCrop;
-        let ev = |app: &mut LocalPaintApp, e| assert!(pointer(app, e));
+        let ev = |app: &mut LocalRasterApp, e| assert!(pointer(app, e));
         ev(&mut app, ToolEvent::Down { x: 20.0, y: 10.0, pressure: 1.0 });
         ev(&mut app, ToolEvent::Move { x: 120.0, y: 90.0, pressure: 1.0 });
         ev(&mut app, ToolEvent::Up { x: 120.0, y: 90.0 });

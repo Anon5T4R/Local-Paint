@@ -1,11 +1,11 @@
 //! Print the actions and steps of `.atn` files, one event per line, with the top-level keys of
-//! each step's descriptor: `cargo run -p localpaint-psd --example atn_dump -- set.atn…`
+//! each step's descriptor: `cargo run -p localraster-psd --example atn_dump -- set.atn…`
 //!
 //! Handy when adding a Photoshop event to the engine's `.atn` import table: it shows the event
 //! id, the panel name and the parameter keys Photoshop recorded.
 
-use localpaint_psd::atn;
-use localpaint_psd::descriptor::{Descriptor, ReferenceItem, Value};
+use localraster_psd::atn;
+use localraster_psd::descriptor::{Descriptor, ReferenceItem, Value};
 
 fn summary(v: &Value) -> String {
     match v {
@@ -22,7 +22,7 @@ fn summary(v: &Value) -> String {
     }
 }
 
-fn id(i: &localpaint_psd::descriptor::Id) -> String {
+fn id(i: &localraster_psd::descriptor::Id) -> String {
     String::from_utf8_lossy(i.as_bytes()).trim().to_string()
 }
 

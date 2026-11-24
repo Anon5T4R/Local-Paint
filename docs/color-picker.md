@@ -10,7 +10,7 @@ With a painting tool, **Shift+Alt+right-click** on the canvas opens the HUD Colo
 
 The existing canvas eyedropper continues to sample the document while the Color Picker is open, including canvas zoom and pan. This works without operating-system screen-capture permission.
 
-## Pick a color outside Local Paint
+## Pick a color outside Local Raster
 
 **Pick screen color** is available in full Color Pickers and compact color-selection popups, including fills, shapes, gradients, layer effects, guides and preferences.
 
@@ -22,12 +22,12 @@ Screen snapshots are held in memory, are never written or transmitted by the pic
 
 ## Platform behavior
 
-- **Linux/X11:** a native Rust X11 client captures the composed desktop. An advertised primary-display ICC profile is converted to sRGB through Local Paint's color-management library. Outputs with no published profile use an sRGB fallback.
-- **Linux/Wayland:** the desktop's XDG `PickColor` portal owns selection and permission UI and returns sRGB. Magnification and zoom controls depend on the portal implementation; Local Paint cannot capture other applications directly under Wayland.
+- **Linux/X11:** a native Rust X11 client captures the composed desktop. An advertised primary-display ICC profile is converted to sRGB through Local Raster's color-management library. Outputs with no published profile use an sRGB fallback.
+- **Linux/Wayland:** the desktop's XDG `PickColor` portal owns selection and permission UI and returns sRGB. Magnification and zoom controls depend on the portal implementation; Local Raster cannot capture other applications directly under Wayland.
 - **Windows:** native screen capture with monitor-specific fullscreen viewports. Captured pixels currently use an sRGB fallback; HDR and arbitrary monitor-profile accuracy are not guaranteed.
 - **macOS:** safe CoreGraphics bindings capture the composed screen and use the snapshot's own ICC profile when available. Screen Recording permission may be required. The existing macOS 11 deployment target is preserved. The window-list capture API is deprecated by Apple, so current macOS releases require explicit manual validation; migration to modern native sampling must also preserve older-app compatibility.
 
-The implementation follows publicly documented Photoshop behavior for the full Type Color Picker and outside-image sampling. Local Paint uses an explicit screen-pick action and frozen snapshots rather than Photoshop's press-and-drag gesture.
+The implementation follows publicly documented Photoshop behavior for the full Type Color Picker and outside-image sampling. Local Raster uses an explicit screen-pick action and frozen snapshots rather than Photoshop's press-and-drag gesture.
 
 ## Verification
 
@@ -36,13 +36,13 @@ Unit and UI integration tests cover selected text versus whole-layer color chang
 Generate screenshots using synthetic artwork without exposing your desktop:
 
 ```sh
-cargo run -p localpaint-ui-egui --example color_picker_demo -- /tmp/localpaint-color-picker
+cargo run -p localraster-ui-egui --example color_picker_demo -- /tmp/localraster-color-picker
 ```
 
 For reproducible native X11 capture verification, the explicitly ignored test displays an 8 × 8 synthetic swatch in an isolated Xvfb display, captures it in memory and checks the known pixel:
 
 ```sh
-xvfb-run -a cargo test -p localpaint screen_capture_reads_a_known_x11_fixture_pixel -- --ignored --test-threads=1
+xvfb-run -a cargo test -p localraster screen_capture_reads_a_known_x11_fixture_pixel -- --ignored --test-threads=1
 ```
 
 Windows, macOS, Wayland portals, browser activation and mixed-DPI monitor arrangements additionally need manual validation on those environments; mock UI tests do not substitute for it.

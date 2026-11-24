@@ -10,12 +10,12 @@
 use std::path::{Path, PathBuf};
 
 #[cfg(feature = "corpus")]
-use localpaint_doc::Layer;
-use localpaint_doc::LayerContent;
+use localraster_doc::Layer;
+use localraster_doc::LayerContent;
 #[cfg(feature = "corpus")]
-use localpaint_geom::Rect;
+use localraster_geom::Rect;
 #[cfg(feature = "corpus")]
-use localpaint_raster::Surface;
+use localraster_raster::Surface;
 
 #[cfg(feature = "corpus")]
 fn collect(dir: &Path, out: &mut Vec<PathBuf>) {
@@ -56,7 +56,7 @@ fn corpus_text_layers() {
     let mut files = Vec::new();
     collect(&root, &mut files);
     files.sort();
-    let mut engine = localpaint_text::TextEngine::with_system_fonts();
+    let mut engine = localraster_text::TextEngine::with_system_fonts();
     let (mut n, mut good_geometry) = (0, 0);
     for f in files {
         let bytes = std::fs::read(&f).unwrap();
@@ -64,13 +64,13 @@ fn corpus_text_layers() {
             continue;
         }
         let name = f.file_name().unwrap().to_string_lossy().to_string();
-        let Ok(imp) = localpaint_io::import(&name, &bytes) else {
+        let Ok(imp) = localraster_io::import(&name, &bytes) else {
             continue;
         };
         let doc = imp.document;
         // The document's Txt2 (kept verbatim on export) carries what EngineData can't, e.g.
         // optical kerning; re-reads apply it like an import does.
-        let txt2 = doc.metadata.psd_global_blocks.iter().find(|b| &b.1 == b"Txt2").and_then(|b| localpaint_text::psd::parse_txt2(&b.2));
+        let txt2 = doc.metadata.psd_global_blocks.iter().find(|b| &b.1 == b"Txt2").and_then(|b| localraster_text::psd::parse_txt2(&b.2));
         let mut all = Vec::new();
         walk(&doc.layers, &mut all);
         for l in all {
@@ -84,10 +84,10 @@ fn corpus_text_layers() {
             let st = &t.runs[0].style;
             assert!(st.size_pt > 0.0 && st.postscript_name.is_some(), "{name}/{}: {st:?}", l.name);
             // Round trip of the model through our own TySh writer.
-            let rebuilt = localpaint_text::psd::build_tysh(t, doc.resolution_dpi, None);
-            let mut back = localpaint_text::psd::text_layer_from_tysh(&rebuilt, doc.resolution_dpi).unwrap();
+            let rebuilt = localraster_text::psd::build_tysh(t, doc.resolution_dpi, None);
+            let mut back = localraster_text::psd::text_layer_from_tysh(&rebuilt, doc.resolution_dpi).unwrap();
             if let Some(txt2) = &txt2 {
-                localpaint_text::psd::apply_txt2(&mut back, &rebuilt, txt2);
+                localraster_text::psd::apply_txt2(&mut back, &rebuilt, txt2);
             }
             assert_eq!(back.text, t.text);
             assert_eq!(back.char_runs(), t.char_runs(), "{name}/{}", l.name);
@@ -134,8 +134,8 @@ fn corpus_text_layers() {
 fn corpus_tysh_lossless() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../corpus/psd/ag-psd/read-write/text/src.psd");
     let bytes = std::fs::read(&root).unwrap_or_else(|e| panic!("{}: {e}: run `cargo xtask corpus --all`", root.display()));
-    let doc = localpaint_io::import("src.psd", &bytes).unwrap().document;
-    let out = localpaint_io::export(&doc, "out.psd", &Default::default()).unwrap().bytes;
+    let doc = localraster_io::import("src.psd", &bytes).unwrap().document;
+    let out = localraster_io::export(&doc, "out.psd", &Default::default()).unwrap().bytes;
     let find = |b: &[u8]| {
         let i = b.windows(8).position(|w| w == b"8BIMTySh").unwrap();
         let len = u32::from_be_bytes(b[i + 8..i + 12].try_into().unwrap()) as usize;
@@ -154,14 +154,14 @@ fn corpus_photoshop_txt2_survives_an_unedited_save() {
     let mut files = Vec::new();
     collect(&root, &mut files);
     files.sort();
-    let txt2 = |doc: &localpaint_doc::Document| doc.metadata.psd_global_blocks.iter().find(|b| &b.1 == b"Txt2").map(|b| b.2.clone());
+    let txt2 = |doc: &localraster_doc::Document| doc.metadata.psd_global_blocks.iter().find(|b| &b.1 == b"Txt2").map(|b| b.2.clone());
     let mut checked = 0;
     for f in &files {
         let name = f.file_name().unwrap().to_string_lossy().to_string();
-        let doc = localpaint_io::import(&name, &std::fs::read(f).unwrap()).unwrap().document;
+        let doc = localraster_io::import(&name, &std::fs::read(f).unwrap()).unwrap().document;
         let Some(before) = txt2(&doc) else { continue };
-        let out = localpaint_io::export(&doc, &name, &Default::default()).unwrap().bytes;
-        let back = localpaint_io::import(&name, &out).unwrap().document;
+        let out = localraster_io::export(&doc, &name, &Default::default()).unwrap().bytes;
+        let back = localraster_io::import(&name, &out).unwrap().document;
         assert!(txt2(&back) == Some(before), "{name}: Txt2 changed on an unedited save");
         checked += 1;
     }
@@ -175,8 +175,8 @@ fn corpus_photoshop_txt2_survives_an_unedited_save() {
 #[cfg(feature = "corpus")]
 #[test]
 fn corpus_photoshop_path_text_opens_on_its_path() {
-    use localpaint_doc::text::TextShape;
-    use localpaint_geom::Point;
+    use localraster_doc::text::TextShape;
+    use localraster_geom::Point;
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../corpus/photoshop/text");
     let k = 0.5522847498 * 96.0;
     let cases: [(&str, bool, Vec<[f64; 2]>); 2] = [
@@ -184,18 +184,18 @@ fn corpus_photoshop_path_text_opens_on_its_path() {
         ("path-circle.psd", true, vec![[128.0, 224.0], [32.0, 128.0], [128.0, 32.0], [224.0, 128.0]]),
         ("path-wave-open.psd", false, vec![[16.0, 100.0], [160.0, 80.0], [304.0, 60.0]]),
     ];
-    let mut engine = localpaint_text::TextEngine::with_system_fonts();
+    let mut engine = localraster_text::TextEngine::with_system_fonts();
     for (file, closed, anchors) in cases {
         let f = root.join(file);
         let bytes = std::fs::read(&f).unwrap_or_else(|e| panic!("{}: {e}: run `cargo xtask corpus --photoshop`", f.display()));
-        let imp = localpaint_io::import(file, &bytes).unwrap();
+        let imp = localraster_io::import(file, &bytes).unwrap();
         assert!(!imp.warnings.iter().any(|w| w.contains("type path")), "{file}: {:?}", imp.warnings);
         let doc = imp.document;
         let mut all = Vec::new();
         walk(&doc.layers, &mut all);
         let layer = all.iter().find(|l| matches!(l.content, LayerContent::Text(_))).unwrap();
         let LayerContent::Text(t) = &layer.content else { unreachable!() };
-        let doc_anchors = |t: &localpaint_doc::TextLayer| -> Vec<Point> {
+        let doc_anchors = |t: &localraster_doc::TextLayer| -> Vec<Point> {
             let TextShape::Path { path, start, flip } = &t.shape else { panic!("{file}: not path text: {:?}", t.shape) };
             assert_eq!((path.closed, *start, *flip), (closed, 0.0, false), "{file}");
             path.knots.iter().map(|k| t.transform.apply(k.anchor)).collect()
@@ -253,13 +253,13 @@ fn corpus_photoshop_path_text_opens_on_its_path() {
             t.sync_summary();
             if let TextShape::Path { path, .. } = &mut t.shape {
                 for k in &mut path.knots {
-                    *k = k.transform(&localpaint_geom::Affine::translate(10.0, 0.0));
+                    *k = k.transform(&localraster_geom::Affine::translate(10.0, 0.0));
                 }
             }
-            t.psd_raw = Some(std::sync::Arc::new(localpaint_text::psd::build_tysh(t, edited.resolution_dpi, None)));
+            t.psd_raw = Some(std::sync::Arc::new(localraster_text::psd::build_tysh(t, edited.resolution_dpi, None)));
         }
-        let out = localpaint_io::export(&edited, file, &Default::default()).unwrap().bytes;
-        let back = localpaint_io::import(file, &out).unwrap().document;
+        let out = localraster_io::export(&edited, file, &Default::default()).unwrap().bytes;
+        let back = localraster_io::import(file, &out).unwrap().document;
         let mut all = Vec::new();
         walk(&back.layers, &mut all);
         let LayerContent::Text(bt) = &all.iter().find(|l| matches!(l.content, LayerContent::Text(_))).unwrap().content else { unreachable!() };
@@ -270,13 +270,13 @@ fn corpus_photoshop_path_text_opens_on_its_path() {
     }
 }
 
-/// A text layer created in Local Paint (no PSD data) exports as an editable type layer and
+/// A text layer created in Local Raster (no PSD data) exports as an editable type layer and
 /// imports back with the same model.
 #[test]
 fn created_text_layer_roundtrips_through_psd() {
-    use localpaint_color::{Color, ColorMode, SampleType};
-    use localpaint_doc::text::{CharStyle, ParagraphRun, ParagraphStyle, TextAlign, TextRun, TextShape};
-    use localpaint_doc::{Document, Size, TextLayer};
+    use localraster_color::{Color, ColorMode, SampleType};
+    use localraster_doc::text::{CharStyle, ParagraphRun, ParagraphStyle, TextAlign, TextRun, TextShape};
+    use localraster_doc::{Document, Size, TextLayer};
     let mut doc = Document::new("t", Size::new(120, 80), ColorMode::Rgb, SampleType::U8);
     doc.resolution_dpi = 144.0;
     let a = CharStyle { font_family: "Inter".into(), size_pt: 10.0, color: Color::rgb(0.2, 0.4, 0.6), ..Default::default() };
@@ -289,17 +289,17 @@ fn created_text_layer_roundtrips_through_psd() {
             ParagraphRun { len: 5, style: ParagraphStyle { align: TextAlign::JustifyAll, ..Default::default() } },
         ],
         shape: TextShape::Box { x: 0.0, y: 0.0, width: 100.0, height: 60.0 },
-        transform: localpaint_geom::Affine::translate(8.0, 6.0),
+        transform: localraster_geom::Affine::translate(8.0, 6.0),
         ..Default::default()
     };
     t.sync_summary();
-    localpaint_text::TextEngine::new().render_layer(&mut t, doc.resolution_dpi, doc.pixel_format());
-    doc.layers.push(localpaint_doc::Layer::new("t", LayerContent::Text(t.clone())));
-    let out = localpaint_io::export(&doc, "t.psd", &Default::default()).unwrap();
+    localraster_text::TextEngine::new().render_layer(&mut t, doc.resolution_dpi, doc.pixel_format());
+    doc.layers.push(localraster_doc::Layer::new("t", LayerContent::Text(t.clone())));
+    let out = localraster_io::export(&doc, "t.psd", &Default::default()).unwrap();
     assert!(!out.warnings.iter().any(|w| w.contains("text layer")), "{:?}", out.warnings);
-    let back = localpaint_io::import("t.psd", &out.bytes).unwrap().document;
+    let back = localraster_io::import("t.psd", &out.bytes).unwrap().document;
     let LayerContent::Text(bt) = &back.layers[0].content else { panic!("not text") };
-    let strip = |v: Vec<localpaint_doc::text::TextRun>| {
+    let strip = |v: Vec<localraster_doc::text::TextRun>| {
         v.into_iter()
             .map(|mut r| {
                 r.style.postscript_name = None;
@@ -323,18 +323,18 @@ fn created_text_layer_roundtrips_through_psd() {
 #[cfg(feature = "corpus")]
 #[test]
 fn corpus_text_psd_legacy_objects_are_edited_in_place() {
-    use localpaint_text::engine_data::Value as E;
+    use localraster_text::engine_data::Value as E;
 
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../corpus/psd-tools/text.psd");
     assert!(path.is_file(), "{} is missing: run `cargo xtask corpus --all`", path.display());
     let bytes = std::fs::read(&path).unwrap();
-    let doc = localpaint_io::import("text.psd", &bytes).unwrap().document;
+    let doc = localraster_io::import("text.psd", &bytes).unwrap().document;
     let txt2 = doc.metadata.psd_global_blocks.iter().find(|b| &b.1 == b"Txt2").map(|b| b.2.clone()).expect("text.psd has a Txt2 block");
     let mut all = Vec::new();
     walk(&doc.layers, &mut all);
     let layer = all.iter().find_map(|l| if let LayerContent::Text(t) = &l.content { Some(t.clone()) } else { None }).expect("a type layer");
 
-    let before = localpaint_text::psd::parse_txt2(&txt2).expect("the file's Txt2 parses");
+    let before = localraster_text::psd::parse_txt2(&txt2).expect("the file's Txt2 parses");
     let legacy = |block: &E| block.path(&["DocumentObjects", "TextObjects"]).and_then(E::as_array).and_then(<[E]>::first).cloned().expect("the legacy object");
     let features = |entry: &E| {
         entry
@@ -347,7 +347,7 @@ fn corpus_text_psd_legacy_objects_are_edited_in_place() {
     let items = |value: &E| if let E::Dict(items) = value { items.clone() } else { Vec::new() };
 
     // Unedited: the legacy object and the font list are as the file has them.
-    let unedited = localpaint_text::psd::parse_txt2(&localpaint_text::psd::build_txt2_at(&[(0, &layer)], Some(&txt2), doc.resolution_dpi)).unwrap();
+    let unedited = localraster_text::psd::parse_txt2(&localraster_text::psd::build_txt2_at(&[(0, &layer)], Some(&txt2), doc.resolution_dpi)).unwrap();
     assert!(legacy(&unedited) == legacy(&before), "an unedited layer leaves the legacy text object alone");
     assert!(unedited.path(&["DocumentResources", "FontSet"]) == before.path(&["DocumentResources", "FontSet"]), "and the font list it indexes");
 
@@ -356,7 +356,7 @@ fn corpus_text_psd_legacy_objects_are_edited_in_place() {
     for run in &mut bigger.runs {
         run.style.size_pt += 7.0;
     }
-    let edited = localpaint_text::psd::parse_txt2(&localpaint_text::psd::build_txt2_at(&[(0, &bigger)], Some(&txt2), doc.resolution_dpi)).unwrap();
+    let edited = localraster_text::psd::parse_txt2(&localraster_text::psd::build_txt2_at(&[(0, &bigger)], Some(&txt2), doc.resolution_dpi)).unwrap();
     let (was, now) = (features(&legacy(&before)).expect("features"), features(&legacy(&edited)).expect("features"));
     let size = |f: &E| f.get("FontSize").and_then(E::as_f64).expect("FontSize");
     assert!((size(&now) - size(&was) - 7.0).abs() < 1e-6, "the legacy size follows the edit: {} -> {}", size(&was), size(&now));

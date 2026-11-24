@@ -47,7 +47,7 @@ pub(super) fn clone_sample(
 
 /// Read-only clone overlay. Shares the stroke sampler without anchoring a source or editing history.
 /// Both destination and transformed source allocations are bounded for interactive use.
-pub fn clone_preview(s: &Session, rect: Rect, map: &crate::presets::clone_source::Mapping, sample_layer: &str) -> Result<localpaint_compose::Buffer> {
+pub fn clone_preview(s: &Session, rect: Rect, map: &crate::presets::clone_source::Mapping, sample_layer: &str) -> Result<localraster_compose::Buffer> {
     clone_preview_periodic(s, rect, map, sample_layer, false)
 }
 
@@ -58,7 +58,7 @@ pub fn clone_preview_periodic(
     map: &crate::presets::clone_source::Mapping,
     sample_layer: &str,
     wrap: bool,
-) -> Result<localpaint_compose::Buffer> {
+) -> Result<localraster_compose::Buffer> {
     if ![map.source.0, map.source.1, map.anchor.0, map.anchor.1].into_iter().chain(map.m).all(|v| v.is_finite() && v.abs() < 1_000_000.0) {
         return Err(bad("clone.preview", "invalid preview mapping"));
     }
@@ -80,7 +80,7 @@ pub fn clone_preview_periodic(
     let which = sample_layers(&json!({"sampleLayer": sample_layer}), "clone.preview")?;
     let region = clone_sample(&d.doc, Some(id), surf, which, rect, map, wrap, "clone.preview")?;
     let px = region.data.chunks_exact(surf.format().channels()).map(|p| to_rgba(&surf.format(), p)).collect();
-    Ok(localpaint_compose::Buffer { rect, px })
+    Ok(localraster_compose::Buffer { rect, px })
 }
 
 /// Result JSON shared by Clone Stamp and Healing Brush: the offset used and where the next stroke
@@ -137,7 +137,7 @@ pub(super) fn clone_stamp(s: &mut Session, p: &Value) -> Result<Value> {
                 return Ok(l.bounds);
             }
             if flag(p, "wrap", false) {
-                let mut renderer = localpaint_paint::StrokeRenderer::new(&stroke.brush, None, 1.0);
+                let mut renderer = localraster_paint::StrokeRenderer::new(&stroke.brush, None, 1.0);
                 renderer.push(&stroke.points);
                 renderer.finish();
                 let before = surf.clone();
@@ -166,7 +166,7 @@ enum LivePaint {
     History(Surface),
     /// The Pattern Stamp's pattern, tiled from its aligned placement (Impressionist strokes are
     /// laid dab by dab: `pattern_stamp::live_impressionist`).
-    Pattern { tile: std::sync::Arc<localpaint_compose::pattern::Tile>, place: localpaint_compose::pattern::Placement },
+    Pattern { tile: std::sync::Arc<localraster_compose::pattern::Tile>, place: localraster_compose::pattern::Placement },
 }
 
 /// A retouching stroke shown while it is drawn: the dabs so far composited onto a copy of the
@@ -176,7 +176,7 @@ pub struct LiveRetouch {
     /// The active document with the stroke so far.
     pub doc: std::sync::Arc<Document>,
     cmd: String,
-    renderer: localpaint_paint::StrokeRenderer,
+    renderer: localraster_paint::StrokeRenderer,
     pre: std::sync::Arc<Document>,
     pre_surf: Surface,
     colors: Option<crate::color_channels::ColorChannels>,
@@ -191,7 +191,7 @@ pub struct LiveRetouch {
     /// smoothing catch-up), redrawn on every step as the Brush's live stroke does.
     tail: Rect,
     /// The document and revision the stroke started on.
-    base: (localpaint_doc::DocId, u64),
+    base: (localraster_doc::DocId, u64),
     brush: Box<BrushSettings>,
     /// Every point rendered so far, in order.
     points: Vec<StrokePoint>,
@@ -239,7 +239,7 @@ impl LiveRetouch {
         let (surf, lock) = crate::channel_cmds::target_surface(&mut doc, id, p)?;
         let pre_surf = surf.clone();
         // As `stroke_coverage`, which the commit uses.
-        let renderer = localpaint_paint::StrokeRenderer::new(&stroke.brush, None, 1.0);
+        let renderer = localraster_paint::StrokeRenderer::new(&stroke.brush, None, 1.0);
         let opacity = stroke.brush.opacity;
         let brush = Box::new(stroke.brush.clone());
         let paint = match paint {

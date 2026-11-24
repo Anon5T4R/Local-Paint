@@ -1,11 +1,11 @@
 //! Full filter timing, including tile reads, filtering, writeback and pruning.
-//! RAYON_NUM_THREADS=16 cargo run --release -p localpaint-algo --example bench_algorithms -- extrude 6000 4000 u8 3 output.bin
+//! RAYON_NUM_THREADS=16 cargo run --release -p localraster-algo --example bench_algorithms -- extrude 6000 4000 u8 3 output.bin
 //! Optional final argument after output.bin: rgb (default), gray, cmyk or lab.
 //! Run the same example at the base commit and the PR commit, then compare output.bin with cmp.
-use localpaint_algo::{FilterParams, apply_in};
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_algo::{FilterParams, apply_in};
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 use std::io::Write;
 use std::time::Instant;
 
@@ -29,7 +29,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         _ => return Err("depth must be u8, u16 or f32".into()),
     };
     let extrude = |size, depth| FilterParams::Extrude {
-        kind: localpaint_algo::ExtrudeType::Blocks,
+        kind: localraster_algo::ExtrudeType::Blocks,
         size,
         depth,
         level_based: false,
@@ -41,11 +41,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "extrude" => extrude(30.0, 30.0),
         "extrude-dense" => extrude(8.0, 128.0),
         "extrude-small" => extrude(8.0, 64.0),
-        "wind" => FilterParams::Wind { method: localpaint_algo::WindMethod::Wind, from_right: false, seed: 17 },
-        "blast" => FilterParams::Wind { method: localpaint_algo::WindMethod::Blast, from_right: false, seed: 17 },
-        "blast-right" => FilterParams::Wind { method: localpaint_algo::WindMethod::Blast, from_right: true, seed: 17 },
+        "wind" => FilterParams::Wind { method: localraster_algo::WindMethod::Wind, from_right: false, seed: 17 },
+        "blast" => FilterParams::Wind { method: localraster_algo::WindMethod::Blast, from_right: false, seed: 17 },
+        "blast-right" => FilterParams::Wind { method: localraster_algo::WindMethod::Blast, from_right: true, seed: 17 },
         "spin" => FilterParams::SpinBlur {
-            pins: vec![localpaint_algo::SpinPin { radius_x: 1.0, radius_y: 1.0, blur_angle: 30.0, angle: 17.0, ..Default::default() }],
+            pins: vec![localraster_algo::SpinPin { radius_x: 1.0, radius_y: 1.0, blur_angle: 30.0, angle: 17.0, ..Default::default() }],
         },
         "spin-default" => FilterParams::SpinBlur { pins: vec![Default::default()] },
         "lens" | "lens-ca" | "trap" | "trap-wide" | "trap-default" => FilterParams::Invert,
@@ -80,10 +80,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         source.write_region(r, &pixels);
     }
     let run_filter = |area: Rect| match case {
-        "lens" | "lens-ca" => localpaint_algo::lens::correct(
+        "lens" | "lens-ca" => localraster_algo::lens::correct(
             &source,
             area,
-            &localpaint_algo::lens::LensCorrection {
+            &localraster_algo::lens::LensCorrection {
                 distortion: 12.0,
                 angle: 2.5,
                 vignette_amount: 20.0,
@@ -94,7 +94,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ),
         "trap" | "trap-wide" | "trap-default" => {
             let mut data = source.read_region(area);
-            localpaint_algo::trap::trap(
+            localraster_algo::trap::trap(
                 &mut data,
                 area.width() as usize,
                 area.height() as usize,

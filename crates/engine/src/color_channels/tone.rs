@@ -2,11 +2,11 @@
 //! through the existing compositor oracle; float tiles retain its signed/HDR formulae.
 use std::{collections::BTreeSet, sync::Arc};
 
-use localpaint_color::{ColorMode, PixelFormat, SampleType, read_sample, write_sample};
-use localpaint_compose::{Buffer, adjust};
-use localpaint_doc::Adjustment;
-use localpaint_geom::{Rect, TILE_SIZE};
-use localpaint_raster::Surface;
+use localraster_color::{ColorMode, PixelFormat, SampleType, read_sample, write_sample};
+use localraster_compose::{Buffer, adjust};
+use localraster_doc::Adjustment;
+use localraster_geom::{Rect, TILE_SIZE};
+use localraster_raster::Surface;
 use rayon::prelude::*;
 
 use super::{ColorChannels, scalar_adjustment};
@@ -207,7 +207,7 @@ fn output(tone: f32, adjusted: f32, weight: f32, component: &Component, fmt: Pix
         tone + (256.0 / 255.0 - tone.clamp(0.0, 1.0) - tone) * weight
     } else {
         // Match the scalar compositor: full coverage keeps the edit even over huge HDR values.
-        localpaint_color::convert::rgb_to_gray([tone * (1.0 - weight) + adjusted * weight; 3])
+        localraster_color::convert::rgb_to_gray([tone * (1.0 - weight) + adjusted * weight; 3])
     };
     let mut encoded = [0; 4];
     write_sample(&mut encoded, fmt.sample, 0, value);
@@ -218,7 +218,7 @@ fn output(tone: f32, adjusted: f32, weight: f32, component: &Component, fmt: Pix
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_doc::adjust::{CurvePoint, LevelsChannel, ToneSpace};
+    use localraster_doc::adjust::{CurvePoint, LevelsChannel, ToneSpace};
 
     #[test]
     fn full_coverage_keeps_threshold_over_extreme_float_channels() {

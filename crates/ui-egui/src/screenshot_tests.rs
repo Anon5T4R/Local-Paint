@@ -483,7 +483,7 @@ fn a_never_issued_request_times_out() {
 }
 
 /// Execute the same logic→UI order as eframe, with genuinely new host geometry before logic.
-fn actual_capture_frame(app: &mut crate::LocalPaintApp, ctx: &Context, size: egui::Vec2, scale: f32, minimized: bool) -> egui::FullOutput {
+fn actual_capture_frame(app: &mut crate::LocalRasterApp, ctx: &Context, size: egui::Vec2, scale: f32, minimized: bool) -> egui::FullOutput {
     use eframe::App as _;
     let rect = egui::Rect::from_min_size(egui::Pos2::ZERO, size);
     let mut viewports = egui::ViewportIdMap::default();
@@ -513,7 +513,7 @@ type ScreenshotWrites = std::rc::Rc<std::cell::RefCell<Vec<(String, Vec<u8>)>>>;
 type ScreenshotEncodes = std::rc::Rc<std::cell::RefCell<Vec<(u32, u32, Vec<u8>)>>>;
 
 struct ActualCallbackFixture {
-    app: crate::LocalPaintApp,
+    app: crate::LocalRasterApp,
     ctx: Context,
     writes: ScreenshotWrites,
     encodes: ScreenshotEncodes,
@@ -537,12 +537,13 @@ fn actual_callback_fixture() -> ActualCallbackFixture {
         })),
         encode_png: Some(Box::new(move |w, h, rgba| {
             encoded.borrow_mut().push((w, h, rgba.get(..4).unwrap_or_default().to_vec()));
-            let image = localpaint_codecs::Image::from_u8(w, h, localpaint_codecs::ChannelLayout::Rgba, rgba.to_vec()).map_err(|error| error.to_string())?;
-            localpaint_codecs::encode(&image, localpaint_codecs::Format::Png, &localpaint_codecs::EncodeOptions::default()).map_err(|error| error.to_string())
+            let image = localraster_codecs::Image::from_u8(w, h, localraster_codecs::ChannelLayout::Rgba, rgba.to_vec()).map_err(|error| error.to_string())?;
+            localraster_codecs::encode(&image, localraster_codecs::Format::Png, &localraster_codecs::EncodeOptions::default())
+                .map_err(|error| error.to_string())
         })),
         ..Default::default()
     };
-    let mut app = crate::LocalPaintApp::new(localpaint_engine::Session::new(), services);
+    let mut app = crate::LocalRasterApp::new(localraster_engine::Session::new(), services);
     app.run("file.new", serde_json::json!({"width": 32, "height": 32})).unwrap();
     let ctx = Context::default();
     for _ in 0..4 {

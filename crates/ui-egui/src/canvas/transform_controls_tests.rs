@@ -5,7 +5,7 @@ use serde_json::json;
 /// the pixels themselves, while they float and once dropped.
 #[test]
 fn transform_controls_frame_the_moved_pixels_not_the_marquee() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 200, "height": 200, "background": "transparent"})).unwrap();
     app.session.execute("select.rect", json!({"x": 40, "y": 40, "width": 50, "height": 40})).unwrap();
     app.session.execute("edit.fill", json!({"color": "#ff0000"})).unwrap();
@@ -15,7 +15,7 @@ fn transform_controls_frame_the_moved_pixels_not_the_marquee() {
     app.ui.tool_options.move_show_transform = true;
     let xf =
         ViewXform { rect: Rect::from_min_size(Pos2::ZERO, vec2(200.0, 200.0)), zoom: 1.0, center: [100.0, 100.0], flip: false, rotation: 0.0, aspect: 1.0 };
-    let frame = |app: &LocalPaintApp| {
+    let frame = |app: &LocalRasterApp| {
         let r = transform_controls_rect(app, &xf).unwrap();
         let (lt, rb) = (xf.to_doc(r.left_top()), xf.to_doc(r.right_bottom()));
         [lt[0], lt[1], rb[0], rb[1]].map(|v| v.round() as i32)
@@ -31,7 +31,7 @@ fn transform_controls_frame_the_moved_pixels_not_the_marquee() {
 /// with them, as in Photoshop: its ants follow the drag and it lands with them in one step.
 #[test]
 fn moving_several_layers_carries_the_selection() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 200, "height": 200, "background": "transparent"})).unwrap();
     let a = app.session.active().unwrap().active_layer.unwrap();
     app.session.execute("select.rect", json!({"x": 40, "y": 40, "width": 50, "height": 40})).unwrap();
@@ -53,21 +53,21 @@ fn moving_several_layers_carries_the_selection() {
     assert_eq!(selection_shown_offset(&app), Some((12, 8)), "the ants follow the layers");
     tool_event(&mut app, ToolEvent::Up { x: 72.0, y: 68.0 }, m);
     let st = app.session.active().unwrap();
-    assert!(localpaint_engine::float_cmds::floating(st).is_none(), "whole layers moved, nothing floats");
-    assert_eq!(st.doc.selection.as_ref().map(|s| s.content_bounds()), Some(localpaint_geom::Rect::new(32, 28, 132, 118)));
-    assert_eq!(st.doc.layer(a).unwrap().surface().unwrap().content_bounds(), localpaint_geom::Rect::new(52, 48, 102, 88));
+    assert!(localraster_engine::float_cmds::floating(st).is_none(), "whole layers moved, nothing floats");
+    assert_eq!(st.doc.selection.as_ref().map(|s| s.content_bounds()), Some(localraster_geom::Rect::new(32, 28, 132, 118)));
+    assert_eq!(st.doc.layer(a).unwrap().surface().unwrap().content_bounds(), localraster_geom::Rect::new(52, 48, 102, 88));
     assert_eq!(st.history.past_len(), steps + 1, "one Move step");
     assert!(app.session.undo());
     let sel = app.session.active().unwrap().doc.selection.as_ref().map(|s| s.content_bounds());
-    assert_eq!(sel, Some(localpaint_geom::Rect::new(20, 20, 120, 110)), "Undo takes the selection back too");
+    assert_eq!(sel, Some(localraster_geom::Rect::new(20, 20, 120, 110)), "Undo takes the selection back too");
 
     // A piece floating (a marquee ⌘-drag with both selected) when the layers are dragged: the
     // press drops it first, so the ants follow the drag from where it was dropped.
     app.run("select.float", json!({"dx": 10, "dy": 5})).unwrap();
-    let outline = localpaint_engine::float_cmds::floating(app.session.active().unwrap()).unwrap().parts.outline().unwrap().content_bounds();
+    let outline = localraster_engine::float_cmds::floating(app.session.active().unwrap()).unwrap().parts.outline().unwrap().content_bounds();
     tool_event(&mut app, ToolEvent::Down { x: 60.0, y: 60.0, pressure: 1.0 }, m);
     let st = app.session.active().unwrap();
-    assert!(localpaint_engine::float_cmds::floating(st).is_none(), "the press dropped the piece");
+    assert!(localraster_engine::float_cmds::floating(st).is_none(), "the press dropped the piece");
     assert_eq!(st.doc.selection.as_ref().map(|s| s.content_bounds()), Some(outline.translate(10, 5)), "at its offset");
     tool_event(&mut app, ToolEvent::Move { x: 72.0, y: 68.0, pressure: 1.0 }, m);
     assert_eq!(selection_shown_offset(&app), Some((12, 8)), "then the ants follow the drag");
@@ -78,8 +78,8 @@ fn moving_several_layers_carries_the_selection() {
 
 /// A transparent 200² document: a red square (40..90, 40..80) on its layer, a loose marquee
 /// (20..120, 20..110) round it, cut and floated 10, 5 to the right and down.
-fn floating_square() -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn floating_square() -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 200, "height": 200, "background": "transparent"})).unwrap();
     app.session.execute("select.rect", json!({"x": 40, "y": 40, "width": 50, "height": 40})).unwrap();
     app.session.execute("edit.fill", json!({"color": "#ff0000"})).unwrap();
@@ -117,7 +117,7 @@ fn a_floating_piece_among_several_selected_layers_keeps_the_shared_frame() {
     app.ui.tool_options.move_show_transform = true;
     assert_eq!(transform_controls_layers(&app).len(), 2, "two layers framed");
     app.session.execute("select.float", json!({"dx": 5, "dy": 0})).unwrap();
-    assert!(localpaint_engine::float_cmds::floating(app.session.active().unwrap()).is_some());
+    assert!(localraster_engine::float_cmds::floating(app.session.active().unwrap()).is_some());
     let xf =
         ViewXform { rect: Rect::from_min_size(Pos2::ZERO, vec2(200.0, 200.0)), zoom: 1.0, center: [100.0, 100.0], flip: false, rotation: 0.0, aspect: 1.0 };
     let r = transform_controls_rect(&app, &xf).unwrap();
@@ -129,7 +129,7 @@ fn a_floating_piece_among_several_selected_layers_keeps_the_shared_frame() {
 fn several_selected_layers_share_one_frame_that_transforms_them_all() {
     // As in Photoshop: Show Transform Controls frames every selected layer, and its handles
     // start one Free Transform of all of them (#6501).
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 200, "height": 200})).unwrap();
     app.session.execute("shape.create", json!({"kind": "rect", "rect": [20, 30, 40, 40], "fill": "#ff0000"})).unwrap();
     let a = app.session.active().unwrap().active_layer.unwrap();
@@ -160,7 +160,7 @@ fn several_selected_layers_share_one_frame_that_transforms_them_all() {
 
 #[test]
 fn move_transform_controls_start_free_transform_for_vector_shapes() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 200, "height": 200})).unwrap();
     app.session.execute("shape.create", json!({"kind": "rect", "rect": [20, 30, 80, 40], "fill": "#ff0000"})).unwrap();
     app.sync_views();
@@ -182,7 +182,7 @@ fn move_transform_controls_start_free_transform_for_vector_shapes() {
 fn hiding_extras_hides_the_move_transform_controls() {
     // #6699: as in Photoshop, View › Extras (⌘H) hides the Move tool's transform box and
     // handles; again brings them back. Show Transform Controls and the layer stay as they were.
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 200, "height": 200})).unwrap();
     app.session.execute("shape.create", json!({"kind": "rect", "rect": [20, 30, 80, 40], "fill": "#ff0000"})).unwrap();
     app.sync_views();
@@ -193,7 +193,7 @@ fn hiding_extras_hides_the_move_transform_controls() {
     let ctx = egui::Context::default();
     let shown = transform_controls_rect(&app, &xf).expect("the box shows with Extras on");
     let layer = app.session.active().unwrap().doc.layers.clone();
-    let painted = |app: &mut LocalPaintApp| {
+    let painted = |app: &mut LocalRasterApp| {
         let out = ctx.run_ui(egui::RawInput::default(), |ui| {
             let painter = ui.ctx().layer_painter(egui::LayerId::background());
             draw_transform_controls(app, &painter, &xf);
@@ -222,7 +222,7 @@ fn hiding_extras_hides_the_move_transform_controls() {
 
 #[test]
 fn move_transform_controls_follow_floating_selected_pixels() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     app.run("select.rect", json!({"x": 100, "y": 100, "width": 100, "height": 60})).unwrap();
@@ -243,7 +243,7 @@ fn move_transform_controls_follow_floating_selected_pixels() {
 /// though the layer fills only part of it, and a press on them opens that box.
 #[test]
 fn move_transform_controls_frame_the_selection() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     app.run("select.rect", json!({"x": 100, "y": 100, "width": 100, "height": 60})).unwrap();
@@ -265,7 +265,7 @@ fn move_transform_controls_frame_the_selection() {
 /// open, preview every drag and fail only at commit.
 #[test]
 fn free_transform_on_a_locked_layer_is_refused_up_front() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 200, "height": 200})).unwrap();
     app.session.execute("shape.create", json!({"kind": "rect", "rect": [20, 30, 80, 40], "fill": "#ff0000"})).unwrap();
     app.session
@@ -275,7 +275,7 @@ fn free_transform_on_a_locked_layer_is_refused_up_front() {
         })
         .unwrap();
     app.sync_views();
-    let errors = |app: &LocalPaintApp| -> Vec<String> {
+    let errors = |app: &LocalRasterApp| -> Vec<String> {
         app.ui
             .dialogs
             .iter()
@@ -303,7 +303,7 @@ fn free_transform_on_a_locked_layer_is_refused_up_front() {
 
 #[test]
 fn move_transform_controls_show_resize_and_rotate_cursors_before_first_interaction() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 200, "height": 200})).unwrap();
     app.session.execute("shape.create", json!({"kind": "rect", "rect": [20, 30, 80, 40], "fill": "#ff0000"})).unwrap();
     app.sync_views();

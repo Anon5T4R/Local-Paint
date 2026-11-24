@@ -2,9 +2,9 @@
 //! layer happens to be active (#466 for smart filters, generalised): a script, action or agent can
 //! Replace Contents or Rasterize a smart object while another layer is selected.
 
-use localpaint_doc::{LayerContent, LayerId};
-use localpaint_engine::{EngineError, Session};
-use localpaint_geom::Rect;
+use localraster_doc::{LayerContent, LayerId};
+use localraster_engine::{EngineError, Session};
+use localraster_geom::Rect;
 use serde_json::json;
 
 /// A smart object (blue) under a plain pixel layer, which is active.
@@ -40,14 +40,14 @@ fn smart_object_commands_act_on_a_named_layer_while_another_is_active() {
     let dir = std::env::temp_dir().join(format!("pcraft-explicit-layer-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let png = dir.join("red.png");
-    let red = localpaint_doc::Document::with_background(
+    let red = localraster_doc::Document::with_background(
         "r",
-        localpaint_geom::Size::new(8, 6),
-        localpaint_color::ColorMode::Rgb,
-        localpaint_color::SampleType::U8,
-        localpaint_color::Color::rgba(1.0, 0.0, 0.0, 1.0),
+        localraster_geom::Size::new(8, 6),
+        localraster_color::ColorMode::Rgb,
+        localraster_color::SampleType::U8,
+        localraster_color::Color::rgba(1.0, 0.0, 0.0, 1.0),
     );
-    std::fs::write(&png, localpaint_io::export(&red, "png", &Default::default()).unwrap().bytes).unwrap();
+    std::fs::write(&png, localraster_io::export(&red, "png", &Default::default()).unwrap().bytes).unwrap();
     s.execute("layer.smartObjects.replaceContents", json!({"layer": so, "path": png.to_str().unwrap()})).unwrap();
     std::fs::remove_dir_all(&dir).ok();
     let LayerContent::Smart(sm) = &s.active().unwrap().doc.layer(LayerId(so)).unwrap().content else { panic!("smart object") };

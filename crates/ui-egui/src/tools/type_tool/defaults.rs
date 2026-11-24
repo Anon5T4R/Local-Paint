@@ -1,9 +1,9 @@
 use super::editing::edit_home;
 use super::insertion_style;
-use super::{LayerId, LocalPaintApp, TextLayer, hex, json, text_layer};
+use super::{LayerId, LocalRasterApp, TextLayer, hex, json, text_layer};
 
 /// Representative for the displayed properties: the edit layer, else a selected type layer.
-pub(crate) fn target(app: &LocalPaintApp) -> Option<(u64, Option<[usize; 2]>)> {
+pub(crate) fn target(app: &LocalRasterApp) -> Option<(u64, Option<[usize; 2]>)> {
     if let Some(ed) = &app.ui.text_edit {
         let (a, b) = (ed.caret.min(ed.anchor), ed.caret.max(ed.anchor));
         return Some((ed.layer, (a < b).then_some([a, b])));
@@ -17,14 +17,14 @@ pub(crate) fn target(app: &LocalPaintApp) -> Option<(u64, Option<[usize; 2]>)> {
 }
 
 /// The type layer whose properties the Type controls and dialogs show (see [`target`]).
-pub(crate) fn target_text(app: &LocalPaintApp) -> Option<&TextLayer> {
+pub(crate) fn target_text(app: &LocalRasterApp) -> Option<&TextLayer> {
     let (id, _) = target(app)?;
     text_layer(&target_doc(app)?.doc, LayerId(id))
 }
 
 /// The document [`target`]'s layer is in: a text edit's own, which can stay in a background
 /// document where the same layer id may name another layer, else the active one.
-pub(super) fn target_doc(app: &LocalPaintApp) -> Option<&localpaint_engine::DocState> {
+pub(super) fn target_doc(app: &LocalRasterApp) -> Option<&localraster_engine::DocState> {
     match &app.ui.text_edit {
         Some(ed) => app.session.documents().get(edit_home(app, ed)?),
         None => app.session.active(),
@@ -33,7 +33,7 @@ pub(super) fn target_doc(app: &LocalPaintApp) -> Option<&localpaint_engine::DocS
 
 /// Snapshot the mutation scope separately from the representative used to display properties.
 /// An inline edit remains on its layer/range; layer selection formats every selected type layer.
-pub(crate) fn formatting_params(app: &LocalPaintApp) -> Option<serde_json::Value> {
+pub(crate) fn formatting_params(app: &LocalRasterApp) -> Option<serde_json::Value> {
     if let Some(ed) = &app.ui.text_edit {
         let mut params = json!({"layer": ed.layer, "coalesce": ed.session});
         let (a, b) = (ed.caret.min(ed.anchor), ed.caret.max(ed.anchor));
@@ -49,7 +49,7 @@ pub(crate) fn formatting_params(app: &LocalPaintApp) -> Option<serde_json::Value
 
 /// Scale of the target layer's transform. Like Photoshop, sizes show and edit as the layer
 /// appears: a 12 pt layer scaled 200% (common in PSDs) reads 24 pt.
-pub(super) fn shown_scale(app: &LocalPaintApp) -> f32 {
+pub(super) fn shown_scale(app: &LocalRasterApp) -> f32 {
     let Some((id, _)) = target(app) else { return 1.0 };
     let Some(t) = app.session.active().and_then(|st| text_layer(&st.doc, LayerId(id))) else { return 1.0 };
     let m = t.transform.m;
@@ -59,12 +59,12 @@ pub(super) fn shown_scale(app: &LocalPaintApp) -> f32 {
 
 /// The display unit for type metrics (Preferences ▸ Units & Rulers ▸ Type): the multiplier from
 /// the model's points to the unit, and its label. Pixels follow the document's resolution.
-pub(crate) fn type_unit(app: &LocalPaintApp) -> (f32, &'static str) {
+pub(crate) fn type_unit(app: &LocalRasterApp) -> (f32, &'static str) {
     let dpi = app.session.active().map_or(72.0, |d| d.doc.resolution_dpi.max(1.0));
     match app.session.prefs().units_and_rulers.type_units {
-        localpaint_engine::prefs::TypeUnit::Points => (1.0, "pt"),
-        localpaint_engine::prefs::TypeUnit::Pixels => (dpi / 72.0, "px"),
-        localpaint_engine::prefs::TypeUnit::Millimeters => (25.4 / 72.0, "mm"),
+        localraster_engine::prefs::TypeUnit::Points => (1.0, "pt"),
+        localraster_engine::prefs::TypeUnit::Pixels => (dpi / 72.0, "px"),
+        localraster_engine::prefs::TypeUnit::Millimeters => (25.4 / 72.0, "mm"),
     }
 }
 
@@ -79,12 +79,12 @@ fn drag_key(ctx: &egui::Context) -> Option<String> {
 /// The styles a new Type-tool layer will receive. Use the same command parameters for the
 /// panels and creation so defaults also survive action recording/replay. The older options-bar
 /// fields remain authoritative, and text colour continues to follow the foreground colour.
-pub(super) fn default_style_params(app: &LocalPaintApp) -> serde_json::Value {
+pub(super) fn default_style_params(app: &LocalRasterApp) -> serde_json::Value {
     let o = &app.ui.tool_options;
     let mut p = json!({});
     // Settings are editable JSON: only recognized formatting keys may reach type.create.
     // In particular a stray `text`, `box`, or `coalesce` key must not become a create parameter.
-    let (mut c, mut para) = (localpaint_doc::text::CharStyle::default(), localpaint_doc::text::ParagraphStyle::default());
+    let (mut c, mut para) = (localraster_doc::text::CharStyle::default(), localraster_doc::text::ParagraphStyle::default());
     for (key, value) in &o.type_style_defaults {
         // These belong to the existing options-bar fields. Apart from being redundant,
         // parsing a saved font key here would wait for the background font scan.
@@ -93,12 +93,12 @@ pub(super) fn default_style_params(app: &LocalPaintApp) -> serde_json::Value {
         }
         let one = json!({ (key): value });
         if !finite_style_value(value)
-            || localpaint_engine::type_cmds::check_size_tracking(&one).is_err()
-            || localpaint_engine::type_cmds::check_kerning(&one).is_err()
+            || localraster_engine::type_cmds::check_size_tracking(&one).is_err()
+            || localraster_engine::type_cmds::check_kerning(&one).is_err()
         {
             continue;
         }
-        if localpaint_engine::type_cmds::apply_char_props(&mut c, &one) | localpaint_engine::type_cmds::apply_para_props(&mut para, &one) {
+        if localraster_engine::type_cmds::apply_char_props(&mut c, &one) | localraster_engine::type_cmds::apply_para_props(&mut para, &one) {
             p[key] = value.clone();
         }
     }
@@ -127,13 +127,13 @@ fn finite_style_value(value: &serde_json::Value) -> bool {
     }
 }
 
-pub(super) fn default_styles(app: &LocalPaintApp) -> (localpaint_doc::text::CharStyle, localpaint_doc::text::ParagraphStyle) {
+pub(super) fn default_styles(app: &LocalRasterApp) -> (localraster_doc::text::CharStyle, localraster_doc::text::ParagraphStyle) {
     let (mut c, mut para) = app.session.type_defaults.clone().unwrap_or_default();
     let mut p = default_style_params(app);
     // The saved panels can appear on the very first frame. Style parsing resolves the named
     // font through shared(), which waits for the font scan; display the saved names meanwhile,
     // and let fonts_ready/axis_sliders expose the font controls when try_shared is ready.
-    if localpaint_text::try_shared().is_none() {
+    if localraster_text::try_shared().is_none() {
         c.font_family = app.ui.tool_options.type_font.clone();
         c.font_style = app.ui.tool_options.type_style.clone();
         c.postscript_name = None;
@@ -142,14 +142,14 @@ pub(super) fn default_styles(app: &LocalPaintApp) -> (localpaint_doc::text::Char
             p.remove("fontStyle");
         }
     }
-    localpaint_engine::type_cmds::apply_char_props(&mut c, &p);
-    localpaint_engine::type_cmds::apply_para_props(&mut para, &p);
+    localraster_engine::type_cmds::apply_char_props(&mut c, &p);
+    localraster_engine::type_cmds::apply_para_props(&mut para, &p);
     (c, para)
 }
 
 /// Change tool defaults without creating a document edit. The engine owns the style schema;
 /// keep its property names rather than maintaining another style parser in the shell.
-pub(super) fn apply_defaults(app: &mut LocalPaintApp, props: &serde_json::Value) {
+pub(super) fn apply_defaults(app: &mut LocalRasterApp, props: &serde_json::Value) {
     let Some(props) = props.as_object() else { return };
     let o = &mut app.ui.tool_options;
     for (key, value) in props {
@@ -204,7 +204,7 @@ pub(super) fn apply_defaults(app: &mut LocalPaintApp, props: &serde_json::Value)
 
 /// Apply only the supplied properties to the text-edit scope or selected type layers; without
 /// a type target, prepare the defaults for the next layer instead.
-pub(super) fn apply(app: &mut LocalPaintApp, ctx: &egui::Context, props: serde_json::Value) {
+pub(super) fn apply(app: &mut LocalRasterApp, ctx: &egui::Context, props: serde_json::Value) {
     if insertion_style::set_font(app, &props) {
         return;
     }
@@ -226,7 +226,7 @@ pub(super) fn apply(app: &mut LocalPaintApp, ctx: &egui::Context, props: serde_j
 
 /// Open the shared Color Picker with a snapshot of the text target. Sampling or cancelling
 /// the dialog never changes the text selection, tool colours, or document history.
-pub fn open_color_picker(app: &mut LocalPaintApp, rgb: [f32; 3]) -> u64 {
+pub fn open_color_picker(app: &mut LocalRasterApp, rgb: [f32; 3]) -> u64 {
     if let Some(params) = formatting_params(app) {
         crate::color_picker_ui::open_for_command(app, "Color Picker (Text Color)", rgb, "type.setStyle", params)
     } else {
@@ -236,7 +236,7 @@ pub fn open_color_picker(app: &mut LocalPaintApp, rgb: [f32; 3]) -> u64 {
 
 /// While characters are selected in a type layer, a new foreground colour (Color and Swatches
 /// panels, the Color Picker) recolours them, in the editing session's history step.
-pub fn foreground_changed(app: &mut LocalPaintApp) {
+pub fn foreground_changed(app: &mut LocalRasterApp) {
     let Some((layer, Some(range))) = target(app) else { return };
     let Some(ed) = app.ui.text_edit.as_ref() else { return };
     let p = json!({"layer": layer, "range": range, "color": hex(app.session.tools.foreground), "coalesce": ed.session});

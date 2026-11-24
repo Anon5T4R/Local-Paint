@@ -9,7 +9,7 @@
 # Clean-room: every entry was written from the plain meaning of the English label using ordinary
 # Italian computing vocabulary (livello, pennello, selezione, quadro ...). No proprietary localisation
 # resource, string table or product UI was consulted or copied; add entries the same way.
-# Product and technology names (Local Paint,  OpenType, CMYK, Lab ...) stay in Latin
+# Product and technology names (Local Raster,  OpenType, CMYK, Lab ...) stay in Latin
 # letters; the trailing … of dialog commands is kept.
 
 # Layer Mask Display Options (the layer mask rubylith's colour and opacity)
@@ -104,7 +104,7 @@
 # Batch / Image Processor
 
 # Native Windows printing qualification
-# Local Paint release checks.
+# Local Raster release checks.
 # History panel › History Brush source (#2966)
 # Bevel & Emboss shading controls.
 # Embedded Profile Mismatch: profile names beside the choices, Remember this choice
@@ -909,9 +909,9 @@
 	Timeline	Timeline
 	Tool Presets	Predefiniti strumento
 	Tools	Strumenti
-	About Local Paint	Informazioni su Local Paint
-	Local Paint Website	Sito web Local Paint
-	Local Paint on GitHub	Local Paint su GitHub
+	About Local Raster	Informazioni su Local Raster
+	Local Raster Website	Sito web Local Raster
+	Local Raster on GitHub	Local Raster su GitHub
 	Report an Issue…	Segnala un problema…
 	WIA Support…	Supporto WIA…
 	Apply	Applica
@@ -966,7 +966,7 @@
 	All Caps	Tutto maiuscolo
 	All Slices	Tutte le sezioni
 	All User Slices	Tutte le sezioni utente
-	All shortcuts reset to Local Paint defaults.	Tutte le scorciatoie ripristinate ai predefiniti di Local Paint.
+	All shortcuts reset to Local Raster defaults.	Tutte le scorciatoie ripristinate ai predefiniti di Local Raster.
 	Alt	Alt
 	Always use pressure for opacity	Usa sempre pressione per opacità
 	Always use pressure for size	Usa sempre pressione per dimensione
@@ -1218,8 +1218,8 @@
 	Drop an image or PSD anywhere to open it.	Trascina un'immagine o PSD ovunque per aprirlo.
 	Native file drag-and-drop is unavailable	Il drag-and-drop nativo file non è disponibile su Wayland
 	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	Il drag-and-drop nativo non è ancora supportato su Wayland. Usa File › Apri, oppure copia l'immagine nel file manager e incollala con {paste}.
-	To drop files, start Local Paint under XWayland: `{command}`	Per trascinare file, avvia Local Paint sotto XWayland: `{command}`
-	Or set Preferences › Performance › Linux display server to X11: Local Paint then always starts under XWayland.	Oppure imposta Preferenze › Prestazioni › Server grafico Linux su X11: Local Paint partirà sempre sotto XWayland.
+	To drop files, start Local Raster under XWayland: `{command}`	Per trascinare file, avvia Local Raster sotto XWayland: `{command}`
+	Or set Preferences › Performance › Linux display server to X11: Local Raster then always starts under XWayland.	Oppure imposta Preferenze › Prestazioni › Server grafico Linux su X11: Local Raster partirà sempre sotto XWayland.
 	Edit › Paste	Modifica › Incolla
 	Duplicate Layers…	Duplica livelli…
 	Duplicate style	Duplica stile
@@ -1468,9 +1468,9 @@
 	Perspective Warp is not active	Altera prospettiva non attiva
 	Perspective Warp: draw planes along the image's perspective, then switch to Warp	Altera prospettiva: disegna piani lungo la prospettiva immagine, poi passa ad Altera
 	Photo Filter	Filtro fotografico
-	Local Paint	Local Paint
-	Local Paint Manages Colors	Local Paint gestisce i colori
-	Local Paint — an open-source, native image editor written in Rust.	Local Paint — editor immagini nativo open-source scritto in Rust.
+	Local Raster	Local Raster
+	Local Raster Manages Colors	Local Raster gestisce i colori
+	Local Raster — an open-source, native image editor written in Rust.	Local Raster — editor immagini nativo open-source scritto in Rust.
 	Pin Depth:	Profondità pin:
 	Pixel Length:	Lunghezza pixel:
 	Pixels/Centimeter	Pixel/Centimetro
@@ -1546,11 +1546,11 @@
 	Import Shortcuts…	Importa scorciatoie…
 	Load a keyboard shortcut set saved as .kys	Carica un set di scorciatoie da tastiera salvato come .kys
 	Imported {n} shortcuts from {file}. Click OK to keep them.	Importate {n} scorciatoie da {file}. Fai clic su OK per conservarle.
-	{n} commands are not in Local Paint.	{n} comandi non esistono in Local Paint.
+	{n} commands are not in Local Raster.	{n} comandi non esistono in Local Raster.
 	Keyboard shortcuts imported	Scorciatoie da tastiera importate
 	Your keyboard shortcut set {set} is in use here: {n} shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.	Il tuo set di scorciatoie da tastiera {set} è in uso qui: {n} scorciatoie differiscono dai predefiniti. Modifica › Scorciatoie da tastiera le mostra; Ripristina tutto ai predefiniti annulla l'importazione.
 	Import keyboard shortcuts?	Importare le scorciatoie da tastiera?
-	Local Paint found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from Local Paint's. Import it?	Local Paint ha trovato su questo computer il tuo set di scorciatoie da tastiera {set} di un altro editor di immagini: {n} delle sue scorciatoie differiscono da quelle di Local Paint. Importarlo?
+	Local Raster found your keyboard shortcut set {set} from another image editor on this computer: {n} of its shortcuts differ from Local Raster's. Import it?	Local Raster ha trovato su questo computer il tuo set di scorciatoie da tastiera {set} di un altro editor di immagini: {n} delle sue scorciatoie differiscono da quelle di Local Raster. Importarlo?
 	Edit › Keyboard Shortcuts › Reset All to Defaults undoes an import.	Modifica › Scorciatoie da tastiera › Ripristina tutto ai predefiniti annulla un'importazione.
 	Don't Import	Non importare
 	The keyboard shortcut set was not imported: {error}	Il set di scorciatoie da tastiera non è stato importato: {error}
@@ -1774,7 +1774,7 @@
 	Current Tool	Strumento corrente
 	Custom Shape Tool	Strumento Forma personale
 	Cyans	Ciano
-	Default Local Paint Size	Dimensione predefinita Local Paint
+	Default Local Raster Size	Dimensione predefinita Local Raster
 	Delete Workspace	Elimina area di lavoro
 	Diamond	Diamante
 	Dimensions:	Dimensioni:
@@ -1885,7 +1885,7 @@
 	Pen Tool	Strumento Penna
 	Convert Point Tool	Strumento Converti punto
 	Photo	Foto
-	Local Paint website	Sito web Local Paint
+	Local Raster website	Sito web Local Raster
 	Picas	Pica
 	Pillow Emboss	Rilievo cuscino
 	Pixel Replacement	Sostituzione pixel
@@ -2218,7 +2218,7 @@
 	System Info	Info sistema
 	More panels	Altri pannelli
 	More documents	Altri documenti
-	These settings aren't available in Local Paint yet.	Queste impostazioni non sono ancora disponibili in Local Paint.
+	These settings aren't available in Local Raster yet.	Queste impostazioni non sono ancora disponibili in Local Raster.
 	Graphics	Grafica
 	Reset GPU Backend	Reimposta backend GPU
 	Applies at next launch.	Si applica al prossimo avvio.
@@ -2433,7 +2433,7 @@
 	Automatic uses GPU acceleration when available and falls back to CPU rendering on errors.	Automatico usa accelerazione GPU quando disponibile e ripiega su CPU in caso di errori.
 	Switched to CPU rendering	Passato a rendering CPU
 	GPU acceleration could not continue. Your documents are unchanged.	Accelerazione GPU non ha potuto continuare. I documenti sono invariati.
-	Local Paint is using the CPU image compositor. The window may still use your graphics adapter.	Local Paint sta componendo immagini su CPU. La finestra può ancora usare adattatore grafico.
+	Local Raster is using the CPU image compositor. The window may still use your graphics adapter.	Local Raster sta componendo immagini su CPU. La finestra può ancora usare adattatore grafico.
 	Retry GPU requires a restart. Save your work first.	Riprovare GPU richiede riavvio. Salva prima il lavoro.
 	Retry GPU tries the graphics processor again now.	Riprova GPU riprova subito il processore grafico.
 	GPU acceleration resumed.	Accelerazione GPU ripresa.
@@ -2651,7 +2651,7 @@ fontWeight	Italic	Corsivo
 	Color to Alpha…	Colore ad alfa…
 	Transparency Threshold	Soglia di trasparenza
 	Opacity Threshold	Soglia di opacità
-	Local Paint — Screen Color Picker	Local Paint — Selettore colore schermo
+	Local Raster — Screen Color Picker	Local Raster — Selettore colore schermo
 	Rasterize svg groups deeper than	Rasterizza i gruppi SVG oltre questa profondità
 	0 turns this threshold off; SVG groups nested deeper than 100 levels are always rasterized.	0 disattiva questa soglia; i gruppi SVG annidati oltre 100 livelli vengono sempre rasterizzati.
 	Rule of Thirds	Regola dei terzi
@@ -3439,7 +3439,7 @@ layerLabel	No Color	Nessun colore
 	Restart Required	Riavvio necessario
 	Restart	Riavvia
 	Quit	Esci
-	Quit Local Paint	Esci da Local Paint
+	Quit Local Raster	Esci da Local Raster
 	Close Window	Chiudi finestra
 	New Window	Nuova finestra
 	Open Image	Apri immagine
@@ -3942,7 +3942,7 @@ layerLabel	No Color	Nessun colore
 	Mezzotint	Mezzatinta
 	Mosaic	Mosaico
 	Motion Blur	Movimento sfocato
-	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or run Local Paint under XWayland with `WAYLAND_DISPLAY= localpaint`.	Il drag-and-drop nativo dei file non è ancora supportato su Wayland. Usa File › Apri, oppure avvia Local Paint sotto XWayland con `WAYLAND_DISPLAY= localpaint`.
+	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or run Local Raster under XWayland with `WAYLAND_DISPLAY= localraster`.	Il drag-and-drop nativo dei file non è ancora supportato su Wayland. Usa File › Apri, oppure avvia Local Raster sotto XWayland con `WAYLAND_DISPLAY= localraster`.
 	Neon Glow	Bagliore neon
 	New Guide Layout	Nuovo layout guide
 	New Video Layer from File	Nuovo livello video da file
@@ -4121,9 +4121,9 @@ layerLabel	No Color	Nessun colore
 	Saved {path}; image assets: {n} in {dir}	Salvato: {path}; risorse immagine: {n} in {dir}
 	{message} (notes: {n}; {warning})	{message} (note: {n}; {warning})
 	Preferences can't be saved	Impossibile salvare le preferenze
-	Local Paint keeps retrying; until a save succeeds, preference changes are lost when it closes.	Local Paint continua a riprovare; finché un salvataggio non riesce, le modifiche alle preferenze andranno perse alla chiusura.
+	Local Raster keeps retrying; until a save succeeds, preference changes are lost when it closes.	Local Raster continua a riprovare; finché un salvataggio non riesce, le modifiche alle preferenze andranno perse alla chiusura.
 	GPU retry scheduled	Nuovo tentativo GPU programmato
-	Save your work and restart Local Paint to retry GPU acceleration. CPU rendering remains active for this session.	Salva il lavoro e riavvia Local Paint per riprovare l'accelerazione GPU. Per questa sessione resta attivo il rendering su CPU.
+	Save your work and restart Local Raster to retry GPU acceleration. CPU rendering remains active for this session.	Salva il lavoro e riavvia Local Raster per riprovare l'accelerazione GPU. Per questa sessione resta attivo il rendering su CPU.
 	GPU device was lost; using the CPU renderer.	Dispositivo GPU perso; uso il rendering su CPU.
 	GPU error; using the CPU renderer.	Errore GPU; uso il rendering su CPU.
 	Couldn't open {name}: {error}	Impossibile aprire {name}: {error}
@@ -4220,7 +4220,7 @@ navigator	Zoom	Zoom
 	{name} (Photoshop)	{name} (Photoshop)
 	{message} ({note})	{message} ({note})
 @plural	Loaded {n} action from {file}|Loaded {n} actions from {file}	Caricata {n} azione da {file}|Caricate {n} azioni da {file}
-@plural	{n} step has no Local Paint equivalent yet|{n} steps have no Local Paint equivalent yet	{n} passaggio non ha ancora un equivalente in Local Paint|{n} passaggi non hanno ancora un equivalente in Local Paint
+@plural	{n} step has no Local Raster equivalent yet|{n} steps have no Local Raster equivalent yet	{n} passaggio non ha ancora un equivalente in Local Raster|{n} passaggi non hanno ancora un equivalente in Local Raster
 @plural	Saved {n} action to {file}|Saved {n} actions to {file}	Salvata {n} azione in {file}|Salvate {n} azioni in {file}
 @plural	{n} step with no Photoshop equivalent left out|{n} steps with no Photoshop equivalent left out	Omesso {n} passaggio senza equivalente in Photoshop|Omessi {n} passaggi senza equivalente in Photoshop
 	File Naming	Denominazione file
@@ -4472,12 +4472,12 @@ shape	Appearance	Aspetto
 	Bicubic Smoother	Bicubica più morbida
 	Bicubic Sharper	Bicubica più nitida
 	Pasting from other apps is unavailable	Incollare da altre app non è disponibile
-	Local Paint can't reach the system clipboard in this session. On Wayland, a Flatpak sandbox hides the protocol that images from other apps are read through.	Local Paint non può accedere agli appunti di sistema in questa sessione. Su Wayland, la sandbox di Flatpak nasconde il protocollo con cui vengono lette le immagini delle altre app.
-	To paste from other apps, start Local Paint under XWayland: `{command}`	Per incollare da altre app, avvia Local Paint in XWayland: `{command}`
-	Nothing to paste: Local Paint can't read the system clipboard here	Niente da incollare: qui Local Paint non può leggere gli appunti di sistema
+	Local Raster can't reach the system clipboard in this session. On Wayland, a Flatpak sandbox hides the protocol that images from other apps are read through.	Local Raster non può accedere agli appunti di sistema in questa sessione. Su Wayland, la sandbox di Flatpak nasconde il protocollo con cui vengono lette le immagini delle altre app.
+	To paste from other apps, start Local Raster under XWayland: `{command}`	Per incollare da altre app, avvia Local Raster in XWayland: `{command}`
+	Nothing to paste: Local Raster can't read the system clipboard here	Niente da incollare: qui Local Raster non può leggere gli appunti di sistema
 	Delete this set	Elimina questo set
 	New Set…	Nuovo set…
-	Local Paint Defaults	Predefiniti di Local Paint
+	Local Raster Defaults	Predefiniti di Local Raster
 	Save a list of these shortcuts as a web page	Salva un elenco di queste scorciatoie come pagina web
 	Save the changes to this set	Salva le modifiche in questo set
 	Save these shortcuts as a .kys file	Salva queste scorciatoie come file .kys

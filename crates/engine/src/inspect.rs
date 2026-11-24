@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use localpaint_doc::{Adjustment, Layer, LayerContent, SmartContentsId, SmartSource};
+use localraster_doc::{Adjustment, Layer, LayerContent, SmartContentsId, SmartSource};
 use serde_json::{Value, json};
 
 use crate::{DocState, Session};
@@ -87,7 +87,7 @@ fn smart_instances(layers: &[Layer]) -> HashMap<SmartContentsId, usize> {
 }
 
 /// [`layer`] with a `selected` flag on every node (Layers panel multi-selection).
-fn layer_sel(l: &Layer, selected: &[localpaint_doc::LayerId], instances: &HashMap<SmartContentsId, usize>, meta: Option<&localpaint_doc::Metadata>) -> Value {
+fn layer_sel(l: &Layer, selected: &[localraster_doc::LayerId], instances: &HashMap<SmartContentsId, usize>, meta: Option<&localraster_doc::Metadata>) -> Value {
     let bounds = l.surface().map(|s| {
         let r = s.content_bounds();
         [r.x0, r.y0, r.width() as i32, r.height() as i32]
@@ -142,7 +142,7 @@ fn layer_sel(l: &Layer, selected: &[localpaint_doc::LayerId], instances: &HashMa
             // New Smart Object via Copy embeds its own copy of the file instead.
             v["smartSource"] = match &sm.source {
                 SmartSource::Embedded { file_name, .. } => json!({"kind": "embedded", "fileName": file_name}),
-                SmartSource::Linked { path } => match meta.and_then(|m| localpaint_io::linked::embedded_file_name(m, path)) {
+                SmartSource::Linked { path } => match meta.and_then(|m| localraster_io::linked::embedded_file_name(m, path)) {
                     Some(name) => json!({"kind": "embedded", "fileName": name, "uuid": path}),
                     None => json!({"kind": "linked", "path": path}),
                 },
@@ -172,7 +172,7 @@ fn layer_sel(l: &Layer, selected: &[localpaint_doc::LayerId], instances: &HashMa
             .ranges
             .iter()
             .enumerate()
-            .filter(|(_, r)| !r.iter().all(localpaint_doc::BlendRange::is_full))
+            .filter(|(_, r)| !r.iter().all(localraster_doc::BlendRange::is_full))
             .map(|(i, [this, under])| json!({"channel": i, "thisLayer": this.to_bytes(), "underlying": under.to_bytes()}))
             .collect();
     }
@@ -186,8 +186,8 @@ fn layer_sel(l: &Layer, selected: &[localpaint_doc::LayerId], instances: &HashMa
     // Video layer (Layer › Video Layers): the frame stack behind the displayed content.
     if let Some(vid) = &l.video {
         let source = match &vid.source {
-            localpaint_doc::VideoSource::Blank => Value::String("blank".into()),
-            localpaint_doc::VideoSource::File { path } => json!({ "file": path }),
+            localraster_doc::VideoSource::Blank => Value::String("blank".into()),
+            localraster_doc::VideoSource::File { path } => json!({ "file": path }),
         };
         v["video"] = json!({"frames": vid.frames.len(), "fps": vid.fps, "showAltered": vid.show_altered, "source": source});
     }
@@ -197,8 +197,8 @@ fn layer_sel(l: &Layer, selected: &[localpaint_doc::LayerId], instances: &HashMa
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_color::PixelFormat;
-    use localpaint_doc::{LayerMask, Path, VectorMask};
+    use localraster_color::PixelFormat;
+    use localraster_doc::{LayerMask, Path, VectorMask};
 
     #[test]
     fn an_adjustment_layer_is_reported_with_the_params_its_command_takes() {
@@ -214,12 +214,12 @@ mod tests {
             LayerContent::Adjustment(a) => a.clone(),
             c => panic!("{c:?}"),
         };
-        let back = crate::adjust_params::from_params("levels", &adj["params"], None, localpaint_color::ColorMode::Rgb).unwrap();
+        let back = crate::adjust_params::from_params("levels", &adj["params"], None, localraster_color::ColorMode::Rgb).unwrap();
         assert_eq!(crate::adjust_params::to_params(&back), crate::adjust_params::to_params(&model));
         assert!(!adj.to_string().contains('_'), "{adj}");
     }
 
-    /// #6541: an adjustment Local Paint keeps but cannot render is reported as such, not as an Invert.
+    /// #6541: an adjustment Local Raster keeps but cannot render is reported as such, not as an Invert.
     #[test]
     fn an_unsupported_adjustment_layer_is_reported_as_kept_not_rendered() {
         let mut s = Session::new();

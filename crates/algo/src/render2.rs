@@ -11,8 +11,8 @@
 //! built from observation of what the options do, not from any reference
 //! implementation.
 
-use localpaint_geom::Rect;
-use localpaint_raster::{Surface, from_rgba_into, to_rgba};
+use localraster_geom::Rect;
+use localraster_raster::{Surface, from_rgba_into, to_rgba};
 use serde::{Deserialize, Serialize};
 
 // ---------------------------------------------------------------------------
@@ -1553,7 +1553,7 @@ pub fn picture_frame(spec: &FrameSpec, canvas: Rect) -> Vec<Prim> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_color::{ColorMode, PixelFormat, SampleType};
+    use localraster_color::{ColorMode, PixelFormat, SampleType};
 
     #[test]
     fn composite_draws_a_disc_and_respects_the_clip() {

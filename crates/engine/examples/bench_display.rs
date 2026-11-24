@@ -1,7 +1,7 @@
 //! Colour-managed canvas display cost on a 36 MP document (#46).
 //!
 //! ```sh
-//! cargo run --release -p localpaint-engine --example bench_display -- [--size 7360x4912] [--reps 5]
+//! cargo run --release -p localraster-engine --example bench_display -- [--size 7360x4912] [--reps 5]
 //! ```
 //!
 //! Times, per profile: the composite (shared by every path), the CPU canvas conversion before
@@ -11,10 +11,10 @@
 
 use std::time::Instant;
 
-use localpaint_cms::Builtin;
-use localpaint_color::{Color, ColorMode, SampleType};
-use localpaint_doc::{Document, Size};
-use localpaint_engine::Session;
+use localraster_cms::Builtin;
+use localraster_color::{Color, ColorMode, SampleType};
+use localraster_doc::{Document, Size};
+use localraster_engine::Session;
 
 fn arg(args: &[String], name: &str) -> Option<String> {
     args.iter().position(|a| a == name).and_then(|i| args.get(i + 1).cloned())
@@ -54,7 +54,7 @@ fn main() {
         d.icc_profile = profile.map(|b| b.profile().to_bytes());
         let s = Session::new();
         let mut buf = None;
-        let composite = time(reps, || buf = Some(localpaint_compose::flatten(&d)));
+        let composite = time(reps, || buf = Some(localraster_compose::flatten(&d)));
         let buf = buf.expect("composited");
         let before = time(reps, || {
             std::hint::black_box(buf.to_rgba8());

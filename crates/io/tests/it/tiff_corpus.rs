@@ -10,14 +10,14 @@
 //! every block of every corpus file (effects, type, smart objects, adjustments, paths, …) is
 //! converted to little-endian on the way out and back on the way in. Blocks the transcoder
 //! doesn't know are dropped with a warning; the test lists the keys it saw dropped, and fails
-//! if any of them is one `localpaint-io` maps (a loss of fidelity we can fix).
+//! if any of them is one `localraster-io` maps (a loss of fidelity we can fix).
 #![cfg(feature = "corpus")]
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
 
-use localpaint_doc::{Document, Layer};
-use localpaint_io::*;
+use localraster_doc::{Document, Layer};
+use localraster_io::*;
 
 fn collect(dir: &Path, out: &mut Vec<PathBuf>) {
     let Ok(rd) = std::fs::read_dir(dir) else { return };
@@ -43,7 +43,7 @@ fn structure(layers: &[Layer], out: &mut Vec<String>, depth: usize) {
             l.mask.is_some(),
             l.effects.items.len()
         ));
-        if let localpaint_doc::LayerContent::Group(g) = &l.content {
+        if let localraster_doc::LayerContent::Group(g) = &l.content {
             structure(&g.children, out, depth + 1);
         }
     }
@@ -80,8 +80,8 @@ fn corpus_round_trips_through_layered_tiff() {
         let doc = imported.document;
         // Only modes a TIFF holds; everything else is saved flat by design. Multichannel documents
         // have no layers at all (their channels are the image): nothing here to test.
-        if !matches!(doc.pixel_format().mode, localpaint_color::ColorMode::Grayscale | localpaint_color::ColorMode::Rgb | localpaint_color::ColorMode::Cmyk)
-            || doc.mode == localpaint_color::ColorMode::Multichannel
+        if !matches!(doc.pixel_format().mode, localraster_color::ColorMode::Grayscale | localraster_color::ColorMode::Rgb | localraster_color::ColorMode::Cmyk)
+            || doc.mode == localraster_color::ColorMode::Multichannel
         {
             continue;
         }
@@ -116,16 +116,16 @@ fn corpus_round_trips_through_layered_tiff() {
                 d.channels.clear();
                 // A flat Duotone is written as its inks rendered in RGB (as for any flat format).
                 if flat
-                    && d.mode == localpaint_color::ColorMode::Duotone
+                    && d.mode == localraster_color::ColorMode::Duotone
                     && let Some(duo) = d.duotone.take()
                 {
-                    d.layers.push(Layer::new("Duotone", localpaint_doc::LayerContent::Adjustment(duo.display_adjustment())));
-                    d.mode = localpaint_color::ColorMode::Rgb;
+                    d.layers.push(Layer::new("Duotone", localraster_doc::LayerContent::Adjustment(duo.display_adjustment())));
+                    d.mode = localraster_color::ColorMode::Rgb;
                 }
                 d
             };
-            let x = localpaint_compose::flatten(&expected).px;
-            let y = localpaint_compose::flatten(&back).px;
+            let x = localraster_compose::flatten(&expected).px;
+            let y = localraster_compose::flatten(&back).px;
             let diff = max_diff(&x, &y);
             if diff > 1.0 / 255.0 + 1e-5 {
                 return Err(format!("render differs by {diff}"));

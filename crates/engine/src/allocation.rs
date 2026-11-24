@@ -39,7 +39,7 @@ pub(crate) fn checkpoint(purpose: &str) -> Result<()> {
 }
 
 /// Copy a region into an explicitly reserved buffer.
-pub(crate) fn read_region(surface: &localpaint_raster::Surface, area: localpaint_geom::Rect, purpose: &str) -> Result<Vec<f32>> {
+pub(crate) fn read_region(surface: &localraster_raster::Surface, area: localraster_geom::Rect, purpose: &str) -> Result<Vec<f32>> {
     let len = (area.width() as usize)
         .checked_mul(area.height() as usize)
         .and_then(|n| n.checked_mul(surface.channels()))

@@ -10,20 +10,20 @@
 //! ```
 //!
 //! A knot given as `[x, y]` is a corner with retracted handles; `in`/`out` default to the
-//! anchor. The serde form of `localpaint_doc::Path` is accepted too. Colours are `"#rrggbb"`,
+//! anchor. The serde form of `localraster_doc::Path` is accepted too. Colours are `"#rrggbb"`,
 //! `"#rrggbbaa"` or `[r,g,b,a]` (0..1); opacities are percentages (0..100).
 //!
-//! Every edit re-renders the shape layer's cache with `localpaint-vector` in one undoable step.
-//! PSD blocks stay byte-identical while they still decode to the model (see `localpaint-io`).
+//! Every edit re-renders the shape layer's cache with `localraster-vector` in one undoable step.
+//! PSD blocks stay byte-identical while they still decode to the model (see `localraster-io`).
 
-use localpaint_algo::selection::{self as sel, SelectionMode};
-use localpaint_color::{BlendMode, Color};
-use localpaint_doc::{
+use localraster_algo::selection::{self as sel, SelectionMode};
+use localraster_color::{BlendMode, Color};
+use localraster_doc::{
     ClippingPath, Document, Fill, FillRule, GradientStyle, Knot, Layer, LayerContent, LayerId, LineCap, LineJoin, LiveShape, NamedPath, Path, PathOp,
     ShapeLayer, ShapeStroke, StrokeAlign, Subpath, VectorMask,
 };
-use localpaint_geom::{Affine, Point, Rect};
-use localpaint_vector as vector;
+use localraster_geom::{Affine, Point, Rect};
+use localraster_vector as vector;
 use serde_json::{Value, json};
 
 use crate::commands::{CommandSpec, blend_from_str};

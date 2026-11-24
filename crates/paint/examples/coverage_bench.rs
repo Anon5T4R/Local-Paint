@@ -4,8 +4,8 @@
 use std::hint::black_box;
 use std::time::Instant;
 
-use localpaint_geom::Rect;
-use localpaint_paint::render::CoverageMap;
+use localraster_geom::Rect;
+use localraster_paint::render::CoverageMap;
 
 fn run(size: i32, moving: bool) -> (f64, f32) {
     let mut map = CoverageMap::new(3);

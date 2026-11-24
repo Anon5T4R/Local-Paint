@@ -131,7 +131,7 @@ pub(crate) fn shift_shape(doc: &Document, sh: &mut ShapeLayer, dx: f64, dy: f64)
     let whole = |v: f64| (v.fract() == 0.0 && v.abs() <= f64::from(i32::MAX)).then_some(v as i32);
     let canvas = doc.bounds();
     let inside = sh.cache.as_ref().is_some_and(|c| {
-        let b = localpaint_compose::bounds::content_bounds(c);
+        let b = localraster_compose::bounds::content_bounds(c);
         // An empty cache can be an off-canvas shape moving back into view.
         !b.is_empty() && b.x0 > canvas.x0 && b.y0 > canvas.y0 && b.x1 < canvas.x1 && b.y1 < canvas.y1
     });
@@ -326,7 +326,7 @@ fn finite_path(path: &Path) -> bool {
 /// `path` through Distort / Perspective (`h`, a projective map of its points: exact for straight
 /// segments, the end tangents of curves exact) or, with `warp`, Warp (split where the warp bends
 /// it). Refused when the map sends a point to infinity (past a perspective's horizon).
-pub(crate) fn map_path(path: &Path, h: Option<&localpaint_algo::transform::Homography>, warp: Option<&localpaint_geom::warp::Warp>) -> Result<Path> {
+pub(crate) fn map_path(path: &Path, h: Option<&localraster_algo::transform::Homography>, warp: Option<&localraster_geom::warp::Warp>) -> Result<Path> {
     let out = match (h, warp) {
         (_, Some(w)) => vector::map::map_path(
             path,
@@ -351,7 +351,7 @@ pub(crate) fn map_path(path: &Path, h: Option<&localpaint_algo::transform::Homog
 /// Distort, Perspective or Warp of a shape layer (#3009): the shape stays a shape, its path
 /// mapped ([`map_path`]), as in Photoshop. A live rectangle, ellipse, polygon or line becomes a
 /// plain path, as its parameters can't describe the distorted outline.
-pub(crate) fn map_shape(sh: &mut ShapeLayer, h: Option<&localpaint_algo::transform::Homography>, warp: Option<&localpaint_geom::warp::Warp>) -> Result<()> {
+pub(crate) fn map_shape(sh: &mut ShapeLayer, h: Option<&localraster_algo::transform::Homography>, warp: Option<&localraster_geom::warp::Warp>) -> Result<()> {
     sh.path = map_path(&sh.path, h, warp)?;
     sh.live = None;
     sh.psd_raw = None;
@@ -552,7 +552,7 @@ pub(super) fn shape_rasterize(s: &mut Session, p: &Value) -> Result<Value> {
             refresh_shape(&snapshot, sh);
         }
         let fmt = snapshot.pixel_format();
-        let surface = sh.cache.take().unwrap_or_else(|| localpaint_raster::Surface::new(fmt));
+        let surface = sh.cache.take().unwrap_or_else(|| localraster_raster::Surface::new(fmt));
         let surface = if surface.format() == fmt { surface } else { surface.convert(fmt) };
         l.content = LayerContent::Raster(surface);
         l.psd_blocks.retain(|(k, _)| !SHAPE_BLOCKS.contains(&k));

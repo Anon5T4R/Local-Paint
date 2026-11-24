@@ -2,17 +2,17 @@ use super::*;
 use egui::{Event, Modifiers, PointerButton, Pos2, pos2, vec2};
 use egui_kittest::kittest::NodeT;
 use egui_kittest::{Harness, kittest::Queryable};
-use localpaint_doc::LayerId;
+use localraster_doc::LayerId;
 
-fn harness(kind: crate::theme::ThemeKind, ppp: f32) -> (Harness<'static, crate::LocalPaintApp>, LayerId, LayerId) {
-    let mut s = localpaint_engine::Session::new();
+fn harness(kind: crate::theme::ThemeKind, ppp: f32) -> (Harness<'static, crate::LocalRasterApp>, LayerId, LayerId) {
+    let mut s = localraster_engine::Session::new();
     s.execute("file.new", json!({"width": 8, "height": 8})).unwrap();
     let red = LayerId(s.execute("layer.new.layer", json!({"name": "Red layer"})).unwrap()["layer"].as_u64().unwrap());
     s.execute("layer.setLabelColor", json!({"color": "red"})).unwrap();
     let other = LayerId(s.execute("layer.new.layer", json!({"name": "Other layer"})).unwrap()["layer"].as_u64().unwrap());
     let mut h = Harness::builder().with_size(vec2(1440.0, 900.0)).with_pixels_per_point(ppp).with_max_steps(64).build_eframe(move |cc| {
-        crate::LocalPaintApp::setup_context(&cc.egui_ctx, kind);
-        let mut app = crate::LocalPaintApp::new(s, crate::Services::default());
+        crate::LocalRasterApp::setup_context(&cc.egui_ctx, kind);
+        let mut app = crate::LocalRasterApp::new(s, crate::Services::default());
         app.ui.theme = kind;
         app
     });
@@ -20,7 +20,7 @@ fn harness(kind: crate::theme::ThemeKind, ppp: f32) -> (Harness<'static, crate::
     (h, red, other)
 }
 
-fn click(h: &mut Harness<'_, crate::LocalPaintApp>, at: Pos2, button: PointerButton, modifiers: Modifiers) {
+fn click(h: &mut Harness<'_, crate::LocalRasterApp>, at: Pos2, button: PointerButton, modifiers: Modifiers) {
     h.event(Event::ModifiersChanged(modifiers));
     h.hover_at(at);
     h.step();
@@ -31,7 +31,7 @@ fn click(h: &mut Harness<'_, crate::LocalPaintApp>, at: Pos2, button: PointerBut
     h.run_steps(3);
 }
 
-fn row(h: &Harness<'_, crate::LocalPaintApp>, id: LayerId) -> egui::Rect {
+fn row(h: &Harness<'_, crate::LocalRasterApp>, id: LayerId) -> egui::Rect {
     crate::layer_row_ui::recorded(&h.ctx).into_iter().find(|r| r.layer == id.0).unwrap().row
 }
 

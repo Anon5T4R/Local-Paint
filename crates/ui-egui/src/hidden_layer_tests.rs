@@ -2,17 +2,17 @@
 //! and painting on or moving a hidden target layer is refused at the press with Photoshop's
 //! "the target layer is hidden" instead of changing pixels nobody can see.
 
-use localpaint_doc::LayerId;
-use localpaint_geom::Rect;
+use localraster_doc::LayerId;
+use localraster_geom::Rect;
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::canvas::{ToolEvent, tool_event};
 use crate::state::Tool;
 
 /// A 64×64 document with a painted layer covering (8..24)², hidden and active.
-fn app(tool: Tool) -> (LocalPaintApp, LayerId) {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn app(tool: Tool) -> (LocalRasterApp, LayerId) {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 64, "height": 64})).unwrap();
     app.sync_views();
     app.session.execute("layer.new.layer", json!({})).unwrap();
@@ -29,18 +29,18 @@ fn app(tool: Tool) -> (LocalPaintApp, LayerId) {
     (app, id)
 }
 
-fn drag(app: &mut LocalPaintApp, from: [f64; 2], to: [f64; 2]) {
+fn drag(app: &mut LocalRasterApp, from: [f64; 2], to: [f64; 2]) {
     let m = egui::Modifiers::NONE;
     tool_event(app, ToolEvent::Down { x: from[0], y: from[1], pressure: 1.0 }, m);
     tool_event(app, ToolEvent::Move { x: to[0], y: to[1], pressure: 1.0 }, m);
     tool_event(app, ToolEvent::Up { x: to[0], y: to[1] }, m);
 }
 
-fn steps(app: &LocalPaintApp) -> usize {
+fn steps(app: &LocalRasterApp) -> usize {
     app.session.active().unwrap().history.entries().len()
 }
 
-fn bounds(app: &LocalPaintApp, id: LayerId) -> Rect {
+fn bounds(app: &LocalRasterApp, id: LayerId) -> Rect {
     app.session.active().unwrap().doc.layer(id).unwrap().surface().unwrap().content_bounds()
 }
 

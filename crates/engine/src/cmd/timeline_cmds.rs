@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 
-use localpaint_doc::Timeline;
+use localraster_doc::Timeline;
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;

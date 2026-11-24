@@ -6,10 +6,10 @@
 //! `{"layer": id, "removeLayer": true}`, so the whole session is one undo step that leaves no
 //! layer behind. Scripts can skip the layer and pass `type.create`'s keys directly.
 
-use localpaint_algo::selection::{self as sel, SelectionMode};
-use localpaint_doc::text::AntiAlias;
-use localpaint_doc::{Document, LayerContent, LayerId, TextLayer};
-use localpaint_geom::Rect;
+use localraster_algo::selection::{self as sel, SelectionMode};
+use localraster_doc::text::AntiAlias;
+use localraster_doc::{Document, LayerContent, LayerId, TextLayer};
+use localraster_geom::Rect;
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;
@@ -46,7 +46,7 @@ fn coverage(doc: &Document, t: &TextLayer) -> (Vec<f32>, Rect) {
     for r in &mut t.runs {
         r.style.color.alpha = 1.0;
     }
-    let mut eng = localpaint_text::shared().lock().unwrap_or_else(|e| e.into_inner());
+    let mut eng = localraster_text::shared().lock().unwrap_or_else(|e| e.into_inner());
     let surface = eng.render(&t, doc.resolution_dpi, doc.pixel_format()).1.surface;
     let area = surface.content_bounds().intersect(&doc.bounds());
     if area.is_empty() {

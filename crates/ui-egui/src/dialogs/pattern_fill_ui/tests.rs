@@ -1,26 +1,26 @@
 use egui::{Event, Modifiers, PointerButton, Pos2, pos2, vec2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
-use localpaint_doc::{Fill, LayerContent, LayerId};
+use localraster_doc::{Fill, LayerContent, LayerId};
 use serde_json::json;
 
 use super::*;
 
-fn app() -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn app() -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 40, "height": 30, "depth": 16})).unwrap();
     app
 }
 
-fn pattern_id(app: &LocalPaintApp, name: &str) -> String {
+fn pattern_id(app: &LocalRasterApp, name: &str) -> String {
     app.session.patterns.items.iter().find(|p| p.name == name).unwrap().id.clone()
 }
 
-fn steps(app: &LocalPaintApp) -> usize {
+fn steps(app: &LocalRasterApp) -> usize {
     app.session.active().unwrap().history.entries().len()
 }
 
-fn set(app: &mut LocalPaintApp, dialog: u64, values: serde_json::Value) {
+fn set(app: &mut LocalRasterApp, dialog: u64, values: serde_json::Value) {
     let d = app.ui.dialog_mut(dialog).unwrap();
     for (k, v) in values.as_object().unwrap() {
         d.fields.insert(k.clone(), v.clone());
@@ -76,7 +76,7 @@ fn cancelling_a_new_pattern_fill_adds_nothing() {
     let r = crate::menus::invoke(&mut app, &ctx, cmds::CREATE, json!({"pattern": "Grid"})).unwrap();
     assert!(r["layer"].as_u64().is_some());
     // No document: an error, not a dialog or a panic.
-    let mut empty = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut empty = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     assert!(crate::menus::invoke(&mut empty, &ctx, cmds::CREATE, json!({})).is_err());
     assert!(empty.ui.dialogs.is_empty());
 }
@@ -118,14 +118,14 @@ fn content_options_edit_the_layer_and_cancel_restores() {
     assert!(open(&mut app).is_none());
 }
 
-fn harness() -> (Harness<'static, LocalPaintApp>, LayerId) {
-    let mut s = localpaint_engine::Session::new();
+fn harness() -> (Harness<'static, LocalRasterApp>, LayerId) {
+    let mut s = localraster_engine::Session::new();
     s.execute("file.new", json!({"width": 64, "height": 48})).unwrap();
     let id = LayerId(s.execute(cmds::CREATE, json!({"pattern": "Checkerboard"})).unwrap()["layer"].as_u64().unwrap());
     s.execute("layer.new.layer", json!({"name": "Other"})).unwrap();
     let mut h = Harness::builder().with_size(vec2(1440.0, 900.0)).with_step_dt(1.0 / 60.0).with_max_steps(64).build_eframe(move |cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        LocalPaintApp::new(s, crate::Services::default())
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        LocalRasterApp::new(s, crate::Services::default())
     });
     let ctx = h.ctx.clone();
     let (r, _) = crate::control::ControlRequest::new("ui.set", json!({"dock": {"collapsed": ["color", "properties", "history", "navigator"]}}));
@@ -134,7 +134,7 @@ fn harness() -> (Harness<'static, LocalPaintApp>, LayerId) {
     (h, id)
 }
 
-fn double_click(h: &mut Harness<'_, LocalPaintApp>, at: Pos2) {
+fn double_click(h: &mut Harness<'_, LocalRasterApp>, at: Pos2) {
     h.run_steps(40);
     for _ in 0..2 {
         h.hover_at(at);

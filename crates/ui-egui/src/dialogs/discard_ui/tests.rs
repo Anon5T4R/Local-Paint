@@ -1,7 +1,7 @@
 use super::*;
 
-fn app_with_docs(n: usize) -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn app_with_docs(n: usize) -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     for _ in 0..n {
         app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
     }
@@ -9,23 +9,23 @@ fn app_with_docs(n: usize) -> LocalPaintApp {
     app
 }
 
-fn make_dirty(app: &mut LocalPaintApp, doc: usize) {
+fn make_dirty(app: &mut LocalRasterApp, doc: usize) {
     app.session.set_active(doc);
     app.run("layer.new.layer", json!({})).unwrap();
 }
 
-fn doc_id(app: &LocalPaintApp, i: usize) -> DocId {
+fn doc_id(app: &LocalRasterApp, i: usize) -> DocId {
     app.session.documents()[i].doc.id
 }
 
 #[test]
 fn a_save_document_script_that_edits_the_document_keeps_the_prompt_up() {
-    use localpaint_engine::automate_cmds::ScriptBinding;
+    use localraster_engine::automate_cmds::ScriptBinding;
     let mut app = app_with_docs(1);
     let ctx = egui::Context::default();
     make_dirty(&mut app, 0);
     app.session.active_mut().unwrap().path = Some("/pics/kept.psd".into());
-    app.services.export = Some(Box::new(|_: &localpaint_doc::Document, _: &str, _: &crate::ExportSettings| Ok((b"out".to_vec(), Vec::new()))));
+    app.services.export = Some(Box::new(|_: &localraster_doc::Document, _: &str, _: &crate::ExportSettings| Ok((b"out".to_vec(), Vec::new()))));
     app.services.write = Some(Box::new(|_: &str, _: &[u8]| Ok(())));
     app.session.edit_prefs(|prefs| {
         prefs.script_events.enabled = true;
@@ -188,11 +188,11 @@ fn mnemonic_labels_bracket_the_key() {
     assert_eq!(button_label(false, "保存", Some(Key::S)), "保存 (S)");
 }
 
-type Prompted = egui_kittest::Harness<'static, LocalPaintApp>;
+type Prompted = egui_kittest::Harness<'static, LocalRasterApp>;
 
 /// The unsaved-changes prompt for `command` over `app`'s dirty documents, as `os` draws it (with
 /// the file dialogs shown and answered at the end of each frame, as the app does).
-fn prompt_for(app: LocalPaintApp, command: &str, os: egui::os::OperatingSystem) -> Prompted {
+fn prompt_for(app: LocalRasterApp, command: &str, os: egui::os::OperatingSystem) -> Prompted {
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(800.0, 600.0)).build_ui_state(
         |ui, app| {
             show(app, ui.ctx());
@@ -200,7 +200,7 @@ fn prompt_for(app: LocalPaintApp, command: &str, os: egui::os::OperatingSystem) 
         },
         app,
     );
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
     h.ctx.set_os(os);
     assert!(intercept(h.state_mut(), command, &Value::Null));
     h.run_steps(2);
@@ -428,7 +428,7 @@ fn saving_from_the_prompt_waits_for_the_save_dialog_then_closes() {
     let held = waiting.clone();
     let mut app = app_with_docs(1);
     make_dirty(&mut app, 0);
-    app.services.export = Some(Box::new(|_: &localpaint_doc::Document, _: &str, _: &crate::ExportSettings| Ok((b"out".to_vec(), Vec::new()))));
+    app.services.export = Some(Box::new(|_: &localraster_doc::Document, _: &str, _: &crate::ExportSettings| Ok((b"out".to_vec(), Vec::new()))));
     app.services.write = Some(Box::new(move |p: &str, _: &[u8]| {
         w.borrow_mut().push(p.to_string());
         Ok(())
@@ -471,7 +471,7 @@ fn saving_from_the_prompt_waits_for_the_question_whether_to_replace() {
     let held = waiting.clone();
     let mut app = app_with_docs(1);
     make_dirty(&mut app, 0);
-    app.services.export = Some(Box::new(|_: &localpaint_doc::Document, _: &str, _: &crate::ExportSettings| Ok((b"out".to_vec(), Vec::new()))));
+    app.services.export = Some(Box::new(|_: &localraster_doc::Document, _: &str, _: &crate::ExportSettings| Ok((b"out".to_vec(), Vec::new()))));
     app.services.write = Some(Box::new(move |p: &str, _: &[u8]| {
         w.borrow_mut().push(p.to_string());
         Ok(())
@@ -531,7 +531,7 @@ fn saving_from_the_prompt_waits_for_a_background_save_then_closes() {
         },
         app,
     );
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
     h.ctx.set_os(egui::os::OperatingSystem::Windows);
     assert!(intercept(h.state_mut(), "file.close", &Value::Null));
     h.run_steps(2);
@@ -562,7 +562,7 @@ fn saving_from_the_prompt_closes_after_an_unconfirmed_write() {
     make_dirty(&mut app, 0);
     app.session.active_mut().unwrap().path = Some("/pics/kept.psd".into());
     app.services.write_unconfirmed = true;
-    app.services.export = Some(Box::new(|_: &localpaint_doc::Document, _: &str, _: &crate::ExportSettings| Ok((b"out".to_vec(), Vec::new()))));
+    app.services.export = Some(Box::new(|_: &localraster_doc::Document, _: &str, _: &crate::ExportSettings| Ok((b"out".to_vec(), Vec::new()))));
     app.services.write = Some(Box::new(move |p: &str, _: &[u8]| {
         w.borrow_mut().push(p.to_string());
         Ok(())
@@ -588,7 +588,7 @@ mod dds_tests;
 mod jpeg_tests;
 
 /// One frame with the window's close button pressed; the commands the guard sent.
-fn window_close_commands(app: &mut LocalPaintApp) -> Vec<egui::ViewportCommand> {
+fn window_close_commands(app: &mut LocalRasterApp) -> Vec<egui::ViewportCommand> {
     let mut info = egui::ViewportInfo::default();
     info.events.push(egui::ViewportEvent::Close);
     let mut input = egui::RawInput::default();
@@ -599,7 +599,7 @@ fn window_close_commands(app: &mut LocalPaintApp) -> Vec<egui::ViewportCommand> 
 }
 
 /// One frame with the window's close button pressed; whether the guard cancelled the close.
-fn press_window_close(app: &mut LocalPaintApp) -> bool {
+fn press_window_close(app: &mut LocalRasterApp) -> bool {
     let commands = &window_close_commands(app);
     let cancelled = commands.iter().any(|c| matches!(c, egui::ViewportCommand::CancelClose));
     assert_eq!(commands.iter().any(|c| matches!(c, egui::ViewportCommand::Focus)), cancelled);
@@ -631,7 +631,7 @@ fn window_close_goes_through_once_the_window_device_is_lost() {
 /// lost they must close instead.
 #[test]
 fn file_exit_quits_without_a_prompt_once_the_window_device_is_lost() {
-    let exit = |app: &mut LocalPaintApp| {
+    let exit = |app: &mut LocalRasterApp| {
         let mut out = egui::Context::default().run_ui(egui::RawInput::default(), |ui| {
             let _ = crate::menus::invoke(app, ui.ctx(), EXIT, json!({}));
         });

@@ -1,10 +1,10 @@
 //! Color Replacement: recolour pixels similar to a sampled colour using a non-separable blend
 //! (Hue, Saturation, Color or Luminosity) with the foreground colour.
 
-use localpaint_color::BlendMode;
-use localpaint_color::blend::blend_rgb;
-use localpaint_geom::Rect;
-use localpaint_raster::{Surface, from_rgba_into, to_rgba};
+use localraster_color::BlendMode;
+use localraster_color::blend::blend_rgb;
+use localraster_geom::Rect;
+use localraster_raster::{Surface, from_rgba_into, to_rgba};
 use serde::{Deserialize, Serialize};
 
 use crate::Stroke;
@@ -203,14 +203,14 @@ pub fn color_replacement_effect(pre: Surface, rs: ReplaceSettings) -> impl FnMut
 mod tests {
     use super::*;
     use crate::{BrushSettings, StrokePoint};
-    use localpaint_color::PixelFormat;
-    use localpaint_color::blend::lum;
+    use localraster_color::PixelFormat;
+    use localraster_color::blend::lum;
 
     fn setup(fmt: PixelFormat) -> Surface {
         let mut s = Surface::new(fmt);
         // Left: mid green; right: dark blue.
-        s.fill_rect(Rect::new(0, 0, 40, 40), &localpaint_raster::from_rgba(&fmt, [0.2, 0.6, 0.2, 1.0]));
-        s.fill_rect(Rect::new(40, 0, 80, 40), &localpaint_raster::from_rgba(&fmt, [0.1, 0.1, 0.5, 1.0]));
+        s.fill_rect(Rect::new(0, 0, 40, 40), &localraster_raster::from_rgba(&fmt, [0.2, 0.6, 0.2, 1.0]));
+        s.fill_rect(Rect::new(40, 0, 80, 40), &localraster_raster::from_rgba(&fmt, [0.1, 0.1, 0.5, 1.0]));
         s
     }
 

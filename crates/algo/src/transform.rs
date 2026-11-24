@@ -7,9 +7,9 @@
 //! bounded by the tile working set. Large reductions are pre-filtered with a proper resize first,
 //! so shrinking a layer doesn't alias.
 
-use localpaint_color::PixelFormat;
-use localpaint_geom::Rect;
-use localpaint_raster::{Interrupt, Surface};
+use localraster_color::PixelFormat;
+use localraster_geom::Rect;
+use localraster_raster::{Interrupt, Surface};
 use serde::{Deserialize, Serialize};
 
 use crate::resample::{Resample, resize_surface};
@@ -167,7 +167,7 @@ pub(crate) fn bicubic(t: f64) -> [f64; 4] {
 /// Warp `src` (its content inside `src_rect`) by `h` (source → destination document space).
 /// The result has the same format as `src`, with alpha added if `src` had none; pixels outside
 /// the warped quad are transparent.
-pub fn warp_surface(src: &Surface, src_rect: Rect, h: &Homography, interp: Interp) -> Result<Surface, localpaint_raster::AllocationError> {
+pub fn warp_surface(src: &Surface, src_rect: Rect, h: &Homography, interp: Interp) -> Result<Surface, localraster_raster::AllocationError> {
     warp(src, src_rect, h, interp, None, &Interrupt::NONE)
 }
 
@@ -178,7 +178,7 @@ pub fn warp_surface_with(
     h: &Homography,
     interp: Interp,
     ctl: &Interrupt,
-) -> Result<Option<Surface>, localpaint_raster::AllocationError> {
+) -> Result<Option<Surface>, localraster_raster::AllocationError> {
     let out = warp(src, src_rect, h, interp, None, ctl)?;
     Ok((!ctl.cancelled()).then_some(out))
 }
@@ -186,7 +186,7 @@ pub fn warp_surface_with(
 /// [`warp_surface`] keeping only the destination pixels inside `clip`. The work is bounded by
 /// `clip` even when part of the source lies at or beyond the map's horizon (a Perspective Crop of a
 /// layer that reaches far past the crop quad), which would make the full warped extent unbounded.
-pub fn warp_surface_clipped(src: &Surface, src_rect: Rect, h: &Homography, interp: Interp, clip: Rect) -> Result<Surface, localpaint_raster::AllocationError> {
+pub fn warp_surface_clipped(src: &Surface, src_rect: Rect, h: &Homography, interp: Interp, clip: Rect) -> Result<Surface, localraster_raster::AllocationError> {
     warp(src, src_rect, h, interp, Some(clip), &Interrupt::NONE)
 }
 
@@ -301,7 +301,7 @@ fn warp(
     interp: Interp,
     clip: Option<Rect>,
     ctl: &Interrupt,
-) -> Result<Surface, localpaint_raster::AllocationError> {
+) -> Result<Surface, localraster_raster::AllocationError> {
     let mut fmt = src.format();
     let converted;
     let mut src = if fmt.alpha {
@@ -370,15 +370,15 @@ fn warp(
     let n = fmt.channels();
     let a = n - 1;
     let tile_count = dst.tiles().count();
-    let tile_bytes = tile_count.checked_mul(std::mem::size_of::<Rect>()).ok_or(localpaint_raster::AllocationError::SizeOverflow)?;
+    let tile_bytes = tile_count.checked_mul(std::mem::size_of::<Rect>()).ok_or(localraster_raster::AllocationError::SizeOverflow)?;
     let mut tiles = Vec::new();
-    tiles.try_reserve_exact(tile_count).map_err(|_| localpaint_raster::AllocationError::NotEnoughMemory { bytes: tile_bytes })?;
+    tiles.try_reserve_exact(tile_count).map_err(|_| localraster_raster::AllocationError::NotEnoughMemory { bytes: tile_bytes })?;
     tiles.extend(dst.tiles().map(|tc| tc.rect().intersect(&dst)).filter(|r| !r.is_empty()));
     let src_ref: &Surface = src;
     // Tiles finished so far, for progress reported per tile (from any worker thread).
     let finished = std::sync::atomic::AtomicUsize::new(0);
     let total = tiles.len().max(1);
-    let work = |t: &Rect| -> Result<Option<(Rect, Vec<f32>)>, localpaint_raster::AllocationError> {
+    let work = |t: &Rect| -> Result<Option<(Rect, Vec<f32>)>, localraster_raster::AllocationError> {
         if ctl.cancelled() {
             return Ok(None);
         }
@@ -447,10 +447,10 @@ fn warp(
         let foot_u = extent((dx.0 - o.0).abs() + (dy.0 - o.0).abs());
         let foot_v = extent((dx.1 - o.1).abs() + (dy.1 - o.1).abs());
         let w = t.width() as usize;
-        let len = w.checked_mul(t.height() as usize).and_then(|v| v.checked_mul(n)).ok_or(localpaint_raster::AllocationError::SizeOverflow)?;
-        let bytes = len.checked_mul(std::mem::size_of::<f32>()).ok_or(localpaint_raster::AllocationError::SizeOverflow)?;
+        let len = w.checked_mul(t.height() as usize).and_then(|v| v.checked_mul(n)).ok_or(localraster_raster::AllocationError::SizeOverflow)?;
+        let bytes = len.checked_mul(std::mem::size_of::<f32>()).ok_or(localraster_raster::AllocationError::SizeOverflow)?;
         let mut outp = Vec::new();
-        outp.try_reserve_exact(len).map_err(|_| localpaint_raster::AllocationError::NotEnoughMemory { bytes })?;
+        outp.try_reserve_exact(len).map_err(|_| localraster_raster::AllocationError::NotEnoughMemory { bytes })?;
         outp.resize(len, 0.0f32);
         let mut any = false;
         let mut acc = [0.0f64; 8];
@@ -527,7 +527,7 @@ fn warp(
     // pixels: kept until the last one was done, they cost 16 bytes a pixel of an RGBA result on
     // top of the result's own (#7807).
     let out = std::sync::Mutex::new(out);
-    let warp_and_write = |tile: &Rect| -> Result<(), localpaint_raster::AllocationError> {
+    let warp_and_write = |tile: &Rect| -> Result<(), localraster_raster::AllocationError> {
         if let Some((r, v)) = work(tile)? {
             out.lock().unwrap_or_else(std::sync::PoisonError::into_inner).try_write_region(r, &v)?;
         }

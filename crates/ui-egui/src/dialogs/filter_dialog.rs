@@ -6,12 +6,12 @@
 
 use std::sync::Arc;
 
-use localpaint_doc::Document;
-use localpaint_engine::color_cmds::ColorSettings;
-use localpaint_engine::installed_profiles::InstalledProfile;
+use localraster_doc::Document;
+use localraster_engine::color_cmds::ColorSettings;
+use localraster_engine::installed_profiles::InstalledProfile;
 use serde_json::{Map, Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::theme::Tokens;
 
 mod zoom_center;
@@ -265,10 +265,10 @@ pub fn preview_factor(command: &str, params: &Value, k: u32) -> u32 {
         return 1;
     }
     // A plug-in's pixel lengths are the params its manifest marks `"unit": "px"` (#7524).
-    if command == localpaint_engine::plugin_cmds::RUN {
-        return localpaint_engine::plugin_cmds::preview_factor(params, k);
+    if command == localraster_engine::plugin_cmds::RUN {
+        return localraster_engine::plugin_cmds::preview_factor(params, k);
     }
-    let Some(spec) = localpaint_engine::commands::find(command) else { return k };
+    let Some(spec) = localraster_engine::commands::find(command) else { return k };
     let k = parse_spec(spec.params).into_iter().fold(k, |k, p| match p.kind {
         Kind::Range { min, .. } if min > 0.0 && is_pixel_param_of(command, &p.key) => match params.get(&p.key).and_then(Value::as_f64) {
             Some(v) if v.is_finite() => k.min((v / f64::from(min)).floor().clamp(1.0, f64::from(k)) as u32),
@@ -327,7 +327,7 @@ pub fn has_dialog(command: &str) -> bool {
                 | "select.convertToShape"
                 | "layer.new.artboardFromLayers"
         ))
-        && localpaint_engine::commands::find(command).is_some_and(|c| !parse_spec(c.params).is_empty())
+        && localraster_engine::commands::find(command).is_some_and(|c| !parse_spec(c.params).is_empty())
 }
 
 /// Keep only portable, schema-valid choices. Never retain document ids, free-form
@@ -342,7 +342,7 @@ fn rememberable(kind: &Kind, value: &Value) -> bool {
     }
 }
 
-fn restore_remembered(app: &LocalPaintApp, command: &str, spec: &str, fields: &mut Map<String, Value>) {
+fn restore_remembered(app: &LocalRasterApp, command: &str, spec: &str, fields: &mut Map<String, Value>) {
     let Some(Value::Object(saved)) = app.session.prefs().dialogs.get(command) else { return };
     // Select and Mask starts from its defaults unless Remember Settings was on, as in Photoshop
     // (#9423).
@@ -361,11 +361,11 @@ fn restore_remembered(app: &LocalPaintApp, command: &str, spec: &str, fields: &m
 }
 
 /// Remember successful built-in schema dialogs; failed or cancelled dialogs do not persist.
-pub(crate) fn remember(app: &mut LocalPaintApp, command: &str, fields: &Map<String, Value>) {
+pub(crate) fn remember(app: &mut LocalRasterApp, command: &str, fields: &Map<String, Value>) {
     if !fields.contains_key("__filter") || fields.contains_key("__spec") || fields.contains_key("__smartFilter") {
         return;
     }
-    let Some(spec) = localpaint_engine::commands::find(command) else { return };
+    let Some(spec) = localraster_engine::commands::find(command) else { return };
     let mut saved: Map<String, Value> =
         parse_spec(spec.params).into_iter().filter_map(|p| fields.get(&p.key).filter(|v| rememberable(&p.kind, v)).map(|v| (p.key, v.clone()))).collect();
     // Select and Mask with Remember Settings off keeps only that choice, so the next one starts
@@ -383,7 +383,7 @@ pub(crate) fn remember(app: &mut LocalPaintApp, command: &str, fields: &Map<Stri
 }
 
 /// Schema-default values for one param of `command` (open and Alt+Reset share this).
-fn default_value(app: &LocalPaintApp, command: &str, p: &Param) -> Option<Value> {
+fn default_value(app: &LocalRasterApp, command: &str, p: &Param) -> Option<Value> {
     Some(match &p.kind {
         Kind::Range { default, .. } if command == "image.mode.indexedColor" && p.key == "colors" => json!(default.round().clamp(2.0, 256.0) as u32),
         Kind::Range { default, .. } => json!(default),
@@ -412,7 +412,7 @@ fn default_value(app: &LocalPaintApp, command: &str, p: &Param) -> Option<Value>
 }
 
 /// Command-specific open defaults (ruler straighten, warp from layer, …), not remembered prefs.
-fn apply_command_defaults(app: &LocalPaintApp, command: &str, fields: &mut Map<String, Value>) {
+fn apply_command_defaults(app: &LocalRasterApp, command: &str, fields: &mut Map<String, Value>) {
     if command == "image.rotation.arbitrary" {
         straighten_defaults(app, fields);
     }
@@ -421,13 +421,13 @@ fn apply_command_defaults(app: &LocalPaintApp, command: &str, fields: &mut Map<S
     }
     // Photoshop's Pattern Name dialog starts from the name the pattern would get anyway.
     if command == "edit.definePattern" {
-        fields.insert("name".into(), json!(localpaint_engine::pattern_cmds::default_name(&app.session)));
+        fields.insert("name".into(), json!(localraster_engine::pattern_cmds::default_name(&app.session)));
     }
     // The reference application's Artboard from Layers opens at the next Artboard N and the
     // selected layers' size every time, never a remembered size; past the field's 30000 px
     // range, 0 keeps the bounds.
     if command == "layer.new.artboardFromLayers"
-        && let Some((name, [w, h])) = localpaint_engine::artboard_cmds::from_layers_defaults(&app.session)
+        && let Some((name, [w, h])) = localraster_engine::artboard_cmds::from_layers_defaults(&app.session)
     {
         let fits = w <= 30_000 && h <= 30_000;
         fields.insert("name".into(), json!(name));
@@ -456,10 +456,10 @@ fn apply_command_defaults(app: &LocalPaintApp, command: &str, fields: &mut Map<S
 /// Assign Profile offers only the profiles the document's colour mode can take (#4951): the
 /// command refuses one of another colour space. `__profiles` lists them for the `profile` menu,
 /// and a remembered choice that doesn't fit this document falls back to the working space.
-fn assign_profile_defaults(app: &LocalPaintApp, fields: &mut Map<String, Value>) {
+fn assign_profile_defaults(app: &LocalRasterApp, fields: &mut Map<String, Value>) {
     let Some(st) = app.session.active() else { return };
-    let Some(spec) = localpaint_engine::commands::find("edit.assignProfile") else { return };
-    let space = localpaint_engine::color_cmds::mode_space(st.doc.mode);
+    let Some(spec) = localraster_engine::commands::find("edit.assignProfile") else { return };
+    let space = localraster_engine::color_cmds::mode_space(st.doc.mode);
     let fits = |name: &str| name == "none" || app.session.color.resolve(name, Some(&st.doc), None).is_ok_and(|p| p.color_space == space);
     let builtin: Vec<String> = parse_spec(spec.params)
         .into_iter()
@@ -469,7 +469,7 @@ fn assign_profile_defaults(app: &LocalPaintApp, fields: &mut Map<String, Value>)
             _ => Vec::new(),
         })
         .collect();
-    let installed: Vec<_> = localpaint_engine::installed_profiles::installed().into_iter().filter(|i| i.is_destination()).collect();
+    let installed: Vec<_> = localraster_engine::installed_profiles::installed().into_iter().filter(|i| i.is_destination()).collect();
     let allowed: Vec<String> =
         builtin.iter().filter(|name| fits(name)).cloned().chain(installed.iter().filter(|i| i.color_space == space).map(|i| i.path.clone())).collect();
     // A path nobody lists (typed by an agent) is left alone: the command decides about it.
@@ -481,13 +481,13 @@ fn assign_profile_defaults(app: &LocalPaintApp, fields: &mut Map<String, Value>)
 }
 
 /// Alt+Cancel (Reset): schema defaults + command hooks, without last-used remembered prefs.
-pub fn reset_fields(app: &LocalPaintApp, fields: &mut Map<String, Value>) {
+pub fn reset_fields(app: &LocalRasterApp, fields: &mut Map<String, Value>) {
     if !fields.contains_key("__filter") || fields.contains_key("__adjust") {
         return;
     }
     let Some(command) = fields.get("__command").and_then(Value::as_str).map(str::to_owned) else { return };
     let spec =
-        fields.get("__spec").and_then(Value::as_str).map(str::to_owned).or_else(|| localpaint_engine::commands::find(&command).map(|c| c.params.to_owned()));
+        fields.get("__spec").and_then(Value::as_str).map(str::to_owned).or_else(|| localraster_engine::commands::find(&command).map(|c| c.params.to_owned()));
     let Some(spec) = spec else { return };
     // Drop user params; keep private `__` chrome (and fixed keys outside the schema for `__spec`).
     let schema_keys: std::collections::HashSet<String> = parse_spec(&spec).into_iter().map(|p| p.key).collect();
@@ -504,8 +504,8 @@ pub fn reset_fields(app: &LocalPaintApp, fields: &mut Map<String, Value>) {
     }
 }
 
-pub fn open(app: &mut LocalPaintApp, command: &str) -> Option<u64> {
-    let spec = localpaint_engine::commands::find(command)?;
+pub fn open(app: &mut LocalRasterApp, command: &str) -> Option<u64> {
+    let spec = localraster_engine::commands::find(command)?;
     let mut fields = Map::new();
     fields.insert("__command".into(), json!(command));
     fields.insert("__label".into(), json!(spec.label));
@@ -521,12 +521,12 @@ pub fn open(app: &mut LocalPaintApp, command: &str) -> Option<u64> {
     }
     restore_remembered(app, command, spec.params, &mut fields);
     apply_command_defaults(app, command, &mut fields);
-    if localpaint_engine::channel_cmds::follows_target(command) {
-        if app.filter_mask_targeted() && localpaint_engine::channel_cmds::follows_filter_mask(command) {
+    if localraster_engine::channel_cmds::follows_target(command) {
+        if app.filter_mask_targeted() && localraster_engine::channel_cmds::follows_filter_mask(command) {
             fields.insert("target".into(), json!("filterMask"));
         } else if app.layer_mask_targeted() {
             fields.insert("target".into(), json!("mask"));
-        } else if let Some(colors) = localpaint_engine::color_channels::selected(&app.session) {
+        } else if let Some(colors) = localraster_engine::color_channels::selected(&app.session) {
             fields.insert("target".into(), colors.params());
         }
     }
@@ -546,9 +546,9 @@ pub fn open(app: &mut LocalPaintApp, command: &str) -> Option<u64> {
 }
 
 /// Arbitrary rotation starts at the angle that straightens the ruler line, when there is one.
-fn straighten_defaults(app: &LocalPaintApp, fields: &mut Map<String, Value>) {
+fn straighten_defaults(app: &LocalRasterApp, fields: &mut Map<String, Value>) {
     let Some(r) = app.session.active().and_then(|d| d.doc.measurement.ruler) else { return };
-    let rot = localpaint_engine::analysis_cmds::straighten_angle(&r);
+    let rot = localraster_engine::analysis_cmds::straighten_angle(&r);
     // A ruler read from a damaged file could hold non-finite ends: keep the 0° default then.
     if !rot.is_finite() {
         return;
@@ -559,12 +559,12 @@ fn straighten_defaults(app: &LocalPaintApp, fields: &mut Map<String, Value>) {
 
 /// Warp Text edits the type layers it opened on (the selected ones, or the one being edited) and
 /// starts from the warp the shown layer has, or None, never from remembered values (#218).
-fn warp_defaults(app: &LocalPaintApp, fields: &mut Map<String, Value>) {
+fn warp_defaults(app: &LocalRasterApp, fields: &mut Map<String, Value>) {
     if let Some(Value::Object(targets)) = crate::type_tool::formatting_params(app) {
         fields.extend(targets);
     }
     let warp = crate::type_tool::target_text(app).and_then(|t| t.warp.clone());
-    let w = warp.unwrap_or(localpaint_doc::text::TextWarp {
+    let w = warp.unwrap_or(localraster_doc::text::TextWarp {
         style: "warpNone".into(),
         value: 50.0,
         horizontal_distortion: 0.0,
@@ -572,7 +572,7 @@ fn warp_defaults(app: &LocalPaintApp, fields: &mut Map<String, Value>) {
         horizontal: true,
     });
     // A style without a short id (from a PSD) shows as None, with the layer's values.
-    fields.insert("style".into(), json!(localpaint_text::warp::short_style(&w.style).unwrap_or("none")));
+    fields.insert("style".into(), json!(localraster_text::warp::short_style(&w.style).unwrap_or("none")));
     fields.insert("bend".into(), json!(w.value));
     fields.insert("horizontalDistortion".into(), json!(w.horizontal_distortion));
     fields.insert("verticalDistortion".into(), json!(w.vertical_distortion));
@@ -580,14 +580,14 @@ fn warp_defaults(app: &LocalPaintApp, fields: &mut Map<String, Value>) {
 }
 
 /// Global Light reflects the active document's current shared lighting, never remembered values.
-fn global_light_defaults(app: &LocalPaintApp, fields: &mut Map<String, Value>) {
+fn global_light_defaults(app: &LocalRasterApp, fields: &mut Map<String, Value>) {
     let Some(st) = app.session.active() else { return };
     fields.insert("angle".into(), json!(st.doc.global_light.angle));
     fields.insert("altitude".into(), json!(st.doc.global_light.altitude));
 }
 
 /// Proof Setup reflects the active document's current proofing condition, never remembered values.
-fn proof_setup_defaults(app: &LocalPaintApp, fields: &mut Map<String, Value>) {
+fn proof_setup_defaults(app: &LocalRasterApp, fields: &mut Map<String, Value>) {
     let Some(st) = app.session.active() else { return };
     let pv = app.session.color.proof(st.doc.id);
     fields.insert("profile".into(), json!(pv.setup.name));
@@ -598,7 +598,7 @@ fn proof_setup_defaults(app: &LocalPaintApp, fields: &mut Map<String, Value>) {
 
 /// A filter dialog with live preview for `command` whose parameters follow `spec` (registry
 /// notation) instead of the command's own; `fixed` params (e.g. a plug-in id) are passed through.
-pub fn open_with_spec(app: &mut LocalPaintApp, command: &str, label: &str, spec: &str, fixed: Map<String, Value>) -> u64 {
+pub fn open_with_spec(app: &mut LocalRasterApp, command: &str, label: &str, spec: &str, fixed: Map<String, Value>) -> u64 {
     let mut fields = fixed;
     fields.insert("__command".into(), json!(command));
     fields.insert("__label".into(), json!(label));
@@ -620,11 +620,11 @@ pub fn open_with_spec(app: &mut LocalPaintApp, command: &str, label: &str, spec:
         fields.insert(p.key, v);
     }
     if !fields.contains_key("target") && !fields.contains_key("__smartFilter") {
-        if localpaint_engine::channel_cmds::follows_filter_mask(command) && app.filter_mask_targeted() {
+        if localraster_engine::channel_cmds::follows_filter_mask(command) && app.filter_mask_targeted() {
             fields.insert("target".into(), json!("filterMask"));
-        } else if localpaint_engine::channel_cmds::follows_target(command) && app.layer_mask_targeted() {
+        } else if localraster_engine::channel_cmds::follows_target(command) && app.layer_mask_targeted() {
             fields.insert("target".into(), json!("mask"));
-        } else if let Some(colors) = localpaint_engine::color_channels::selected(&app.session).filter(|c| c.len() > 1) {
+        } else if let Some(colors) = localraster_engine::color_channels::selected(&app.session).filter(|c| c.len() > 1) {
             fields.insert("target".into(), colors.params());
         }
     }
@@ -676,7 +676,7 @@ const LENS_BLUR: &str = "filter.blur.lensBlur";
 /// Lens Blur's Depth Map Source lists the document's alpha channels after None, Transparency
 /// and Layer Mask, as in Photoshop (#7400): their names go to `__channels`. A `channel` source
 /// without a channel this document has (references aren't remembered) opens as None.
-fn lens_blur_channels(app: &LocalPaintApp, f: &mut Map<String, Value>) {
+fn lens_blur_channels(app: &LocalRasterApp, f: &mut Map<String, Value>) {
     let names: Vec<String> = app.session.active().map(|d| d.doc.channels.iter().map(|c| c.name.clone()).collect()).unwrap_or_default();
     let known = f.get("depthChannel").and_then(|v| channel_index(v, &names)).is_some();
     if f.get("depthMap").and_then(Value::as_str) == Some("channel") && !known {
@@ -710,7 +710,7 @@ const PROFILE_DIALOGS: &[&str] = &["edit.assignProfile", "edit.convertToProfile"
 /// working spaces those of that space, as Photoshop lists them (#6323). An RGB working space is a
 /// display or colour-space profile, not a scanner's or a printer's.
 fn installed_filter(cmd: &str, key: &str) -> Option<fn(&InstalledProfile) -> bool> {
-    use localpaint_cms::{ColorSpace, ProfileClass};
+    use localraster_cms::{ColorSpace, ProfileClass};
     match (cmd, key) {
         (c, "profile") if PROFILE_DIALOGS.contains(&c) => Some(|_| true),
         ("edit.colorSettings", "workingRgb") => {
@@ -760,14 +760,14 @@ fn color_eyedropper_owns(f: &Map<String, Value>) -> bool {
 }
 
 /// Whether the top dialog is a Replace Color with its canvas eyedropper armed.
-pub(crate) fn color_eyedropper_armed(app: &LocalPaintApp) -> bool {
+pub(crate) fn color_eyedropper_armed(app: &LocalRasterApp) -> bool {
     app.ui.dialogs.last().is_some_and(|d| color_eyedropper_owns(&d.fields))
 }
 
 /// Sample the merged image at document point (x, y) into the armed dialog's "From" colour.
 /// Returns true when the click was consumed, even off-image or over transparency, where nothing
 /// changes and the eyedropper stays armed (like the Curves picker).
-pub(crate) fn color_eyedropper_sample(app: &mut LocalPaintApp, x: f64, y: f64) -> bool {
+pub(crate) fn color_eyedropper_sample(app: &mut LocalRasterApp, x: f64, y: f64) -> bool {
     let Some(id) = app.ui.dialogs.last().filter(|d| color_eyedropper_owns(&d.fields)).map(|d| d.id) else {
         return false;
     };
@@ -790,7 +790,7 @@ const RESULT_FROM: &str = "__resultFrom";
 /// Saturation and Lightness shift. Picking a Result in its Color Picker sets the three sliders so
 /// the sampled colour becomes it.
 fn replace_color_result(ui: &mut egui::Ui, f: &mut Map<String, Value>) {
-    use localpaint_algo::tone;
+    use localraster_algo::tone;
     let t = Tokens::get(ui.ctx());
     let from = f.get("color").and_then(Value::as_str).and_then(crate::color_picker_ui::parse_hex).unwrap_or([0.0; 3]);
     let picked = f.get(RESULT_PICKED).and_then(Value::as_str).and_then(crate::color_picker_ui::parse_hex);
@@ -831,7 +831,7 @@ pub fn body(ui: &mut egui::Ui, f: &mut Map<String, Value>) {
     // Plug-in dialogs carry their own spec (from the plug-in's manifest).
     let spec = match f.get("__spec").and_then(Value::as_str) {
         Some(s) => s.to_string(),
-        None => match localpaint_engine::commands::find(&cmd) {
+        None => match localraster_engine::commands::find(&cmd) {
             Some(c) => c.params.to_string(),
             None => return,
         },
@@ -926,7 +926,7 @@ pub fn body(ui: &mut egui::Ui, f: &mut Map<String, Value>) {
                     // system (printer and paper profiles, press conditions), by description.
                     let lists_installed = installed_filter(&cmd, &p.key).is_some();
                     let installed =
-                        if lists_installed { installed_choices(&cmd, &p.key, &localpaint_engine::installed_profiles::installed()) } else { Vec::new() };
+                        if lists_installed { installed_choices(&cmd, &p.key, &localraster_engine::installed_profiles::installed()) } else { Vec::new() };
                     opts.extend(installed.iter().map(|(path, description)| (path.clone(), description.as_str())));
                     // Assign Profile: only what the document's colour mode can take (#4951).
                     if p.key == "profile"
@@ -1015,7 +1015,7 @@ pub fn body(ui: &mut egui::Ui, f: &mut Map<String, Value>) {
                 ui.horizontal(|ui| {
                     ui.label(egui::RichText::new(&name).color(t.text_dim));
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        // Local Paint's Color Picker, as everywhere else (#2144).
+                        // Local Raster's Color Picker, as everywhere else (#2144).
                         clicked = crate::widgets::color_swatch_button(ui, egui::Color32::from_rgb(bytes[0], bytes[1], bytes[2]), &name).clicked();
                         if eyedropper {
                             let armed = f.get(COLOR_EYEDROPPER).and_then(Value::as_bool).unwrap_or(false);
@@ -1083,7 +1083,7 @@ pub fn params_of(f: &Map<String, Value>) -> Value {
 }
 
 /// Filter › Distort › Displace confirmed with no map: no open document picked and no path typed
-/// (#5806). Photoshop asks for the displacement map file after OK; so does Local Paint.
+/// (#5806). Photoshop asks for the displacement map file after OK; so does Local Raster.
 pub(crate) fn needs_displace_map(command: &str, params: &Value) -> bool {
     command == "filter.distort.displace"
         && params.get("mapPath").and_then(Value::as_str).is_none_or(|p| p.trim().is_empty())
@@ -1095,7 +1095,7 @@ pub(crate) fn needs_displace_map(command: &str, params: &Value) -> bool {
 /// browser the picker gives contents, not a path the filter can read: the map has to be opened
 /// as a document and picked as Map Document there. It displaces the document that asked, even
 /// when another one was activated while the picker was open.
-pub(crate) fn ask_displace_map(app: &mut LocalPaintApp, command: String, fields: Map<String, Value>) -> Result<Value, String> {
+pub(crate) fn ask_displace_map(app: &mut LocalRasterApp, command: String, fields: Map<String, Value>) -> Result<Value, String> {
     use crate::file_dialog::{FileDialogAnswer, FileDialogRequest};
     let doc = app.active_doc_id()?;
     let initial_dir = crate::file_dialog::last_used_dir(&app.ui.recent_files);
@@ -1122,7 +1122,7 @@ pub(crate) fn ask_displace_map(app: &mut LocalPaintApp, command: String, fields:
 }
 
 /// Compute a preview document: run `command` with `params` on the proxy (scaled) copy of `doc`.
-pub fn preview_document(doc: &Document, active: Option<localpaint_doc::LayerId>, command: &str, params: &Value, k: u32) -> Option<Document> {
+pub fn preview_document(doc: &Document, active: Option<localraster_doc::LayerId>, command: &str, params: &Value, k: u32) -> Option<Document> {
     preview_document_with(doc, active, command, params, k, None)
 }
 
@@ -1130,11 +1130,11 @@ pub fn preview_document(doc: &Document, active: Option<localpaint_doc::LayerId>,
 /// (a preview superseded by newer dialog values).
 pub fn preview_document_with(
     doc: &Document,
-    active: Option<localpaint_doc::LayerId>,
+    active: Option<localraster_doc::LayerId>,
     command: &str,
     params: &Value,
     k: u32,
-    cancel: Option<&localpaint_engine::jobs::JobCtx>,
+    cancel: Option<&localraster_engine::jobs::JobCtx>,
 ) -> Option<Document> {
     preview_document_for_target(
         doc,
@@ -1143,7 +1143,7 @@ pub fn preview_document_with(
         params,
         k,
         cancel,
-        localpaint_engine::channel_cmds::ChannelTarget::Composite,
+        localraster_engine::channel_cmds::ChannelTarget::Composite,
         &[],
         &ColorSettings::default(),
     )
@@ -1156,12 +1156,12 @@ pub fn preview_document_with(
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn preview_document_for_target(
     doc: &Document,
-    active: Option<localpaint_doc::LayerId>,
+    active: Option<localraster_doc::LayerId>,
     command: &str,
     params: &Value,
     k: u32,
-    cancel: Option<&localpaint_engine::jobs::JobCtx>,
-    target: localpaint_engine::channel_cmds::ChannelTarget,
+    cancel: Option<&localraster_engine::jobs::JobCtx>,
+    target: localraster_engine::channel_cmds::ChannelTarget,
     documents: &[Arc<Document>],
     color: &ColorSettings,
 ) -> Option<Document> {
@@ -1175,11 +1175,11 @@ pub(crate) fn preview_document_for_target(
     let mut p = params.clone();
     if is_smart_edit(command) {
         let layer = match params.get("layer") {
-            Some(id) => localpaint_doc::LayerId(id.as_u64()?),
+            Some(id) => localraster_doc::LayerId(id.as_u64()?),
             None => active?,
         };
         let index = usize::try_from(params.get("index")?.as_u64()?).ok()?;
-        let localpaint_doc::LayerContent::Smart(sm) = &mut proxy.layer_mut(layer)?.content else { return None };
+        let localraster_doc::LayerContent::Smart(sm) = &mut proxy.layer_mut(layer)?.content else { return None };
         // Proxy_document scales the cache, placement and shared mask (#5766). Editing a filter
         // re-renders its source: scale every filter's lengths and the mask's feather as well.
         if run_k > 1 {
@@ -1197,7 +1197,7 @@ pub(crate) fn preview_document_for_target(
     } else {
         scale_preview_params(command, &mut p, run_k);
     }
-    let mut s = localpaint_engine::Session::new();
+    let mut s = localraster_engine::Session::new();
     s.color.settings = color.clone();
     s.set_inline_job_ctx(cancel.cloned());
     let doc_id = proxy.id;
@@ -1228,8 +1228,8 @@ pub(crate) fn smart_preview_factor(doc: &Document, command: &str, params: &Value
     if !is_smart_edit(command) {
         return preview_factor(command, params, k);
     }
-    let Some(layer) = params.get("layer").and_then(Value::as_u64).and_then(|id| doc.layer(localpaint_doc::LayerId(id))) else { return 1 };
-    let localpaint_doc::LayerContent::Smart(sm) = &layer.content else { return 1 };
+    let Some(layer) = params.get("layer").and_then(Value::as_u64).and_then(|id| doc.layer(localraster_doc::LayerId(id))) else { return 1 };
+    let localraster_doc::LayerContent::Smart(sm) = &layer.content else { return 1 };
     let mut factor = sm.smart_filters.iter().fold(k, |k, f| preview_factor(&f.command, &f.params, k));
     if command == "layer.smartFilter.setParams"
         && let Some(index) = params.get("index").and_then(Value::as_u64).and_then(|i| usize::try_from(i).ok())
@@ -1243,15 +1243,15 @@ pub(crate) fn smart_preview_factor(doc: &Document, command: &str, params: &Value
 
 /// Scale the pixel-sized parameters of `command` down by the preview proxy factor `k`, keeping each above its minimum and negative lengths negative.
 fn scale_preview_params(command: &str, params: &mut Value, k: u32) {
-    if command == localpaint_engine::plugin_cmds::RUN {
+    if command == localraster_engine::plugin_cmds::RUN {
         // A plug-in declares its pixel lengths (`"unit": "px"` in its manifest), and only those
         // are scaled: a 12 px shift previewed 4 times too wide at k = 4, and a unitless param that
         // happens to be called `size` or `radius` must not be divided (#7524).
-        localpaint_engine::plugin_cmds::scale_for_preview(params, k);
+        localraster_engine::plugin_cmds::scale_for_preview(params, k);
     } else if k > 1
         && let Some(o) = params.as_object_mut()
     {
-        let spec = localpaint_engine::commands::find(command).map(|c| parse_spec(c.params)).unwrap_or_default();
+        let spec = localraster_engine::commands::find(command).map(|c| parse_spec(c.params)).unwrap_or_default();
         for (key, v) in o.iter_mut() {
             if is_pixel_param_of(command, key)
                 && let Some(x) = v.as_f64()
@@ -1280,8 +1280,15 @@ fn scale_preview_params(command: &str, params: &mut Value, k: u32) {
 /// pointing at another open document found nothing there: Match Color's preview with a Source
 /// document failed, or matched the image to itself (#4851). Add each referenced document (as a
 /// proxy at the same factor) and point the param at its index in the preview session.
-fn add_source_documents(s: &mut localpaint_engine::Session, doc_id: localpaint_doc::DocId, command: &str, p: &mut Value, documents: &[Arc<Document>], k: u32) {
-    let Some(spec) = localpaint_engine::commands::find(command) else { return };
+fn add_source_documents(
+    s: &mut localraster_engine::Session,
+    doc_id: localraster_doc::DocId,
+    command: &str,
+    p: &mut Value,
+    documents: &[Arc<Document>],
+    k: u32,
+) {
+    let Some(spec) = localraster_engine::commands::find(command) else { return };
     let Some(o) = p.as_object_mut() else { return };
     let mut added: Vec<(usize, usize)> = Vec::new();
     let mut remap = |v: &mut Value| {
@@ -1333,11 +1340,11 @@ pub struct FilterPreview {
 /// worker computed for the value the pointer passed a moment ago.
 #[derive(Clone, Debug, PartialEq)]
 pub struct FilterPreviewKey {
-    pub doc: localpaint_doc::DocId,
+    pub doc: localraster_doc::DocId,
     pub revision: u64,
     pub dialog: u64,
-    pub active: Option<localpaint_doc::LayerId>,
-    pub target: localpaint_engine::channel_cmds::ChannelTarget,
+    pub active: Option<localraster_doc::LayerId>,
+    pub target: localraster_engine::channel_cmds::ChannelTarget,
     pub command: String,
     pub params: Value,
     pub k: u32,
@@ -1371,7 +1378,7 @@ mod multi_channel_dialog_tests {
     use super::*;
     #[test]
     fn filter_mask_dialog_keeps_its_target_when_color_channels_change() {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
         app.run("file.new", json!({"width":32,"height":24,"mode":"lab","depth":16})).unwrap();
         app.run("layer.smartObjects.convertToSmartObject", json!({})).unwrap();
         app.run("filter.blur.gaussianBlur", json!({"radius":2})).unwrap();
@@ -1388,7 +1395,7 @@ mod multi_channel_dialog_tests {
         let preview = preview_document(&st.doc, Some(layer), command, &params, 1).unwrap();
         crate::dialogs::confirm(&mut app, id).unwrap();
         let mask = |doc: &Document| match &doc.layer(layer).unwrap().content {
-            localpaint_doc::LayerContent::Smart(sm) => sm.filter_mask.clone(),
+            localraster_doc::LayerContent::Smart(sm) => sm.filter_mask.clone(),
             _ => panic!("expected a smart object"),
         };
         assert_eq!(mask(&app.session.active().unwrap().doc), mask(&preview));
@@ -1398,12 +1405,12 @@ mod multi_channel_dialog_tests {
         for mode in ["rgb", "cmyk", "lab"] {
             for depth in [8, 16, 32] {
                 for command in ["image.adjustments.levels", "image.adjustments.curves", "filter.blur.gaussianBlur"] {
-                    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+                    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
                     app.run("file.new", json!({"width":32,"height":24,"mode":mode,"depth":depth})).unwrap();
                     app.run("layer.layerMask.revealAll", json!({})).unwrap();
                     app.session
                         .edit("Mask edge", |doc, id| {
-                            doc.layer_mut(id.unwrap()).unwrap().mask.as_mut().unwrap().surface.fill_rect(localpaint_geom::Rect::new(0, 0, 16, 24), &[0.25]);
+                            doc.layer_mut(id.unwrap()).unwrap().mask.as_mut().unwrap().surface.fill_rect(localraster_geom::Rect::new(0, 0, 16, 24), &[0.25]);
                             Ok(())
                         })
                         .unwrap();
@@ -1437,16 +1444,16 @@ mod multi_channel_dialog_tests {
     }
     #[test]
     fn ordinary_filter_captures_the_set_and_preview_equals_confirmation() {
-        let mut session = localpaint_engine::Session::new();
+        let mut session = localraster_engine::Session::new();
         session.execute("file.new", json!({"width":32,"height":24,"depth":16})).unwrap();
         session
             .edit("edge", |doc, id| {
-                doc.layer_mut(id.unwrap()).unwrap().surface_mut().unwrap().fill_rect(localpaint_geom::Rect::new(0, 0, 16, 24), &[0.2, 0.4, 0.6, 1.0]);
+                doc.layer_mut(id.unwrap()).unwrap().surface_mut().unwrap().fill_rect(localraster_geom::Rect::new(0, 0, 16, 24), &[0.2, 0.4, 0.6, 1.0]);
                 Ok(())
             })
             .unwrap();
         session.execute("channel.target", json!({"colors":[0,2]})).unwrap();
-        let mut app = LocalPaintApp::new(session, Default::default());
+        let mut app = LocalRasterApp::new(session, Default::default());
         let command = "filter.blur.gaussianBlur";
         let id = open(&mut app, command).unwrap();
         let params = params_of(&app.ui.dialog_mut(id).unwrap().fields);

@@ -1,11 +1,13 @@
-use super::{CornerRadius, Layer, LayerContent, LayerId, LocalPaintApp, Rect, RichText, Sense, Stroke, Tokens, empty, icons, json, pos2, theme, vec2, widgets};
+use super::{
+    CornerRadius, Layer, LayerContent, LayerId, LocalRasterApp, Rect, RichText, Sense, Stroke, Tokens, empty, icons, json, pos2, theme, vec2, widgets,
+};
 
 // ----------------------------------------------------------------------------- properties
 
 /// Floating Properties card anchored to the canvas' top-right corner. It has the docked group's
 /// tabs: Properties (`properties_body`: document, layer, adjustment and mask properties) and
 /// Adjustments (`adjustments_grid`).
-pub fn properties_window(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub fn properties_window(app: &mut LocalRasterApp, ctx: &egui::Context) {
     if app.ui.docking.is_some() {
         return;
     }
@@ -83,7 +85,7 @@ pub fn properties_window(app: &mut LocalPaintApp, ctx: &egui::Context) {
     }
 }
 
-fn adjustment_controls(app: &mut LocalPaintApp, ui: &mut egui::Ui, id: LayerId, adj: &localpaint_doc::Adjustment) {
+fn adjustment_controls(app: &mut LocalRasterApp, ui: &mut egui::Ui, id: LayerId, adj: &localraster_doc::Adjustment) {
     // Keep the scope reachable before tall editors and within a compact dock (#5231).
     // Adjustment layers affect the stack by default; clipping limits them to their base.
     if let Some(mut clip) = app.session.active().and_then(|s| s.doc.layer(id).map(|l| l.clipped))
@@ -109,7 +111,7 @@ fn adjustment_controls(app: &mut LocalPaintApp, ui: &mut egui::Ui, id: LayerId, 
     }
 }
 
-fn layer_controls(app: &mut LocalPaintApp, ui: &mut egui::Ui, layer: &Layer) {
+fn layer_controls(app: &mut LocalRasterApp, ui: &mut egui::Ui, layer: &Layer) {
     let t = Tokens::get(ui.ctx());
     if let Some(s) = layer.surface() {
         let b = app.layer_frame_bounds(layer, s);
@@ -135,12 +137,12 @@ fn layer_controls(app: &mut LocalPaintApp, ui: &mut egui::Ui, layer: &Layer) {
 }
 
 /// Docked Properties body (Pro theme).
-pub(super) fn properties_body(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+pub(super) fn properties_body(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     let identity = app.session.active().map(|st| (st.doc.id, st.active_layer, app.ui.mask_target, app.ui.vector_mask_target, app.ui.properties_layer));
     ui.push_id(("properties-target", identity), |ui| properties_body_inner(app, ui));
 }
 
-fn properties_body_inner(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+fn properties_body_inner(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
     let Some(st) = app.session.active() else {
         empty(ui, tl!("No properties"));
@@ -190,7 +192,7 @@ fn properties_body_inner(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
         // Transform, Align, the kind's sections and Quick Actions.
         crate::layer_props_ui::properties(app, ui, layer);
     } else {
-        if matches!(layer.content, LayerContent::Fill(localpaint_doc::Fill::Gradient { .. })) {
+        if matches!(layer.content, LayerContent::Fill(localraster_doc::Fill::Gradient { .. })) {
             crate::gradient_ui::properties(app, ui, layer);
             ui.add_space(6.0);
         }
@@ -206,7 +208,7 @@ fn properties_body_inner(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
 }
 
 /// Photoshop's Adjustments panel: a grid of one-click adjustment layers.
-pub(super) fn adjustments_grid(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+pub(super) fn adjustments_grid(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
     ui.label(RichText::new(tl!("Add an adjustment")).color(t.text_dim));
     ui.add_space(4.0);
@@ -245,7 +247,7 @@ pub(super) fn adjustments_grid(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
 
 /// The options bar's Select and Mask… button: greyed out, as the menu item is, until there is a
 /// selection (or a layer mask) to refine (#7520).
-pub(super) fn select_and_mask_button(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+pub(super) fn select_and_mask_button(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     let enabled = crate::menus::is_enabled(app, "select.selectAndMask");
     let clicked = ui.add_enabled_ui(enabled, |ui| widgets::secondary_button(ui, tl!("Select and Mask…"), 0.0).clicked()).inner;
     if clicked {
@@ -254,7 +256,7 @@ pub(super) fn select_and_mask_button(app: &mut LocalPaintApp, ui: &mut egui::Ui)
 }
 
 /// New / add / subtract / intersect selection buttons (shared by selection tools).
-pub(super) fn selection_mode_buttons(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+pub(super) fn selection_mode_buttons(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     ui.spacing_mut().item_spacing.x = 2.0;
     for (i, (icon, tip)) in [
         ("square", tl!("New selection").to_string()),

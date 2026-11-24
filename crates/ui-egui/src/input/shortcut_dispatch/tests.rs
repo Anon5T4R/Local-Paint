@@ -6,11 +6,11 @@ use egui::accesskit::Role;
 use egui::{Modifiers, PointerButton, Pos2, vec2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
-use localpaint_doc::LayerContent;
+use localraster_doc::LayerContent;
 use serde_json::json;
 
 use super::{Focus, Outcome, bindings, set_dry_run, take_log};
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::shortcuts::parse;
 use crate::state::Tool;
 
@@ -25,9 +25,9 @@ fn svg_editor_prompt_owns_later_shortcuts_in_same_frame() {
         })),
         ..Default::default()
     };
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), services);
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), services);
     app.session.execute("file.new", json!({"width": 32, "height": 32})).unwrap();
-    localpaint_engine::file_cmds::place_bytes(
+    localraster_engine::file_cmds::place_bytes(
         &mut app.session,
         "Artwork.svg",
         br#"<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8"/></svg>"#.to_vec(),
@@ -66,8 +66,8 @@ fn svg_editor_prompt_owns_later_shortcuts_in_same_frame() {
 
 /// Background, a filled pixel layer "paint" (active, with a selection), a type layer and a group
 /// holding a layer: what a real layout PSD looks like.
-fn realistic() -> localpaint_engine::Session {
-    let mut s = localpaint_engine::Session::new();
+fn realistic() -> localraster_engine::Session {
+    let mut s = localraster_engine::Session::new();
     s.execute("file.new", json!({"width": 240, "height": 160})).unwrap();
     s.execute("layer.new.layer", json!({"name": "in-group"})).unwrap();
     s.execute("layer.groupLayers", json!({"name": "group"})).unwrap();
@@ -87,10 +87,10 @@ fn services() -> crate::Services {
     crate::Services { export: Some(Box::new(|_, _, _| Err("tests don't write files".into()))), ..Default::default() }
 }
 
-fn harness() -> Harness<'static, LocalPaintApp> {
+fn harness() -> Harness<'static, LocalRasterApp> {
     let mut h = Harness::builder().with_size(vec2(1440.0, 900.0)).with_max_steps(64).build_eframe(|cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        LocalPaintApp::new(realistic(), services())
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        LocalRasterApp::new(realistic(), services())
     });
     h.run_steps(8);
     h
@@ -111,7 +111,7 @@ fn platform(m: Modifiers) -> Modifiers {
     out
 }
 
-fn press(h: &mut Harness<'_, LocalPaintApp>, sc: &str) {
+fn press(h: &mut Harness<'_, LocalRasterApp>, sc: &str) {
     let sc = parse(sc).unwrap_or_else(|| panic!("unparsable shortcut {sc}"));
     let m = platform(sc.modifiers);
     h.event(egui::Event::ModifiersChanged(m));
@@ -121,7 +121,7 @@ fn press(h: &mut Harness<'_, LocalPaintApp>, sc: &str) {
     h.run_steps(2);
 }
 
-fn click(h: &mut Harness<'_, LocalPaintApp>, at: Pos2) {
+fn click(h: &mut Harness<'_, LocalRasterApp>, at: Pos2) {
     h.hover_at(at);
     h.run_steps(1);
     h.event(egui::Event::PointerButton { pos: at, button: PointerButton::Primary, pressed: true, modifiers: Modifiers::NONE });
@@ -130,7 +130,7 @@ fn click(h: &mut Harness<'_, LocalPaintApp>, at: Pos2) {
     h.run_steps(3);
 }
 
-fn active_name(h: &Harness<'_, LocalPaintApp>) -> String {
+fn active_name(h: &Harness<'_, LocalRasterApp>) -> String {
     let st = h.state().session.active().unwrap();
     st.active_layer.and_then(|id| st.doc.layer(id)).map(|l| l.name.clone()).unwrap_or_default()
 }
@@ -149,7 +149,7 @@ enum Place {
     FocusedWidget,
 }
 
-fn put_focus(h: &mut Harness<'_, LocalPaintApp>, place: Place) {
+fn put_focus(h: &mut Harness<'_, LocalRasterApp>, place: Place) {
     match place {
         Place::Canvas => {
             let c = h.state().last_canvas_rect.center();
@@ -198,7 +198,7 @@ fn same(shown: &str, bound: &str) -> bool {
 }
 
 /// Every shortcut shown in the menus (and the shell's unlisted ones), with whether it is live.
-fn displayed(app: &LocalPaintApp) -> Vec<(String, String, bool)> {
+fn displayed(app: &LocalRasterApp) -> Vec<(String, String, bool)> {
     let mut v: Vec<(String, String, bool)> = crate::menus::menu_items(app)
         .into_iter()
         .filter(|i| i.id != "---")
@@ -290,7 +290,7 @@ fn common_shortcuts_work_after_clicking_panels() {
     for place in [Place::Canvas, Place::LayersRow, Place::FocusedWidget, Place::OpacityField] {
         let mut h = harness();
         put_focus(&mut h, place);
-        let count = |h: &Harness<'_, LocalPaintApp>| h.state().session.active().unwrap().doc.walk().len();
+        let count = |h: &Harness<'_, LocalRasterApp>| h.state().session.active().unwrap().doc.walk().len();
         let n = count(&h);
         press(&mut h, "Cmd+J");
         assert_eq!(count(&h), n + 1, "{place:?}: ⌘J duplicates the layer");
@@ -360,7 +360,7 @@ fn a_disabled_shortcut_says_why() {
 
 #[test]
 fn a_disabled_shortcut_uses_the_command_id_translation() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     let cs = crate::i18n::Lang::from_code("cs").unwrap();
     crate::i18n::with_language(cs, || {
         super::dispatch(&mut app, &egui::Context::default(), "select.all");
@@ -457,7 +457,7 @@ fn brush_keys_can_be_rebound() {
     app.ui.tool = Tool::Brush;
     app.run("tools.setBrush", json!({"brush": {"size": 40, "hardness": 0.5}})).unwrap();
     app.run("edit.keyboardShortcuts", json!({"set": {"tools.increaseBrushSize": "Alt+W", "tools.increaseBrushHardness": "Alt+Shift+W"}})).unwrap();
-    let brush = |h: &Harness<'_, LocalPaintApp>| (h.state().session.tools.brush.size, h.state().session.tools.brush.hardness);
+    let brush = |h: &Harness<'_, LocalRasterApp>| (h.state().session.tools.brush.size, h.state().session.tools.brush.hardness);
     press(&mut h, "]");
     press(&mut h, "Shift+]");
     assert_eq!(brush(&h), (40.0, 0.5), "the old keys are free");
@@ -480,11 +480,11 @@ type Saved = std::rc::Rc<std::cell::RefCell<Vec<Vec<u8>>>>;
 
 /// [`harness`] with a document that saves in place, an exporter writing its top-level layer count
 /// and a writer recording it; then one new layer on top (history to undo).
-fn saving_harness() -> (Harness<'static, LocalPaintApp>, Saved) {
+fn saving_harness() -> (Harness<'static, LocalRasterApp>, Saved) {
     let saved = Saved::default();
     let out = saved.clone();
     let mut h = Harness::builder().with_size(vec2(1440.0, 900.0)).with_max_steps(64).build_eframe(move |cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
         let services = crate::Services {
             export: Some(Box::new(|doc, _, _| Ok((doc.layers.len().to_string().into_bytes(), Vec::new())))),
             write: Some(Box::new(move |_, bytes| {
@@ -496,20 +496,20 @@ fn saving_harness() -> (Harness<'static, LocalPaintApp>, Saved) {
         let mut session = realistic();
         session.active_mut().unwrap().path = Some("/tmp/layout.psd".into());
         session.execute("layer.new.layer", json!({"name": "added"})).unwrap();
-        LocalPaintApp::new(session, services)
+        LocalRasterApp::new(session, services)
     });
     h.run_steps(8);
     put_focus(&mut h, Place::Canvas);
     (h, saved)
 }
 
-fn layer_count(h: &Harness<'_, LocalPaintApp>) -> usize {
+fn layer_count(h: &Harness<'_, LocalRasterApp>) -> usize {
     h.state().session.active().unwrap().doc.layers.len()
 }
 
 /// Press `shortcuts` one after another within a single frame (`Harness::event` runs a frame per
 /// event).
-fn press_in_one_frame(h: &mut Harness<'_, LocalPaintApp>, shortcuts: &[&str]) {
+fn press_in_one_frame(h: &mut Harness<'_, LocalRasterApp>, shortcuts: &[&str]) {
     let events = &mut h.input_mut().events;
     for sc in shortcuts {
         let sc = parse(sc).unwrap();
@@ -522,7 +522,7 @@ fn press_in_one_frame(h: &mut Harness<'_, LocalPaintApp>, shortcuts: &[&str]) {
     h.run_steps(2);
 }
 
-fn logged(h: &Harness<'_, LocalPaintApp>) -> Vec<String> {
+fn logged(h: &Harness<'_, LocalRasterApp>) -> Vec<String> {
     take_log(&h.ctx).into_iter().map(|(id, _)| id).collect()
 }
 
@@ -558,7 +558,7 @@ fn a_shortcut_opening_a_dialog_takes_the_frames_later_keys() {
     assert_eq!(logged(&h), ["image.adjustments.levels"]);
 }
 
-fn names(h: &Harness<'_, LocalPaintApp>) -> Vec<String> {
+fn names(h: &Harness<'_, LocalRasterApp>) -> Vec<String> {
     h.state().session.active().unwrap().doc.walk().into_iter().map(|(_, _, l)| l.name.clone()).collect()
 }
 
@@ -573,7 +573,7 @@ fn delete_without_a_selection_deletes_the_selected_layer() {
             put_focus(&mut h, place);
             let s = &mut h.state_mut().session;
             s.execute("select.deselect", json!({})).unwrap();
-            let adj = localpaint_doc::LayerId(s.execute("layer.newAdjustmentLayer.invert", json!({})).unwrap()["layer"].as_u64().unwrap());
+            let adj = localraster_doc::LayerId(s.execute("layer.newAdjustmentLayer.invert", json!({})).unwrap()["layer"].as_u64().unwrap());
             h.run_steps(2);
             let before = names(&h);
             press(&mut h, key);
@@ -601,10 +601,10 @@ fn delete_with_the_mask_targeted_edits_the_mask_not_the_layer() {
         let (x, y) = ((sel.x0 + sel.x1) / 2, (sel.y0 + sel.y1) / 2);
         h.state_mut().ui.mask_target = true;
         h.run_steps(2);
-        let layer_pixels = |h: &Harness<'_, LocalPaintApp>| {
+        let layer_pixels = |h: &Harness<'_, LocalRasterApp>| {
             h.state().session.active().unwrap().doc.layer(layer).and_then(|l| l.surface().cloned()).map(|s| s.read_region(sel))
         };
-        let mask_at = |h: &Harness<'_, LocalPaintApp>| {
+        let mask_at = |h: &Harness<'_, LocalRasterApp>| {
             h.state().session.active().unwrap().doc.layer(layer).and_then(|l| l.mask.as_ref()).map(|m| m.surface.sample_channel(x, y, 0))
         };
         let before = layer_pixels(&h);
@@ -639,8 +639,8 @@ fn delete_with_the_filter_mask_targeted_edits_the_filter_mask() {
     h.state_mut().select_filter_mask_target(Some(layer.0));
     assert!(h.state().filter_mask_targeted());
     h.run_steps(2);
-    let smart = |h: &Harness<'_, LocalPaintApp>| match h.state().session.active().unwrap().doc.layer(layer).map(|l| &l.content) {
-        Some(localpaint_doc::LayerContent::Smart(sm)) => Some(sm.clone()),
+    let smart = |h: &Harness<'_, LocalRasterApp>| match h.state().session.active().unwrap().doc.layer(layer).map(|l| &l.content) {
+        Some(localraster_doc::LayerContent::Smart(sm)) => Some(sm.clone()),
         _ => None,
     };
     let filters = smart(&h).unwrap().smart_filters.len();
@@ -666,7 +666,7 @@ fn delete_without_a_selection_deletes_every_selected_layer() {
     let s = &mut h.state_mut().session;
     s.execute("select.deselect", json!({})).unwrap();
     let paint = s.active().unwrap().active_layer.unwrap();
-    let adj = localpaint_doc::LayerId(s.execute("layer.newAdjustmentLayer.invert", json!({})).unwrap()["layer"].as_u64().unwrap());
+    let adj = localraster_doc::LayerId(s.execute("layer.newAdjustmentLayer.invert", json!({})).unwrap()["layer"].as_u64().unwrap());
     s.execute("layer.select", json!({"layer": paint.0})).unwrap();
     s.execute("layer.select", json!({"layer": adj.0, "mode": "add"})).unwrap();
     h.run_steps(2);
@@ -685,8 +685,8 @@ fn delete_with_several_layers_selected_deletes_them_even_with_the_mask_targeted(
     let mut h = harness();
     put_focus(&mut h, Place::Canvas);
     let s = &mut h.state_mut().session;
-    let first = localpaint_doc::LayerId(s.execute("layer.newAdjustmentLayer.curves", json!({})).unwrap()["layer"].as_u64().unwrap());
-    let second = localpaint_doc::LayerId(s.execute("layer.newAdjustmentLayer.invert", json!({})).unwrap()["layer"].as_u64().unwrap());
+    let first = localraster_doc::LayerId(s.execute("layer.newAdjustmentLayer.curves", json!({})).unwrap()["layer"].as_u64().unwrap());
+    let second = localraster_doc::LayerId(s.execute("layer.newAdjustmentLayer.invert", json!({})).unwrap()["layer"].as_u64().unwrap());
     s.execute("layer.select", json!({"layer": first.0, "mode": "add"})).unwrap();
     // The new layers took the harness's selection as their masks (#8801): select again.
     s.execute("select.all", json!({})).unwrap();
@@ -721,12 +721,12 @@ fn delete_with_a_selection_clears_it() {
     assert_eq!(names(&h), before, "no layer was deleted");
 }
 
-fn is_clipped(h: &Harness<'_, LocalPaintApp>, id: localpaint_doc::LayerId) -> bool {
+fn is_clipped(h: &Harness<'_, LocalRasterApp>, id: localraster_doc::LayerId) -> bool {
     h.state().session.active().unwrap().doc.layer(id).unwrap().clipped
 }
 
 /// The Layer menu's clipping mask items: (id, label, shortcut, enabled).
-fn clip_items(h: &Harness<'_, LocalPaintApp>) -> Vec<(String, String, Option<String>, bool)> {
+fn clip_items(h: &Harness<'_, LocalRasterApp>) -> Vec<(String, String, Option<String>, bool)> {
     crate::menus::menu_items(h.state()).into_iter().filter(|i| i.id.ends_with("ClippingMask")).map(|i| (i.id, i.label, i.shortcut, i.enabled)).collect()
 }
 
@@ -764,7 +764,7 @@ fn clip_key_toggles_several_selected_layers() {
     let s = &mut h.state_mut().session;
     let paint = s.active().unwrap().active_layer.unwrap();
     let base = s.active().unwrap().doc.walk().into_iter().find(|(_, _, l)| l.name == "Hello").unwrap().2.id;
-    let top = localpaint_doc::LayerId(s.execute("layer.new.layer", json!({"name": "top"})).unwrap()["layer"].as_u64().unwrap());
+    let top = localraster_doc::LayerId(s.execute("layer.new.layer", json!({"name": "top"})).unwrap()["layer"].as_u64().unwrap());
     s.execute("layer.createClippingMask", json!({"layer": paint.0})).unwrap();
     s.execute("layer.select", json!({"layer": base.0, "mode": "replace"})).unwrap();
     for id in [paint, top] {
@@ -783,7 +783,7 @@ fn clip_key_toggles_several_selected_layers() {
 #[test]
 fn named_action_function_key_replays_and_survives_preferences_roundtrip() {
     let mut h = harness();
-    let action = localpaint_engine::actions_cmds::Action {
+    let action = localraster_engine::actions_cmds::Action {
         name: "LivePrint 2R".into(),
         steps: vec![("layer.new.layer".into(), json!({"name": "F6 overlay"}))],
         disabled: Default::default(),
@@ -809,7 +809,7 @@ fn named_action_function_key_replays_and_survives_preferences_roundtrip() {
 fn assigning_action_function_key_moves_it_and_reports_failed_steps() {
     let mut h = harness();
     for name in ["first", "second"] {
-        h.state_mut().session.actions.list.push(localpaint_engine::actions_cmds::Action {
+        h.state_mut().session.actions.list.push(localraster_engine::actions_cmds::Action {
             name: name.into(),
             steps: vec![("no.such.command".into(), json!({}))],
             disabled: Default::default(),
@@ -829,7 +829,7 @@ fn assigning_action_function_key_moves_it_and_reports_failed_steps() {
 #[test]
 fn action_function_key_checks_automation_authorization() {
     let mut h = harness();
-    h.state_mut().session.actions.list.push(localpaint_engine::actions_cmds::Action {
+    h.state_mut().session.actions.list.push(localraster_engine::actions_cmds::Action {
         name: "restricted".into(),
         steps: vec![("layer.new.layer".into(), json!({"name": "should not exist"}))],
         disabled: Default::default(),
@@ -867,7 +867,7 @@ fn fit_shortcut_records_and_f6_fits_the_resized_canvas() {
 #[test]
 fn f6_while_recording_records_a_named_call_not_the_child_steps() {
     let mut h = harness();
-    h.state_mut().session.actions.list.push(localpaint_engine::actions_cmds::Action {
+    h.state_mut().session.actions.list.push(localraster_engine::actions_cmds::Action {
         name: "LivePrint 2R".into(),
         steps: vec![("layer.new.layer".into(), json!({"name":"Nested overlay"})), ("view.fitOnScreen".into(), json!({}))],
         disabled: Default::default(),
@@ -889,11 +889,11 @@ fn type_size_keys_follow_key_position_and_the_typed_selection() {
     let st = h.state().session.active().unwrap();
     let id = st.doc.walk().into_iter().find(|(_, _, l)| matches!(l.content, LayerContent::Text(_))).unwrap().2.id.0;
     h.state_mut().session.execute("layer.select", json!({"layer": id})).unwrap();
-    let sizes = |h: &Harness<'_, LocalPaintApp>| match &h.state().session.active().unwrap().doc.layer(localpaint_doc::LayerId(id)).unwrap().content {
+    let sizes = |h: &Harness<'_, LocalRasterApp>| match &h.state().session.active().unwrap().doc.layer(localraster_doc::LayerId(id)).unwrap().content {
         LayerContent::Text(t) => t.char_runs().iter().map(|r| (r.len, r.style.size_pt)).collect::<Vec<_>>(),
         _ => Vec::new(),
     };
-    let positional = |h: &mut Harness<'_, LocalPaintApp>, key, physical| {
+    let positional = |h: &mut Harness<'_, LocalRasterApp>, key, physical| {
         let m = platform(Modifiers::COMMAND | Modifiers::SHIFT);
         h.event(egui::Event::ModifiersChanged(m));
         h.event(egui::Event::Key { key, physical_key: Some(physical), pressed: true, repeat: false, modifiers: m });
@@ -924,7 +924,7 @@ fn plain_comma_and_semicolon_bindings_follow_the_typed_character_on_azerty() {
         p.shortcuts.insert("tools.decreaseBrushHardness".into(), ",".into());
         p.shortcuts.insert("tools.increaseBrushHardness".into(), ";".into());
     });
-    let tap = |h: &mut Harness<'_, LocalPaintApp>, key, physical| {
+    let tap = |h: &mut Harness<'_, LocalRasterApp>, key, physical| {
         h.event(egui::Event::Key { key, physical_key: Some(physical), pressed: true, repeat: false, modifiers: Modifiers::NONE });
         h.event(egui::Event::Key { key, physical_key: Some(physical), pressed: false, repeat: false, modifiers: Modifiers::NONE });
         h.run_steps(2);
@@ -941,12 +941,12 @@ fn plain_comma_and_semicolon_bindings_follow_the_typed_character_on_azerty() {
 /// another command in Edit › Keyboard Shortcuts stays that command's.
 #[test]
 fn alt_adjustment_shortcut_reopens_the_last_confirmed_settings() {
-    use localpaint_doc::ColorMode;
-    use localpaint_engine::adjust_params::{default_for, from_params, to_params};
+    use localraster_doc::ColorMode;
+    use localraster_engine::adjust_params::{default_for, from_params, to_params};
     let mut h = harness();
     put_focus(&mut h, Place::Canvas);
-    let top = |h: &Harness<'_, LocalPaintApp>| h.state().ui.dialogs.last().map(|d| (d.id, d.fields.clone())).expect("a dialog");
-    let set = |h: &mut Harness<'_, LocalPaintApp>, id: u64, values: serde_json::Value| {
+    let top = |h: &Harness<'_, LocalRasterApp>| h.state().ui.dialogs.last().map(|d| (d.id, d.fields.clone())).expect("a dialog");
+    let set = |h: &mut Harness<'_, LocalRasterApp>, id: u64, values: serde_json::Value| {
         let d = h.state_mut().ui.dialog_mut(id).unwrap();
         d.fields.extend(values.as_object().unwrap().clone());
         h.run_steps(2);
@@ -1010,15 +1010,15 @@ fn alt_adjustment_shortcut_reopens_the_last_confirmed_settings() {
 /// settings too; a plain click still opens it at the defaults.
 #[test]
 fn alt_choosing_an_adjustment_from_the_menu_reopens_the_last_settings() {
-    use localpaint_doc::ColorMode;
-    use localpaint_engine::adjust_params::{default_for, from_params, to_params};
+    use localraster_doc::ColorMode;
+    use localraster_engine::adjust_params::{default_for, from_params, to_params};
     let mut h = harness();
     h.state_mut().session.edit_prefs(|p| {
         p.dialogs.insert("image.adjustments.levels".into(), json!({"inBlack": 30, "gamma": 1.3}));
     });
     let levels = to_params(&from_params("levels", &json!({"inBlack": 30, "gamma": 1.3}), None, ColorMode::Rgb).unwrap());
     let defaults = to_params(&default_for("levels", ColorMode::Rgb).unwrap());
-    let choose = |h: &mut Harness<'_, LocalPaintApp>, m: Modifiers| {
+    let choose = |h: &mut Harness<'_, LocalRasterApp>, m: Modifiers| {
         h.get_by_label("Image").click();
         h.run_steps(3);
         // The Image menu's row, not the Adjustments panel's tab in the dock on the right.

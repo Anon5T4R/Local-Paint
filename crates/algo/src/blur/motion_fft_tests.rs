@@ -3,8 +3,8 @@
 //! source premultiplication, then performs convolution and accumulation in f64.
 
 use super::*;
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_raster::Surface;
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_raster::Surface;
 use std::collections::BTreeMap;
 
 fn offsets(angle: f32, distance: f32) -> Vec<(f64, f64)> {

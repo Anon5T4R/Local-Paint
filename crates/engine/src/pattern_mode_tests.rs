@@ -5,7 +5,7 @@
 //! gradient fills).
 
 use crate::Session;
-use localpaint_doc::ColorMode;
+use localraster_doc::ColorMode;
 use serde_json::json;
 
 /// Defines a blue-and-yellow RGB pattern from a scratch document and returns its id.

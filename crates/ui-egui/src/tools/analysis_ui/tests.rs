@@ -1,31 +1,31 @@
 use super::*;
 
-fn app() -> (LocalPaintApp, egui::Context) {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn app() -> (LocalRasterApp, egui::Context) {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 200, "height": 100})).unwrap();
     (app, egui::Context::default())
 }
 
 /// Draw `f` for a few frames (fonts load on the first).
-pub(crate) fn render(app: &mut LocalPaintApp, ctx: &egui::Context, f: fn(&mut LocalPaintApp, &egui::Context)) {
-    LocalPaintApp::setup_context(ctx, Default::default());
+pub(crate) fn render(app: &mut LocalRasterApp, ctx: &egui::Context, f: fn(&mut LocalRasterApp, &egui::Context)) {
+    LocalRasterApp::setup_context(ctx, Default::default());
     for _ in 0..3 {
         let mut o = ctx.run_ui(Default::default(), |ui| f(app, ui.ctx()));
         o.textures_delta.clear();
     }
 }
 
-fn down(app: &mut LocalPaintApp, x: f64, y: f64, m: egui::Modifiers) {
+fn down(app: &mut LocalRasterApp, x: f64, y: f64, m: egui::Modifiers) {
     crate::canvas::tool_event(app, ToolEvent::Down { x, y, pressure: 1.0 }, m);
 }
-fn mv(app: &mut LocalPaintApp, x: f64, y: f64, m: egui::Modifiers) {
+fn mv(app: &mut LocalRasterApp, x: f64, y: f64, m: egui::Modifiers) {
     crate::canvas::tool_event(app, ToolEvent::Move { x, y, pressure: 1.0 }, m);
 }
-fn up(app: &mut LocalPaintApp, x: f64, y: f64) {
+fn up(app: &mut LocalRasterApp, x: f64, y: f64) {
     crate::canvas::tool_event(app, ToolEvent::Up { x, y }, egui::Modifiers::NONE);
 }
 
-fn ruler(app: &LocalPaintApp) -> Option<Ruler> {
+fn ruler(app: &LocalRasterApp) -> Option<Ruler> {
     app.session.active().unwrap().doc.measurement.ruler
 }
 
@@ -57,7 +57,7 @@ fn menu_selects_tools_and_toggles_panels() {
 #[test]
 fn arbitrary_rotation_starts_at_the_ruler_angle() {
     let (mut app, ctx) = app();
-    let open = |app: &mut LocalPaintApp| {
+    let open = |app: &mut LocalRasterApp| {
         let r = crate::menus::invoke(app, &ctx, "image.rotation.arbitrary", json!({})).unwrap();
         let f = &app.ui.dialog_mut(r["dialog"].as_u64().unwrap()).unwrap().fields;
         (f["angle"].as_f64().unwrap(), f["direction"].clone())
@@ -90,7 +90,7 @@ fn ruler_drag_protractor_and_clear() {
     down(&mut app, 10.0, 10.0, egui::Modifiers::ALT);
     mv(&mut app, 60.0, 10.0, none);
     up(&mut app, 60.0, 10.0);
-    let info = localpaint_engine::analysis_cmds::ruler_info(&ruler(&app).unwrap(), &Default::default());
+    let info = localraster_engine::analysis_cmds::ruler_info(&ruler(&app).unwrap(), &Default::default());
     assert!((info["angle"].as_f64().unwrap() - 90.0).abs() < 1e-6, "{info}");
     // A click without a drag far away starts a new line and clears it.
     down(&mut app, 150.0, 80.0, none);
@@ -107,7 +107,7 @@ fn count_tool_add_move_remove() {
     up(&mut app, 20.0, 20.0);
     down(&mut app, 50.0, 50.0, egui::Modifiers::NONE);
     up(&mut app, 50.0, 50.0);
-    let pts = |app: &LocalPaintApp| app.session.active().unwrap().doc.measurement.count_groups[0].points.clone();
+    let pts = |app: &LocalRasterApp| app.session.active().unwrap().doc.measurement.count_groups[0].points.clone();
     assert_eq!(pts(&app).len(), 2);
     // Drag marker 1.
     down(&mut app, 20.5, 20.5, egui::Modifiers::NONE);
@@ -198,7 +198,7 @@ fn dialogs_open_and_run_their_commands() {
 fn color_sampler_tool_places_moves_and_removes_points() {
     let (mut app, ctx) = app();
     app.ui.tool = Tool::ColorSampler;
-    let pts = |app: &LocalPaintApp| app.session.active().unwrap().color_samplers.clone();
+    let pts = |app: &LocalRasterApp| app.session.active().unwrap().color_samplers.clone();
     down(&mut app, 20.0, 20.0, egui::Modifiers::NONE);
     up(&mut app, 20.0, 20.0);
     down(&mut app, 60.0, 40.0, egui::Modifiers::NONE);
@@ -275,7 +275,7 @@ fn color_sampler_is_per_document_and_inert_without_one() {
     app.run("document.activate", json!({"document": 0})).unwrap();
     assert_eq!(app.session.active().unwrap().color_samplers, vec![[10.0, 10.0]]);
     // With no document the tool says so (no dialog, no panic) and the commands error.
-    let mut empty = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut empty = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     empty.ui.tool = Tool::ColorSampler;
     down(&mut empty, 5.0, 5.0, egui::Modifiers::NONE);
     assert_eq!(empty.ui.status, "No document open");

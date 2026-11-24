@@ -1,7 +1,7 @@
 //! Clear, Cut and Image › Adjustments refuse a pixel-locked layer and leave it unchanged, as
 //! painting does (#1103).
 
-use localpaint_engine::Session;
+use localraster_engine::Session;
 use serde_json::json;
 
 /// A layer with a red stroke across it, pixels locked.

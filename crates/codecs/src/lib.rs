@@ -1,4 +1,4 @@
-//! `localpaint-codecs`: symmetric, depth- and metadata-preserving codecs for
+//! `localraster-codecs`: symmetric, depth- and metadata-preserving codecs for
 //! flat raster image formats.
 //!
 //! * Every format we **write** we can also **read** (see

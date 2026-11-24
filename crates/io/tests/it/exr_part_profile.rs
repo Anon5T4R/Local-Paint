@@ -1,10 +1,10 @@
 //! Selecting an EXR part must interpret its linear samples like ordinary File > Open.
 
-use localpaint_cms::{Builtin, ColorSpace, Intent, Profile, Transform};
-use localpaint_codecs::{self as codecs, ChannelLayout, Format, Image, SampleType as CodecSample};
-use localpaint_color::{ColorMode, SampleType};
-use localpaint_doc::Document;
-use localpaint_io::{ExportOptions, ImportResult, export, exr_parts, import};
+use localraster_cms::{Builtin, ColorSpace, Intent, Profile, Transform};
+use localraster_codecs::{self as codecs, ChannelLayout, Format, Image, SampleType as CodecSample};
+use localraster_color::{ColorMode, SampleType};
+use localraster_doc::Document;
+use localraster_io::{ExportOptions, ImportResult, export, exr_parts, import};
 
 fn exr(layout: ChannelLayout, depth: CodecSample) -> Vec<u8> {
     // Exactly representable in half precision, including negative and HDR luminance.
@@ -51,7 +51,7 @@ fn selected_gray_exr_part_keeps_linear_profile_and_float_samples() {
             let expected = codecs::decode(&bytes).unwrap().convert(ChannelLayout::GrayA, CodecSample::F32).to_f32_samples().unwrap();
             assert_eq!(samples(doc), expected, "{layout:?} {depth:?}: samples and alpha stay unchanged");
             assert_eq!(samples(doc), samples(&ordinary.document));
-            assert_eq!(doc.icc_profile, Some(localpaint_cms::builtin::linear_gray().to_bytes()), "{layout:?} {depth:?}: linear luminance");
+            assert_eq!(doc.icc_profile, Some(localraster_cms::builtin::linear_gray().to_bytes()), "{layout:?} {depth:?}: linear luminance");
             assert_eq!(doc.icc_profile, ordinary.document.icc_profile);
 
             // The tagged samples convert to display gray, rather than being interpreted as sGray.
@@ -61,7 +61,7 @@ fn selected_gray_exr_part_keeps_linear_profile_and_float_samples() {
             let mut display = samples(doc);
             transform.apply(&mut display, 2);
             for i in [1, 2] {
-                let expected_gray = localpaint_color::convert::linear_to_srgb(expected[i * 2]);
+                let expected_gray = localraster_color::convert::linear_to_srgb(expected[i * 2]);
                 assert!((display[i * 2] - expected_gray).abs() < 1e-4, "{layout:?} {depth:?}: display gray");
                 assert_eq!(display[i * 2 + 1], expected[i * 2 + 1], "alpha is not gamma encoded");
             }
@@ -89,7 +89,7 @@ fn selected_gray_exr_part_exports_like_ordinary_import() {
                     assert_eq!(output, original, "linear EXR samples, including negative/HDR and alpha, survive re-export");
                 } else {
                     for i in [1, 2] {
-                        let expected = localpaint_color::convert::linear_to_srgb(original[i * 2]);
+                        let expected = localraster_color::convert::linear_to_srgb(original[i * 2]);
                         assert!((output[i * 2] - expected).abs() <= 1.0 / 255.0, "TGA uses display-encoded gray");
                         assert!((output[i * 2 + 1] - original[i * 2 + 1]).abs() <= 1.0 / 255.0, "TGA preserves alpha");
                     }

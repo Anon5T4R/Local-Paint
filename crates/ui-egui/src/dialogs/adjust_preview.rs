@@ -37,12 +37,12 @@
 
 use std::sync::Arc;
 
-use localpaint_color::ColorMode;
-use localpaint_doc::{Adjustment, DocId, Document, Layer, LayerContent, LayerId, LayerMask};
-use localpaint_geom::Rect;
+use localraster_color::ColorMode;
+use localraster_doc::{Adjustment, DocId, Document, Layer, LayerContent, LayerId, LayerMask};
+use localraster_geom::Rect;
 use serde_json::Value;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
 /// Id of the temporary preview layer. Fixed so the GPU compositor keeps its mask (the selection)
 /// resident from one change to the next. Never reaches a committed document.
@@ -64,7 +64,7 @@ pub fn unsupported(doc: &Document, target: LayerId) -> Option<&'static str> {
     if l.clipped {
         return Some("the target is clipped");
     }
-    if localpaint_compose::blend_if_active(l, doc.mode) {
+    if localraster_compose::blend_if_active(l, doc.mode) {
         return Some(tl!("Blend If"));
     }
     let shows_default = !s.format().alpha || s.default_pixel().last().is_some_and(|a| *a > 0.0);
@@ -115,7 +115,7 @@ pub fn with_settings(base: &Document, kind: &str, params: &Value) -> Result<Docu
 }
 
 fn set_adjustment(base: &Document, layer: LayerId, kind: &str, params: &Value) -> Result<Document, String> {
-    let adj = localpaint_engine::adjust_params::from_params(kind, params, None, base.mode).map_err(|e| e.to_string())?;
+    let adj = localraster_engine::adjust_params::from_params(kind, params, None, base.mode).map_err(|e| e.to_string())?;
     if base.mode == ColorMode::Grayscale && !keeps_gray(&adj) {
         return Err("colour result in a grayscale document".into());
     }
@@ -184,7 +184,7 @@ struct GpuProxy {
 }
 
 /// The open adjustment dialog: (kind, params, Preview on).
-fn dialog(app: &LocalPaintApp) -> Option<(String, Value, bool)> {
+fn dialog(app: &LocalRasterApp) -> Option<(String, Value, bool)> {
     let d = app.ui.dialogs.iter().find(|d| crate::adjust_dialog::owns(&d.fields))?;
     if d.fields.contains_key("__smartFilter") {
         return None;
@@ -200,7 +200,7 @@ fn hash(parts: &[&[u8]]) -> u64 {
 }
 
 /// Whether the layer path can draw `doc` cheaply on this app's canvas.
-fn cheap(app: &LocalPaintApp, doc: &Document) -> bool {
+fn cheap(app: &LocalRasterApp, doc: &Document) -> bool {
     match &app.gpu {
         Some(g) => g.supports(doc),
         None => crate::proxy::preview_factor(doc, crate::proxy::reduced_previews(app)) <= 1,
@@ -208,7 +208,7 @@ fn cheap(app: &LocalPaintApp, doc: &Document) -> bool {
 }
 
 /// Bring the cached preview up to date for document `idx` (the active one) and return it.
-fn update(app: &mut LocalPaintApp, idx: usize) -> Option<&AdjustPreview> {
+fn update(app: &mut LocalRasterApp, idx: usize) -> Option<&AdjustPreview> {
     if app.session.active_index() != Some(idx) {
         return None;
     }
@@ -228,7 +228,7 @@ fn update(app: &mut LocalPaintApp, idx: usize) -> Option<&AdjustPreview> {
     let channel_target = if let Some(target) = params.get("target") {
         target.as_str() != Some("pixels")
     } else {
-        st.channel_view.target != localpaint_engine::channel_cmds::ChannelTarget::Composite
+        st.channel_view.target != localraster_engine::channel_cmds::ChannelTarget::Composite
             || st.doc.quick_mask.is_some()
             || !app.with_mask_target(&format!("image.adjustments.{kind}"), Value::Null).is_null()
     };
@@ -280,20 +280,20 @@ fn update(app: &mut LocalPaintApp, idx: usize) -> Option<&AdjustPreview> {
 
 /// The document the canvas shows for document `idx` while an adjustment dialog previews through
 /// the layer path: (document, preview key).
-pub fn display_doc(app: &mut LocalPaintApp, idx: usize) -> Option<(Arc<Document>, u64)> {
+pub fn display_doc(app: &mut LocalRasterApp, idx: usize) -> Option<(Arc<Document>, u64)> {
     update(app, idx)?.shown.clone()
 }
 
 /// Whether the open adjustment dialog previews through the layer path (so the CPU proxy preview
 /// must stay off).
-pub fn on_layer(app: &mut LocalPaintApp, idx: usize) -> bool {
+pub fn on_layer(app: &mut LocalRasterApp, idx: usize) -> bool {
     update(app, idx).is_some_and(|p| p.layer_path)
 }
 
 /// The canvas area to recomposite when document `idx` (at `revision`) switches from the preview
 /// key `from` to `to` (raw keys, display transform removed): both must be this dialog's previews
 /// or the committed document (0). None means "everything".
-pub fn switch_region(app: &LocalPaintApp, doc: DocId, revision: u64, from: u64, to: u64) -> Option<Rect> {
+pub fn switch_region(app: &LocalRasterApp, doc: DocId, revision: u64, from: u64, to: u64) -> Option<Rect> {
     let p = app.adjust_preview.as_ref()?;
     if p.doc != doc || p.revision != revision {
         return None;
@@ -304,14 +304,14 @@ pub fn switch_region(app: &LocalPaintApp, doc: DocId, revision: u64, from: u64, 
 }
 
 /// The key of the preview currently shown, if any.
-pub fn shown_key(app: &LocalPaintApp) -> Option<u64> {
+pub fn shown_key(app: &LocalRasterApp) -> Option<u64> {
     app.adjust_preview.as_ref()?.shown.as_ref().map(|s| s.1)
 }
 
 /// The part of a switch's region (from [`switch_region`]) to composite now: to a preview, only
 /// what the view shows (`visible`, document pixels), remembering it so [`uncovered`] catches up
 /// as the view moves; back to the committed document (key 0), the whole region.
-pub fn switch_damage(app: &mut LocalPaintApp, to: u64, region: Rect, visible: Rect) -> Rect {
+pub fn switch_damage(app: &mut LocalRasterApp, to: u64, region: Rect, visible: Rect) -> Rect {
     let Some(p) = app.adjust_preview.as_mut() else { return region };
     if to == 0 {
         p.covered = None;
@@ -324,7 +324,7 @@ pub fn switch_damage(app: &mut LocalPaintApp, to: u64, region: Rect, visible: Re
 
 /// Where the main canvas texture (showing preview `key`) is out of date within `visible`: the
 /// region's visible part when the view moved past what was composited. Marks it covered.
-pub fn uncovered(app: &mut LocalPaintApp, doc: DocId, key: u64, visible: Rect) -> Option<Rect> {
+pub fn uncovered(app: &mut LocalRasterApp, doc: DocId, key: u64, visible: Rect) -> Option<Rect> {
     let p = app.adjust_preview.as_mut().filter(|p| p.doc == doc)?;
     let (k, cov) = p.covered?;
     if k != key {
@@ -340,7 +340,7 @@ pub fn uncovered(app: &mut LocalPaintApp, doc: DocId, key: u64, visible: Rect) -
 
 /// True while the preview's settings changed within the last `ms` milliseconds (secondary views
 /// such as the Navigator wait for the settings to settle instead of recompositing every change).
-pub fn settling(app: &LocalPaintApp, ms: f64) -> bool {
+pub fn settling(app: &LocalRasterApp, ms: f64) -> bool {
     app.adjust_preview.as_ref().is_some_and(|p| p.shown.is_some() && crate::gpu_canvas::now_ms() - p.changed_ms < ms)
 }
 
@@ -378,8 +378,8 @@ pub fn proxy_factor(zoom: f32) -> u32 {
 /// A [`base_document`] scaled down by `k` with its own document and layer ids (so the GPU keeps
 /// its textures beside the full-size document's).
 pub fn proxy_base(base: &Document, k: u32) -> Document {
-    let mut d = localpaint_compose::proxy::proxy_document(base, k);
-    d.id = localpaint_doc::DocId(base.id.0 ^ PROXY_DOC_BIT);
+    let mut d = localraster_compose::proxy::proxy_document(base, k);
+    d.id = localraster_doc::DocId(base.id.0 ^ PROXY_DOC_BIT);
     flip_ids(&mut d.layers);
     d
 }
@@ -403,7 +403,7 @@ pub struct ProxyFrame {
 /// The zoomed-out preview for document `idx` at `zoom`, when the dialog previews through the layer
 /// and the view is far enough out that a reduced copy shows the same detail as the full-size
 /// composite: each change then composites ~1/k² of the pixels. Built once per session and factor.
-pub fn gpu_proxy(app: &mut LocalPaintApp, idx: usize, zoom: f32) -> Option<ProxyFrame> {
+pub fn gpu_proxy(app: &mut LocalRasterApp, idx: usize, zoom: f32) -> Option<ProxyFrame> {
     if !crate::proxy::reduced_previews(app) {
         return None;
     }
@@ -413,7 +413,7 @@ pub fn gpu_proxy(app: &mut LocalPaintApp, idx: usize, zoom: f32) -> Option<Proxy
     p.shown.as_ref()?;
     let base = p.base.clone()?;
     let k = proxy_factor(zoom);
-    if k < 2 || base.size.area() <= PROXY_MIN_PIXELS || !localpaint_compose::proxy::proxy_faithful(&base) {
+    if k < 2 || base.size.area() <= PROXY_MIN_PIXELS || !localraster_compose::proxy::proxy_faithful(&base) {
         return None;
     }
     if p.proxy.as_ref().is_none_or(|g| g.k != k) {
@@ -439,7 +439,7 @@ pub fn gpu_proxy(app: &mut LocalPaintApp, idx: usize, zoom: f32) -> Option<Proxy
 }
 
 /// Record that `frame` was composited into the proxy's texture.
-pub fn proxy_drawn(app: &mut LocalPaintApp, frame: &ProxyFrame) {
+pub fn proxy_drawn(app: &mut LocalRasterApp, frame: &ProxyFrame) {
     if let Some(g) = app.adjust_preview.as_mut().and_then(|p| p.proxy.as_mut())
         && g.k == frame.k
     {
@@ -447,7 +447,7 @@ pub fn proxy_drawn(app: &mut LocalPaintApp, frame: &ProxyFrame) {
     }
 }
 
-pub(crate) fn retain_documents(app: &mut LocalPaintApp) {
+pub(crate) fn retain_documents(app: &mut LocalRasterApp) {
     // Native reopen can reuse the ID and revision; neither the old base document nor its
     // coverage and upload markers may survive after that document leaves the session.
     if app.adjust_preview.as_ref().is_some_and(|p| !app.session.documents().iter().any(|st| st.doc.id == p.doc)) {
@@ -459,7 +459,7 @@ pub(crate) fn retain_documents(app: &mut LocalPaintApp) {
 }
 
 /// GPU texture keys the preview uses besides the documents' own (keep them alive).
-pub fn gpu_keys(app: &LocalPaintApp) -> Option<u64> {
+pub fn gpu_keys(app: &LocalRasterApp) -> Option<u64> {
     let p = app.adjust_preview.as_ref().filter(|p| p.hash != 0)?;
     p.proxy.as_ref().map(|g| g.base.id.0)
 }
@@ -515,7 +515,7 @@ fn live_region(doc: &Document, layer: LayerId) -> Rect {
 
 /// The preview key for `params` on `layer` of `doc` at `revision`, starting a session (and
 /// measuring its region) when the document, revision or layer changes.
-pub fn live_key(app: &mut LocalPaintApp, doc: &Document, revision: u64, layer: LayerId, params: &Value) -> u64 {
+pub fn live_key(app: &mut LocalRasterApp, doc: &Document, revision: u64, layer: LayerId, params: &Value) -> u64 {
     let session = hash(&[&doc.id.0.to_le_bytes(), &revision.to_le_bytes(), &layer.0.to_le_bytes()]);
     if app.live_adjust_preview.as_ref().is_none_or(|p| p.session != session) {
         app.live_adjust_preview = Some(LiveAdjust { doc: doc.id, revision, session, region: live_region(doc, layer), covered: None });
@@ -526,7 +526,7 @@ pub fn live_key(app: &mut LocalPaintApp, doc: &Document, revision: u64, layer: L
 
 /// The canvas area to recomposite when document `doc` (at `revision`) switches between two of
 /// this drag's previews, or between one and the committed document (0).
-pub fn live_switch_region(app: &LocalPaintApp, doc: DocId, revision: u64, from: u64, to: u64) -> Option<Rect> {
+pub fn live_switch_region(app: &LocalRasterApp, doc: DocId, revision: u64, from: u64, to: u64) -> Option<Rect> {
     let p = app.live_adjust_preview.as_ref()?;
     if p.doc != doc || p.revision != revision {
         return None;
@@ -539,7 +539,7 @@ pub fn live_switch_region(app: &LocalPaintApp, doc: DocId, revision: u64, from: 
 /// The part of a switch's region to composite now: to a preview, only what the view shows,
 /// remembered so [`live_uncovered`] catches up as the view moves; back to the committed
 /// document (key 0), the whole region.
-pub fn live_switch_damage(app: &mut LocalPaintApp, to: u64, region: Rect, visible: Rect) -> Rect {
+pub fn live_switch_damage(app: &mut LocalRasterApp, to: u64, region: Rect, visible: Rect) -> Rect {
     let Some(p) = app.live_adjust_preview.as_mut() else { return region };
     if to == 0 {
         p.covered = None;
@@ -552,7 +552,7 @@ pub fn live_switch_damage(app: &mut LocalPaintApp, to: u64, region: Rect, visibl
 
 /// Where the main canvas texture (showing preview `key`) is out of date within `visible`: the
 /// region's visible part when the view moved past what was composited. Marks it covered.
-pub fn live_uncovered(app: &mut LocalPaintApp, doc: DocId, key: u64, visible: Rect) -> Option<Rect> {
+pub fn live_uncovered(app: &mut LocalRasterApp, doc: DocId, key: u64, visible: Rect) -> Option<Rect> {
     let p = app.live_adjust_preview.as_mut().filter(|p| p.doc == doc)?;
     let (k, cov) = p.covered?;
     if k != key {

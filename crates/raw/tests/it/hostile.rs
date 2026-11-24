@@ -1,10 +1,10 @@
 //! Truncated and corrupted raw files must fail cleanly, never panic, and
 //! never allocate beyond the limits.
 
-use localpaint_raw::testgen::{
+use localraster_raw::testgen::{
     Cr2Spec, DngSpec, DngStorage, RafPacking, RafSpec, Val, XTRANS, mosaic, mosaic_cfa, nef_compressed, orf, rw2, scene, sony_craw, tiff_ep,
 };
-use localpaint_raw::*;
+use localraster_raw::*;
 
 /// 12-bit samples packed little-endian, `w` per row, rows byte-aligned (Nikon's packed NEF layout).
 fn pack12(values: &[u16], w: usize) -> Vec<u8> {

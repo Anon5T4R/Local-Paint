@@ -3,7 +3,7 @@
 
 #![cfg(not(feature = "heif"))]
 
-use localpaint_io::import;
+use localraster_io::import;
 
 #[test]
 fn heic_without_the_feature_says_it_is_not_in_this_build() {

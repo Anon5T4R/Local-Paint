@@ -4,11 +4,11 @@
 
 use std::io::Read;
 
-use localpaint_color::{ColorMode, SampleType};
-use localpaint_doc::{Document, Layer, LayerContent};
-use localpaint_geom::{Rect, Size};
-use localpaint_io::{ExportOptions, export};
-use localpaint_raster::Surface;
+use localraster_color::{ColorMode, SampleType};
+use localraster_doc::{Document, Layer, LayerContent};
+use localraster_geom::{Rect, Size};
+use localraster_io::{ExportOptions, export};
+use localraster_raster::Surface;
 
 /// The IHDR fields and the IDAT payloads of `png`.
 fn chunks(png: &[u8]) -> ((u32, u32, u8, u8), Vec<&[u8]>) {
@@ -26,7 +26,7 @@ fn chunks(png: &[u8]) -> ((u32, u32, u8, u8), Vec<&[u8]>) {
     (ihdr.unwrap(), idat)
 }
 
-/// Run with `cargo test --release -p localpaint-io --test large_png_export -- --ignored`; with
+/// Run with `cargo test --release -p localraster-io --test large_png_export -- --ignored`; with
 /// `COMPOSITE=1` a translucent layer on top makes the export composite the banner.
 /// Measured 2026-10-22 (20 threads): 12.3 s and 0.49 GB peak RSS, composited 29 s and 1.2 GB; the
 /// whole-image export took 12.9 s and 8.0 GB, composited 43 s and 10.3 GB.

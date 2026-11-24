@@ -1,26 +1,26 @@
-//! Layer style libraries (`.asl`) ⇄ Local Paint styles.
+//! Layer style libraries (`.asl`) ⇄ Local Raster styles.
 //!
-//! The container is parsed by [`localpaint_psd::asl`]. Each style's `Lefx` is the same effects
+//! The container is parsed by [`localraster_psd::asl`]. Each style's `Lefx` is the same effects
 //! tree as a layer's `lfx2` block ([`crate::effects_map`]); `blendOptions` ("Include Layer
 //! Blending Options") carries the blend mode, opacity and fill opacity; the file's patterns feed
 //! the styles' Pattern Overlays, pattern strokes and bevel textures.
 //!
-//! What Local Paint doesn't model (an effect kind it doesn't know, advanced blending keys, an
+//! What Local Raster doesn't model (an effect kind it doesn't know, advanced blending keys, an
 //! effects scale other than 100 %) is left out with a warning naming the style, and the rest of
 //! the file still imports.
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 
-use localpaint_color::BlendMode;
-use localpaint_doc::{Effect, FxPaint, Pattern};
-use localpaint_psd::asl::{self, AslFile};
-use localpaint_psd::descriptor::{Descriptor, Id, Value};
+use localraster_color::BlendMode;
+use localraster_doc::{Effect, FxPaint, Pattern};
+use localraster_psd::asl::{self, AslFile};
+use localraster_psd::descriptor::{Descriptor, Id, Value};
 
 use crate::blocks::{enum_of, get_desc, num};
 use crate::effects_map::{blend_from_id, blend_value, effects_descriptor, effects_from_descriptor, is_known_effects_key};
 use crate::pattern_map::{from_psd, to_psd};
 
-/// One style as Local Paint keeps it.
+/// One style as Local Raster keeps it.
 #[derive(Clone, Debug, PartialEq)]
 pub struct AslStyle {
     /// Unique within the file (empty names get "Style N", repeats get "Name 2").
@@ -208,10 +208,10 @@ pub fn write_asl(styles: &[AslStyle], patterns: &[Pattern]) -> Result<Vec<u8>, S
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_color::{Color, ColorMode, PixelFormat, SampleType};
-    use localpaint_doc::{BevelTexture, FxCommon, StrokePosition};
-    use localpaint_psd::descriptor::UnicodeString;
-    use localpaint_raster::Surface;
+    use localraster_color::{Color, ColorMode, PixelFormat, SampleType};
+    use localraster_doc::{BevelTexture, FxCommon, StrokePosition};
+    use localraster_psd::descriptor::UnicodeString;
+    use localraster_raster::Surface;
 
     fn pattern(id: &str, s: SampleType) -> Pattern {
         let fmt = PixelFormat::new(ColorMode::Rgb, s, true);
@@ -376,7 +376,7 @@ mod tests {
             let _ = read_asl(&c);
         }
         assert!(read_asl(b"").is_err());
-        assert!(read_asl(&localpaint_psd::grd::write(&[])).is_err());
+        assert!(read_asl(&localraster_psd::grd::write(&[])).is_err());
     }
 
     #[test]

@@ -94,18 +94,18 @@ jobs:
           version=$(grep -m1 '^version = ' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
           work=$(mktemp -d)
           cp packaging/arch/PKGBUILD "$work/"
-          cp "dist/release/localpaint-$version-linux-x86_64.tar.gz" "$work/localpaint-$version-linux-x86_64.tar.gz"
+          cp "dist/release/localraster-$version-linux-x86_64.tar.gz" "$work/localraster-$version-linux-x86_64.tar.gz"
           # Fonte local (a URL da release ainda não existe neste ponto do
           # pipeline) + checksum REAL do artefato em vez de SKIP.
-          sha=$(sha256sum "$work/localpaint-$version-linux-x86_64.tar.gz" | cut -d' ' -f1)
-          sed -i "s|^pkgver=.*|pkgver=$version|; s|^source=.*|source=(\"localpaint-\$pkgver-linux-x86_64.tar.gz\")|; s|^sha256sums=.*|sha256sums=('$sha')|" "$work/PKGBUILD"
+          sha=$(sha256sum "$work/localraster-$version-linux-x86_64.tar.gz" | cut -d' ' -f1)
+          sed -i "s|^pkgver=.*|pkgver=$version|; s|^source=.*|source=(\"localraster-\$pkgver-linux-x86_64.tar.gz\")|; s|^sha256sums=.*|sha256sums=('$sha')|" "$work/PKGBUILD"
           chown -R builder "$work"
           cd "$work"
           su builder -c 'makepkg --noconfirm --noprogressbar -d'
           # Asset no padrao da suite (<id>-<ver>-linux-<arch>): o pacman instala pelo
-          # .PKGINFO interno (pkgname=com.localpaint.app), o nome do arquivo e so o contrato do updater.
-          mv com.localpaint.app-$version-*.pkg.tar.zst "localpaint-$version-linux-x86_64.pkg.tar.zst"
-          mv "localpaint-$version-linux-x86_64.pkg.tar.zst" "$GITHUB_WORKSPACE/"
+          # .PKGINFO interno (pkgname=com.localraster.app), o nome do arquivo e so o contrato do updater.
+          mv com.localraster.app-$version-*.pkg.tar.zst "localraster-$version-linux-x86_64.pkg.tar.zst"
+          mv "localraster-$version-linux-x86_64.pkg.tar.zst" "$GITHUB_WORKSPACE/"
           ls -lh "$GITHUB_WORKSPACE"/*.pkg.tar.zst
       - uses: actions/upload-artifact@v7
         with:
@@ -171,7 +171,7 @@ jobs:
             gh release upload "$tag" "${files[@]}" --clobber
           else
             gh release create "$tag" "${files[@]}" \
-              --title "Local Paint ${tag}" --generate-notes
+              --title "Local Raster ${tag}" --generate-notes
           fi
         env:
           GH_TOKEN: ${{ github.token }}

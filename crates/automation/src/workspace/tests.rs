@@ -1,7 +1,7 @@
 use super::*;
 
 fn roots(name: &str) -> (PathBuf, PathBuf, AuthorizedWorkspace) {
-    let base = std::env::temp_dir().join(format!("localpaint-workspace-{}-{name}", std::process::id()));
+    let base = std::env::temp_dir().join(format!("localraster-workspace-{}-{name}", std::process::id()));
     let inside = base.join("inside");
     let outside = base.join("outside");
     let _ = std::fs::remove_dir_all(&base);
@@ -67,8 +67,8 @@ fn read_growth_is_rejected_at_the_observed_length() {
 #[test]
 fn open_pcraft_loads_a_directory_below_the_read_root() {
     let (inside, _, workspace) = roots("pcraft-dir");
-    let doc = localpaint_doc::Document::new("Native", localpaint_doc::Size::new(16, 12), localpaint_doc::ColorMode::Rgb, localpaint_doc::SampleType::U8);
-    localpaint_format::PcraftWriter::new().save_dir(&doc, &inside.join("native.pcraft"), &localpaint_format::SaveOptions::default()).unwrap();
+    let doc = localraster_doc::Document::new("Native", localraster_doc::Size::new(16, 12), localraster_doc::ColorMode::Rgb, localraster_doc::SampleType::U8);
+    localraster_format::PcraftWriter::new().save_dir(&doc, &inside.join("native.pcraft"), &localraster_format::SaveOptions::default()).unwrap();
     let loaded = workspace.open_pcraft("native.pcraft").unwrap().expect("the directory form loads");
     assert_eq!(loaded.name, doc.name);
     assert_eq!((loaded.size.width, loaded.size.height), (16, 12));
@@ -77,9 +77,9 @@ fn open_pcraft_loads_a_directory_below_the_read_root() {
 #[test]
 fn open_pcraft_reports_zip_files_and_missing_paths_clearly() {
     let (inside, _, workspace) = roots("pcraft-errors");
-    let doc = localpaint_doc::Document::new("Zipped", localpaint_doc::Size::new(4, 4), localpaint_doc::ColorMode::Rgb, localpaint_doc::SampleType::U8);
+    let doc = localraster_doc::Document::new("Zipped", localraster_doc::Size::new(4, 4), localraster_doc::ColorMode::Rgb, localraster_doc::SampleType::U8);
     let zip = inside.join("zipped.pcraft");
-    localpaint_format::PcraftWriter::new().save_path(&doc, &zip, &localpaint_format::SaveOptions::default()).unwrap();
+    localraster_format::PcraftWriter::new().save_path(&doc, &zip, &localraster_format::SaveOptions::default()).unwrap();
     assert!(zip.is_file());
     assert!(workspace.open_pcraft("zipped.pcraft").unwrap().is_none(), "the zip form falls back to the bytes path");
     let error = workspace.open_pcraft("missing.pcraft").unwrap_err().to_string();
@@ -186,7 +186,7 @@ fn write_keeps_the_replaced_files_extended_attributes() {
     #[cfg(target_os = "macos")]
     const TAG: &str = "com.apple.metadata:_kMDItemUserTags";
     #[cfg(not(target_os = "macos"))]
-    const TAG: &str = "user.localpaint.test";
+    const TAG: &str = "user.localraster.test";
 
     let (inside, _, workspace) = roots("xattr");
     let path = inside.join("doc.psd");
@@ -384,13 +384,13 @@ fn filesystem_command_paths_and_profiles_fail_closed() {
     assert!(authorize_engine_step("file.open", &serde_json::json!({})).is_err());
     assert!(authorize_engine_step("actions.play", &serde_json::json!({})).is_ok());
     // An allowed command can't reach a denied one by running it on its own behalf.
-    let mut session = localpaint_engine::Session::new();
+    let mut session = localraster_engine::Session::new();
     session.execute("file.new", serde_json::json!({"width": 4, "height": 4})).unwrap();
     session.authorize = Some(authorize_desktop_engine_step);
     let params = serde_json::json!({"to": "grayscale"});
     assert!(authorize_desktop_engine_command("file.automate.conditionalModeChange", &params).is_ok());
     assert!(session.execute("file.automate.conditionalModeChange", params).is_err());
-    assert_eq!(session.active().unwrap().doc.mode, localpaint_engine::doc::ColorMode::Rgb);
+    assert_eq!(session.active().unwrap().doc.mode, localraster_engine::doc::ColorMode::Rgb);
     assert!(authorize_desktop_engine_step("file.saveACopy", &serde_json::json!({})).is_err());
 }
 
@@ -502,19 +502,19 @@ fn automation_rejects_ambient_path_commands_and_preferences() {
 #[test]
 fn registry_filesystem_path_params_are_classified() {
     let probe = serde_json::json!({
-        "path": "/outside/localpaint-probe",
-        "file": "/outside/localpaint-probe.icc",
-        "mapPath": "/outside/localpaint-probe.png",
-        "profile": "/outside/localpaint-probe.icc",
-        "workingRgb": "/outside/localpaint-probe.icc",
-        "workingCmyk": "/outside/localpaint-probe.icc",
-        "workingGray": "/outside/localpaint-probe.icc",
-        "input": "/outside/localpaint-input",
-        "output": "/outside/localpaint-output",
-        "paths": ["/outside/localpaint-probe.psd"],
+        "path": "/outside/localraster-probe",
+        "file": "/outside/localraster-probe.icc",
+        "mapPath": "/outside/localraster-probe.png",
+        "profile": "/outside/localraster-probe.icc",
+        "workingRgb": "/outside/localraster-probe.icc",
+        "workingCmyk": "/outside/localraster-probe.icc",
+        "workingGray": "/outside/localraster-probe.icc",
+        "input": "/outside/localraster-input",
+        "output": "/outside/localraster-output",
+        "paths": ["/outside/localraster-probe.psd"],
     });
     let preference_probe = serde_json::json!({"path": ".scriptEvents", "value": {}});
-    let unclassified: Vec<_> = localpaint_engine::command_specs()
+    let unclassified: Vec<_> = localraster_engine::command_specs()
         .iter()
         .filter(|spec| documents_filesystem_path_params(spec.id, spec.params))
         .filter(|spec| {
@@ -538,7 +538,7 @@ fn svg_smart_handoff_is_memory_only_and_linked_sources_stay_denied() {
     let mut headless = crate::Headless::new();
     headless.command_run("file.new", serde_json::json!({"width": 16, "height": 16})).unwrap();
     let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"><rect width="4" height="4" fill="red"/></svg>"#;
-    let inserted = localpaint_engine::file_cmds::place_bytes(
+    let inserted = localraster_engine::file_cmds::place_bytes(
         &mut headless.session,
         "Artwork.svg",
         svg.as_bytes().to_vec(),
@@ -564,9 +564,9 @@ fn svg_smart_handoff_is_memory_only_and_linked_sources_stay_denied() {
         assert!(headless.command_run(id, ambient).is_err(), "{id}");
     }
     let doc = Arc::make_mut(&mut headless.session.active_mut().unwrap().doc);
-    let id = localpaint_doc::LayerId(layer.as_u64().unwrap());
-    let localpaint_doc::LayerContent::Smart(sm) = &mut doc.layer_mut(id).unwrap().content else { panic!("SVG smart object") };
-    sm.source = localpaint_doc::SmartSource::Linked { path: "/outside/source.svg".into() };
+    let id = localraster_doc::LayerId(layer.as_u64().unwrap());
+    let localraster_doc::LayerContent::Smart(sm) = &mut doc.layer_mut(id).unwrap().content else { panic!("SVG smart object") };
+    sm.source = localraster_doc::SmartSource::Linked { path: "/outside/source.svg".into() };
     let before = headless.session.active().unwrap().doc.clone();
     assert!(headless.command_run("layer.smartObjects.exportSvg", serde_json::json!({"layer": layer})).is_err());
     assert!(headless.command_run("layer.smartObjects.updateSvg", params).is_err());
@@ -584,7 +584,7 @@ fn svg_update_cannot_replay_desktop_lut_file_in_any_shared_instance() {
         let mut headless = crate::Headless::new();
         headless.command_run("file.new", serde_json::json!({"width": 16, "height": 16})).unwrap();
         let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"><rect width="4" height="4" fill="red"/></svg>"#;
-        let pasted = localpaint_engine::file_cmds::place_bytes(
+        let pasted = localraster_engine::file_cmds::place_bytes(
             &mut headless.session,
             "Artwork.svg",
             svg.as_bytes().to_vec(),
@@ -592,7 +592,7 @@ fn svg_update_cannot_replay_desktop_lut_file_in_any_shared_instance() {
             &serde_json::json!({"smartObject":true}),
         )
         .unwrap();
-        let target = localpaint_doc::LayerId(pasted["layer"].as_u64().unwrap());
+        let target = localraster_doc::LayerId(pasted["layer"].as_u64().unwrap());
         let filtered = if shared_only {
             let doc = Arc::make_mut(&mut headless.session.active_mut().unwrap().doc);
             let duplicate = doc.layer(target).unwrap().duplicate();
@@ -608,7 +608,7 @@ fn svg_update_cannot_replay_desktop_lut_file_in_any_shared_instance() {
         let authorization = headless.session.authorize.take();
         headless.session.execute("image.adjustments.colorLookup", serde_json::json!({"file":lut.to_string_lossy()})).unwrap();
         headless.session.authorize = authorization;
-        let localpaint_doc::LayerContent::Smart(sm) = &headless.session.active().unwrap().doc.layer(filtered).unwrap().content else { panic!("smart object") };
+        let localraster_doc::LayerContent::Smart(sm) = &headless.session.active().unwrap().doc.layer(filtered).unwrap().content else { panic!("smart object") };
         assert_eq!(sm.smart_filters.last().unwrap().params["file"], lut.to_string_lossy().as_ref());
         let handoff = headless.command_run("layer.smartObjects.exportSvg", serde_json::json!({"layer":target.0})).unwrap();
         let params = serde_json::json!({"document":handoff["document"],"layer":target.0,"contentsId":handoff["contentsId"],"fingerprint":handoff["fingerprint"],"svg":svg.replace("red","blue")});
@@ -620,7 +620,7 @@ fn svg_update_cannot_replay_desktop_lut_file_in_any_shared_instance() {
         assert_eq!(headless.session.active().unwrap().revision, revision);
         // A hidden stored filter is not executed, so its unused filename grants no access.
         let doc = Arc::make_mut(&mut headless.session.active_mut().unwrap().doc);
-        let localpaint_doc::LayerContent::Smart(sm) = &mut doc.layer_mut(filtered).unwrap().content else { panic!("smart object") };
+        let localraster_doc::LayerContent::Smart(sm) = &mut doc.layer_mut(filtered).unwrap().content else { panic!("smart object") };
         sm.smart_filters.last_mut().unwrap().visible = false;
         assert_eq!(headless.command_run("layer.smartObjects.updateSvg", params).unwrap()["updated"], true);
     }
@@ -633,7 +633,7 @@ fn svg_update_keeps_inline_and_builtin_smart_filters_working() {
         let mut headless = crate::Headless::new();
         headless.command_run("file.new", serde_json::json!({"width":16,"height":16})).unwrap();
         let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"><rect width="4" height="4" fill="red"/></svg>"#;
-        let pasted = localpaint_engine::file_cmds::place_bytes(
+        let pasted = localraster_engine::file_cmds::place_bytes(
             &mut headless.session,
             "Artwork.svg",
             svg.as_bytes().to_vec(),
@@ -641,12 +641,12 @@ fn svg_update_keeps_inline_and_builtin_smart_filters_working() {
             &serde_json::json!({"smartObject":true}),
         )
         .unwrap();
-        let id = localpaint_doc::LayerId(pasted["layer"].as_u64().unwrap());
+        let id = localraster_doc::LayerId(pasted["layer"].as_u64().unwrap());
         headless.command_run("image.adjustments.colorLookup", filter_params).unwrap();
         let handoff = headless.command_run("layer.smartObjects.exportSvg", serde_json::json!({"layer":id.0})).unwrap();
         let result = headless.command_run("layer.smartObjects.updateSvg",serde_json::json!({"document":handoff["document"],"layer":id.0,"contentsId":handoff["contentsId"],"fingerprint":handoff["fingerprint"],"svg":svg.replace("red","blue")})).unwrap();
         assert_eq!(result["updated"], true);
-        let localpaint_doc::LayerContent::Smart(sm) = &headless.session.active().unwrap().doc.layer(id).unwrap().content else { panic!("smart object") };
+        let localraster_doc::LayerContent::Smart(sm) = &headless.session.active().unwrap().doc.layer(id).unwrap().content else { panic!("smart object") };
         assert_eq!(sm.smart_filters.len(), 1);
         assert!(!sm.cache.as_ref().unwrap().content_bounds().is_empty());
     }

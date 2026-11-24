@@ -1,7 +1,7 @@
 use super::open::{Target, cancel, commit_open_raw, open_raw, raw_stage};
 use super::sidecar::{load_settings, report_file_error, save_settings};
 use super::{
-    Align2, BANDS, CameraRaw, CameraRawDialog, Color32, ERect, FontId, LocalPaintApp, PANEL_W, Pos2, Sense, Stroke, Tokens, ToneZone, Value, Wheel, curve_lut,
+    Align2, BANDS, CameraRaw, CameraRawDialog, Color32, ERect, FontId, LocalRasterApp, PANEL_W, Pos2, Sense, Stroke, Tokens, ToneZone, Value, Wheel, curve_lut,
     json, pos2, vec2, widgets,
 };
 
@@ -48,7 +48,7 @@ fn history_keys(d: &mut CameraRawDialog, ctx: &egui::Context) {
     }
 }
 
-pub(super) fn commit(app: &mut LocalPaintApp) -> Result<Value, String> {
+pub(super) fn commit(app: &mut LocalRasterApp) -> Result<Value, String> {
     let d = app.camera_raw.as_ref().ok_or(tl!("Camera Raw isn't open"))?;
     let result = match d.target {
         Target::NewFilter => {
@@ -79,8 +79,8 @@ pub(super) fn commit(app: &mut LocalPaintApp) -> Result<Value, String> {
 /// The open-time demosaic choice (at the top of Detail). Photoshop's Camera Raw picks one method
 /// for every file; here it is the user's. Open re-develops with it; the preview keeps the method
 /// the file was opened with (the differences are finer than the preview's pixels).
-fn demosaic_row(ui: &mut egui::Ui, m: &mut localpaint_io::raw::Demosaic) {
-    use localpaint_io::raw::Demosaic;
+fn demosaic_row(ui: &mut egui::Ui, m: &mut localraster_io::raw::Demosaic) {
+    use localraster_io::raw::Demosaic;
     ui.horizontal(|ui| {
         ui.label(crate::i18n::tr_ctx(crate::i18n::current(), "cameraRaw", "Demosaic")).on_hover_text(tl!(
             "How the camera's colour filter mosaic is filled in. It is applied when the file opens; the preview shows the method it was opened with."
@@ -109,7 +109,7 @@ fn tint_stops() -> Vec<Color32> {
 /// through its own to the next one's (Reds: magenta, red, orange; #9550); Saturation and Luminance
 /// run from grey to the band's colour.
 pub(super) fn mixer_gradient(tab: usize, k: usize) -> Vec<Color32> {
-    let bands = &localpaint_algo::camera_raw::HSL_BANDS;
+    let bands = &localraster_algo::camera_raw::HSL_BANDS;
     let hue = |i: usize| widgets::hue_color(bands.get(i % bands.len()).copied().unwrap_or(0.0));
     if tab == 0 { vec![hue(k + bands.len() - 1), hue(k), hue(k + 1)] } else { vec![Color32::from_gray(128), hue(k)] }
 }
@@ -186,7 +186,7 @@ fn curve_editor(ui: &mut egui::Ui, p: &mut CameraRaw, dirty: &mut bool, state: &
     rect
 }
 
-pub fn show(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub fn show(app: &mut LocalRasterApp, ctx: &egui::Context) {
     if app.camera_raw.is_none()
         && let Some(raw) = app.pending_raw_open.take()
         && let Err(e) = open_raw(app, ctx, raw)
@@ -236,7 +236,7 @@ impl CameraRawDialog {
 
 /// The dialog's contents over the whole of `ctx`'s window. `own_window`: the OS window already
 /// shows the title, so none is painted.
-fn draw(app: &mut LocalPaintApp, ctx: &egui::Context, own_window: bool) {
+fn draw(app: &mut LocalRasterApp, ctx: &egui::Context, own_window: bool) {
     let t = Tokens::get(ctx);
     let screen = ctx.content_rect();
     let current_display = app.session.active().and_then(|st| app.session.color.canvas_display(&st.doc).ok());
@@ -339,7 +339,7 @@ fn draw(app: &mut LocalPaintApp, ctx: &egui::Context, own_window: bool) {
                 // Auto: Camera Raw's one-click tone from the histogram; the sliders show what it
                 // chose, so each can be adjusted afterwards.
                 if ui.button(tl!("Auto")).on_hover_text(tl!("Set the tone sliders from the image")).clicked() {
-                    localpaint_algo::camera_raw::auto_tone(proxy, p);
+                    localraster_algo::camera_raw::auto_tone(proxy, p);
                     dirty = true;
                 }
                 tone_row(ui, &mut dirty, alt, ToneZone::Exposure, &mut p.exposure);

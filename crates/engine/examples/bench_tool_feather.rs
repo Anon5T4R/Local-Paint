@@ -2,15 +2,15 @@
 //! (shape → dense full-canvas mask → `sel::feather` → `sel::combine(None, …, Replace)`)
 //! against the current `select.rect` / `select.lasso` commands, whose dense feather mask
 //! stays a (50 + 2·(⌈3·4⌉+1))² = 76² = 5776-pixel window around the 50×50 shape.
-//! `cargo run --release -p localpaint-engine --example bench_tool_feather [reps]`
+//! `cargo run --release -p localraster-engine --example bench_tool_feather [reps]`
 use std::time::{Duration, Instant};
 
-use localpaint_algo::selection as sel;
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_doc::{Document, Layer, Size};
-use localpaint_engine::Session;
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_algo::selection as sel;
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_doc::{Document, Layer, Size};
+use localraster_engine::Session;
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 use serde_json::{Value, json};
 
 type Res<T> = Result<T, Box<dyn std::error::Error>>;

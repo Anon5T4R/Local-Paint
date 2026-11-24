@@ -1,7 +1,7 @@
-//! Render the full Local Paint UI offscreen (no window, no focus stealing) and save a PNG.
+//! Render the full Local Raster UI offscreen (no window, no focus stealing) and save a PNG.
 //!
 //! ```sh
-//! cargo run --release -p localpaint-ui-egui --example snapshot -- \
+//! cargo run --release -p localraster-ui-egui --example snapshot -- \
 //!     --out ui.png --size 1440x900 --scale 2 --open photo.jpg \
 //!     --script '[["ui.set", {"tool": "type"}], ["ui.menu.invoke", {"id": "image.imageSize"}]]'
 //! ```
@@ -25,8 +25,8 @@
 //! `--hover-at X,Y` leaves the pointer there without a click, for what a tool shows under it (the
 //! brush outline, the Clone Source overlay).
 
-use localpaint_ui_egui::control::{ControlRequest, Outcome, handle};
-use localpaint_ui_egui::{LocalPaintApp, Services};
+use localraster_ui_egui::control::{ControlRequest, Outcome, handle};
+use localraster_ui_egui::{LocalRasterApp, Services};
 use serde_json::Value;
 
 fn arg(args: &[String], name: &str) -> Option<String> {
@@ -46,11 +46,11 @@ fn main() {
         arg(&args, "--script").map(|s| serde_json::from_str::<Vec<(String, Value)>>(&s).expect("--script must be [[method, params], …]")).unwrap_or_default();
 
     let services = Services {
-        import: Some(Box::new(|name: &str, bytes: &[u8], opts: &localpaint_io::ImportOptions| {
-            localpaint_io::import_with_options(name, bytes, opts).map(|r| (r.document, r.warnings)).map_err(|e| e.to_string())
+        import: Some(Box::new(|name: &str, bytes: &[u8], opts: &localraster_io::ImportOptions| {
+            localraster_io::import_with_options(name, bytes, opts).map(|r| (r.document, r.warnings)).map_err(|e| e.to_string())
         })),
-        export: Some(Box::new(|doc: &localpaint_doc::Document, path: &str, settings: &localpaint_ui_egui::ExportSettings| {
-            let mut opts = localpaint_io::ExportOptions::default();
+        export: Some(Box::new(|doc: &localraster_doc::Document, path: &str, settings: &localraster_ui_egui::ExportSettings| {
+            let mut opts = localraster_io::ExportOptions::default();
             if let Some(q) = settings.jpeg_quality {
                 opts.encode.jpeg_quality = q;
             }
@@ -61,9 +61,9 @@ fn main() {
             }
             opts.tga_bits = settings.tga_bits;
             opts.encode.dds = settings.dds;
-            localpaint_io::export(doc, path, &opts).map(|r| (r.bytes, r.warnings)).map_err(|e| e.to_string())
+            localraster_io::export(doc, path, &opts).map(|r| (r.bytes, r.warnings)).map_err(|e| e.to_string())
         })),
-        write: Some(Box::new(|path: &str, bytes: &[u8]| localpaint_format::atomic_write(std::path::Path::new(path), bytes).map_err(|e| e.to_string()))),
+        write: Some(Box::new(|path: &str, bytes: &[u8]| localraster_format::atomic_write(std::path::Path::new(path), bytes).map_err(|e| e.to_string()))),
         ..Default::default()
     };
     let open = arg(&args, "--open");
@@ -82,16 +82,16 @@ fn main() {
         .with_render_options(render_options)
         .wgpu()
         .build_eframe(move |cc| {
-            LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
+            LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
             let mut services = services;
             services.is_wayland = wayland_notice;
-            services.xwayland_command = wayland_notice.then(|| "WAYLAND_DISPLAY= localpaint".into());
-            let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), services);
+            services.xwayland_command = wayland_notice.then(|| "WAYLAND_DISPLAY= localraster".into());
+            let mut app = LocalRasterApp::new(localraster_engine::Session::new(), services);
             if update_notice {
-                app.session.updates.status = localpaint_engine::updates_cmds::Status::Available {
-                    release: localpaint_engine::updates_cmds::Release {
+                app.session.updates.status = localraster_engine::updates_cmds::Status::Available {
+                    release: localraster_engine::updates_cmds::Release {
                         version: "99.0.0".into(),
-                        url: "https://github.com/Anon5T4R/Local-Paint/releases/tag/v99.0.0".into(),
+                        url: "https://github.com/Anon5T4R/Local-Raster/releases/tag/v99.0.0".into(),
                     },
                 };
             }
@@ -190,7 +190,7 @@ fn main() {
     }
     println!(
         "language: {}",
-        serde_json::json!({"preference": harness.state().session.prefs().interface.language, "resolved": localpaint_ui_egui::i18n::current().code()})
+        serde_json::json!({"preference": harness.state().session.prefs().interface.language, "resolved": localraster_ui_egui::i18n::current().code()})
     );
     let img = harness.render().expect("render");
     img.save(&out).expect("save png");

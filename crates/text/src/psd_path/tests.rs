@@ -129,9 +129,9 @@ fn photoshop_object(text: &str, at: i64) -> E {
     d(vec![("0", model), ("1", view)])
 }
 
-fn layer(text: &str, shape: TextShape) -> localpaint_doc::TextLayer {
-    use localpaint_doc::text::{CharStyle, TextRun};
-    let mut t = localpaint_doc::TextLayer {
+fn layer(text: &str, shape: TextShape) -> localraster_doc::TextLayer {
+    use localraster_doc::text::{CharStyle, TextRun};
+    let mut t = localraster_doc::TextLayer {
         text: text.into(),
         runs: vec![TextRun { len: text.len(), style: CharStyle { size_pt: 12.0, ..Default::default() } }],
         shape,
@@ -143,12 +143,12 @@ fn layer(text: &str, shape: TextShape) -> localpaint_doc::TextLayer {
 }
 
 /// A layer read back, with what [`crate::psd::apply_txt2_path`] said.
-type Opened = (localpaint_doc::TextLayer, Result<bool, String>);
+type Opened = (localraster_doc::TextLayer, Result<bool, String>);
 
 /// Saves `layers` (object `i` each) into a file whose `Txt2` is `prev`, then reads each back:
 /// its `TySh` and what [`crate::psd::apply_txt2_path`] makes of the saved `Txt2`.
-fn save_and_open(layers: &[&localpaint_doc::TextLayer], prev: &[u8]) -> (Vec<u8>, Vec<Opened>) {
-    let objects: Vec<(i32, &localpaint_doc::TextLayer)> = layers.iter().enumerate().map(|(i, l)| (i as i32, *l)).collect();
+fn save_and_open(layers: &[&localraster_doc::TextLayer], prev: &[u8]) -> (Vec<u8>, Vec<Opened>) {
+    let objects: Vec<(i32, &localraster_doc::TextLayer)> = layers.iter().enumerate().map(|(i, l)| (i as i32, *l)).collect();
     let txt2 = crate::psd::build_txt2(&objects, Some(prev));
     let parsed = crate::psd::parse_txt2(&txt2).unwrap();
     let back = objects
@@ -327,7 +327,7 @@ fn a_frame_two_objects_name_is_kept() {
 /// Area type's frame becomes a text box over its path's bounds, as its EngineData describes it.
 #[test]
 fn an_area_layer_gets_a_box_frame() {
-    let square = localpaint_doc::vector::Path::new(vec![localpaint_doc::vector::Subpath::polygon(&[(10.0, 20.0), (50.0, 20.0), (50.0, 80.0), (10.0, 80.0)])]);
+    let square = localraster_doc::vector::Path::new(vec![localraster_doc::vector::Subpath::polygon(&[(10.0, 20.0), (50.0, 20.0), (50.0, 80.0), (10.0, 80.0)])]);
     let mut entry = E::Dict(vec![("0".into(), frame(CIRCLE))]);
     update_frame(&mut entry, &TextShape::Area { path: square });
     assert_eq!(entry, box_frame(10.0, 20.0, 40.0, 60.0));

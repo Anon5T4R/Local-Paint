@@ -5,7 +5,7 @@
 //! operation the layout is built each frame from the native dock's state (`crate::dock`), so its
 //! groups, tab order, selection, heights and collapse follow that state; from then on
 //! `app.ui.docking` holds a craft-ui [`Workspace`]. The layout, hidden panels and their return
-//! places, and the lock are craft-ui's; Local Paint keeps the panel registry, the collapsed custom
+//! places, and the lock are craft-ui's; Local Raster keeps the panel registry, the collapsed custom
 //! groups and where a floated panel docks back.
 
 use crate::dock::Group;
@@ -15,7 +15,7 @@ use craft_ui::docking::{
 use craft_ui::layout::{SplitAxis, SplitSize};
 use serde_json::{Map, Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
 /// The saved arrangement: layout, hidden panels with their return places, and the lock.
 pub(crate) type Workspace = craft_ui::docking::Workspace<String>;
@@ -43,7 +43,7 @@ const PANELS: &[(&str, &str, Group)] = &[
     ("brushes", "Brushes", Group::Brushes),
 ];
 
-/// Local Paint's wording of craft-ui's docking labels, translated through `tl!`. The others keep
+/// Local Raster's wording of craft-ui's docking labels, translated through `tl!`. The others keep
 /// craft-ui's English.
 const DOCK_LABELS: &[(&str, &str)] = &[
     ("dock.float", "Float Panel"),
@@ -132,7 +132,7 @@ pub(crate) fn valid(layout: &Layout<String>) -> bool {
     layout.validate().is_ok() && layout.panels().iter().all(|id| registered(id)) && docked(layout).contains(&CANVAS.to_owned())
 }
 
-/// craft-ui's checks plus Local Paint's registry, for the layout and every hidden panel.
+/// craft-ui's checks plus Local Raster's registry, for the layout and every hidden panel.
 pub(crate) fn valid_workspace(workspace: &Workspace) -> bool {
     workspace.validate().is_ok()
         && valid(&workspace.layout)
@@ -157,7 +157,7 @@ pub(crate) fn newer(saved: &Value) -> bool {
     saved.get("docking").and_then(|docking| docking.get("version")).and_then(Value::as_u64).is_some_and(|version| version > u64::from(Workspace::VERSION))
 }
 
-fn legacy(app: &LocalPaintApp) -> Layout<String> {
+fn legacy(app: &LocalRasterApp) -> Layout<String> {
     legacy_layout(app, false)
 }
 
@@ -165,7 +165,7 @@ fn legacy(app: &LocalPaintApp) -> Layout<String> {
 /// shown groups, top to bottom, with their tab order, selected tab and user-set heights. The
 /// Studio themes float Properties over the canvas's top right corner. `all` includes the groups
 /// that are not shown, with every tab.
-fn legacy_layout(app: &LocalPaintApp, all: bool) -> Layout<String> {
+fn legacy_layout(app: &LocalRasterApp, all: bool) -> Layout<String> {
     let pro = app.ui.theme.is_pro();
     let mut groups = Vec::new();
     let mut floating = Vec::new();
@@ -190,7 +190,7 @@ fn legacy_layout(app: &LocalPaintApp, all: bool) -> Layout<String> {
 }
 
 /// Where the Studio themes' Properties card floats: inside the canvas's top right corner.
-fn studio_properties_rect(app: &LocalPaintApp) -> [f32; 4] {
+fn studio_properties_rect(app: &LocalRasterApp) -> [f32; 4] {
     let (width, height) = (320.0, 440.0);
     let canvas = app.last_canvas_rect;
     if canvas.is_positive() && canvas.width() > width + 24.0 {
@@ -201,7 +201,7 @@ fn studio_properties_rect(app: &LocalPaintApp) -> [f32; 4] {
 }
 
 /// The native dock as a workspace: its shown panels, and where each hidden one goes back.
-fn legacy_workspace(app: &LocalPaintApp) -> Workspace {
+fn legacy_workspace(app: &LocalRasterApp) -> Workspace {
     let layout = legacy(app);
     let hidden = migration_hidden(app, &layout);
     Workspace { hidden, ..Workspace::new(layout) }
@@ -209,7 +209,7 @@ fn legacy_workspace(app: &LocalPaintApp) -> Workspace {
 
 /// The workspace commands change: the customized one, or the native dock's. The lock is the
 /// Lock Workspace preference.
-fn workspace_of(app: &LocalPaintApp) -> Result<Workspace, String> {
+fn workspace_of(app: &LocalRasterApp) -> Result<Workspace, String> {
     let mut workspace = match &app.ui.docking {
         Some(workspace) if !valid_workspace(workspace) => return Err("saved panel layout is invalid; reset the workspace first".into()),
         Some(workspace) => workspace.clone(),
@@ -219,7 +219,7 @@ fn workspace_of(app: &LocalPaintApp) -> Result<Workspace, String> {
     Ok(workspace)
 }
 
-fn commit(app: &mut LocalPaintApp, workspace: Workspace, mut returns: Returns) {
+fn commit(app: &mut LocalRasterApp, workspace: Workspace, mut returns: Returns) {
     returns.retain(|panel, _| floats(&workspace.layout, panel));
     app.ui.docking = Some(workspace);
     app.ui.docking_returns = returns;
@@ -233,7 +233,7 @@ fn floats(layout: &Layout<String>, panel: &str) -> bool {
 
 // Native collapse flags remain app-owned. An intact native tab group keeps its collapsed
 // presentation when the workspace first becomes customizable; mixed custom groups are expanded.
-fn collapsed_members(app: &LocalPaintApp, layout: &Layout<String>) -> std::collections::HashSet<String> {
+fn collapsed_members(app: &LocalRasterApp, layout: &Layout<String>) -> std::collections::HashSet<String> {
     let mut collapsed: std::collections::HashSet<String> = app.ui.docking_collapsed.iter().cloned().collect();
     for group in layout.root.iter().flat_map(tree_groups).filter(|group| group.minimized) {
         collapsed.extend(group.panels);
@@ -257,7 +257,7 @@ fn first_root(layout: &Layout<String>, except: &str) -> Option<String> {
 
 /// Show `panel` if it is not in the layout: a closed panel at its recorded place, one never laid
 /// out where the native dock puts it ([`default_place`]).
-fn ensure(app: &LocalPaintApp, workspace: &mut Workspace, panel: &str) -> Result<(), String> {
+fn ensure(app: &LocalRasterApp, workspace: &mut Workspace, panel: &str) -> Result<(), String> {
     if workspace.layout.contains(&panel.to_owned()) {
         return Ok(());
     }
@@ -272,7 +272,7 @@ fn ensure(app: &LocalPaintApp, workspace: &mut Workspace, panel: &str) -> Result
 /// Where the native dock shows `panel` in `layout`: a tab of its group, before the next of the
 /// group's tabs; else a new group of the dock column, above the next native group there or below
 /// the one before it; else where craft-ui opens a panel.
-fn default_place(app: &LocalPaintApp, layout: &Layout<String>, panel: &str) -> Action<String> {
+fn default_place(app: &LocalRasterApp, layout: &Layout<String>, panel: &str) -> Action<String> {
     let open = Action::Open { panel: panel.to_owned(), anchor: None };
     let Some(group) = PANELS.iter().find(|p| p.0 == panel).map(|p| p.2) else { return open };
     let pro = app.ui.theme.is_pro();
@@ -348,7 +348,7 @@ fn closes(command: &DockCommand<String>) -> bool {
     )
 }
 
-pub(crate) fn command(app: &mut LocalPaintApp, id: &str, params: &Value) -> Option<Result<Value, String>> {
+pub(crate) fn command(app: &mut LocalRasterApp, id: &str, params: &Value) -> Option<Result<Value, String>> {
     if id == "window.panel.group" {
         return Some(group_command(app, params));
     }
@@ -376,7 +376,7 @@ pub(crate) fn command(app: &mut LocalPaintApp, id: &str, params: &Value) -> Opti
     Some(dock_command(app, id, params))
 }
 
-pub(crate) fn checked(app: &LocalPaintApp, id: &str) -> Option<bool> {
+pub(crate) fn checked(app: &LocalRasterApp, id: &str) -> Option<bool> {
     let workspace = app.ui.docking.as_ref()?;
     let panel = id.strip_prefix("window.panel.").or_else(|| id.strip_prefix("window.toggle.")).and_then(normalize)?;
     Some(workspace.layout.contains(&panel.to_string()))
@@ -384,7 +384,7 @@ pub(crate) fn checked(app: &LocalPaintApp, id: &str) -> Option<bool> {
 
 /// Parse a docking command id and its params as craft-ui's [`DockCommand`] and run it. Panels
 /// may be named by id or label, and `onto` stands for `anchor`.
-fn dock_command(app: &mut LocalPaintApp, id: &str, params: &Value) -> Result<Value, String> {
+fn dock_command(app: &mut LocalRasterApp, id: &str, params: &Value) -> Result<Value, String> {
     let mut fields = match params {
         Value::Null => Map::new(),
         Value::Object(fields) => fields.clone(),
@@ -411,7 +411,7 @@ fn dock_command(app: &mut LocalPaintApp, id: &str, params: &Value) -> Result<Val
 }
 
 /// UI output and automation share this atomic dispatcher: everything applies, or nothing.
-fn run(app: &mut LocalPaintApp, command: DockCommand<String>) -> Result<Value, String> {
+fn run(app: &mut LocalRasterApp, command: DockCommand<String>) -> Result<Value, String> {
     if command.is_app_owned() {
         return app_owned(app, command);
     }
@@ -507,8 +507,8 @@ fn dock_back(workspace: &mut Workspace, returns: &Returns, panel: &String) -> Re
     Ok(true)
 }
 
-/// Named workspaces and Reset are Local Paint's (Window › Workspace).
-fn app_owned(app: &mut LocalPaintApp, command: DockCommand<String>) -> Result<Value, String> {
+/// Named workspaces and Reset are Local Raster's (Window › Workspace).
+fn app_owned(app: &mut LocalRasterApp, command: DockCommand<String>) -> Result<Value, String> {
     let (id, params) = match command {
         DockCommand::Workspace { name } => ("window.workspace.select", json!({"name": name})),
         DockCommand::NewWorkspace { name } => ("window.workspace.newWorkspace", json!({"name": name})),
@@ -524,7 +524,7 @@ fn app_owned(app: &mut LocalPaintApp, command: DockCommand<String>) -> Result<Va
 
 /// Draw the layout, the canvas included, in the space `ui` has left: the customized workspace,
 /// else the native dock's arrangement.
-pub(crate) fn show(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+pub(crate) fn show(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     let area = area_id();
     let changed_workspace = ui.ctx().data_mut(|data| {
         let previous = data.get_temp::<u64>(area.with("generation"));
@@ -618,7 +618,7 @@ pub(crate) fn show(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
     pin_group_heights(ui.ctx(), &layout, &mut actions);
     for action in actions {
         let result = match action {
-            // A dock group minimizes as Local Paint's collapsed group, which the native dock's
+            // A dock group minimizes as Local Raster's collapsed group, which the native dock's
             // collapse also sets.
             Action::SetMinimized { panel, minimized } if in_dock_column(&layout, &panel) => {
                 group_command(app, &json!({"panel": panel, "operation": if minimized {"collapse"} else {"expand"}}))
@@ -640,7 +640,7 @@ pub(crate) fn show(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
 /// in, so the floating panels' own OS windows are blocked meanwhile (`DockArea::input_blocked`).
 /// The app's dialogs count from the frame they open; any other egui modal (a format's options,
 /// a job's progress) from the frame after it first shows.
-pub(crate) fn modal_open(app: &LocalPaintApp, ctx: &egui::Context) -> bool {
+pub(crate) fn modal_open(app: &LocalRasterApp, ctx: &egui::Context) -> bool {
     !app.ui.dialogs.is_empty()
         || app.ui.layers_panel_dialog.is_some()
         || app.discard.is_some()
@@ -651,7 +651,7 @@ pub(crate) fn modal_open(app: &LocalPaintApp, ctx: &egui::Context) -> bool {
 
 /// The viewports of the floating windows that may have OS windows of their own. Where egui
 /// embeds viewports, and on the web, every floating window stays in the main window.
-pub(crate) fn native_viewports(app: &LocalPaintApp, ctx: &egui::Context) -> Vec<egui::ViewportId> {
+pub(crate) fn native_viewports(app: &LocalRasterApp, ctx: &egui::Context) -> Vec<egui::ViewportId> {
     if !ctx.embed_viewports()
         && let Some(workspace) = &app.ui.docking
     {
@@ -694,7 +694,7 @@ pub(crate) fn other_window_keyboard(ctx: &egui::Context) -> Option<bool> {
 
 /// Files dropped on a floating panel's own OS window open as documents, as files dropped on the
 /// main window away from the canvas and the tab strip do, and the main window comes forward.
-fn open_window_drops(app: &mut LocalPaintApp, ctx: &egui::Context, windows: Vec<craft_ui::docking::WindowFiles<String>>) {
+fn open_window_drops(app: &mut LocalRasterApp, ctx: &egui::Context, windows: Vec<craft_ui::docking::WindowFiles<String>>) {
     let dropped: Vec<egui::DroppedFileHandle> = windows.into_iter().flat_map(|window| window.dropped).collect();
     if !dropped.is_empty() {
         app.open_dropped(ctx, dropped, None);
@@ -742,7 +742,7 @@ fn pin_group_heights(ctx: &egui::Context, layout: &Layout<String>, actions: &mut
 }
 
 /// `ui.set {dockWidth}`: the width of the end dock's outer column.
-fn set_dock_width(app: &mut LocalPaintApp, width: f32) {
+fn set_dock_width(app: &mut LocalRasterApp, width: f32) {
     let Ok(mut workspace) = workspace_of(app) else { return };
     let outer = match workspace.layout.root.as_ref() {
         Some(Node::Split { second, .. }) => match second.as_ref() {
@@ -766,7 +766,7 @@ fn set_dock_width(app: &mut LocalPaintApp, width: f32) {
 /// A dock width saved by earlier versions is in egui's remembered memory under the `dock` side
 /// panel's id. The default layout's column takes it once, after the canvas has been laid out so
 /// the Studio Properties card keeps its place.
-fn native_dock_width(app: &mut LocalPaintApp, ctx: &egui::Context) {
+fn native_dock_width(app: &mut LocalRasterApp, ctx: &egui::Context) {
     let id = crate::panels::panel_state_id(ctx, "dock");
     let Some(state) = ctx.data_mut(|data| data.get_persisted::<egui::PanelState>(id)) else { return };
     if app.ui.docking.is_none() && !app.last_canvas_rect.is_positive() {
@@ -816,7 +816,7 @@ fn fillers(layout: &Layout<String>) -> std::collections::HashSet<String> {
     out
 }
 
-fn body(app: &mut LocalPaintApp, ui: &mut egui::Ui, id: &str) {
+fn body(app: &mut LocalRasterApp, ui: &mut egui::Ui, id: &str) {
     let Some((_, label, group)) = PANELS.iter().find(|p| p.0 == id) else { return };
     let pro = crate::theme::Tokens::get(ui.ctx()).pro;
     let Some(tab) = group.tabs(pro).iter().position(|name| name == label) else { return };
@@ -864,13 +864,13 @@ pub(crate) mod probe {
     }
 
     /// The panels of the tab group holding `panel`, in tab order.
-    pub(crate) fn group_of(app: &LocalPaintApp, panel: &str) -> Vec<String> {
+    pub(crate) fn group_of(app: &LocalRasterApp, panel: &str) -> Vec<String> {
         let layout = app.ui.docking.as_ref().map_or_else(|| legacy(app), |workspace| workspace.layout.clone());
         group_members(&layout, panel)
     }
 
     /// The tab group holding `panel`: its tab strip and its selected panel's body.
-    pub(crate) fn group_rect(app: &LocalPaintApp, ctx: &egui::Context, panel: &str) -> Option<Rect> {
+    pub(crate) fn group_rect(app: &LocalRasterApp, ctx: &egui::Context, panel: &str) -> Option<Rect> {
         let members = group_of(app, panel);
         let strip = DockArea::<String>::hit_rects(ctx, area_id()).into_iter().filter_map(|(hit, rect)| match hit {
             Hit::Tab(p) | Hit::DragBar(p) | Hit::Border(p) | Hit::Overflow(p) => members.contains(&p).then_some(rect),
@@ -881,7 +881,7 @@ pub(crate) mod probe {
     }
 
     /// [`group_rect`] of the first panel of the native `group` that is laid out.
-    pub(crate) fn native_group_rect(app: &LocalPaintApp, ctx: &egui::Context, group: Group) -> Option<Rect> {
+    pub(crate) fn native_group_rect(app: &LocalRasterApp, ctx: &egui::Context, group: Group) -> Option<Rect> {
         PANELS.iter().filter(|p| p.2 == group).find_map(|p| group_rect(app, ctx, p.0))
     }
 }
@@ -893,7 +893,7 @@ mod tests;
 mod native_tests;
 
 /// Return positions for panels already hidden in a legacy workspace.
-fn migration_hidden(app: &LocalPaintApp, visible: &Layout<String>) -> Vec<(String, Location<String>)> {
+fn migration_hidden(app: &LocalRasterApp, visible: &Layout<String>) -> Vec<(String, Location<String>)> {
     let full = legacy_layout(app, true);
     PANELS
         .iter()
@@ -947,7 +947,7 @@ fn group_members(layout: &Layout<String>, panel: &str) -> Vec<String> {
     layout.root.iter().chain(layout.floating.iter().map(|window| &window.root)).find_map(|root| tree_group(root, panel)).unwrap_or_default()
 }
 
-fn reveal_group(app: &mut LocalPaintApp, panel: &str) {
+fn reveal_group(app: &mut LocalRasterApp, panel: &str) {
     if let Some(workspace) = &app.ui.docking {
         let members = group_members(&workspace.layout, panel);
         app.ui.docking_collapsed.retain(|id| !members.contains(id));
@@ -959,7 +959,7 @@ fn reveal_group(app: &mut LocalPaintApp, panel: &str) {
     }
 }
 
-pub(crate) fn rail_on(app: &LocalPaintApp, group: Group) -> bool {
+pub(crate) fn rail_on(app: &LocalRasterApp, group: Group) -> bool {
     app.ui.docking.as_ref().is_some_and(|workspace| {
         let layout = &workspace.layout;
         let collapsed = collapsed_members(app, layout);
@@ -967,7 +967,7 @@ pub(crate) fn rail_on(app: &LocalPaintApp, group: Group) -> bool {
     })
 }
 
-pub(crate) fn rail_click(app: &mut LocalPaintApp, group: Group) {
+pub(crate) fn rail_click(app: &mut LocalRasterApp, group: Group) {
     let Some(workspace) = app.ui.docking.as_ref() else { return };
     let layout = &workspace.layout;
     let floating = PANELS.iter().filter(|p| p.2 == group).any(|p| floats(layout, p.0));
@@ -994,8 +994,8 @@ fn root_groups(layout: &Layout<String>) -> Vec<Vec<String>> {
     layout.root.iter().flat_map(tree_groups).map(|group| group.panels).filter(|panels| !panels.iter().any(|id| id == CANVAS)).collect()
 }
 
-/// `window.panel.group {panel, operation}`: Local Paint's commands for a panel's whole group.
-fn group_command(app: &mut LocalPaintApp, params: &Value) -> Result<Value, String> {
+/// `window.panel.group {panel, operation}`: Local Raster's commands for a panel's whole group.
+fn group_command(app: &mut LocalRasterApp, params: &Value) -> Result<Value, String> {
     let panel = params.get("panel").and_then(Value::as_str).and_then(normalize).ok_or("panel must name a registered panel")?;
     let operation = params.get("operation").and_then(Value::as_str).ok_or("operation is required")?;
     if app.session.prefs().workspace_locked {
@@ -1068,7 +1068,7 @@ pub(crate) struct LegacyUpdate {
 
 /// Validate and stage the legacy controls before ui.set commits any fields.
 pub(crate) fn prepare_legacy_update(
-    app: &LocalPaintApp,
+    app: &LocalRasterApp,
     request: &Value,
     panels: Option<&crate::state::Panels>,
     tabs: Option<&crate::state::DockTabs>,
@@ -1139,7 +1139,7 @@ pub(crate) fn prepare_legacy_update(
     Ok(Some(LegacyUpdate { workspace, clear_collapse }))
 }
 
-pub(crate) fn commit_legacy_update(app: &mut LocalPaintApp, update: LegacyUpdate, request: &Value) {
+pub(crate) fn commit_legacy_update(app: &mut LocalRasterApp, update: LegacyUpdate, request: &Value) {
     for group in update.clear_collapse {
         let ids: Vec<_> = PANELS.iter().filter(|p| p.2 == group).map(|p| p.0).collect();
         app.ui.docking_collapsed.retain(|id| !ids.contains(&id.as_str()));
@@ -1158,7 +1158,7 @@ pub(crate) fn commit_legacy_update(app: &mut LocalPaintApp, update: LegacyUpdate
 }
 
 struct PanelContent<'a> {
-    app: &'a mut LocalPaintApp,
+    app: &'a mut LocalRasterApp,
     collapsed: &'a std::collections::HashSet<String>,
     fillers: &'a std::collections::HashSet<String>,
     /// The panels of the Studio themes' Properties card, which stays over the canvas.
@@ -1168,7 +1168,7 @@ struct PanelContent<'a> {
     commands: &'a mut Vec<(&'static str, Value)>,
 }
 
-fn panel_menu(app: &mut LocalPaintApp, ui: &mut egui::Ui, panel: &str) {
+fn panel_menu(app: &mut LocalRasterApp, ui: &mut egui::Ui, panel: &str) {
     match panel {
         "layers" => {
             crate::layer_row_ui::panel_menu(app, ui);
@@ -1273,7 +1273,7 @@ impl craft_ui::docking::DockContent<String> for PanelContent<'_> {
     }
 }
 
-pub(crate) fn sync_visibility(app: &mut LocalPaintApp) {
+pub(crate) fn sync_visibility(app: &mut LocalRasterApp) {
     if let Some(workspace) = &app.ui.docking {
         let layout = &workspace.layout;
         if !valid(layout) {

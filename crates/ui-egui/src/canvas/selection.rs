@@ -1,5 +1,5 @@
 use super::tool_input::selection_drag_kind;
-use super::{LocalPaintApp, Tool, json};
+use super::{LocalRasterApp, Tool, json};
 
 /// Photoshop's cursor over a selection: what a press (or the drag under way) would do.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -21,7 +21,7 @@ pub enum SelCursor {
 /// selection the press would move). The Move tool moves the selected pixels from anywhere
 /// (`move_ui::moves_selected_pixels_with`); a selection tool from inside the selection, or on the
 /// floating piece (`selection_drag_kind`).
-pub fn selection_cursor(app: &LocalPaintApp, tool: Tool, p: [f64; 2], mods: egui::Modifiers) -> Option<SelCursor> {
+pub fn selection_cursor(app: &LocalRasterApp, tool: Tool, p: [f64; 2], mods: egui::Modifiers) -> Option<SelCursor> {
     if let Some(d) = &app.drag {
         return match d.sel_move {
             Some(true) => Some(SelCursor::Dragging),
@@ -29,7 +29,7 @@ pub fn selection_cursor(app: &LocalPaintApp, tool: Tool, p: [f64; 2], mods: egui
             None => None,
         };
     }
-    let floating = app.session.active().and_then(localpaint_engine::float_cmds::floating).is_some();
+    let floating = app.session.active().and_then(localraster_engine::float_cmds::floating).is_some();
     let pixels = if tool == Tool::Move {
         crate::move_ui::moves_selected_pixels_with(app, tool)
     } else {
@@ -51,7 +51,7 @@ pub fn selection_cursor(app: &LocalPaintApp, tool: Tool, p: [f64; 2], mods: egui
 }
 
 /// Whole-pixel offset of a selection drag in progress (`Drag::sel_move`).
-pub(crate) fn selection_drag_delta(app: &LocalPaintApp) -> Option<(i32, i32)> {
+pub(crate) fn selection_drag_delta(app: &LocalRasterApp) -> Option<(i32, i32)> {
     let d = app.drag.as_ref().filter(|d| d.sel_move.is_some())?;
     let end = d.points.last().map_or(d.start, |p| [p[0], p[1]]);
     Some(((end[0] - d.start[0]).round().clamp(-1e7, 1e7) as i32, (end[1] - d.start[1]).round().clamp(-1e7, 1e7) as i32))
@@ -60,22 +60,22 @@ pub(crate) fn selection_drag_delta(app: &LocalPaintApp) -> Option<(i32, i32)> {
 /// The selection a floating piece on document `idx` shows its ants for, before its offset: the
 /// moved pixels' outline, as in Photoshop (#7538); `None` outlines the document's selection. The
 /// surface's tiles are shared, so the clone is cheap.
-pub(crate) fn floating_outline(app: &LocalPaintApp, idx: usize) -> Option<localpaint_raster::Surface> {
+pub(crate) fn floating_outline(app: &LocalRasterApp, idx: usize) -> Option<localraster_raster::Surface> {
     if app.session.active_index() != Some(idx) {
         return None;
     }
-    localpaint_engine::float_cmds::floating(app.session.active()?)?.parts.outline().cloned()
+    localraster_engine::float_cmds::floating(app.session.active()?)?.parts.outline().cloned()
 }
 
 /// Where the selection is drawn relative to where it is: a floating piece's offset plus a drag
 /// in progress.
-pub(super) fn selection_shown_offset(app: &LocalPaintApp) -> Option<(i32, i32)> {
+pub(super) fn selection_shown_offset(app: &LocalRasterApp) -> Option<(i32, i32)> {
     crate::move_ui::floating_offset(app).or_else(|| selection_drag_delta(app)).or_else(|| carried_selection_delta(app))
 }
 
 /// Whole-pixel offset of a Move drag of several layers, which carries the selection along
 /// (`move_ui::carries_selection`): their ants follow the layers while they move (#7538).
-fn carried_selection_delta(app: &LocalPaintApp) -> Option<(i32, i32)> {
+fn carried_selection_delta(app: &LocalRasterApp) -> Option<(i32, i32)> {
     let d = app.drag.as_ref().filter(|d| d.tool == Tool::Move && d.sel_move.is_none())?;
     if !crate::move_ui::carries_selection(app) {
         return None;
@@ -87,9 +87,9 @@ fn carried_selection_delta(app: &LocalPaintApp) -> Option<(i32, i32)> {
 /// End of a selection drag: move the outline, or the floating piece. A click without moving
 /// deselects, like a marquee click (a click on a floating piece leaves it floating, unless it never
 /// moved: then it is put back, so Undo isn't spent on it).
-pub(super) fn finish_selection_drag(app: &mut LocalPaintApp, floating: bool, start: [f64; 2], end: [f64; 2]) {
+pub(super) fn finish_selection_drag(app: &mut LocalRasterApp, floating: bool, start: [f64; 2], end: [f64; 2]) {
     let (dx, dy) = ((end[0] - start[0]).round(), (end[1] - start[1]).round());
-    let unmoved = app.session.active().and_then(localpaint_engine::float_cmds::floating).is_some_and(|f| f.offset == (0, 0));
+    let unmoved = app.session.active().and_then(localraster_engine::float_cmds::floating).is_some_and(|f| f.offset == (0, 0));
     let r = match (floating, dx == 0.0 && dy == 0.0) {
         (true, true) if unmoved => app.run("select.drop", json!({})),
         (true, true) => return,

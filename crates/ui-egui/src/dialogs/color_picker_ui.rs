@@ -6,10 +6,10 @@
 //! canvas is a pipette, and a click or drag there samples into the new colour ([`sample_at`]).
 
 use egui::{Color32, Mesh, Rect, Sense, Stroke, StrokeKind, pos2, vec2};
-use localpaint_color::convert::{hsb_to_rgb, rgb_to_hsb};
+use localraster_color::convert::{hsb_to_rgb, rgb_to_hsb};
 use serde_json::{Map, Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::state::DialogKind;
 use crate::theme::Tokens;
 use crate::widgets;
@@ -34,7 +34,7 @@ fn field_lab(mode: &str, z: f32, x: f32, y: f32) -> Option<[f32; 3]> {
 
 /// Lab → sRGB, clamped to what the field can show.
 fn lab_rgb(lab: [f32; 3]) -> [f32; 3] {
-    localpaint_color::convert::lab_to_srgb(lab).map(|c| c.clamp(0.0, 1.0))
+    localraster_color::convert::lab_to_srgb(lab).map(|c| c.clamp(0.0, 1.0))
 }
 
 /// Colour differences the CMYK round trip leaves inside the printable gamut (ΔE ≤ 0.4, black ≈ 1.4
@@ -43,7 +43,7 @@ const GAMUT_DE: f32 = 3.0;
 
 /// The nearest printable colour, when `rgb` is outside the CMYK gamut (Photoshop's ⚠ warning).
 pub fn out_of_gamut(rgb: [f32; 3]) -> Option<[f32; 3]> {
-    use localpaint_color::convert::{cmyk_to_rgb, rgb_to_cmyk, srgb_to_lab};
+    use localraster_color::convert::{cmyk_to_rgb, rgb_to_cmyk, srgb_to_lab};
     let back = cmyk_to_rgb(rgb_to_cmyk(rgb)).map(|c| c.clamp(0.0, 1.0));
     let (a, b) = (srgb_to_lab(rgb), srgb_to_lab(back));
     let de = ((a[0] - b[0]).powi(2) + (a[1] - b[1]).powi(2) + (a[2] - b[2]).powi(2)).sqrt();
@@ -138,7 +138,7 @@ fn c32(c: [f32; 3]) -> Color32 {
 }
 
 /// Open the picker for the foreground or background colour.
-pub fn open(app: &mut LocalPaintApp, target: &str) -> u64 {
+pub fn open(app: &mut LocalRasterApp, target: &str) -> u64 {
     let c = if target == "background" { app.session.tools.background } else { app.session.tools.foreground };
     let rgb = [c[0], c[1], c[2]];
     let label = if target == "background" { "Color Picker (Background Color)" } else { "Color Picker (Foreground Color)" };
@@ -166,7 +166,7 @@ pub(crate) fn initial_fields(target: &str, label: &str, rgb: [f32; 3]) -> Map<St
 /// Seed [`initial_fields`] with the last Only Web Colors setting. With web-only on, the opening
 /// colour is snapped and `__orig` follows it: OK without an edit is "unchanged", so opening the
 /// picker never rewrites a fill behind the user's back (#4995).
-pub(crate) fn fields_with_web(app: &LocalPaintApp, target: &str, label: &str, rgb: [f32; 3]) -> Map<String, Value> {
+pub(crate) fn fields_with_web(app: &LocalRasterApp, target: &str, label: &str, rgb: [f32; 3]) -> Map<String, Value> {
     let mut f = initial_fields(target, label, rgb);
     f.insert("__webOnly".into(), json!(app.ui.color_panel.web_only));
     if app.ui.color_panel.web_only {
@@ -178,7 +178,7 @@ pub(crate) fn fields_with_web(app: &LocalPaintApp, target: &str, label: &str, rg
 
 /// Open the picker on `rgb` for something other than the tool colours: OK runs `command` with
 /// `params` plus `"color": "#rrggbb"` (e.g. a gradient stop's colour).
-pub fn open_for_command(app: &mut LocalPaintApp, label: &str, rgb: [f32; 3], command: &str, params: Value) -> u64 {
+pub fn open_for_command(app: &mut LocalRasterApp, label: &str, rgb: [f32; 3], command: &str, params: Value) -> u64 {
     let mut f = fields_with_web(app, "command", label, rgb);
     f.insert("__command".into(), json!(command));
     f.insert("__params".into(), params);
@@ -192,7 +192,7 @@ pub fn open_for_command(app: &mut LocalPaintApp, label: &str, rgb: [f32; 3], com
 
 /// Open the picker on `rgb` for a colour field of another dialog (e.g. Edit › Fill's Color…): OK
 /// writes `"#rrggbb"` into `field` of dialog `dialog`, which stays open; Cancel leaves it alone.
-pub fn open_for_field(app: &mut LocalPaintApp, label: &str, rgb: [f32; 3], dialog: u64, field: &str) -> u64 {
+pub fn open_for_field(app: &mut LocalRasterApp, label: &str, rgb: [f32; 3], dialog: u64, field: &str) -> u64 {
     let mut f = fields_with_web(app, "field", label, rgb);
     f.insert("__dialog".into(), json!(dialog));
     f.insert("__field".into(), json!(field));
@@ -201,7 +201,7 @@ pub fn open_for_field(app: &mut LocalPaintApp, label: &str, rgb: [f32; 3], dialo
 
 /// Open the picker on `rgb` for a colour the shell keeps itself (e.g. the Crop shield's custom
 /// colour): OK hands `"#rrggbb"` to `target`'s setter in [`confirm`]; Cancel leaves it alone.
-pub fn open_for_target(app: &mut LocalPaintApp, target: &str, label: &str, rgb: [f32; 3]) -> u64 {
+pub fn open_for_target(app: &mut LocalRasterApp, target: &str, label: &str, rgb: [f32; 3]) -> u64 {
     app.ui.open_dialog(DialogKind::Command, fields_with_web(app, target, label, rgb))
 }
 
@@ -261,7 +261,7 @@ fn set_field(f: &mut Map<String, Value>, field: &str, value: Value) -> Result<()
 
 /// Opens the Color Picker dialog `id`'s body asked for ([`request`], [`request_field`]), on its
 /// colour: OK sets that field of the dialog (not the foreground), Cancel leaves it as it was.
-pub fn open_requested(app: &mut LocalPaintApp, id: u64) {
+pub fn open_requested(app: &mut LocalRasterApp, id: u64) {
     let Some(d) = app.ui.dialog_mut(id) else { return };
     let (title, field) = match d.fields.remove(REQUEST) {
         Some(Value::String(title)) => (title, "color".to_string()),
@@ -290,13 +290,13 @@ pub fn reset(f: &mut Map<String, Value>) {
 }
 
 /// The Color Picker, when it is the top dialog (another dialog opened over it takes the input).
-pub fn top(app: &LocalPaintApp) -> Option<u64> {
+pub fn top(app: &LocalRasterApp) -> Option<u64> {
     app.ui.dialogs.last().filter(|d| owns(&d.fields)).map(|d| d.id)
 }
 
 /// Eyedropper: the top Color Picker's new colour becomes the image's composite colour at document
 /// point (x, y). Off the image or over transparency nothing changes.
-pub fn sample_at(app: &mut LocalPaintApp, x: f64, y: f64) {
+pub fn sample_at(app: &mut LocalRasterApp, x: f64, y: f64) {
     let Some(id) = top(app) else { return };
     let Some(rgb) = crate::canvas::composite_color(app, x, y) else { return };
     if let Some(d) = app.ui.dialog_mut(id) {
@@ -335,7 +335,7 @@ where
 /// should keep in a CMYK document (#4196, #8568).
 pub(crate) fn picked_cmyk(f: &Map<String, Value>) -> Option<[f32; 4]> {
     let rgb = f.get("color").and_then(Value::as_str).and_then(parse_hex)?;
-    kept::<4>(f, "__cmyk", rgb, localpaint_color::convert::cmyk_to_rgb)
+    kept::<4>(f, "__cmyk", rgb, localraster_color::convert::cmyk_to_rgb)
 }
 
 /// Current colour, keeping the stored HSB, Lab or CMYK values while they still match `color`.
@@ -344,8 +344,8 @@ pub fn current(f: &Map<String, Value>) -> Components {
     Components {
         rgb,
         hsv: kept(f, "__hsv", rgb, hsb_to_rgb).unwrap_or_else(|| rgb_to_hsb(rgb)),
-        lab: kept(f, "__lab", rgb, localpaint_color::convert::lab_to_srgb).unwrap_or_else(|| localpaint_color::convert::srgb_to_lab(rgb)),
-        cmyk: kept(f, "__cmyk", rgb, localpaint_color::convert::cmyk_to_rgb).unwrap_or_else(|| localpaint_color::convert::rgb_to_cmyk(rgb)),
+        lab: kept(f, "__lab", rgb, localraster_color::convert::lab_to_srgb).unwrap_or_else(|| localraster_color::convert::srgb_to_lab(rgb)),
+        cmyk: kept(f, "__cmyk", rgb, localraster_color::convert::cmyk_to_rgb).unwrap_or_else(|| localraster_color::convert::rgb_to_cmyk(rgb)),
     }
 }
 
@@ -723,7 +723,7 @@ fn fields(ui: &mut egui::Ui, f: &mut Map<String, Value>, mode: &str, now: &Compo
                 if widgets::value_field(ui, &mut x, range, "", VALUE_W).accessible_name(tl!(&label)).changed() {
                     let mut l = lab;
                     l[i] = x;
-                    edit = Some((localpaint_color::convert::lab_to_srgb(l).map(|c| c.clamp(0.0, 1.0)), Keep::Lab(l)));
+                    edit = Some((localraster_color::convert::lab_to_srgb(l).map(|c| c.clamp(0.0, 1.0)), Keep::Lab(l)));
                 }
                 ui.label("");
                 ui.end_row();
@@ -737,7 +737,7 @@ fn fields(ui: &mut egui::Ui, f: &mut Map<String, Value>, mode: &str, now: &Compo
                 if widgets::value_field(ui, &mut x, 0.0..=100.0, "", VALUE_W).accessible_name(tl!(&label)).changed() {
                     let mut k = cmyk;
                     k[i] = x / 100.0;
-                    edit = Some((localpaint_color::convert::cmyk_to_rgb(k).map(|c| c.clamp(0.0, 1.0)), Keep::Cmyk(k)));
+                    edit = Some((localraster_color::convert::cmyk_to_rgb(k).map(|c| c.clamp(0.0, 1.0)), Keep::Cmyk(k)));
                 }
                 ui.label(egui::RichText::new("%").color(t.text_faint));
                 ui.end_row();
@@ -770,7 +770,7 @@ fn take_hex_paste(ui: &egui::Ui) -> Option<[f32; 3]> {
 }
 
 /// Add to Swatches was clicked: add the picked colour to the Swatches panel.
-pub fn take_add_swatch(app: &mut LocalPaintApp, f: &mut Map<String, Value>) {
+pub fn take_add_swatch(app: &mut LocalRasterApp, f: &mut Map<String, Value>) {
     if f.remove("__addSwatch").and_then(|v| v.as_bool()) == Some(true) {
         crate::swatches_ui::add_from_picker(app, f);
     }
@@ -778,7 +778,7 @@ pub fn take_add_swatch(app: &mut LocalPaintApp, f: &mut Map<String, Value>) {
 
 /// Whether a Color Picker dialog is open: a workspace under it (Content-Aware Fill, Select and
 /// Mask) leaves the keys to the picker, as it did for the swatch popups the picker replaced.
-pub fn any_open(app: &LocalPaintApp) -> bool {
+pub fn any_open(app: &LocalRasterApp) -> bool {
     app.ui.dialogs.iter().any(|d| owns(&d.fields))
 }
 
@@ -856,7 +856,7 @@ pub fn widget_picker_open(ctx: &egui::Context, widget: egui::Id) -> bool {
 /// the colour an open picker shows on its swatch (as Photoshop's dialogs do while you pick), tell
 /// a swatch whose picker closed without a new colour to restore its own, and open the Color
 /// Picker a swatch asked for.
-pub fn widget_tick(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub fn widget_tick(app: &mut LocalRasterApp, ctx: &egui::Context) {
     let done = std::mem::take(&mut app.widget_colors);
     let mut events: Vec<(u64, WidgetEvent)> = Vec::new();
     let mut open_now: Vec<u64> = Vec::new();
@@ -924,7 +924,7 @@ pub fn widget_tick(app: &mut LocalPaintApp, ctx: &egui::Context) {
 
 /// OK: apply the colour to what the picker was opened for, and add it to the Recently Used
 /// Colors, as Photoshop does for a colour picked in the Color Picker.
-pub fn confirm(app: &mut LocalPaintApp, f: &Map<String, Value>) -> Result<Value, String> {
+pub fn confirm(app: &mut LocalRasterApp, f: &Map<String, Value>) -> Result<Value, String> {
     let r = confirm_target(app, f)?;
     if let Some(rgb) = f.get("color").and_then(Value::as_str).and_then(parse_hex) {
         crate::paint_picker::remember(app, rgb);
@@ -933,7 +933,7 @@ pub fn confirm(app: &mut LocalPaintApp, f: &Map<String, Value>) -> Result<Value,
 }
 
 /// OK: set the foreground or background colour, or whatever else the picker was opened for.
-fn confirm_target(app: &mut LocalPaintApp, f: &Map<String, Value>) -> Result<Value, String> {
+fn confirm_target(app: &mut LocalRasterApp, f: &Map<String, Value>) -> Result<Value, String> {
     if crate::type_panels_ui::color_picker::owns(f) {
         return crate::type_panels_ui::color_picker::confirm(app, f);
     }
@@ -994,7 +994,7 @@ fn confirm_target(app: &mut LocalPaintApp, f: &Map<String, Value>) -> Result<Val
     }
     let mut params = json!({ target: color });
     // The CMYK values the person entered stay the colour's inks: a CMYK document is filled with them (#4196).
-    if let Some(cmyk) = parse_hex(color).and_then(|rgb| kept::<4>(f, "__cmyk", rgb, localpaint_color::convert::cmyk_to_rgb)) {
+    if let Some(cmyk) = parse_hex(color).and_then(|rgb| kept::<4>(f, "__cmyk", rgb, localraster_color::convert::cmyk_to_rgb)) {
         params[format!("{target}Cmyk")] = json!(cmyk);
     }
     let r = app.run("tools.setColors", params)?;
@@ -1014,7 +1014,7 @@ mod screen_integration_tests {
     use egui_kittest::{Harness, kittest::Queryable};
     #[test]
     fn text_swatch_opens_full_dialog_and_screen_pick_waits_for_ok() {
-        let mut session = localpaint_engine::Session::new();
+        let mut session = localraster_engine::Session::new();
         session.execute("file.new", json!({"width":160,"height":120})).unwrap();
         let id = session.execute("type.create", json!({"text":"Hello world","color":"#000000","size":24,"x":10,"y":60})).unwrap()["layer"].as_u64().unwrap();
         let services = crate::Services {
@@ -1026,8 +1026,8 @@ mod screen_integration_tests {
             ..Default::default()
         };
         let mut h = Harness::builder().with_size(vec2(1440.0, 900.0)).with_max_steps(64).build_eframe(move |cc| {
-            LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-            let mut app = LocalPaintApp::new(session, services);
+            LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+            let mut app = LocalRasterApp::new(session, services);
             app.ui.tool = crate::state::Tool::Type;
             app
         });
@@ -1045,8 +1045,8 @@ mod screen_integration_tests {
         h.get_by_label("OK").click();
         h.run_steps(4);
         let doc = &h.state().session.active().unwrap().doc;
-        let layer = doc.layer(localpaint_doc::LayerId(id)).unwrap();
-        let localpaint_doc::LayerContent::Text(text) = &layer.content else { panic!("not text") };
+        let layer = doc.layer(localraster_doc::LayerId(id)).unwrap();
+        let localraster_doc::LayerContent::Text(text) = &layer.content else { panic!("not text") };
         assert_eq!(text.color.to_rgba8(), [255, 136, 0, 255]);
         assert_eq!(h.state().session.active().unwrap().history.entries().len(), before + 1);
     }

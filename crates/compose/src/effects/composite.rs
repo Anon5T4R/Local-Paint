@@ -31,7 +31,7 @@ pub(crate) fn map_count(layer: &Layer) -> usize {
     let outside = usize::from(out_widths.iter().any(|&w| !stroke_outside_exact(w))) + usize::from(out_widths.iter().any(|&w| stroke_outside_exact(w)));
     let stroke = if has_stroke { 1 + outside } else { 0 };
     let vector_outline =
-        if has_stroke && matches!(layer.content, localpaint_doc::LayerContent::Shape(_)) && crate::effect_outline(layer).is_none() { outside } else { 0 };
+        if has_stroke && matches!(layer.content, localraster_doc::LayerContent::Shape(_)) && crate::effect_outline(layer).is_none() { outside } else { 0 };
     1 + per + stroke + vector_outline
 }
 
@@ -65,7 +65,7 @@ pub(crate) fn build_maps_prepared(
         })
         .collect();
     let has_stroke = items.iter().any(|e| matches!(e, Effect::Stroke(_)));
-    let vector_shape = matches!(layer.content, localpaint_doc::LayerContent::Shape(_));
+    let vector_shape = matches!(layer.content, localraster_doc::LayerContent::Shape(_));
     // A stroke's outer edge keeps the 5 × 5 chamfer while its outside width is under
     // `STROKE_CHAMFER_MAX` — Photoshop matches the chamfer's sub-pixel edge seeding at small
     // offsets — and uses the exact Euclidean transform at or above it, where the chamfer's octagon
@@ -205,7 +205,7 @@ pub(crate) fn composite_with_effects_prepared(
             *lp = psblend::composite_gamma(layer.blend, *wp, *lp, 1.0, gamma);
         }
     }
-    let strokes: Vec<&localpaint_doc::StrokeFx> = pass.items.iter().filter_map(|e| if let Effect::Stroke(s) = e { Some(s) } else { None }).collect();
+    let strokes: Vec<&localraster_doc::StrokeFx> = pass.items.iter().filter_map(|e| if let Effect::Stroke(s) = e { Some(s) } else { None }).collect();
     let fields = pass.stroke_fields(!strokes.is_empty());
     pass.paint_interior(&mut lay, &shape);
     pass.paint_vector_stroke(&mut lay, &shape);
@@ -466,13 +466,13 @@ impl<'a> EffectPass<'a> {
     }
 
     /// A gradient stroke aligned with the layer spans the stroke's own extent.
-    fn stroke_frame(&self, st: &localpaint_doc::StrokeFx) -> Rect {
+    fn stroke_frame(&self, st: &localraster_doc::StrokeFx) -> Rect {
         self.maps.stroke_frame(st).unwrap_or(self.sb)
     }
 
     /// Strokes. Inside parts are painted over the layer (bottom instance first); outside parts
     /// are slid beneath it, so the first listed (top) instance is processed first.
-    fn paint_inside_strokes(&self, lay: &mut Buffer, shape: &Map, strokes: &[&localpaint_doc::StrokeFx], fields: &StrokeFields) {
+    fn paint_inside_strokes(&self, lay: &mut Buffer, shape: &Map, strokes: &[&localraster_doc::StrokeFx], fields: &StrokeFields) {
         for st in strokes.iter().rev().copied() {
             let (in_w, _) = stroke_widths(st);
             if in_w <= 0.0 {
@@ -508,7 +508,7 @@ impl<'a> EffectPass<'a> {
     /// above a wider Normal stroke multiplies the backdrop, not the lower stroke). Each stroke's
     /// share is its coverage × opacity not yet taken by strokes above; for Normal strokes this
     /// equals stacking them top over bottom.
-    fn paint_outside_strokes(&self, work: &mut Buffer, lay: &Buffer, shape: &Map, strokes: &[&localpaint_doc::StrokeFx], fields: &StrokeFields) {
+    fn paint_outside_strokes(&self, work: &mut Buffer, lay: &Buffer, shape: &Map, strokes: &[&localraster_doc::StrokeFx], fields: &StrokeFields) {
         if !strokes.iter().any(|st| stroke_widths(st).1 > 0.0) {
             return;
         }
@@ -551,11 +551,11 @@ impl<'a> EffectPass<'a> {
 
     /// The share of each pixel an outside stroke `st` (outside width `out_w`) takes: its coverage
     /// × opacity not yet taken by the strokes above, which `cover` accumulates.
-    fn outside_share(&self, st: &localpaint_doc::StrokeFx, out_w: f32, shape: &Map, lay: &Buffer, fields: &StrokeFields, cover: &mut [f32]) -> Vec<f32> {
+    fn outside_share(&self, st: &localraster_doc::StrokeFx, out_w: f32, shape: &Map, lay: &Buffer, fields: &StrokeFields, cover: &mut [f32]) -> Vec<f32> {
         let (w, big) = (self.w, self.big);
         // Shape layers without a filled outline stroke their vector outline, estimated from local
         // coverage; every other layer strokes its shape. The width then picks the field.
-        let vector_shape = matches!(self.layer.content, localpaint_doc::LayerContent::Shape(_));
+        let vector_shape = matches!(self.layer.content, localraster_doc::LayerContent::Shape(_));
         let vector_outline = vector_shape && !self.maps.outline;
         // Shape layers: Photoshop strokes the vector outline (estimated from local coverage
         // for unfilled shapes); the stroke never shows through the shape's pixels. Along a
@@ -621,7 +621,7 @@ pub fn outline_share(cov: f32, l: f32) -> f32 {
 }
 
 /// (inside width, outside width) of a stroke.
-pub fn stroke_widths(st: &localpaint_doc::StrokeFx) -> (f32, f32) {
+pub fn stroke_widths(st: &localraster_doc::StrokeFx) -> (f32, f32) {
     match st.position {
         StrokePosition::Outside => (0.0, st.size),
         StrokePosition::Inside => (st.size, 0.0),

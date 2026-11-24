@@ -1,10 +1,10 @@
-use super::{LocalPaintApp, gpu_canvas, gpu_status};
+use super::{LocalRasterApp, gpu_canvas, gpu_status};
 
-impl LocalPaintApp {
+impl LocalRasterApp {
     /// Draw the document canvas on the GPU (custom WGSL shader) instead of via egui textures.
     /// Call from the app creator with `cc.wgpu_render_state`; without it the CPU path is used.
     pub fn set_wgpu(&mut self, rs: eframe::egui_wgpu::RenderState) {
-        // Preferences › Performance › cache tile size (LOCALPAINT_GPU_TILE still overrides).
+        // Preferences › Performance › cache tile size (LOCALRASTER_GPU_TILE still overrides).
         let tile = self.session.prefs().performance.cache_tile_size;
         // Escaped driver/setup panics must leave the session and CPU canvas alive.
         self.perf.gpu_info.set_adapter(&rs.adapter.get_info());
@@ -39,14 +39,14 @@ impl LocalPaintApp {
     }
 
     /// The GPU canvas's device health flag (tests inject faults through it).
-    pub fn gpu_health(&self) -> Option<localpaint_gpu::DeviceHealth> {
+    pub fn gpu_health(&self) -> Option<localraster_gpu::DeviceHealth> {
         self.gpu.as_ref().map(|g| g.health().clone())
     }
 
     /// Watch the device the window draws with when the GPU canvas doesn't (the CPU canvas), so
     /// its loss is handled like the GPU canvas's (see `gpu_status::check_window`).
     pub fn watch_window_device(&mut self, device: &eframe::wgpu::Device) {
-        self.window_device = Some((device.clone(), localpaint_gpu::DeviceHealth::watch(device)));
+        self.window_device = Some((device.clone(), localraster_gpu::DeviceHealth::watch(device)));
     }
 
     /// Whether the window's graphics device was lost, so the app saves its documents for
@@ -63,7 +63,7 @@ impl LocalPaintApp {
 
     /// Run `hook` once the app has rendered its first frames (and a document opened at launch
     /// has drawn): the desktop app clears its crash-safe GPU startup marker there.
-    pub fn on_started(&mut self, hook: impl FnOnce(&mut LocalPaintApp) + 'static) {
+    pub fn on_started(&mut self, hook: impl FnOnce(&mut LocalRasterApp) + 'static) {
         self.started = Some(Box::new(hook));
     }
 

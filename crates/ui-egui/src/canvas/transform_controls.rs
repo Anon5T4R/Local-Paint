@@ -1,6 +1,6 @@
 use super::selection::floating_outline;
 use super::view_xform::ViewXform;
-use super::{Color32, LayerContent, LocalPaintApp, Pos2, Rect, Stroke, Tool, Vec2, pos2, vec2};
+use super::{Color32, LayerContent, LocalRasterApp, Pos2, Rect, Stroke, Tool, Vec2, pos2, vec2};
 
 /// View › Show › Layer Edges: the colour of the active layer's outline.
 pub(crate) const LAYER_EDGES: Color32 = Color32::from_rgb(0x2d, 0x8c, 0xeb);
@@ -8,13 +8,13 @@ pub(crate) const LAYER_EDGES: Color32 = Color32::from_rgb(0x2d, 0x8c, 0xeb);
 /// View › Show › Layer Edges: the active layer's content bounds (cached per tile) where the canvas
 /// shows them. During a Move drag that is at the offset the image was drawn with this frame, so
 /// the outline moves in lockstep with the layer's pixels (#2413).
-pub(crate) fn layer_edges_rect(app: &LocalPaintApp, idx: usize) -> Option<localpaint_geom::Rect> {
+pub(crate) fn layer_edges_rect(app: &LocalRasterApp, idx: usize) -> Option<localraster_geom::Rect> {
     if !app.ui.view.shows(app.ui.view.show.layer_edges) {
         return None;
     }
     let st = app.session.documents().get(idx)?;
     let id = st.active_layer?;
-    let b = st.doc.layer(id)?.surface().map(localpaint_compose::bounds::content_bounds)?;
+    let b = st.doc.layer(id)?.surface().map(localraster_compose::bounds::content_bounds)?;
     if b.is_empty() {
         return None;
     }
@@ -26,7 +26,7 @@ pub(crate) fn layer_edges_rect(app: &LocalPaintApp, idx: usize) -> Option<localp
 /// A corner radius drag hides the box, as in Photoshop. So does View › Extras (⌘H, #6699): the
 /// controls are an Extra, hidden and inert until Extras comes back, while Show Transform Controls
 /// keeps its setting.
-pub(super) fn transform_controls_layers(app: &LocalPaintApp) -> Vec<&localpaint_doc::Layer> {
+pub(super) fn transform_controls_layers(app: &LocalRasterApp) -> Vec<&localraster_doc::Layer> {
     if app.ui.tool != Tool::Move
         || !app.ui.tool_options.move_show_transform
         || !app.ui.view.extras
@@ -42,13 +42,13 @@ pub(super) fn transform_controls_layers(app: &LocalPaintApp) -> Vec<&localpaint_
 
 /// Move tool › Show Transform Controls: the boxes Free Transform would open on the selected
 /// layers, joined into one.
-pub(super) fn transform_controls_rect(app: &LocalPaintApp, xf: &ViewXform) -> Option<Rect> {
+pub(super) fn transform_controls_rect(app: &LocalRasterApp, xf: &ViewXform) -> Option<Rect> {
     let st = app.session.active()?;
     let layers = transform_controls_layers(app);
-    let b = layers.iter().map(|l| localpaint_engine::transform_cmds::transform_frame(&st.doc, l)).filter(|b| !b.is_empty()).reduce(|a, b| a.union(&b))?;
+    let b = layers.iter().map(|l| localraster_engine::transform_cmds::transform_frame(&st.doc, l)).filter(|b| !b.is_empty()).reduce(|a, b| a.union(&b))?;
     // Floating selected pixels are framed by their outline, as their ants are (#7538), not by the
     // selection they were cut with; a frame round other selected layers too keeps them all.
-    let alone = matches!(layers.as_slice(), [l] if localpaint_engine::float_cmds::floating(st).is_some_and(|f| f.layer == l.id));
+    let alone = matches!(layers.as_slice(), [l] if localraster_engine::float_cmds::floating(st).is_some_and(|f| f.layer == l.id));
     let b = app.session.active_index().filter(|_| alone).and_then(|idx| floating_outline(app, idx)).map_or(b, |o| o.content_bounds());
     let (dx, dy) = crate::move_ui::floating_offset(app).unwrap_or((0, 0));
     let b = b.translate(dx, dy);
@@ -106,7 +106,7 @@ pub(super) fn transform_controls_hit(r: Rect, p: Pos2) -> bool {
 
 /// Enter the existing Free Transform session when a Move-tool transform control is pressed: on
 /// every selected layer, as the frame shows them (#6501).
-pub(super) fn begin_transform_controls_at(app: &mut LocalPaintApp, ctx: &egui::Context, xf: &ViewXform, p: Pos2) -> bool {
+pub(super) fn begin_transform_controls_at(app: &mut LocalRasterApp, ctx: &egui::Context, xf: &ViewXform, p: Pos2) -> bool {
     let Some(r) = transform_controls_rect(app, xf) else { return false };
     if !transform_controls_hit(r, p) {
         return false;
@@ -122,7 +122,7 @@ pub(super) fn begin_transform_controls_at(app: &mut LocalPaintApp, ctx: &egui::C
 
 /// Move tool › Show Transform Controls: the selected layers' bounding box, with its eight handles,
 /// and the outline of every selected shape layer, as in Photoshop.
-pub(super) fn draw_transform_controls(app: &mut LocalPaintApp, painter: &egui::Painter, xf: &ViewXform) {
+pub(super) fn draw_transform_controls(app: &mut LocalRasterApp, painter: &egui::Painter, xf: &ViewXform) {
     let Some(r) = transform_controls_rect(app, xf) else { return };
     let accent = crate::theme::Tokens::get(painter.ctx()).accent;
     let to_scr = |q: [f64; 2]| xf.to_screen(q[0] as f32, q[1] as f32);

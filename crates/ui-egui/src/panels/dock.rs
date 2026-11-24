@@ -3,13 +3,13 @@ use super::info::info_panel;
 use super::layers::{channels, layers};
 use super::navigator::navigator;
 use super::properties::{adjustments_grid, properties_body};
-use super::{LocalPaintApp, Stroke, Tokens, icons, pos2};
+use super::{LocalRasterApp, Stroke, Tokens, icons, pos2};
 
 // ----------------------------------------------------------------------------- dock
 
 /// The panels and the canvas in the space left by the menus, bars and toolbar: craft-ui's
 /// docking layout, with the icon rail at the window's end edge in the Studio themes.
-pub fn dock_area(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+pub fn dock_area(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
     if app.ui.panels.rail && !t.pro {
         rail(app, ui, &t);
@@ -21,7 +21,7 @@ pub fn dock_area(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
 
 /// The docking layout's protected canvas panel: the document area, with the icon rail on its end
 /// side, beside the dock, in the Pro themes.
-pub(crate) fn canvas_panel(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+pub(crate) fn canvas_panel(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
     let backdrop = if app.ui.view.hides_chrome() { egui::Color32::BLACK } else { crate::prefs_ui::pasteboard_color(app).unwrap_or(t.canvas) };
     if app.ui.panels.rail && t.pro {
@@ -31,7 +31,7 @@ pub(crate) fn canvas_panel(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
 }
 
 /// Narrow icon rail, unless an embedding app hides it: shows, expands or collapses panel groups.
-fn rail(app: &mut LocalPaintApp, ui: &mut egui::Ui, t: &Tokens) {
+fn rail(app: &mut LocalRasterApp, ui: &mut egui::Ui, t: &Tokens) {
     let customized = app.ui.docking.is_some();
     let p = app.ui.panels.clone();
     let (rw, rb) = if t.pro { (36.0, 28.0) } else { (44.0, 32.0) };
@@ -95,7 +95,7 @@ pub fn request_dock_width(ctx: &egui::Context, w: f32) {
 }
 
 /// One dock group's tab content; `panel_docking` bounds it and scrolls it when it's taller.
-pub(crate) fn dock_body(app: &mut LocalPaintApp, ui: &mut egui::Ui, group: crate::dock::Group, tab: usize) {
+pub(crate) fn dock_body(app: &mut LocalRasterApp, ui: &mut egui::Ui, group: crate::dock::Group, tab: usize) {
     use crate::dock::Group;
     let pro = Tokens::get(ui.ctx()).pro;
     match (group, tab) {

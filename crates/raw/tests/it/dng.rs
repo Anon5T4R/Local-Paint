@@ -1,8 +1,8 @@
 //! Synthetic DNG files: every storage layout decodes to the exact sensor
 //! samples, and development reproduces known colours.
 
-use localpaint_raw::testgen::{self, DngSpec, DngStorage, Val, baseline_jpeg, mosaic, scene};
-use localpaint_raw::*;
+use localraster_raw::testgen::{self, DngSpec, DngStorage, Val, baseline_jpeg, mosaic, scene};
+use localraster_raw::*;
 
 fn sensor(bytes: &[u8]) -> Sensor {
     decode(bytes, &Limits::default()).unwrap()
@@ -425,7 +425,7 @@ fn highlights_clip_to_white_and_exposure_applies() {
     assert!((lin(up) / lin(base) - 2.0).abs() < 0.02, "{} vs {}", lin(up), lin(base));
 }
 
-/// storytold/localpaint#4348 (as storytold/lightcraft#548): a 12-bit DNG that states WhiteLevel 4095
+/// storytold/localraster#4348 (as storytold/lightcraft#548): a 12-bit DNG that states WhiteLevel 4095
 /// but whose sensor saturates at 3567 in every colour. Under the camera's white balance (red x2.46,
 /// blue x1.59) the stuck red and blue samples clip at 1 while green stays at 0.85, so a blown wall
 /// rendered magenta. The wall must come out neutral, and the unclipped ramp beside it unchanged.
@@ -458,7 +458,7 @@ fn gain_map_opcode_is_applied() {
     spec.as_shot_neutral = Some([1.0; 3]);
     let lin = |v: u16| (f64::from(v) / 65535.0).powf(1.8);
     let base = develop(&spec.build(), &DevelopOptions::default()).unwrap().rgb[(6 * w + 8) * 3 + 1];
-    spec.opcode_list2 = Some(localpaint_raw::testgen::gain_map_opcode_list([0, 0, h as u32, w as u32], 1, [[2.0, 2.0], [2.0, 2.0]]));
+    spec.opcode_list2 = Some(localraster_raw::testgen::gain_map_opcode_list([0, 0, h as u32, w as u32], 1, [[2.0, 2.0], [2.0, 2.0]]));
     let d = develop(&spec.build(), &DevelopOptions::default()).unwrap();
     assert!(!d.warnings.iter().any(|w| w.contains("Opcode")), "{:?}", d.warnings);
     let gained = d.rgb[(6 * w + 8) * 3 + 1];
@@ -822,7 +822,7 @@ fn floating_point_jpeg_xl_is_charged_four_bytes_a_sample() {
 /// When the largest JPEG XL preview doesn't decode, the next largest is used.
 #[test]
 fn a_jpeg_xl_preview_that_does_not_decode_gives_way_to_a_smaller_one() {
-    use localpaint_raw::testgen::TiffBuilder;
+    use localraster_raw::testgen::TiffBuilder;
     let mut t = TiffBuilder::default();
     let preview = |t: &mut TiffBuilder, w: usize, h: usize, stream: Vec<u8>| {
         let len = stream.len() as u32;
@@ -854,7 +854,7 @@ fn a_jpeg_xl_preview_that_does_not_decode_gives_way_to_a_smaller_one() {
 /// three samples, JPEG XL) holds undeveloped sensor data, so the RGB one is used even when smaller.
 #[test]
 fn a_reduced_resolution_linear_raw_is_not_a_jpeg_xl_preview() {
-    use localpaint_raw::testgen::TiffBuilder;
+    use localraster_raw::testgen::TiffBuilder;
     let mut t = TiffBuilder::default();
     let mut ifd = |w: usize, h: usize, photometric: u16, data: &[u16]| {
         let stream = jxl(data, w, h, 3, 8);

@@ -1,7 +1,7 @@
 //! Filter › Video: De-Interlace and NTSC Colors.
 
-use localpaint_color::ColorMode;
-use localpaint_geom::Rect;
+use localraster_color::ColorMode;
+use localraster_geom::Rect;
 
 use crate::Ctx;
 use crate::fxutil::{MAXC, rgba, set_rgba, xy};
@@ -93,8 +93,8 @@ pub(crate) fn ntsc(src: &Image, out: Rect, ctx: &Ctx) -> Vec<f32> {
 mod tests {
     use super::*;
     use crate::{FilterParams, apply};
-    use localpaint_color::{PixelFormat, SampleType};
-    use localpaint_raster::Surface;
+    use localraster_color::{PixelFormat, SampleType};
+    use localraster_raster::Surface;
 
     const DEPTHS: [SampleType; 3] = [SampleType::U8, SampleType::U16, SampleType::F32];
 

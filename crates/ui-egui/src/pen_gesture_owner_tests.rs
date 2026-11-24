@@ -1,12 +1,12 @@
 use egui::Modifiers;
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::canvas::{ToolEvent, tool_event};
 use crate::state::Tool;
 
-fn app(tool: Tool) -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn app(tool: Tool) -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 200, "height": 200})).unwrap();
     app.sync_views();
     app.ui.tool = tool;
@@ -14,7 +14,7 @@ fn app(tool: Tool) -> LocalPaintApp {
     app
 }
 
-fn down(app: &mut LocalPaintApp) {
+fn down(app: &mut LocalRasterApp) {
     tool_event(app, ToolEvent::Down { x: 20.0, y: 20.0, pressure: 1.0 }, Modifiers::NONE);
     tool_event(app, ToolEvent::Move { x: 50.0, y: 35.0, pressure: 1.0 }, Modifiers::NONE);
     tool_event(app, ToolEvent::Move { x: 90.0, y: 80.0, pressure: 1.0 }, Modifiers::NONE);

@@ -1,7 +1,7 @@
 use super::*;
 
 fn document(width: u32, height: u32) -> Document {
-    Document::new("size estimate", localpaint_geom::Size::new(width, height), ColorMode::Rgb, SampleType::U8)
+    Document::new("size estimate", localraster_geom::Size::new(width, height), ColorMode::Rgb, SampleType::U8)
 }
 
 /// Photoshop opens a PSD's bottom layer as its Background only when that layer has no
@@ -9,8 +9,8 @@ fn document(width: u32, height: u32) -> Document {
 /// files reopened with the Background as an ordinary layer).
 #[test]
 fn a_background_is_written_without_a_transparency_channel() {
-    use localpaint_color::Color;
-    let size = localpaint_geom::Size::new(8, 6);
+    use localraster_color::Color;
+    let size = localraster_geom::Size::new(8, 6);
     let mut doc = Document::with_background("bg", size, ColorMode::Rgb, SampleType::U8, Color::rgb(0.2, 0.4, 0.6));
     doc.layers.push(Layer::raster("Layer 1", doc.pixel_format()));
     let file = document_to_psd(&doc);
@@ -34,10 +34,10 @@ fn a_background_is_written_without_a_transparency_channel() {
 }
 
 /// A flat 1-bit Bitmap file (no layers) opens in Photoshop as its Background; so does it in
-/// Local Paint, and it is written back as one (no transparency channel).
+/// Local Raster, and it is written back as one (no transparency channel).
 #[test]
 fn a_flat_bitmap_file_opens_and_saves_as_a_background() {
-    let file = localpaint_psd::testgen::merged_only(Version::Psd, PsdMode::Bitmap, 1, Compression::Raw, 8, 4);
+    let file = localraster_psd::testgen::merged_only(Version::Psd, PsdMode::Bitmap, 1, Compression::Raw, 8, 4);
     let doc = crate::import("flat.psd", &file.to_bytes().unwrap()).unwrap().document;
     let bg = &doc.layers[0];
     assert!(bg.name == "Background" && bg.locks.transparency && bg.locks.position, "{:?}", bg.locks);
@@ -59,10 +59,10 @@ fn spot_and_alpha_document() -> Document {
     let channel = |name: &str| {
         let mut s = Surface::new(PixelFormat::GRAY8);
         s.write_interleaved(doc.bounds(), &[255, 64, 191, 0]);
-        localpaint_doc::AlphaChannel::new(name, s)
+        localraster_doc::AlphaChannel::new(name, s)
     };
     let mut spot = channel("Spot Color 1");
-    spot.spot = Some((localpaint_doc::Color::rgb(0.0, 0.6, 1.0), 0.0));
+    spot.spot = Some((localraster_doc::Color::rgb(0.0, 0.6, 1.0), 0.0));
     let alpha = channel("Alpha 1");
     doc.channels.extend([spot, alpha]);
     doc
@@ -106,8 +106,8 @@ fn psd_stores_spot_ink_as_photoshop_does() {
 /// channels there is none.
 #[test]
 fn psd_alpha_identifiers_number_the_channels_as_photoshop_does() {
-    use localpaint_color::Color;
-    let size = localpaint_geom::Size::new(4, 1);
+    use localraster_color::Color;
+    let size = localraster_geom::Size::new(4, 1);
     for mode in [ColorMode::Rgb, ColorMode::Cmyk, ColorMode::Grayscale, ColorMode::Lab] {
         let mut doc = Document::with_background("bg", size, mode, SampleType::U8, Color::rgb(1.0, 1.0, 1.0));
         assert_eq!(alpha_ids(&document_to_psd(&doc)), None, "{mode:?} without channels");
@@ -115,7 +115,7 @@ fn psd_alpha_identifiers_number_the_channels_as_photoshop_does() {
         let file = document_to_psd(&doc);
         assert!(!file.merged_has_alpha(), "{mode:?}");
         assert_eq!(alpha_ids(&file), Some(vec![3, 4]), "{mode:?}");
-        doc.quick_mask = Some(localpaint_doc::AlphaChannel::new("Quick Mask", Surface::new(PixelFormat::GRAY8)));
+        doc.quick_mask = Some(localraster_doc::AlphaChannel::new("Quick Mask", Surface::new(PixelFormat::GRAY8)));
         assert_eq!(alpha_ids(&document_to_psd(&doc)), Some(vec![3, 4, 5]), "{mode:?} with a Quick Mask");
     }
     // The empty layer leaves the composite transparent.
@@ -177,9 +177,9 @@ fn layer_block_follows_a_kept_merged_transparency_marker() {
         (SampleType::F32, *b"Lr32", *b"Mtrn"),
         (SampleType::F32, *b"Lr32", *b"MTrn"),
     ] {
-        let mut doc = Document::new("t", localpaint_geom::Size::new(8, 6), ColorMode::Rgb, depth);
+        let mut doc = Document::new("t", localraster_geom::Size::new(8, 6), ColorMode::Rgb, depth);
         let mut s = Surface::new(doc.pixel_format());
-        s.fill_rect(localpaint_geom::Rect::new(1, 1, 5, 4), &[0.5, 0.2, 0.9, 1.0]);
+        s.fill_rect(localraster_geom::Rect::new(1, 1, 5, 4), &[0.5, 0.2, 0.9, 1.0]);
         doc.layers.push(Layer::new("Layer 1", LayerContent::Raster(s)));
         doc.metadata.psd_global_blocks = vec![(*b"8BIM", *b"Patt", std::sync::Arc::new(Vec::new())), (*b"8BIM", marker, std::sync::Arc::new(Vec::new()))];
         let saved = PsdFile::from_bytes(&document_to_psd(&doc).to_bytes().unwrap()).unwrap();
@@ -189,7 +189,7 @@ fn layer_block_follows_a_kept_merged_transparency_marker() {
         assert!(at < index, "{depth:?}: {marker:?} at {at}, the layer block at {index}");
     }
     // Without a marker the layer block stays first.
-    let mut doc = Document::new("t", localpaint_geom::Size::new(8, 6), ColorMode::Rgb, SampleType::F32);
+    let mut doc = Document::new("t", localraster_geom::Size::new(8, 6), ColorMode::Rgb, SampleType::F32);
     doc.layers.push(Layer::new("Layer 1", LayerContent::Raster(Surface::new(doc.pixel_format()))));
     doc.metadata.psd_global_blocks = vec![(*b"8BIM", *b"Patt", std::sync::Arc::new(Vec::new()))];
     let saved = PsdFile::from_bytes(&document_to_psd(&doc).to_bytes().unwrap()).unwrap();
@@ -200,13 +200,13 @@ fn layer_block_follows_a_kept_merged_transparency_marker() {
 /// drops it too); with a type layer the block is still written.
 #[test]
 fn a_kept_txt2_goes_with_the_last_type_layer() {
-    let mut doc = Document::new("t", localpaint_geom::Size::new(8, 6), ColorMode::Rgb, SampleType::U8);
+    let mut doc = Document::new("t", localraster_geom::Size::new(8, 6), ColorMode::Rgb, SampleType::U8);
     doc.layers.push(Layer::new("Layer 1", LayerContent::Raster(Surface::new(doc.pixel_format()))));
     doc.metadata.psd_global_blocks = vec![(*b"8BIM", *b"Txt2", std::sync::Arc::new(b"<< /0 << /1 (stale) >> >>".to_vec()))];
     let file = document_to_psd(&doc);
     assert!(!file.global_blocks.iter().any(|b| b.key == *b"Txt2"), "no type layers: no Txt2");
 
-    doc.layers.push(Layer::new("T", LayerContent::Text(localpaint_doc::TextLayer::default())));
+    doc.layers.push(Layer::new("T", LayerContent::Text(localraster_doc::TextLayer::default())));
     let file = document_to_psd(&doc);
     assert!(file.global_blocks.iter().any(|b| b.key == *b"Txt2"), "a type layer keeps its Txt2");
 }
@@ -218,11 +218,11 @@ fn a_kept_txt2_goes_with_the_last_type_layer() {
 fn an_opaque_save_drops_a_kept_merged_transparency_marker() {
     for (depth, marker) in [(SampleType::U8, *b"MTrn"), (SampleType::U8, *b"Mtrn"), (SampleType::U16, *b"Mt16"), (SampleType::F32, *b"Mt32")] {
         let case = format!("{depth:?} {}", String::from_utf8_lossy(&marker));
-        let mut doc = Document::new("t", localpaint_geom::Size::new(8, 6), ColorMode::Rgb, depth);
+        let mut doc = Document::new("t", localraster_geom::Size::new(8, 6), ColorMode::Rgb, depth);
         let mut s = Surface::new(doc.pixel_format());
-        s.fill_rect(localpaint_geom::Rect::new(0, 0, 8, 6), &[0.5, 0.2, 0.9, 1.0]);
+        s.fill_rect(localraster_geom::Rect::new(0, 0, 8, 6), &[0.5, 0.2, 0.9, 1.0]);
         doc.layers.push(Layer::new("Layer 1", LayerContent::Raster(s)));
-        doc.channels.push(localpaint_doc::AlphaChannel::new("Alpha 1", Surface::new(PixelFormat::GRAY8)));
+        doc.channels.push(localraster_doc::AlphaChannel::new("Alpha 1", Surface::new(PixelFormat::GRAY8)));
         doc.metadata.psd_global_blocks = vec![(*b"8BIM", marker, std::sync::Arc::new(Vec::new()))];
         let file = document_to_psd(&doc);
         assert!(!file.global_blocks.iter().any(TaggedBlock::is_merged_transparency_marker), "{case}");
@@ -236,7 +236,7 @@ fn an_opaque_save_drops_a_kept_merged_transparency_marker() {
 #[test]
 fn unreadable_lr16_warns_on_import_and_is_not_saved_twice() {
     // #2700: a 16-bit file whose Lr16 block claims five layers but holds none.
-    let mut file = localpaint_psd::testgen::merged_only(Version::Psd, PsdMode::Rgb, 16, Compression::Raw, 8, 6);
+    let mut file = localraster_psd::testgen::merged_only(Version::Psd, PsdMode::Rgb, 16, Compression::Raw, 8, 6);
     file.global_layer_mask = Some(GlobalLayerMask::default());
     file.global_blocks.push(TaggedBlock::new(*b"Lr16", vec![0, 5, 0, 0]));
     let imported = crate::import("broken.psd", &file.to_bytes().unwrap()).unwrap();
@@ -252,9 +252,9 @@ fn unreadable_lr16_warns_on_import_and_is_not_saved_twice() {
 #[test]
 fn photo_filter_psd_is_four_byte_aligned_and_round_trips() {
     let color = [60000u16, 30000, 0].map(|x| x as f32 / 65535.0);
-    let adjustment = localpaint_doc::Adjustment::PhotoFilter { color, density: 0.14, preserve_luminosity: true };
+    let adjustment = localraster_doc::Adjustment::PhotoFilter { color, density: 0.14, preserve_luminosity: true };
     let mut doc =
-        Document::with_background("Photo Filter PSD", localpaint_geom::Size::new(32, 24), ColorMode::Rgb, SampleType::U8, localpaint_doc::Color::WHITE);
+        Document::with_background("Photo Filter PSD", localraster_geom::Size::new(32, 24), ColorMode::Rgb, SampleType::U8, localraster_doc::Color::WHITE);
     let mut layer = Layer::new("Warming Filter", LayerContent::Adjustment(adjustment.clone()));
     doc.layers.push(layer.clone());
 
@@ -292,8 +292,9 @@ fn photo_filter_version_3_is_kept_until_edited() {
     // The #3777 block (Photoshop CS2, XYZ colour): saved back byte-exact while unchanged.
     let v3 = vec![0, 3, 0, 0, 0x5e, 0x7f, 0, 0, 0x61, 0xaa, 0, 0, 0x0e, 0xf3, 0, 0, 0, 0x3f, 1, 0];
     let adjustment = crate::adjust_map::parse(b"phfl", &v3, None, crate::adjust_map::Channels::Rgb);
-    let localpaint_doc::Adjustment::PhotoFilter { color, .. } = adjustment else { panic!("{adjustment:?}") };
-    let mut doc = Document::with_background("Photo Filter v3", localpaint_geom::Size::new(8, 8), ColorMode::Rgb, SampleType::U8, localpaint_doc::Color::WHITE);
+    let localraster_doc::Adjustment::PhotoFilter { color, .. } = adjustment else { panic!("{adjustment:?}") };
+    let mut doc =
+        Document::with_background("Photo Filter v3", localraster_geom::Size::new(8, 8), ColorMode::Rgb, SampleType::U8, localraster_doc::Color::WHITE);
     let mut layer = Layer::new("Photo Filter 1", LayerContent::Adjustment(adjustment.clone()));
     layer.psd_blocks = vec![(*b"phfl", std::sync::Arc::new(v3.clone()))];
     doc.layers.push(layer);
@@ -304,14 +305,14 @@ fn photo_filter_version_3_is_kept_until_edited() {
     };
     assert_eq!(phfl(&doc), v3);
     // Once edited it is written as version 2 (RGB), and the colour survives.
-    let edited = localpaint_doc::Adjustment::PhotoFilter { color, density: 0.5, preserve_luminosity: true };
+    let edited = localraster_doc::Adjustment::PhotoFilter { color, density: 0.5, preserve_luminosity: true };
     if let Some(l) = doc.layers.last_mut() {
         l.content = LayerContent::Adjustment(edited.clone());
     }
     let saved = phfl(&doc);
     assert_eq!(&saved[..2], &[0, 2]);
     let reread = crate::adjust_map::parse(b"phfl", &saved, None, crate::adjust_map::Channels::Rgb);
-    let localpaint_doc::Adjustment::PhotoFilter { color: back, density, .. } = reread else { panic!("{reread:?}") };
+    let localraster_doc::Adjustment::PhotoFilter { color: back, density, .. } = reread else { panic!("{reread:?}") };
     assert!(back.iter().zip(color).all(|(b, c)| (b - c).abs() <= 1.0 / 65535.0), "{back:?} vs {color:?}");
     assert_eq!(density, 0.5);
 }
@@ -320,7 +321,7 @@ fn photo_filter_version_3_is_kept_until_edited() {
 fn light_adjustment_is_kept_verbatim_and_warned() {
     // #6542: Photoshop 2026's Light layer is a `brit` block whose `CgEd` descriptor carries
     // more than Brightness/Contrast. Synthetic block: the extra key names are placeholders.
-    use localpaint_psd::descriptor::{Descriptor, Value, VersionedDescriptor};
+    use localraster_psd::descriptor::{Descriptor, Value, VersionedDescriptor};
     let brit = vec![0, 0, 0xff, 0xfe, 0, 127, 0, 0];
     let d = Descriptor::new("null")
         .with("Vrsn", Value::Integer(1))
@@ -331,8 +332,8 @@ fn light_adjustment_is_kept_verbatim_and_warned() {
         .with("useLegacy", Value::Boolean(false));
     let cged = VersionedDescriptor::new(d).to_bytes();
     let adjustment = crate::adjust_map::parse(b"brit", &brit, Some(&cged), crate::adjust_map::Channels::Rgb);
-    assert_eq!(adjustment, localpaint_doc::Adjustment::Unsupported { psd_key: "brit".into(), raw: brit.clone().into() });
-    let mut doc = Document::with_background("Light", localpaint_geom::Size::new(8, 8), ColorMode::Rgb, SampleType::U8, localpaint_doc::Color::WHITE);
+    assert_eq!(adjustment, localraster_doc::Adjustment::Unsupported { psd_key: "brit".into(), raw: brit.clone().into() });
+    let mut doc = Document::with_background("Light", localraster_geom::Size::new(8, 8), ColorMode::Rgb, SampleType::U8, localraster_doc::Color::WHITE);
     let mut layer = Layer::new("Light 1", LayerContent::Adjustment(adjustment));
     layer.psd_blocks = vec![(*b"brit", std::sync::Arc::new(brit.clone())), (*b"CgEd", std::sync::Arc::new(cged.clone()))];
     doc.layers.push(layer);
@@ -348,7 +349,7 @@ fn light_adjustment_is_kept_verbatim_and_warned() {
     assert_eq!(block(&again, b"brit").as_deref(), Some(&brit[..]));
     assert_eq!(block(&again, b"CgEd").as_deref(), Some(&cged[..]));
     // A plain Brightness/Contrast descriptor still reads as Brightness/Contrast.
-    let plain = crate::adjust_map::write(&localpaint_doc::Adjustment::BrightnessContrast { brightness: 5.0, contrast: -2.0, legacy: false });
+    let plain = crate::adjust_map::write(&localraster_doc::Adjustment::BrightnessContrast { brightness: 5.0, contrast: -2.0, legacy: false });
     assert!(!crate::adjust_map::is_extended_brit(Some(&plain[1].1)));
 }
 
@@ -356,9 +357,9 @@ fn light_adjustment_is_kept_verbatim_and_warned() {
 /// (RLE can't pack it). Its raw planes (layer RGBA + merged RGB) are 7 MiB either way.
 fn sized_document(noise: bool, depth: SampleType) -> Document {
     const SIDE: u32 = 1024;
-    let mut doc = Document::new("size limit", localpaint_geom::Size::new(SIDE, SIDE), ColorMode::Rgb, depth);
+    let mut doc = Document::new("size limit", localraster_geom::Size::new(SIDE, SIDE), ColorMode::Rgb, depth);
     let mut layer = Layer::raster("Layer 1", doc.pixel_format());
-    let rect = localpaint_geom::Rect::new(0, 0, SIDE as i32, SIDE as i32);
+    let rect = localraster_geom::Rect::new(0, 0, SIDE as i32, SIDE as i32);
     let surface = layer.surface_mut().unwrap();
     if noise {
         let mut state = 0x2545_f491_u32;
@@ -446,7 +447,7 @@ fn the_size_limit_is_the_exact_encoded_length() {
 fn a_multichannel_file_over_the_limit_is_psb() {
     let mut doc = document(64, 64);
     doc.mode = ColorMode::Multichannel;
-    doc.channels.push(localpaint_doc::AlphaChannel::new("Cyan", localpaint_raster::Surface::new(PixelFormat::GRAY8)));
+    doc.channels.push(localraster_doc::AlphaChannel::new("Cyan", localraster_raster::Surface::new(PixelFormat::GRAY8)));
     let (file, _) = export_sized(&doc, u64::MAX);
     assert_eq!(file.written_version(), Version::Psd);
     let len = file.to_bytes().unwrap().len() as u64;
@@ -464,17 +465,17 @@ fn a_multichannel_file_over_the_limit_is_psb() {
 /// stays a PSD with `8BIM` throughout.
 #[test]
 fn every_mode_promoted_by_size_signs_long_blocks_8b64() {
-    let white = localpaint_color::Color::rgba(1.0, 1.0, 1.0, 1.0);
+    let white = localraster_color::Color::rgba(1.0, 1.0, 1.0, 1.0);
     let mut docs = Vec::new();
     for (mode, psd_mode) in [(ColorMode::Indexed, PsdMode::Indexed), (ColorMode::Bitmap, PsdMode::Bitmap), (ColorMode::Rgb, PsdMode::Rgb)] {
-        let mut doc = Document::with_background("modes", localpaint_geom::Size::new(64, 64), ColorMode::Rgb, SampleType::U8, white);
+        let mut doc = Document::with_background("modes", localraster_geom::Size::new(64, 64), ColorMode::Rgb, SampleType::U8, white);
         doc.mode = mode;
-        doc.color_table = Some(localpaint_doc::ColorTable { colors: vec![[255, 255, 255], [0, 0, 0]], transparent: None });
+        doc.color_table = Some(localraster_doc::ColorTable { colors: vec![[255, 255, 255], [0, 0, 0]], transparent: None });
         docs.push((doc, psd_mode));
     }
     let mut multichannel = document(64, 64);
     multichannel.mode = ColorMode::Multichannel;
-    multichannel.channels.push(localpaint_doc::AlphaChannel::new("Cyan", localpaint_raster::Surface::new(PixelFormat::GRAY8)));
+    multichannel.channels.push(localraster_doc::AlphaChannel::new("Cyan", localraster_raster::Surface::new(PixelFormat::GRAY8)));
     docs.push((multichannel, PsdMode::Multichannel));
     for (mut doc, psd_mode) in docs {
         doc.metadata.psd_global_blocks = vec![
@@ -564,7 +565,7 @@ fn alpha_names_count_the_merged_transparency() {
     let mut layer = Layer::raster("Layer 1", doc.pixel_format());
     layer.surface_mut().unwrap().write_pixel(1, 1, &[1.0, 0.0, 0.0, 1.0]);
     doc.layers.push(layer);
-    let mut a = localpaint_doc::AlphaChannel::new("Alpha 1", localpaint_raster::Surface::new(PixelFormat::GRAY8));
+    let mut a = localraster_doc::AlphaChannel::new("Alpha 1", localraster_raster::Surface::new(PixelFormat::GRAY8));
     a.opacity = 0.5;
     doc.channels.push(a);
     let file = document_to_psd(&doc);
@@ -592,16 +593,16 @@ fn alpha_names_count_the_merged_transparency() {
 #[cfg(unix)]
 #[test]
 fn a_linked_fifo_is_not_read() {
-    let dir = std::env::temp_dir().join(format!("localpaint-linked-fifo-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("localraster-linked-fifo-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let fifo = dir.join("link.png");
     let _ = std::fs::remove_file(&fifo);
     assert!(std::process::Command::new("mkfifo").arg(&fifo).status().unwrap().success(), "mkfifo failed");
     let mut doc = document(8, 6);
-    let smart = localpaint_doc::SmartObject {
+    let smart = localraster_doc::SmartObject {
         contents_id: SmartContentsId::fresh(),
-        source: localpaint_doc::SmartSource::Linked { path: fifo.to_string_lossy().into_owned() },
-        transform: localpaint_geom::Affine::IDENTITY,
+        source: localraster_doc::SmartSource::Linked { path: fifo.to_string_lossy().into_owned() },
+        transform: localraster_geom::Affine::IDENTITY,
         smart_filters: vec![],
         cache: Some(Surface::new(doc.pixel_format())),
         psd_raw: None,

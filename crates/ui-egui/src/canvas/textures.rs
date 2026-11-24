@@ -3,7 +3,7 @@ use super::filter_preview::filter_channel_preview;
 use super::navigator::navigator_waits_for_drag;
 use super::strokes::live_stroke;
 use super::view_xform::ViewXform;
-use super::{CanvasCache, CpuTextures, DRect, DetailTexture, Document, InView, LayerContent, LocalPaintApp, TextureOptions, pos2};
+use super::{CanvasCache, CpuTextures, DRect, DetailTexture, Document, InView, LayerContent, LocalRasterApp, TextureOptions, pos2};
 
 /// Largest texture side we upload; bigger documents are uploaded downsampled, with the part in
 /// view added at the screen's resolution when zoomed in (`detail_plan`).
@@ -85,7 +85,7 @@ pub(super) fn canvas_texture_options(factor: u32) -> TextureOptions {
 
 /// Make sure the canvas texture for document `idx` on `display` is current; returns (texture
 /// id, scale).
-pub fn ensure_texture(app: &mut LocalPaintApp, ctx: &egui::Context, idx: usize, display: Option<u32>) -> Option<(egui::TextureId, f32)> {
+pub fn ensure_texture(app: &mut LocalRasterApp, ctx: &egui::Context, idx: usize, display: Option<u32>) -> Option<(egui::TextureId, f32)> {
     ensure_texture_in_view(app, ctx, idx, display, None).map(|t| (t.texture, t.scale))
 }
 
@@ -93,7 +93,7 @@ pub fn ensure_texture(app: &mut LocalPaintApp, ctx: &egui::Context, idx: usize, 
 /// previewed at proxy factor `k`: the document's bounds when it is the document's size (reduced by
 /// `k`), else its own size (times `k`) centred on the document's centre, as the GPU canvas centres
 /// a size-changing preview (Image › Rotation).
-pub(super) fn preview_bounds(doc: localpaint_geom::Size, preview: localpaint_geom::Size, k: u32) -> DRect {
+pub(super) fn preview_bounds(doc: localraster_geom::Size, preview: localraster_geom::Size, k: u32) -> DRect {
     let k = k.max(1);
     let full = DRect::from_size(doc);
     if doc.width.div_ceil(k) == preview.width && doc.height.div_ceil(k) == preview.height {
@@ -113,7 +113,7 @@ pub(super) fn preview_bounds(doc: localpaint_geom::Size, preview: localpaint_geo
 /// [`ensure_texture`], and for a canvas showing `view` of a document too large for one
 /// full-resolution texture, the detail texture of the part in view ([`detail_plan`], #7568).
 pub(crate) fn ensure_texture_in_view(
-    app: &mut LocalPaintApp,
+    app: &mut LocalRasterApp,
     ctx: &egui::Context,
     idx: usize,
     display: Option<u32>,
@@ -184,7 +184,7 @@ pub(crate) fn ensure_texture_in_view(
         if let (Some(d), Some(t)) = (damage, current) {
             // Only what the edit or stroke touched: the reduced texture's pixels over it, with the
             // values the whole reduction gives them (factor 1 is the plain composite of `d`).
-            let buf = localpaint_compose::render_reduced_damage(&doc, w, h, d);
+            let buf = localraster_compose::render_reduced_damage(&doc, w, h, d);
             let r = buf.rect;
             if !r.is_empty() {
                 let t1 = crate::gpu_canvas::now_ms();
@@ -198,7 +198,7 @@ pub(crate) fn ensure_texture_in_view(
             }
         } else {
             // Reduced in bands straight from the compositor: no full-size composite in memory.
-            let full = localpaint_compose::render_reduced(&doc, w, h);
+            let full = localraster_compose::render_reduced(&doc, w, h);
             let t1 = crate::gpu_canvas::now_ms();
             let (img, scale) = (display_image(display.as_deref(), &full), 1.0 / factor as f32);
             cache.texture_opaque = img.pixels.iter().all(|p| p.is_opaque());
@@ -251,7 +251,7 @@ const MAX_DETAIL_VIEWS: usize = 4;
 fn update_detail(
     ctx: &egui::Context,
     doc: &Document,
-    display: Option<&localpaint_engine::display_color::CanvasDisplay>,
+    display: Option<&localraster_engine::display_color::CanvasDisplay>,
     name: String,
     plan: DetailPlan,
     old: Option<DetailTexture>,
@@ -271,7 +271,7 @@ fn update_detail(
         // An edit or a stroke step in view: only the texels it touched.
         if let Some(dmg) = damage {
             let dmg = dmg.intersect(&plan.region);
-            let buf = (!dmg.is_empty()).then(|| localpaint_compose::render_reduced_damage(doc, w, h, dmg));
+            let buf = (!dmg.is_empty()).then(|| localraster_compose::render_reduced_damage(doc, w, h, dmg));
             let fits = buf.as_ref().is_none_or(|b| d.out.contains_rect(&b.rect));
             if fits {
                 if let Some(b) = buf.filter(|b| !b.rect.is_empty()) {
@@ -292,7 +292,7 @@ fn update_detail(
 fn render_detail(
     ctx: &egui::Context,
     doc: &Document,
-    display: Option<&localpaint_engine::display_color::CanvasDisplay>,
+    display: Option<&localraster_engine::display_color::CanvasDisplay>,
     name: String,
     plan: DetailPlan,
     texture: Option<egui::TextureHandle>,
@@ -300,7 +300,7 @@ fn render_detail(
 ) -> Option<DetailTexture> {
     let (w, h) = ((doc.size.width / plan.factor).max(1), (doc.size.height / plan.factor).max(1));
     let options = canvas_texture_options(plan.factor);
-    let buf = localpaint_compose::render_reduced_damage(doc, w, h, plan.region);
+    let buf = localraster_compose::render_reduced_damage(doc, w, h, plan.region);
     let out = buf.rect;
     if out.is_empty() {
         return None;
@@ -319,7 +319,7 @@ fn render_detail(
 /// What changed since a canvas cache showed (`revision`, `preview key`) `seen`, when only a
 /// rectangle did: the last edit's damage, or the live stroke's dabs since then. Cached keys have
 /// the colour display's key folded in (`^ display_key`); `now`'s is still raw.
-pub(crate) fn damage_since(app: &LocalPaintApp, idx: usize, seen: (u64, u64), now: (u64, u64), display_key: u64, last_damage: Option<DRect>) -> Option<DRect> {
+pub(crate) fn damage_since(app: &LocalRasterApp, idx: usize, seen: (u64, u64), now: (u64, u64), display_key: u64, last_damage: Option<DRect>) -> Option<DRect> {
     // A brush stroke committed with the pixels its live preview already showed: only the steps
     // this cache hadn't shown yet (usually nothing), not the stroke's whole bounding box.
     if seen.0 + 1 == now.0
@@ -411,7 +411,7 @@ pub(crate) fn damage_since(app: &LocalPaintApp, idx: usize, seen: (u64, u64), no
 /// Document `doc`'s canvas caches showed a preview that the edit just committed reproduces
 /// (`was_preview` tells its keys): count it as the document itself, so the commit's damage rect
 /// refreshes only that area instead of everything.
-pub(crate) fn shown_as_document(app: &mut LocalPaintApp, doc: localpaint_doc::DocId, was_preview: impl Fn(u64) -> bool) {
+pub(crate) fn shown_as_document(app: &mut LocalRasterApp, doc: localraster_doc::DocId, was_preview: impl Fn(u64) -> bool) {
     let Some(d) = app.session.documents().iter().find(|st| st.doc.id == doc).map(|st| st.doc.clone()) else { return };
     if let Some(c) = app.channel_views.get_mut(&doc.0)
         && was_preview(c.preview_key)
@@ -436,12 +436,12 @@ pub(crate) fn shown_as_document(app: &mut LocalPaintApp, doc: localpaint_doc::Do
 
 /// How far beyond an edit's damage rect the composite can change: layer effects (shadows, glows,
 /// strokes, …) on the edited layer and on the groups around it reach that far.
-pub(crate) fn effect_reach(layers: &[localpaint_doc::Layer]) -> i32 {
+pub(crate) fn effect_reach(layers: &[localraster_doc::Layer]) -> i32 {
     layers
         .iter()
         .filter(|l| l.visible)
         .map(|l| {
-            let own = if localpaint_compose::effects::has_effects(l) { localpaint_compose::effects::margin(l) } else { 0 };
+            let own = if localraster_compose::effects::has_effects(l) { localraster_compose::effects::margin(l) } else { 0 };
             let inner = match &l.content {
                 LayerContent::Group(g) => effect_reach(&g.children),
                 _ => 0,
@@ -455,7 +455,7 @@ pub(crate) fn effect_reach(layers: &[localpaint_doc::Layer]) -> i32 {
 /// GPU path: make sure document `idx` is current in the GPU canvas. Edits draw their damage;
 /// unchanged lower-stack composites can be reused by the compositor inside that region.
 /// Returns false if there is no GPU canvas.
-pub(super) fn ensure_gpu(app: &mut LocalPaintApp, ctx: &egui::Context, idx: usize, visible: DRect) -> bool {
+pub(super) fn ensure_gpu(app: &mut LocalRasterApp, ctx: &egui::Context, idx: usize, visible: DRect) -> bool {
     let Some(gpu) = app.gpu.clone() else { return false };
     let Some((revision, last_damage, id)) = app
         .session
@@ -611,7 +611,7 @@ pub(super) fn ensure_gpu(app: &mut LocalPaintApp, ctx: &egui::Context, idx: usiz
 /// or Memory Usage, the document's pixels and History (charged where the GPU shares the system's
 /// memory), physical memory and the GPU's own: on full refreshes (pixels counted once per
 /// structural change, not per brush dab) and whenever either preference changes.
-fn gpu_budget(app: &mut LocalPaintApp, gpu: &crate::gpu_canvas::GpuCanvas, idx: usize, partial: bool, visible: DRect) {
+fn gpu_budget(app: &mut LocalRasterApp, gpu: &crate::gpu_canvas::GpuCanvas, idx: usize, partial: bool, visible: DRect) {
     gpu.set_focus(Some(visible));
     let allowance = budget_allowance(app);
     let changed = app.perf.gpu_budget_allowance != allowance;
@@ -630,7 +630,7 @@ fn gpu_budget(app: &mut LocalPaintApp, gpu: &crate::gpu_canvas::GpuCanvas, idx: 
 }
 
 /// Memory Usage and GPU Memory (Preferences › Performance), in bytes.
-fn budget_allowance(app: &LocalPaintApp) -> (u64, u64) {
+fn budget_allowance(app: &LocalRasterApp) -> (u64, u64) {
     let performance = &app.session.prefs().performance;
     (u64::from(performance.effective_memory_usage_mb()).saturating_mul(1 << 20), u64::from(performance.gpu_memory_mb).saturating_mul(1 << 20))
 }
@@ -662,16 +662,16 @@ pub(super) fn redraw_focus(target: &ViewXform, displayed: &ViewXform) -> DRect {
 
 /// A CPU composite as the GPU canvas texture stores it (sRGB-encoded for linear documents).
 pub(super) fn texture_buffer<'a>(
-    display: Option<&localpaint_engine::display_color::CanvasDisplay>,
-    buf: &'a localpaint_compose::Buffer,
-) -> std::borrow::Cow<'a, localpaint_compose::Buffer> {
+    display: Option<&localraster_engine::display_color::CanvasDisplay>,
+    buf: &'a localraster_compose::Buffer,
+) -> std::borrow::Cow<'a, localraster_compose::Buffer> {
     match display {
         Some(d) => d.texture_buffer(buf),
         None => std::borrow::Cow::Borrowed(buf),
     }
 }
 
-pub(crate) fn retain_gpu_documents(app: &mut LocalPaintApp) {
+pub(crate) fn retain_gpu_documents(app: &mut LocalRasterApp) {
     // Remove a closed adjustment owner's proxy before collecting its live GPU keys.
     crate::adjust_preview::retain_documents(app);
     if let Some(gpu) = &app.gpu {

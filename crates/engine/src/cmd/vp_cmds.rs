@@ -1,12 +1,12 @@
 //! Filter › Vanishing Point: perspective planes (drawn, or torn off an edge of another plane),
 //! pasting an image onto a plane and the perspective clone stamp, as one replayable command
-//! ([`localpaint_algo::vanishing`]). The edit lands on the active pixel layer, or on a new layer
+//! ([`localraster_algo::vanishing`]). The edit lands on the active pixel layer, or on a new layer
 //! with `"newLayer": true` (Photoshop's advice for non-destructive Vanishing Point work).
 
-use localpaint_algo::vanishing::{Edge, PlaneCheck, Scene, VpPlane, clone_dabs, paste};
-use localpaint_doc::{Document, Layer, LayerContent, LayerId};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_algo::vanishing::{Edge, PlaneCheck, Scene, VpPlane, clone_dabs, paste};
+use localraster_doc::{Document, Layer, LayerContent, LayerId};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;

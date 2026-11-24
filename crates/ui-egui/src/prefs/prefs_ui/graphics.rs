@@ -1,9 +1,9 @@
 use super::fields::choice_label;
-use super::{LocalPaintApp, Map, RichText, Tokens, Value, json, prefs};
+use super::{LocalRasterApp, Map, RichText, Tokens, Value, json, prefs};
 
 /// Performance › Graphics: the compositor's GPU memory budget and whether the active document's
 /// layers fit it (the GPU Memory preference sets it).
-pub(super) fn gpu_memory_lines(app: &LocalPaintApp) -> Vec<String> {
+pub(super) fn gpu_memory_lines(app: &LocalRasterApp) -> Vec<String> {
     let mut v = Vec::new();
     if app.perf.gpu_budget_mb > 0 {
         let budget = crate::chrome_ui::fmt_bytes(app.perf.gpu_budget_mb.saturating_mul(1 << 20));

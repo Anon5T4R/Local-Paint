@@ -1,6 +1,6 @@
 use super::*;
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_raster::Surface;
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_raster::Surface;
 
 fn assert_samples_equal(actual: &[f32], expected: &[f32], case: &str) {
     assert_eq!(actual.len(), expected.len(), "{case}");

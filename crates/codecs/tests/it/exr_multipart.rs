@@ -7,8 +7,8 @@ use exr::prelude::{
     AnyChannel, AnyChannels, Blocks, Compression, Encoding, FlatSamples, Image, ImageAttributes, IntegerBounds, Layer, LayerAttributes, LineOrder,
     WritableImage,
 };
-use localpaint_codecs::f16;
-use localpaint_codecs::{
+use localraster_codecs::f16;
+use localraster_codecs::{
     ChannelLayout, DecodeOptions, DecodeWarning, Format, Limits, SampleType, decode, decode_as_with, decode_exr_part, exr_info, probe_size,
 };
 

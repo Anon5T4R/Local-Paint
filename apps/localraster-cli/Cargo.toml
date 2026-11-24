@@ -1,0 +1,50 @@
+[package]
+name = "localraster-cli"
+description = "Headless Local Raster: convert, inspect, run commands, batch, MCP server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+build = "build.rs"
+
+[features]
+# Open HEIC/HEIF photos (the optional localraster-heif crate). Not default so distributors choose
+# it; official builds (CI, packaging/, release) build with `--features heif`.
+heif = ["localraster-codecs/heif"]
+
+[lints]
+workspace = true
+
+[lib]
+name = "localraster_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "localraster-cli"
+path = "src/main.rs"
+
+[dependencies]
+localraster-automation = { path = "../../crates/automation" }
+localraster-engine = { workspace = true }
+localraster-io = { workspace = true }
+localraster-format = { path = "../../crates/format" }
+localraster-codecs = { workspace = true }
+# The suite's MCP plumbing: `--connect` normalization (bare port = loopback; public host refused).
+craft-mcp = { workspace = true }
+clap = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+
+[dev-dependencies]
+# Synthetic camera raws (#7789).
+localraster-raw = { workspace = true, features = ["testgen"] }
+# Shell completions and man pages (examples/man-and-completions.rs, for the packages); not in
+# the binary.
+clap_complete = { workspace = true }
+clap_mangen = { workspace = true }
+
+[build-dependencies]
+# Icon + VERSIONINFO for localraster-cli.exe; build.rs only uses it when targeting Windows.
+winresource = "0.1"
+

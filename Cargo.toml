@@ -2,7 +2,7 @@
 resolver = "3"
 members = ["crates/*", "apps/*", "xtask"]
 exclude = ["libs"]
-default-members = ["crates/*", "apps/localpaint", "apps/localpaint-cli", "xtask"]
+default-members = ["crates/*", "apps/localraster", "apps/localraster-cli", "xtask"]
 
 [workspace.package]
 version = "0.20.26"
@@ -12,36 +12,36 @@ rust-version = "1.95"
 # Nada da suíte vai ao crates.io: dependência `path` sem versão numa crate publicável reprova o
 # `cargo-deny` (wildcards). Cada membro herda com `publish.workspace = true`.
 publish = false
-repository = "https://github.com/Anon5T4R/Local-Paint"
+repository = "https://github.com/Anon5T4R/Local-Raster"
 
 [workspace.dependencies]
 craft-ui = { path = "libs/craft-libs/crates/ui/", features = ["serde"] }
 # internal
-localpaint-geom = { path = "crates/geom" }
-localpaint-color = { path = "crates/color" }
-localpaint-cms = { path = "crates/cms" }
-localpaint-raster = { path = "crates/raster" }
-localpaint-doc = { path = "crates/doc" }
-localpaint-ops = { path = "crates/ops" }
-localpaint-psd = { path = "crates/psd" }
-localpaint-codecs = { path = "crates/codecs" }
-localpaint-raw = { path = "crates/raw" }
-localpaint-affinity = { path = "crates/affinity" }
-localpaint-compose = { path = "crates/compose" }
-localpaint-gpu = { path = "crates/gpu" }
-localpaint-paint = { path = "crates/paint" }
-localpaint-algo = { path = "crates/algo" }
-localpaint-io = { path = "crates/io" }
-localpaint-text = { path = "crates/text" }
-localpaint-vector = { path = "crates/vector" }
-localpaint-format = { path = "crates/format" }
-localpaint-automation = { path = "crates/automation" }
-localpaint-plugins = { path = "crates/plugins" }
-localpaint-engine = { path = "crates/engine" }
-localpaint-ui-egui = { path = "crates/ui-egui" }
-localpaint-testkit = { path = "crates/testkit" }
-localpaint-tablet = { path = "crates/tablet" }
-localpaint-ipp = { path = "crates/ipp" }
+localraster-geom = { path = "crates/geom" }
+localraster-color = { path = "crates/color" }
+localraster-cms = { path = "crates/cms" }
+localraster-raster = { path = "crates/raster" }
+localraster-doc = { path = "crates/doc" }
+localraster-ops = { path = "crates/ops" }
+localraster-psd = { path = "crates/psd" }
+localraster-codecs = { path = "crates/codecs" }
+localraster-raw = { path = "crates/raw" }
+localraster-affinity = { path = "crates/affinity" }
+localraster-compose = { path = "crates/compose" }
+localraster-gpu = { path = "crates/gpu" }
+localraster-paint = { path = "crates/paint" }
+localraster-algo = { path = "crates/algo" }
+localraster-io = { path = "crates/io" }
+localraster-text = { path = "crates/text" }
+localraster-vector = { path = "crates/vector" }
+localraster-format = { path = "crates/format" }
+localraster-automation = { path = "crates/automation" }
+localraster-plugins = { path = "crates/plugins" }
+localraster-engine = { path = "crates/engine" }
+localraster-ui-egui = { path = "crates/ui-egui" }
+localraster-testkit = { path = "crates/testkit" }
+localraster-tablet = { path = "crates/tablet" }
+localraster-ipp = { path = "crates/ipp" }
 
 # external
 craft-print = { path = "libs/craft-libs/crates/print/" }
@@ -122,7 +122,7 @@ debug = "line-tables-only"
 # tests run no heavier pixel code of their own (that lives in the crates that stay optimized).
 # Measured on CI: Windows build 18.9 -> 15.4 min, test run 10.0 -> 10.5. `cargo run` and
 # `cargo build` use the dev profile and are unaffected.
-[profile.test.package.localpaint-ui-egui]
+[profile.test.package.localraster-ui-egui]
 opt-level = 0
 
 [profile.release]
@@ -147,7 +147,7 @@ eframe = { path = "libs/egui/crates/eframe/" }
 egui_demo_lib = { path = "libs/egui/crates/egui_demo_lib/" }
 egui_inspection = { path = "libs/egui/crates/egui_inspection/" }
 winit = { path = "libs/winit/" }
-# // local-paint: fork do rustls-rustcrypto (experimento TLS puro do updater).
+# // local-raster: fork do rustls-rustcrypto (experimento TLS puro do updater).
 # O upstream 0.0.2-alpha puxa rustls-webpki 0.102 só pelas constantes `alg_id`;
 # o fork usa `rustls-pki-types` e some com os advisories (README no próprio fork).
 rustls-rustcrypto = { path = "libs/rustls-rustcrypto" }

@@ -1,17 +1,17 @@
 //! #3820: edit custom paper through the real Print dialog, preview it, and print safely to PDF.
 use egui::{Event, Key, Modifiers, PointerButton, vec2};
 use egui_kittest::{Harness, kittest::Queryable};
-use localpaint_ui_egui::{LocalPaintApp, file_ui::open_print};
+use localraster_ui_egui::{LocalRasterApp, file_ui::open_print};
 use serde_json::{Map, Value, json};
 
-fn app() -> (LocalPaintApp, u64) {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), localpaint_ui_egui::Services::default());
+fn app() -> (LocalRasterApp, u64) {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), localraster_ui_egui::Services::default());
     // Print lists this printer and does not ask the spooler.
     app.session.printer_source = Some(std::sync::Arc::new(|| {
         vec![craft_print::Printer { name: "Test native printer".into(), default: true, two_sided: None, description: String::new() }]
     }));
     app.run("file.new", json!({"width": 120, "height": 80, "name": "Custom paper"})).unwrap();
-    let id = localpaint_engine::print_cmds::with_spooler(|| open_print(&mut app));
+    let id = localraster_engine::print_cmds::with_spooler(|| open_print(&mut app));
     assert_no_system_listing();
     let fields = &mut app.ui.dialog_mut(id).unwrap().fields;
     // Every UI path in these fixtures is safe even if an unexpected Enter confirms the dialog.
@@ -25,29 +25,29 @@ fn app() -> (LocalPaintApp, u64) {
 
 /// No test in this binary asks the system spooler for its printers.
 fn assert_no_system_listing() {
-    assert_eq!(localpaint_engine::print_cmds::system_printer_listings(), 0, "a test asked the system spooler for its printers");
+    assert_eq!(localraster_engine::print_cmds::system_printer_listings(), 0, "a test asked the system spooler for its printers");
 }
 
-fn show(ui: &mut egui::Ui, app: &mut LocalPaintApp) {
+fn show(ui: &mut egui::Ui, app: &mut LocalRasterApp) {
     if ui.ctx().fonts(|fonts| fonts.families().contains(&egui::FontFamily::Name("medium".into()))) {
-        localpaint_ui_egui::dialogs::show(app, ui.ctx());
+        localraster_ui_egui::dialogs::show(app, ui.ctx());
     }
 }
 
-fn harness(app: LocalPaintApp) -> Harness<'static, LocalPaintApp> {
+fn harness(app: LocalRasterApp) -> Harness<'static, LocalRasterApp> {
     harness_at_scale(app, 1.0)
 }
 
 /// Builds the real dialog at an explicit physical-pixels-per-egui-point ratio so pointer
 /// events remain in egui points while exercising both standard and Retina display scales.
-fn harness_at_scale(app: LocalPaintApp, pixels_per_point: f32) -> Harness<'static, LocalPaintApp> {
+fn harness_at_scale(app: LocalRasterApp, pixels_per_point: f32) -> Harness<'static, LocalRasterApp> {
     let mut h = Harness::builder().with_size(vec2(1000.0, 900.0)).with_pixels_per_point(pixels_per_point).with_max_steps(64).build_ui_state(show, app);
-    LocalPaintApp::setup_context(&h.ctx, Default::default());
+    LocalRasterApp::setup_context(&h.ctx, Default::default());
     h.run_steps(4);
     h
 }
 
-fn click(h: &mut Harness<'_, LocalPaintApp>, label: &str) {
+fn click(h: &mut Harness<'_, LocalRasterApp>, label: &str) {
     if let Some(node) = h.query_by_label(label) {
         node.click();
     } else {
@@ -56,12 +56,12 @@ fn click(h: &mut Harness<'_, LocalPaintApp>, label: &str) {
     h.run_steps(3);
 }
 
-fn shown(h: &Harness<'_, LocalPaintApp>, text: &str) -> bool {
+fn shown(h: &Harness<'_, LocalRasterApp>, text: &str) -> bool {
     // A form caption and its control both expose the same accessible name.
     h.query_all_by_label(text).next().is_some() || h.query_all_by_value(text).next().is_some()
 }
 
-fn enter_length(h: &mut Harness<'_, LocalPaintApp>, label: &str, value: &str) {
+fn enter_length(h: &mut Harness<'_, LocalRasterApp>, label: &str, value: &str) {
     // The caption is a separate Label node with the same text; use the accessible SpinButton.
     let pos = h.get_by_role_and_label(egui::accesskit::Role::SpinButton, label).rect().center();
     h.event(Event::PointerMoved(pos));
@@ -76,13 +76,13 @@ fn enter_length(h: &mut Harness<'_, LocalPaintApp>, label: &str, value: &str) {
     h.run_steps(3);
 }
 
-fn fields(h: &Harness<'_, LocalPaintApp>, id: u64) -> Map<String, Value> {
+fn fields(h: &Harness<'_, LocalRasterApp>, id: u64) -> Map<String, Value> {
     h.state().ui.dialogs.iter().find(|d| d.id == id).unwrap().fields.clone()
 }
 
 /// Finds the thumbnail's painted mesh bounds, rather than the earlier interaction bounds,
 /// so drag assertions detect visible lag in the same frame as a Center transition.
-fn painted_image(h: &Harness<'_, LocalPaintApp>) -> egui::Rect {
+fn painted_image(h: &Harness<'_, LocalRasterApp>) -> egui::Rect {
     let active = h.state().session.active().unwrap();
     let key = egui::Id::unique(("print-thumb", active.doc.id.0, active.revision));
     let tex = h.ctx.data(|d| d.get_temp::<std::sync::Arc<egui::TextureHandle>>(key)).unwrap();
@@ -108,7 +108,7 @@ fn preview_drag_and_negative_fields_work_at_standard_and_retina_scale() {
             .fields
             .extend(json!({"paper": "a4", "center": true, "scale": 100, "scaleToFit": false, "units": "cm"}).as_object().unwrap().clone());
         let mut h = harness_at_scale(app, pixels_per_point);
-        let start = localpaint_engine::print_cmds::layout(&h.state().session.active().unwrap().doc, &Value::Object(fields(&h, id)), "file.print").unwrap();
+        let start = localraster_engine::print_cmds::layout(&h.state().session.active().unwrap().doc, &Value::Object(fields(&h, id)), "file.print").unwrap();
         let start_image = painted_image(&h);
         let from = start_image.center();
         let delta = vec2(-24.0, 18.0);
@@ -156,7 +156,7 @@ fn preview_drag_and_negative_fields_work_at_standard_and_retina_scale() {
         h.event(Event::PointerButton { pos: from + vec2(12.0, 12.0), button: PointerButton::Primary, pressed: false, modifiers: Modifiers::NONE });
         h.run_steps(1);
         click(&mut h, "Center");
-        let centered = localpaint_engine::print_cmds::layout(&h.state().session.active().unwrap().doc, &Value::Object(fields(&h, id)), "file.print").unwrap();
+        let centered = localraster_engine::print_cmds::layout(&h.state().session.active().unwrap().doc, &Value::Object(fields(&h, id)), "file.print").unwrap();
         assert_eq!(fields(&h, id)["center"], true);
         assert!((centered.rect.0 - (centered.paper.0 - centered.rect.2) / 2.0).abs() < 1e-9);
         assert!((centered.rect.1 - (centered.paper.1 - centered.rect.3) / 2.0).abs() < 1e-9);
@@ -195,13 +195,13 @@ fn custom_paper_ui_edits_reach_preview_and_pdf_and_restore_when_reopened() {
     click(&mut h, "Millimeters");
     click(&mut h, "Inches");
     assert_eq!(fields(&h, id)["paper"], edited["paper"]);
-    let preview = localpaint_engine::print_cmds::layout(&h.state().session.active().unwrap().doc, &Value::Object(edited.clone()), "file.print").unwrap();
+    let preview = localraster_engine::print_cmds::layout(&h.state().session.active().unwrap().doc, &Value::Object(edited.clone()), "file.print").unwrap();
     assert_eq!(preview.paper, (522.0, 666.0));
     click(&mut h, "Portrait");
     click(&mut h, "Landscape");
     let edited = fields(&h, id);
     assert_eq!(edited["paper"], json!([522.0, 666.0]), "orientation must not rewrite the unrotated custom dimensions");
-    let preview = localpaint_engine::print_cmds::layout(&h.state().session.active().unwrap().doc, &Value::Object(edited), "file.print").unwrap();
+    let preview = localraster_engine::print_cmds::layout(&h.state().session.active().unwrap().doc, &Value::Object(edited), "file.print").unwrap();
     assert_eq!(preview.paper, (666.0, 522.0));
     click(&mut h, "Print");
     let pdf = std::fs::read(&output).unwrap();
@@ -238,7 +238,7 @@ fn invalid_custom_paper_is_rejected_without_printing_or_changing_the_document() 
     click(&mut h, "Custom");
     enter_length(&mut h, "Paper Width", "0");
     let edited = fields(&h, id);
-    assert!(localpaint_engine::print_cmds::layout(&h.state().session.active().unwrap().doc, &Value::Object(edited), "file.print").is_err());
+    assert!(localraster_engine::print_cmds::layout(&h.state().session.active().unwrap().doc, &Value::Object(edited), "file.print").is_err());
     click(&mut h, "Print");
     let error = &h.state().ui.status;
     assert!(error.contains("paper is too small"), "{error}");

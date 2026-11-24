@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Check the macOS release artifacts exactly as users download them:
 #
-#   $DIST/localpaint-<version>-macos-<arch>.dmg       signed, notarized, ticket stapled
-#   $DIST/localpaint-cli-<version>-macos-<arch>.zip   unpacked here; the binary inside must be
+#   $DIST/localraster-<version>-macos-<arch>.dmg       signed, notarized, ticket stapled
+#   $DIST/localraster-cli-<version>-macos-<arch>.zip   unpacked here; the binary inside must be
 #                                                    Developer ID signed with the hardened runtime,
 #                                                    timestamped and notarized
 #
@@ -37,8 +37,8 @@ case "$ARCH" in
   *) echo "unknown --arch $ARCH" >&2; exit 2 ;;
 esac
 
-DMG="$DIST/localpaint-$VERSION-macos-$ARCH.dmg"
-CLI_ZIP="$DIST/localpaint-cli-$VERSION-macos-$ARCH.zip"
+DMG="$DIST/localraster-$VERSION-macos-$ARCH.dmg"
+CLI_ZIP="$DIST/localraster-cli-$VERSION-macos-$ARCH.zip"
 IDENTITY="${MACOS_SIGN_IDENTITY:--}"
 STRICT=0
 if [[ "$IDENTITY" != "-" ]] && [[ -n "${APPLE_ID:-}" ]] && [[ -n "${APPLE_PASSWORD:-}" ]] && [[ -n "${APPLE_TEAM_ID:-}" ]]; then
@@ -88,15 +88,15 @@ for f in "$DMG" "$CLI_ZIP"; do
   fi
 done
 
-WORK="$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/localpaint-verify.XXXXXX")"
+WORK="$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/localraster-verify.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
 
 # ---- CLI zip -----------------------------------------------------------------------------------
 echo "==> $(basename "$CLI_ZIP")"
 ditto -x -k "$CLI_ZIP" "$WORK/cli"
-CLI="$WORK/cli/localpaint-cli-$VERSION-macos-$ARCH/localpaint-cli"
+CLI="$WORK/cli/localraster-cli-$VERSION-macos-$ARCH/localraster-cli"
 if [[ ! -x "$CLI" ]]; then
-  echo "error: $(basename "$CLI_ZIP") has no executable localpaint-cli-$VERSION-macos-$ARCH/localpaint-cli" >&2
+  echo "error: $(basename "$CLI_ZIP") has no executable localraster-cli-$VERSION-macos-$ARCH/localraster-cli" >&2
   exit 1
 fi
 
@@ -104,7 +104,7 @@ archs="$(lipo -archs "$CLI")"
 for a in $WANT_ARCHS; do
   case " $archs " in
     *" $a "*) ;;
-    *) echo "error: localpaint-cli lacks $a (has: $archs)" >&2; exit 1 ;;
+    *) echo "error: localraster-cli lacks $a (has: $archs)" >&2; exit 1 ;;
   esac
 done
 
@@ -114,22 +114,22 @@ details="$(codesign -d --verbose=2 "$CLI" 2>&1)"
 printf '%s\n' "$details" | grep -E '^(Identifier|Format|CodeDirectory|Authority|Timestamp|TeamIdentifier)[= ]' || true
 
 printf '%s\n' "$details" | grep -Eq '^CodeDirectory .*flags=0x[0-9a-f]+\([^)]*runtime' \
-  || fail "localpaint-cli is not signed with the hardened runtime"
+  || fail "localraster-cli is not signed with the hardened runtime"
 printf '%s\n' "$details" | grep -q '^Authority=Developer ID Application:' \
-  || fail "localpaint-cli is not signed with a Developer ID Application identity"
+  || fail "localraster-cli is not signed with a Developer ID Application identity"
 printf '%s\n' "$details" | grep -q '^Timestamp=' \
-  || fail "localpaint-cli signature has no secure timestamp"
+  || fail "localraster-cli signature has no secure timestamp"
 if [[ -n "${APPLE_TEAM_ID:-}" ]]; then
   printf '%s\n' "$details" | grep -qx "TeamIdentifier=$APPLE_TEAM_ID" \
-    || fail "localpaint-cli is signed by a different team"
+    || fail "localraster-cli is signed by a different team"
 fi
 if gk="$(assess --assess --type install -vv "$CLI")"; then
   printf '%s\n' "$gk"
   printf '%s\n' "$gk" | grep -q 'source=Notarized Developer ID' \
-    || fail "Gatekeeper accepts localpaint-cli but not as notarized"
+    || fail "Gatekeeper accepts localraster-cli but not as notarized"
 else
   printf '%s\n' "$gk"
-  fail "Gatekeeper rejects localpaint-cli (not notarized?)"
+  fail "Gatekeeper rejects localraster-cli (not notarized?)"
 fi
 "$CLI" --version
 

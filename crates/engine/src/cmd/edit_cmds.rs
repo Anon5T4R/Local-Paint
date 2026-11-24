@@ -1,11 +1,11 @@
 //! Everyday Photoshop commands: clipboard (Cut/Copy/Copy Merged/Paste/Paste in Place), Layer via
 //! Copy/Cut, Merge Visible, Auto Tone/Contrast/Color, Toggle Last State and Transform Again.
 
-use localpaint_color::{ColorMode, PixelFormat};
-use localpaint_doc::adjust::LevelsChannel;
-use localpaint_doc::{Adjustment, DocId, Document, Layer, LayerContent, LayerId};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_color::{ColorMode, PixelFormat};
+use localraster_doc::adjust::LevelsChannel;
+use localraster_doc::{Adjustment, DocId, Document, Layer, LayerContent, LayerId};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;
@@ -63,12 +63,12 @@ fn scratch_doc(doc: &Document) -> Document {
 /// to unselected or hidden layers, which must not follow this copy into a native save.
 fn copy_linked_sources(source: &Document, copies: &mut Document) -> Result<()> {
     fn collect<'a>(layers: &'a [Layer], depth: usize, paths: &mut std::collections::HashSet<&'a str>) -> Result<()> {
-        if depth > localpaint_doc::MAX_GROUP_DEPTH {
+        if depth > localraster_doc::MAX_GROUP_DEPTH {
             return Err(EngineError::Other("can't copy linked smart objects from layers nested too deeply".into()));
         }
         for layer in layers {
             if let LayerContent::Smart(sm) = &layer.content
-                && let localpaint_doc::SmartSource::Linked { path } = &sm.source
+                && let localraster_doc::SmartSource::Linked { path } = &sm.source
             {
                 paths.try_reserve(1).map_err(|_| EngineError::Other("not enough memory to copy smart-object source IDs".into()))?;
                 paths.insert(path);
@@ -88,7 +88,7 @@ fn copy_linked_sources(source: &Document, copies: &mut Document) -> Result<()> {
         if !matches!(key, b"lnk2" | b"lnk3" | b"lnkD" | b"lnkE") {
             continue;
         }
-        let selected = localpaint_io::linked::select_items(data, &|uuid, _| paths.contains(uuid))
+        let selected = localraster_io::linked::select_items(data, &|uuid, _| paths.contains(uuid))
             .map_err(|e| EngineError::Other(format!("Could not copy smart-object contents: {e}; the clipboard was not changed")))?;
         let selected = selected.map(std::sync::Arc::new).unwrap_or_else(|| data.clone());
         if !selected.is_empty() {
@@ -267,7 +267,7 @@ fn lift_region(src: &Surface, sel: Option<&Surface>, r: Rect, n: usize) -> Resul
 /// Merged composite of the visible document as a surface in the document's format.
 fn merged_surface(doc: &Document) -> Surface {
     let fmt = doc.pixel_format();
-    localpaint_compose::flatten_to_surface(doc, PixelFormat::new(fmt.mode, fmt.sample, true), None)
+    localraster_compose::flatten_to_surface(doc, PixelFormat::new(fmt.mode, fmt.sample, true), None)
 }
 
 fn copy(s: &mut Session, merged: bool) -> Result<Value> {
@@ -446,8 +446,8 @@ fn paste_layers(s: &mut Session, layers: &Document, dx: i32, dy: i32) -> Result<
         }
         // The clipboard may contain a subset of a destination block. Compare complete records,
         // so copying one layer in the same document does not duplicate large embedded files.
-        let missing = localpaint_io::linked::select_items(data, &|_, raw| {
-            !d.doc.metadata.psd_global_blocks.iter().any(|(_, dk, dd)| dk == key && localpaint_io::linked::contains_item(dd, raw))
+        let missing = localraster_io::linked::select_items(data, &|_, raw| {
+            !d.doc.metadata.psd_global_blocks.iter().any(|(_, dk, dd)| dk == key && localraster_io::linked::contains_item(dd, raw))
         })
         .map_err(|e| EngineError::Other(format!("Could not paste smart-object contents: {e}; the document was not changed")))?;
         let missing = missing.map(std::sync::Arc::new).unwrap_or_else(|| data.clone());
@@ -507,7 +507,7 @@ fn clamp_shift(d: f64, b0: i32, b1: i32, c0: i32, c1: i32) -> i32 {
 }
 
 pub(crate) fn shifted(surface: &Surface, dx: i32, dy: i32) -> Surface {
-    if dx == 0 && dy == 0 { surface.clone() } else { localpaint_algo::resample::translate_surface(surface, dx, dy) }
+    if dx == 0 && dy == 0 { surface.clone() } else { localraster_algo::resample::translate_surface(surface, dx, dy) }
 }
 
 /// Paste into the targeted layer mask, alpha channel or Quick Mask (`"target"`) instead of as a
@@ -555,8 +555,8 @@ fn new_from_clipboard(s: &mut Session) -> Result<Value> {
     };
     let fmt = clip.surface.format();
     let target = PixelFormat::new(fmt.mode, fmt.sample, true);
-    let moved = if dx == 0 && dy == 0 { clip.surface } else { localpaint_algo::resample::translate_surface(&clip.surface, dx, dy) };
-    let mut doc = Document::new("Untitled", localpaint_geom::Size::new(w, h), fmt.mode, fmt.sample);
+    let moved = if dx == 0 && dy == 0 { clip.surface } else { localraster_algo::resample::translate_surface(&clip.surface, dx, dy) };
+    let mut doc = Document::new("Untitled", localraster_geom::Size::new(w, h), fmt.mode, fmt.sample);
     if let Some(r) = clip.resolution.filter(|r| r.is_finite() && *r > 0.0) {
         doc.resolution_dpi = r;
     }
@@ -810,7 +810,7 @@ fn transform_again_params(s: &Session, ids: &[LayerId]) -> Result<Value> {
             if r.len() != 4 || q.len() != 4 || q.iter().any(|row| row.len() < 2) {
                 return Err(EngineError::Other("the last transform can't be repeated".into()));
             }
-            let h = localpaint_algo::transform::Homography::rect_to_quad(
+            let h = localraster_algo::transform::Homography::rect_to_quad(
                 [r[0], r[1], r[2], r[3]],
                 [[q[0][0], q[0][1]], [q[1][0], q[1][1]], [q[2][0], q[2][1]], [q[3][0], q[3][1]]],
             )

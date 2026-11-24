@@ -1,6 +1,6 @@
 use super::*;
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_raster::Surface;
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_raster::Surface;
 
 fn fixture(rect: Rect, ctx: &Ctx, pattern: u32) -> Image {
     let n = PixelFormat::new(ctx.mode, SampleType::F32, ctx.alpha).channels();

@@ -1,7 +1,7 @@
 //! One integration-test process keeps the global smart filter stage cache isolated from the
 //! parallel tests in `tests/it`, so a denied render can be shown to have cached nothing.
-use localpaint_automation::workspace::authorize_desktop_engine_step;
-use localpaint_engine::{Session, smart_cmds};
+use localraster_automation::workspace::authorize_desktop_engine_step;
+use localraster_engine::{Session, smart_cmds};
 use serde_json::json;
 
 #[path = "support/smart_filter_fixture.rs"]

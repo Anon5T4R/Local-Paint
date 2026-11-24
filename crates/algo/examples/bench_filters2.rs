@@ -1,16 +1,16 @@
 //! Timing for the heavier second-batch filters on a ~24 MP (6000×4000) RGBA8 layer.
 //!
-//! `cargo run --release -p localpaint-algo --example bench_filters2 [name-substring] [--reps N] [--quick] [--json <file>]`
+//! `cargo run --release -p localraster-algo --example bench_filters2 [name-substring] [--reps N] [--quick] [--json <file>]`
 //!
 //! `--json` writes the report `cargo xtask perf` reads: `{"rows": [{"name", "samples_ms"}]}`.
 //! `--quick` runs the list on a 1500×1000 layer instead, for `cargo xtask perf --quick`.
-use localpaint_algo::{
+use localraster_algo::{
     BlurPath, BlurQuality, BlurShape, DepthSource, Distribution, FieldPin, FilterParams, IrisPin, Light, SmartBlurMode, SpinPin, TextureChannel, apply,
     output_area,
 };
-use localpaint_color::PixelFormat;
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_color::PixelFormat;
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 
 fn main() {
     let a: Vec<String> = std::env::args().skip(1).collect();

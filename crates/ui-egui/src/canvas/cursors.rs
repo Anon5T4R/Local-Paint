@@ -1,6 +1,6 @@
 use super::tool_input::ToolEvent;
 use super::view_xform::ViewXform;
-use super::{Color32, LocalPaintApp, Pos2, Rect, Stroke, Tool, json, pos2, vec2};
+use super::{Color32, LocalRasterApp, Pos2, Rect, Stroke, Tool, json, pos2, vec2};
 
 /// Windows' crosshair cursor inverts the pixels under it, so over mid-grey (the pasteboard, many
 /// photos) it vanishes (#737), and the Linux themes' and macOS's differ. Use the same black-and-white
@@ -17,7 +17,7 @@ pub(super) fn visible_crosshair(icon: egui::CursorIcon, painter: &egui::Painter,
 /// (`paint::grid_square`), in screen points with its edges on physical pixels (`ppp` = pixels
 /// per point), so it lines up with the pixel grid at any zoom.
 pub(crate) fn pencil_cursor_rect(xf: &ViewXform, doc: [f64; 2], size: f32, ppp: f32) -> Rect {
-    let [x0, y0, x1, y1] = localpaint_engine::paint::grid_square(doc[0], doc[1], size);
+    let [x0, y0, x1, y1] = localraster_engine::paint::grid_square(doc[0], doc[1], size);
     let r = Rect::from_two_pos(xf.to_screen(x0 as f32, y0 as f32), xf.to_screen(x1 as f32, y1 as f32));
     let ppp = if ppp.is_finite() && ppp > 0.0 { ppp } else { 1.0 };
     let snap = |v: f32| (v * ppp).round() / ppp;
@@ -57,7 +57,7 @@ fn display_color(c: [f32; 3]) -> Color32 {
 /// The Eyedropper ring's two colours at document point (x, y): the colour under the pointer
 /// (what a click would pick) and the current foreground, or `None` where there is no colour
 /// to sample (#213).
-pub(crate) fn eyedropper_ring_colors(app: &mut LocalPaintApp, x: f64, y: f64) -> Option<(Color32, Color32)> {
+pub(crate) fn eyedropper_ring_colors(app: &mut LocalRasterApp, x: f64, y: f64) -> Option<(Color32, Color32)> {
     let new = eyedropper_color(app, x, y)?;
     let fg = app.session.tools.foreground;
     Some((display_color(new), display_color([fg[0], fg[1], fg[2]])))
@@ -70,9 +70,9 @@ pub(crate) fn eyedropper_ring_colors(app: &mut LocalPaintApp, x: f64, y: f64) ->
 /// only while the mouse button is held (`held`): hovering shows the plain pipette and
 /// samples nothing. `None` when not held, there is nothing to sample, or the Precise-cursor
 /// preference wants the plain crosshair.
-pub(super) fn eyedropper_ring(app: &mut LocalPaintApp, painter: &egui::Painter, xf: &ViewXform, p: Pos2, held: bool) -> Option<egui::CursorIcon> {
+pub(super) fn eyedropper_ring(app: &mut LocalRasterApp, painter: &egui::Painter, xf: &ViewXform, p: Pos2, held: bool) -> Option<egui::CursorIcon> {
     // The options bar's Show Sampling Ring turns it off (#1649).
-    if !held || !app.ui.tool_options.eyedropper_ring || app.session.prefs().cursors.other == localpaint_engine::prefs::OtherCursor::Precise {
+    if !held || !app.ui.tool_options.eyedropper_ring || app.session.prefs().cursors.other == localraster_engine::prefs::OtherCursor::Precise {
         return None;
     }
     let [x, y] = xf.to_doc(p);
@@ -120,8 +120,8 @@ pub(crate) fn alt_samples(tool: Tool, mods: egui::Modifiers) -> bool {
 
 /// Preferences › Cursors › Other Cursors asks for the precise crosshair, or Caps Lock swaps the
 /// standard cursor for it (and back), as in Photoshop (#4639).
-pub(super) fn precise_other_cursor(app: &LocalPaintApp) -> bool {
-    (app.session.prefs().cursors.other == localpaint_engine::prefs::OtherCursor::Precise) != app.caps_lock
+pub(super) fn precise_other_cursor(app: &LocalRasterApp) -> bool {
+    (app.session.prefs().cursors.other == localraster_engine::prefs::OtherCursor::Precise) != app.caps_lock
 }
 
 /// A pen tool's standard cursor: its toolbar icon with the nib (the Convert Point tool: the
@@ -156,7 +156,7 @@ pub(crate) fn paint_bucket_cursor(ctx: &egui::Context, p: Pos2) -> egui::CursorI
 
 /// Decided when the press starts, so ⌥ pressed or released mid-stroke never switches between
 /// painting and sampling.
-pub(super) fn alt_eyedropper(app: &mut LocalPaintApp, ev: ToolEvent, mods: egui::Modifiers) -> bool {
+pub(super) fn alt_eyedropper(app: &mut LocalRasterApp, ev: ToolEvent, mods: egui::Modifiers) -> bool {
     if matches!(ev, ToolEvent::Down { .. }) {
         let physical_right = app.services.right_button_down.as_ref().is_some_and(|f| f());
         app.alt_sampling = !physical_right && !app.secondary_erase && alt_samples(app.active_tool(), mods);
@@ -172,10 +172,10 @@ pub(super) fn alt_eyedropper(app: &mut LocalPaintApp, ev: ToolEvent, mods: egui:
     true
 }
 
-pub(super) fn sample_eyedropper(app: &mut LocalPaintApp, x: f64, y: f64, mods: egui::Modifiers) {
+pub(super) fn sample_eyedropper(app: &mut LocalRasterApp, x: f64, y: f64, mods: egui::Modifiers) {
     if let Some(mut rgb) = eyedropper_color(app, x, y) {
         if super::paint_target(app) != json!("pixels") {
-            rgb = [localpaint_color::convert::rgb_to_gray(rgb); 3];
+            rgb = [localraster_color::convert::rgb_to_gray(rgb); 3];
         }
         let key = if mods.alt { "background" } else { "foreground" };
         let _ = app.run("tools.setColors", json!({ key: [rgb[0],rgb[1],rgb[2],1.0] }));
@@ -185,7 +185,7 @@ pub(super) fn sample_eyedropper(app: &mut LocalPaintApp, x: f64, y: f64, mods: e
 /// The colour at document point (x, y) with the Eyedropper's Sample Size (the composite pixel,
 /// or the average of the square around it) from the layers `sample_layer` names (`document.sampleColor`).
 /// `None` off the image or over transparency.
-fn sample_color(app: &mut LocalPaintApp, x: f64, y: f64, sample_layer: &str) -> Option<[f32; 3]> {
+fn sample_color(app: &mut LocalRasterApp, x: f64, y: f64, sample_layer: &str) -> Option<[f32; 3]> {
     if !(x.is_finite() && y.is_finite()) {
         return None;
     }
@@ -199,7 +199,7 @@ fn sample_color(app: &mut LocalPaintApp, x: f64, y: f64, sample_layer: &str) -> 
 
 /// What the Eyedropper tool (and a painting tool's ⌥-click) picks at document point (x, y): its
 /// options bar's Sample Size and Sample (#1649).
-pub(crate) fn eyedropper_color(app: &mut LocalPaintApp, x: f64, y: f64) -> Option<[f32; 3]> {
+pub(crate) fn eyedropper_color(app: &mut LocalRasterApp, x: f64, y: f64) -> Option<[f32; 3]> {
     let layers = app.ui.tool_options.eyedropper_sample.clone();
     sample_color(app, x, y, &layers)
 }
@@ -207,7 +207,7 @@ pub(crate) fn eyedropper_color(app: &mut LocalPaintApp, x: f64, y: f64) -> Optio
 /// The active document's composite colour at document point (x, y), averaged over the
 /// Eyedropper's Sample Size as Photoshop's dialog eyedroppers (Curves, Color Picker) do.
 /// `None` off the image or over transparency.
-pub(crate) fn composite_color(app: &mut LocalPaintApp, x: f64, y: f64) -> Option<[f32; 3]> {
+pub(crate) fn composite_color(app: &mut LocalRasterApp, x: f64, y: f64) -> Option<[f32; 3]> {
     sample_color(app, x, y, "all")
 }
 

@@ -1,10 +1,10 @@
 //! Complete Tilt-Shift filtering, including tiled reads and writes.
 //! Run alone in release: `bench_tilt_shift 6000 4000 5 1`.
 //! Fourth argument models the existing preview proxy scale (e.g. 1500 1000 7 4).
-use localpaint_algo::{FilterParams, apply_in};
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_algo::{FilterParams, apply_in};
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();

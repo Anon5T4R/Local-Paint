@@ -22,11 +22,11 @@ Command parameters and current document state are untrusted at the command bound
 The ignored `crates/engine/tests/panic_hunt.rs` integration test exercises commands with adversarial parameters. A changed command also needs focused graceful-failure tests and should be verified with:
 
 ```sh
-cargo test -p localpaint-engine
-cargo test -p localpaint-engine --test panic_hunt -- --ignored
+cargo test -p localraster-engine
+cargo test -p localraster-engine --test panic_hunt -- --ignored
 ```
 
-The exact command-creation checklist is maintained in the existing [contribution guide](https://github.com/Anon5T4R/Local-Paint/blob/main/docs/contributing.md).
+The exact command-creation checklist is maintained in the existing [contribution guide](https://github.com/Anon5T4R/Local-Raster/blob/main/docs/contributing.md).
 
 ## Security boundary note
 

@@ -4,12 +4,12 @@
 use crate::common;
 
 use common::*;
-use localpaint_codecs::{ChannelLayout, EncodeOptions, Format, Image, Metadata, SampleType as CSample};
-use localpaint_color::{ColorMode, SampleType};
-use localpaint_io::*;
-use localpaint_psd::resources::ids;
-use localpaint_psd::testgen;
-use localpaint_psd::{Compression, ImageResource, ResolutionInfo, Version};
+use localraster_codecs::{ChannelLayout, EncodeOptions, Format, Image, Metadata, SampleType as CSample};
+use localraster_color::{ColorMode, SampleType};
+use localraster_io::*;
+use localraster_psd::resources::ids;
+use localraster_psd::testgen;
+use localraster_psd::{Compression, ImageResource, ResolutionInfo, Version};
 
 fn resolution_notes(r: &ImportResult) -> Vec<&String> {
     r.warnings.iter().filter(|w| w.contains("vertical resolution")).collect()
@@ -18,7 +18,7 @@ fn resolution_notes(r: &ImportResult) -> Vec<&String> {
 fn png(dpi: (f32, f32)) -> Vec<u8> {
     let meta = Metadata { dpi: Some(dpi), ..Default::default() };
     let img = Image::from_raw(2, 2, ChannelLayout::Rgb, CSample::U8, vec![10u8; 12]).unwrap().with_meta(meta);
-    localpaint_codecs::encode(&img, Format::Png, &EncodeOptions::default()).unwrap()
+    localraster_codecs::encode(&img, Format::Png, &EncodeOptions::default()).unwrap()
 }
 
 #[test]
@@ -75,7 +75,7 @@ fn resolution_info_cm_display_unit_is_pixels_per_inch() {
     assert!(resolution_notes(&r).is_empty(), "{:?}", r.warnings);
 
     let out = export(&r.document, "out.psd", &ExportOptions::default()).unwrap();
-    let file = localpaint_psd::PsdFile::from_bytes(&out.bytes).unwrap();
+    let file = localraster_psd::PsdFile::from_bytes(&out.bytes).unwrap();
     let written = file.resolution().unwrap();
     assert!((written.h_res() - 300.0).abs() < 1e-3, "{}", written.h_res());
     assert!((written.v_res() - 300.0).abs() < 1e-3, "{}", written.v_res());
@@ -86,10 +86,10 @@ fn resolution_info_cm_display_unit_is_pixels_per_inch() {
 fn layered_tiff(dpi: (f32, f32)) -> Vec<u8> {
     let d = gen_doc(ColorMode::Rgb, SampleType::U8, Features::PIXELS);
     let out = export(&d, "x.tif", &ExportOptions { tiff_layers: true, ..Default::default() }).unwrap();
-    let mut img = localpaint_codecs::decode(&out.bytes).unwrap();
+    let mut img = localraster_codecs::decode(&out.bytes).unwrap();
     assert!(img.meta.photoshop_layers.is_some(), "layer data");
     img.meta.dpi = Some(dpi);
-    localpaint_codecs::encode(&img, Format::Tiff, &EncodeOptions::default()).unwrap()
+    localraster_codecs::encode(&img, Format::Tiff, &EncodeOptions::default()).unwrap()
 }
 
 #[test]

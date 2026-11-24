@@ -1,11 +1,11 @@
 //! Use the actual platform UI-language API and the production (non-cfg(test)) Auto path.
 
 use egui_kittest::{Harness, kittest::Queryable};
-use localpaint_ui_egui::{LocalPaintApp, i18n};
+use localraster_ui_egui::{LocalRasterApp, i18n};
 
 #[test]
 fn native_first_launch_follows_os_ui_preferences() {
-    let tags: Vec<String> = match std::env::var("LOCALPAINT_LOCALE").ok().filter(|tag| !tag.trim().is_empty()) {
+    let tags: Vec<String> = match std::env::var("LOCALRASTER_LOCALE").ok().filter(|tag| !tag.trim().is_empty()) {
         Some(tag) => vec![tag],
         None => sys_locale::get_locales().take(64).collect(),
     };
@@ -16,8 +16,8 @@ fn native_first_launch_follows_os_ui_preferences() {
         .unwrap_or(i18n::Lang::EN);
     eprintln!("native UI-language preferences: {tags:?}; resolved: {}", expected.code());
     let mut h = Harness::builder().with_size(egui::vec2(1200.0, 800.0)).with_max_steps(64).build_eframe(|cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        LocalPaintApp::new(localpaint_engine::Session::new(), Default::default())
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        LocalRasterApp::new(localraster_engine::Session::new(), Default::default())
     });
     h.run_steps(4);
     assert_eq!(h.state().session.prefs().interface.language, "auto");

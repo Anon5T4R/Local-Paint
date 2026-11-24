@@ -1,9 +1,9 @@
 //! Where a large brush's time goes: one dab of a 2000 px tip, by stage.
-//! `cargo run --release -p localpaint-paint --example big_dab_bench [size] [hardness] [angle]`
-use localpaint_color::PixelFormat;
-use localpaint_geom::Rect;
-use localpaint_paint::{BrushContext, BrushSettings, Dab, StrokePoint, StrokeRenderer};
-use localpaint_raster::Surface;
+//! `cargo run --release -p localraster-paint --example big_dab_bench [size] [hardness] [angle]`
+use localraster_color::PixelFormat;
+use localraster_geom::Rect;
+use localraster_paint::{BrushContext, BrushSettings, Dab, StrokePoint, StrokeRenderer};
+use localraster_raster::Surface;
 use std::time::Instant;
 
 fn main() {
@@ -18,7 +18,7 @@ fn main() {
     let mut target = pre.clone();
     // Stage 1: the tip's coverage alone.
     let ctx = BrushContext::new(&brush);
-    let mut dab = Dab::round(localpaint_geom::Point::new(3000.0, 2000.0), size / 2.0, 1.0);
+    let mut dab = Dab::round(localraster_geom::Point::new(3000.0, 2000.0), size / 2.0, 1.0);
     dab.angle = angle;
     let rect = ctx.dab_rect(&dab, false);
     let mut cov = Vec::new();

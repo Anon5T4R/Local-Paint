@@ -131,7 +131,7 @@ pub(crate) fn process_tree(
 }
 
 /// The extension a batch output takes with Format "Same": the input's own, except for formats
-/// Local Paint opens but can't write, camera raws above all (#5799: a folder of ARWs failed on
+/// Local Raster opens but can't write, camera raws above all (#5799: a folder of ARWs failed on
 /// every file), GIMP files (`gz` is the last extension of `.xcf.gz`), Photoshop templates and the
 /// codec formats without a writer in this build. Those are saved as PSD, the format Photoshop's
 /// Save As offers for a raw. An input whose file name has no extension (a dot in a folder name
@@ -140,8 +140,8 @@ pub(super) fn same_format(path: &str) -> String {
     const IMPORT_ONLY: &[&str] =
         &["pdn", "kra", "krz", "af", "afdesign", "afphoto", "afpub", "heic", "heif", "hif", "svg", "svgz", "cin", "pcx", "xpm", "xcf", "xcfgz", "gz", "psdt"];
     let ext = extension(path).unwrap_or_else(|| "png".into());
-    let no_writer = localpaint_codecs::from_extension(&ext).is_some_and(|f| !f.caps().write);
-    if localpaint_io::raw::EXTENSIONS.contains(&ext.as_str()) || IMPORT_ONLY.contains(&ext.as_str()) || no_writer { "psd".into() } else { ext }
+    let no_writer = localraster_codecs::from_extension(&ext).is_some_and(|f| !f.caps().write);
+    if localraster_io::raw::EXTENSIONS.contains(&ext.as_str()) || IMPORT_ONLY.contains(&ext.as_str()) || no_writer { "psd".into() } else { ext }
 }
 
 #[cfg(test)]
@@ -153,11 +153,11 @@ fn same_format_takes_the_file_names_extension() {
     assert_eq!(same_format("/in/IMG_0001.HEIC"), "psd");
     assert_eq!(same_format("/in/logo.svg"), "psd");
     assert_eq!(same_format("/in/scan.cin"), "psd");
-    // Formats Local Paint opens and does not write are saved as PSD.
+    // Formats Local Raster opens and does not write are saved as PSD.
     for name in ["/in/scan.dcm", "/in/scan.DICOM", "/in/scan.dc3", "/in/page.xcf", "/in/page.xcf.gz", "/in/page.xcfgz", "/in/card.psdt"] {
         assert_eq!(same_format(name), "psd", "{name}");
     }
-    for f in localpaint_codecs::Format::ALL.into_iter().filter(|f| f.caps().read && !f.caps().write) {
+    for f in localraster_codecs::Format::ALL.into_iter().filter(|f| f.caps().read && !f.caps().write) {
         for ext in f.extensions() {
             assert_eq!(same_format(&format!("/in/a.{ext}")), "psd", "{f:?} .{ext}");
         }

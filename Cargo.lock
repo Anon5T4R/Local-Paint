@@ -4198,7 +4198,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "11d3d7f243d5c5a8b9bb5d6dd2b1602c0cb0b9db1621bafc7ed66e35ff9fe092"
 
 [[package]]
-name = "localpaint"
+name = "localraster"
 version = "0.20.26"
 dependencies = [
  "arboard",
@@ -4215,19 +4215,19 @@ dependencies = [
  "egui",
  "fmv-macos-events",
  "futures-lite",
- "localpaint-automation",
- "localpaint-cms",
- "localpaint-codecs",
- "localpaint-color",
- "localpaint-compose",
- "localpaint-doc",
- "localpaint-engine",
- "localpaint-format",
- "localpaint-geom",
- "localpaint-io",
- "localpaint-raster",
- "localpaint-tablet",
- "localpaint-ui-egui",
+ "localraster-automation",
+ "localraster-cms",
+ "localraster-codecs",
+ "localraster-color",
+ "localraster-compose",
+ "localraster-doc",
+ "localraster-engine",
+ "localraster-format",
+ "localraster-geom",
+ "localraster-io",
+ "localraster-raster",
+ "localraster-tablet",
+ "localraster-ui-egui",
  "log",
  "muda",
  "objc2 0.6.5",
@@ -4254,7 +4254,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "localpaint-affinity"
+name = "localraster-affinity"
 version = "0.20.26"
 dependencies = [
  "crc32fast",
@@ -4264,14 +4264,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "localpaint-algo"
+name = "localraster-algo"
 version = "0.20.26"
 dependencies = [
  "criterion",
- "localpaint-color",
- "localpaint-geom",
- "localpaint-raster",
- "localpaint-testkit",
+ "localraster-color",
+ "localraster-geom",
+ "localraster-raster",
+ "localraster-testkit",
  "rayon",
  "rustfft",
  "serde",
@@ -4279,21 +4279,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "localpaint-automation"
+name = "localraster-automation"
 version = "0.20.26"
 dependencies = [
  "base64 0.23.1",
  "cap-std",
  "clap",
  "getrandom 0.3.4",
- "localpaint-codecs",
- "localpaint-compose",
- "localpaint-doc",
- "localpaint-engine",
- "localpaint-format",
- "localpaint-io",
- "localpaint-raster",
- "localpaint-raw",
+ "localraster-codecs",
+ "localraster-compose",
+ "localraster-doc",
+ "localraster-engine",
+ "localraster-format",
+ "localraster-io",
+ "localraster-raster",
+ "localraster-raw",
  "rmcp",
  "rustix 1.1.5",
  "schemars",
@@ -4304,19 +4304,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "localpaint-cli"
+name = "localraster-cli"
 version = "0.20.26"
 dependencies = [
  "clap",
  "clap_complete",
  "clap_mangen",
  "craft-mcp",
- "localpaint-automation",
- "localpaint-codecs",
- "localpaint-engine",
- "localpaint-format",
- "localpaint-io",
- "localpaint-raw",
+ "localraster-automation",
+ "localraster-codecs",
+ "localraster-engine",
+ "localraster-format",
+ "localraster-io",
+ "localraster-raw",
  "serde_json",
  "thiserror 2.0.21",
  "tokio",
@@ -4324,7 +4324,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "localpaint-cms"
+name = "localraster-cms"
 version = "0.20.26"
 dependencies = [
  "moxcms",
@@ -4332,7 +4332,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "localpaint-codecs"
+name = "localraster-codecs"
 version = "0.20.26"
 dependencies = [
  "craft-jpeg",
@@ -4343,7 +4343,7 @@ dependencies = [
  "image-webp",
  "jpeg-encoder",
  "jxl-oxide",
- "localpaint-heif",
+ "localraster-heif",
  "png 0.18.1",
  "proptest",
  "rayon",
@@ -4356,42 +4356,42 @@ dependencies = [
 ]
 
 [[package]]
-name = "localpaint-color"
+name = "localraster-color"
 version = "0.20.26"
 dependencies = [
- "localpaint-cms",
+ "localraster-cms",
  "serde",
 ]
 
 [[package]]
-name = "localpaint-compose"
+name = "localraster-compose"
 version = "0.20.26"
 dependencies = [
  "criterion",
- "localpaint-cms",
- "localpaint-color",
- "localpaint-doc",
- "localpaint-geom",
- "localpaint-paint",
- "localpaint-raster",
- "localpaint-vector",
+ "localraster-cms",
+ "localraster-color",
+ "localraster-doc",
+ "localraster-geom",
+ "localraster-paint",
+ "localraster-raster",
+ "localraster-vector",
  "proptest",
  "rayon",
 ]
 
 [[package]]
-name = "localpaint-doc"
+name = "localraster-doc"
 version = "0.20.26"
 dependencies = [
- "localpaint-color",
- "localpaint-geom",
- "localpaint-raster",
+ "localraster-color",
+ "localraster-geom",
+ "localraster-raster",
  "serde",
  "serde_json",
 ]
 
 [[package]]
-name = "localpaint-engine"
+name = "localraster-engine"
 version = "0.20.26"
 dependencies = [
  "base64 0.22.1",
@@ -4400,26 +4400,26 @@ dependencies = [
  "craft-print",
  "exr",
  "flate2",
- "localpaint-affinity",
- "localpaint-algo",
- "localpaint-cms",
- "localpaint-codecs",
- "localpaint-color",
- "localpaint-compose",
- "localpaint-doc",
- "localpaint-format",
- "localpaint-geom",
- "localpaint-io",
- "localpaint-ipp",
- "localpaint-ops",
- "localpaint-paint",
- "localpaint-plugins",
- "localpaint-psd",
- "localpaint-raster",
- "localpaint-raw",
- "localpaint-testkit",
- "localpaint-text",
- "localpaint-vector",
+ "localraster-affinity",
+ "localraster-algo",
+ "localraster-cms",
+ "localraster-codecs",
+ "localraster-color",
+ "localraster-compose",
+ "localraster-doc",
+ "localraster-format",
+ "localraster-geom",
+ "localraster-io",
+ "localraster-ipp",
+ "localraster-ops",
+ "localraster-paint",
+ "localraster-plugins",
+ "localraster-psd",
+ "localraster-raster",
+ "localraster-raw",
+ "localraster-testkit",
+ "localraster-text",
+ "localraster-vector",
  "rayon",
  "roxmltree 0.21.1",
  "same-file",
@@ -4433,7 +4433,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "localpaint-format"
+name = "localraster-format"
 version = "0.20.26"
 dependencies = [
  "blake3",
@@ -4441,11 +4441,11 @@ dependencies = [
  "exacl",
  "flate2",
  "libc",
- "localpaint-codecs",
- "localpaint-color",
- "localpaint-doc",
- "localpaint-geom",
- "localpaint-raster",
+ "localraster-codecs",
+ "localraster-color",
+ "localraster-doc",
+ "localraster-geom",
+ "localraster-raster",
  "proptest",
  "rustix 1.1.5",
  "ruzstd",
@@ -4456,26 +4456,26 @@ dependencies = [
 ]
 
 [[package]]
-name = "localpaint-geom"
+name = "localraster-geom"
 version = "0.20.26"
 dependencies = [
  "serde",
 ]
 
 [[package]]
-name = "localpaint-gpu"
+name = "localraster-gpu"
 version = "0.20.26"
 dependencies = [
  "bytemuck",
  "half",
- "localpaint-algo",
- "localpaint-cms",
- "localpaint-color",
- "localpaint-compose",
- "localpaint-doc",
- "localpaint-geom",
- "localpaint-raster",
- "localpaint-vector",
+ "localraster-algo",
+ "localraster-cms",
+ "localraster-color",
+ "localraster-compose",
+ "localraster-doc",
+ "localraster-geom",
+ "localraster-raster",
+ "localraster-vector",
  "log",
  "pollster 1.0.1",
  "rayon",
@@ -4483,14 +4483,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "localpaint-heif"
+name = "localraster-heif"
 version = "0.20.26"
 dependencies = [
  "heic-rs",
 ]
 
 [[package]]
-name = "localpaint-io"
+name = "localraster-io"
 version = "0.20.26"
 dependencies = [
  "blake3",
@@ -4498,22 +4498,22 @@ dependencies = [
  "crc32fast",
  "flate2",
  "imagesize",
- "localpaint-affinity",
- "localpaint-algo",
- "localpaint-cms",
- "localpaint-codecs",
- "localpaint-color",
- "localpaint-compose",
- "localpaint-doc",
- "localpaint-format",
- "localpaint-geom",
- "localpaint-paint",
- "localpaint-psd",
- "localpaint-raster",
- "localpaint-raw",
- "localpaint-testkit",
- "localpaint-text",
- "localpaint-vector",
+ "localraster-affinity",
+ "localraster-algo",
+ "localraster-cms",
+ "localraster-codecs",
+ "localraster-color",
+ "localraster-compose",
+ "localraster-doc",
+ "localraster-format",
+ "localraster-geom",
+ "localraster-paint",
+ "localraster-psd",
+ "localraster-raster",
+ "localraster-raw",
+ "localraster-testkit",
+ "localraster-text",
+ "localraster-vector",
  "miniz_oxide 0.9.1",
  "proptest",
  "resvg",
@@ -4526,24 +4526,24 @@ dependencies = [
 ]
 
 [[package]]
-name = "localpaint-ipp"
+name = "localraster-ipp"
 version = "0.20.26"
 
 [[package]]
-name = "localpaint-ops"
+name = "localraster-ops"
 version = "0.20.26"
 dependencies = [
- "localpaint-doc",
+ "localraster-doc",
 ]
 
 [[package]]
-name = "localpaint-paint"
+name = "localraster-paint"
 version = "0.20.26"
 dependencies = [
- "localpaint-cms",
- "localpaint-color",
- "localpaint-geom",
- "localpaint-raster",
+ "localraster-cms",
+ "localraster-color",
+ "localraster-geom",
+ "localraster-raster",
  "rayon",
  "rustc-hash 2.1.3",
  "serde",
@@ -4551,12 +4551,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "localpaint-plugins"
+name = "localraster-plugins"
 version = "0.20.26"
 dependencies = [
- "localpaint-color",
- "localpaint-geom",
- "localpaint-raster",
+ "localraster-color",
+ "localraster-geom",
+ "localraster-raster",
  "rayon",
  "rustix 1.1.5",
  "serde",
@@ -4567,36 +4567,36 @@ dependencies = [
 ]
 
 [[package]]
-name = "localpaint-psd"
+name = "localraster-psd"
 version = "0.20.26"
 dependencies = [
  "encoding_rs",
  "flate2",
- "localpaint-psd",
+ "localraster-psd",
  "proptest",
  "serde",
  "thiserror 2.0.21",
 ]
 
 [[package]]
-name = "localpaint-raster"
+name = "localraster-raster"
 version = "0.20.26"
 dependencies = [
- "localpaint-color",
- "localpaint-geom",
+ "localraster-color",
+ "localraster-geom",
  "proptest",
  "rayon",
  "serde",
 ]
 
 [[package]]
-name = "localpaint-raw"
+name = "localraster-raw"
 version = "0.20.26"
 dependencies = [
  "flate2",
  "image",
  "jxl-oxide",
- "localpaint-raw",
+ "localraster-raw",
  "png 0.18.1",
  "rayon",
  "zune-core 0.5.3",
@@ -4605,7 +4605,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "localpaint-tablet"
+name = "localraster-tablet"
 version = "0.20.26"
 dependencies = [
  "block2 0.6.2",
@@ -4617,7 +4617,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "localpaint-testkit"
+name = "localraster-testkit"
 version = "0.20.26"
 dependencies = [
  "memory-stats",
@@ -4625,22 +4625,22 @@ dependencies = [
 ]
 
 [[package]]
-name = "localpaint-text"
+name = "localraster-text"
 version = "0.20.26"
 dependencies = [
  "flate2",
- "localpaint-color",
- "localpaint-doc",
- "localpaint-geom",
- "localpaint-psd",
- "localpaint-raster",
+ "localraster-color",
+ "localraster-doc",
+ "localraster-geom",
+ "localraster-psd",
+ "localraster-raster",
  "parley",
  "rayon",
  "skrifa",
 ]
 
 [[package]]
-name = "localpaint-ui-egui"
+name = "localraster-ui-egui"
 version = "0.20.26"
 dependencies = [
  "base64 0.23.1",
@@ -4655,25 +4655,25 @@ dependencies = [
  "egui_kittest",
  "epaint_default_fonts",
  "flate2",
- "localpaint-algo",
- "localpaint-cms",
- "localpaint-codecs",
- "localpaint-color",
- "localpaint-compose",
- "localpaint-doc",
- "localpaint-engine",
- "localpaint-format",
- "localpaint-geom",
- "localpaint-gpu",
- "localpaint-io",
- "localpaint-paint",
- "localpaint-plugins",
- "localpaint-psd",
- "localpaint-raster",
- "localpaint-raw",
- "localpaint-testkit",
- "localpaint-text",
- "localpaint-vector",
+ "localraster-algo",
+ "localraster-cms",
+ "localraster-codecs",
+ "localraster-color",
+ "localraster-compose",
+ "localraster-doc",
+ "localraster-engine",
+ "localraster-format",
+ "localraster-geom",
+ "localraster-gpu",
+ "localraster-io",
+ "localraster-paint",
+ "localraster-plugins",
+ "localraster-psd",
+ "localraster-raster",
+ "localraster-raw",
+ "localraster-testkit",
+ "localraster-text",
+ "localraster-vector",
  "log",
  "rayon",
  "serde",
@@ -4687,13 +4687,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "localpaint-vector"
+name = "localraster-vector"
 version = "0.20.26"
 dependencies = [
- "localpaint-color",
- "localpaint-doc",
- "localpaint-geom",
- "localpaint-raster",
+ "localraster-color",
+ "localraster-doc",
+ "localraster-geom",
+ "localraster-raster",
  "rayon",
 ]
 

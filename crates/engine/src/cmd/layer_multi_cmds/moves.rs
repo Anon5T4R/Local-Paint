@@ -217,16 +217,16 @@ pub fn moved_target(doc: &Document, ids: &[LayerId], dx: i32, dy: i32, mask_targ
     Ok(out)
 }
 
-/// `localpaint_algo::resample::translate_surface` with the content scan cached per tile (a Move
+/// `localraster_algo::resample::translate_surface` with the content scan cached per tile (a Move
 /// drag shifts the same layers every frame; scanning them each time cost more than the copy).
-pub(crate) fn shift_surface(s: &localpaint_raster::Surface, dx: i32, dy: i32) -> localpaint_raster::Surface {
-    s.translated(dx, dy, localpaint_compose::bounds::content_bounds(s))
+pub(crate) fn shift_surface(s: &localraster_raster::Surface, dx: i32, dy: i32) -> localraster_raster::Surface {
+    s.translated(dx, dy, localraster_compose::bounds::content_bounds(s))
 }
 
 /// [`crate::commands::translate_layer`] plus the vector side, without re-rendering anything.
 fn shift_shown(doc: &Document, l: &mut Layer, dx: i32, dy: i32) {
     use self::shift_surface as translate_surface;
-    let a = localpaint_geom::Affine::translate(f64::from(dx), f64::from(dy));
+    let a = localraster_geom::Affine::translate(f64::from(dx), f64::from(dy));
     if let Some(r) = &mut l.effects.reference {
         *r = (r.0 + f64::from(dx), r.1 + f64::from(dy));
     }
@@ -303,7 +303,7 @@ pub fn preview_move(doc: &Document, p: &Value, add_copy: bool) -> Option<Documen
 
 /// The rect of the artboard layer `id` sits in, or `None` when it sits in none (or is itself a
 /// board: boards are never nested, and moving one beside another carries its own rect).
-fn board_rect_of(doc: &Document, id: LayerId) -> Option<localpaint_geom::Rect> {
+fn board_rect_of(doc: &Document, id: LayerId) -> Option<localraster_geom::Rect> {
     if doc.layer(id)?.artboard().is_some() {
         return None;
     }
@@ -314,7 +314,7 @@ fn board_rect_of(doc: &Document, id: LayerId) -> Option<localpaint_geom::Rect> {
 /// locked there (by its own lock or one on a group or board around it).
 #[derive(Clone, Copy)]
 struct Origin {
-    board: Option<localpaint_geom::Rect>,
+    board: Option<localraster_geom::Rect>,
     pinned: bool,
 }
 

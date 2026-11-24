@@ -17,8 +17,8 @@
 use std::borrow::Cow;
 use std::ops::Range;
 
-use localpaint_doc::TextLayer;
-use localpaint_doc::text::{Caps, CharStyle, FontBaseline, Kerning, Orientation, ParagraphStyle, TextShape};
+use localraster_doc::TextLayer;
+use localraster_doc::text::{Caps, CharStyle, FontBaseline, Kerning, Orientation, ParagraphStyle, TextShape};
 use parley::{FontData, FontFamily, FontFeatures, FontStyle, FontVariations, FontWeight, Layout, LayoutContext, PositionedLayoutItem, StyleProperty};
 use skrifa::raw::types::Tag;
 
@@ -364,7 +364,7 @@ impl Layouter {
 /// What a layout run shares between its paragraphs.
 struct Env<'a> {
     text: &'a str,
-    runs: &'a [localpaint_doc::text::TextRun],
+    runs: &'a [localraster_doc::text::TextRun],
     styles: &'a [CharStyle],
     /// Start offset of each run.
     run_starts: &'a [usize],
@@ -407,8 +407,8 @@ struct Slot {
 #[cfg(test)]
 mod tests {
     use super::{SmallCapsMode, feature_list, small_caps_mode, variation_list};
-    use localpaint_doc::TextLayer;
-    use localpaint_doc::text::{Caps, CharStyle, FontVariation, TextRun};
+    use localraster_doc::TextLayer;
+    use localraster_doc::text::{Caps, CharStyle, FontVariation, TextRun};
 
     /// Reference: the lookup the layout used before it became a binary search.
     fn run_index_reference(starts: &[usize], off: usize) -> usize {

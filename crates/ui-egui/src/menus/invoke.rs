@@ -1,4 +1,4 @@
-use super::{DOCUMENT_ITEM, DialogKind, LocalPaintApp, Value, json};
+use super::{DOCUMENT_ITEM, DialogKind, LocalRasterApp, Value, json};
 
 /// Photoshop's Window › <panel> ids for the panels the shell already has, as `window.toggle.*`.
 pub(crate) fn panel_alias(id: &str) -> Option<&'static str> {
@@ -39,7 +39,7 @@ pub(super) fn workspace_name(id: &str) -> Option<&'static str> {
 }
 
 /// Run a command id from any source (menu, shortcut, palette, automation).
-pub fn invoke(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, params: Value) -> Result<Value, String> {
+pub fn invoke(app: &mut LocalRasterApp, ctx: &egui::Context, id: &str, params: Value) -> Result<Value, String> {
     if app.automation_input
         && let Some(authorize) = app.services.automation_command.as_ref()
     {
@@ -57,7 +57,7 @@ pub fn invoke(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, params: Va
 }
 
 /// [`invoke`] without the unsaved-changes prompt, for once the user has already answered it.
-fn invoke_early_commands(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, params: &Value) -> Option<Result<Value, String>> {
+fn invoke_early_commands(app: &mut LocalRasterApp, ctx: &egui::Context, id: &str, params: &Value) -> Option<Result<Value, String>> {
     if let Some(tool) = crate::tool_shortcuts::tool(id) {
         crate::tool_memory::select(app, tool);
         return Some(Ok(json!({"tool": tool})));
@@ -129,7 +129,7 @@ fn invoke_early_commands(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str,
     None
 }
 
-fn invoke_shell_commands(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, params: &Value) -> Option<Result<Value, String>> {
+fn invoke_shell_commands(app: &mut LocalRasterApp, ctx: &egui::Context, id: &str, params: &Value) -> Option<Result<Value, String>> {
     if id == "window.panel.brushSettings" {
         app.ui.brush_tab = 0;
     }
@@ -182,7 +182,7 @@ fn invoke_shell_commands(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str,
     None
 }
 
-fn invoke_file_commands(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, params: &Value) -> Result<Option<Value>, String> {
+fn invoke_file_commands(app: &mut LocalRasterApp, ctx: &egui::Context, id: &str, params: &Value) -> Result<Option<Value>, String> {
     let result = match id {
         // ⌘↩ / Ctrl+Enter (#306): load the path selected in the Paths panel (or the one being
         // drawn) as a selection.
@@ -197,7 +197,7 @@ fn invoke_file_commands(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, 
         "layer.renameLayer" if params.get("name").is_none() => {
             let st = app.session.active().ok_or("no document")?;
             let id = params.get("layer").and_then(Value::as_u64).or(st.active_layer.map(|l| l.0)).ok_or("no active layer")?;
-            let name = st.doc.layer(localpaint_doc::LayerId(id)).map(|l| l.name.clone()).ok_or("no such layer")?;
+            let name = st.doc.layer(localraster_doc::LayerId(id)).map(|l| l.name.clone()).ok_or("no such layer")?;
             // Another rename in progress is committed first (#314).
             if let Some((cmd, p)) = crate::layer_row_ui::start_rename(ctx, id, &name) {
                 app.run(&cmd, p)?;
@@ -227,7 +227,7 @@ fn invoke_file_commands(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, 
             app.pick_file_bytes_filtered(&["csv", "txt"], move |app, _name, bytes| {
                 app.refocus(doc)?;
                 let text = data_sets_text(bytes)?;
-                let r = localpaint_engine::import_data_sets_text(&mut app.session, &text, &params).map_err(|e| e.to_string());
+                let r = localraster_engine::import_data_sets_text(&mut app.session, &text, &params).map_err(|e| e.to_string());
                 app.sync_views();
                 r
             })
@@ -239,7 +239,7 @@ fn invoke_file_commands(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, 
             match params.get("path").and_then(Value::as_str) {
                 Some(path) => app.save_as_with(Some(path.to_string()), choices),
                 None => {
-                    let own = app.session.active().and_then(|d| d.path.clone().map(|p| (localpaint_engine::file_cmds::holds_at(&d.doc, &p), p, d)));
+                    let own = app.session.active().and_then(|d| d.path.clone().map(|p| (localraster_engine::file_cmds::holds_at(&d.doc, &p), p, d)));
                     match own {
                         Some((true, path, d)) => {
                             // Another app changed the file since it was opened or saved: ask first (#6596).
@@ -247,9 +247,9 @@ fn invoke_file_commands(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, 
                             crate::disk_change_prompt::intercept(app, doc, &path, false, crate::FormatChoices::default())
                                 .unwrap_or_else(|| app.save_in_place(path, crate::FormatChoices::default()))
                         }
-                        Some((false, path, d)) if localpaint_engine::file_cmds::saves_in_place(&path) => {
+                        Some((false, path, d)) if localraster_engine::file_cmds::saves_in_place(&path) => {
                             // Its own file is layered but can't hold what the document has now.
-                            let losses = localpaint_engine::file_cmds::losses_at(&d.doc, &path);
+                            let losses = localraster_engine::file_cmds::losses_at(&d.doc, &path);
                             let name = crate::file_open::display_name(&path);
                             let title = crate::i18n::fmt(tl!("{name} can't keep everything in this document"), &[("name", name.as_str())]);
                             let mut lines = losses;
@@ -292,7 +292,7 @@ fn invoke_file_commands(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, 
     result.map(Some)
 }
 
-pub(crate) fn invoke_unguarded(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, params: Value) -> Result<Value, String> {
+pub(crate) fn invoke_unguarded(app: &mut LocalRasterApp, ctx: &egui::Context, id: &str, params: Value) -> Result<Value, String> {
     if let Some(result) = crate::smart_svg_ui::intercept(app, id, &params) {
         return result;
     }
@@ -334,8 +334,8 @@ pub(crate) fn invoke_unguarded(app: &mut LocalPaintApp, ctx: &egui::Context, id:
         }
         "layer.smartFilter.blendingOptions" if params.get("blend").is_none() && params.get("opacity").is_none() => {
             let st = app.session.active().ok_or("no document open")?;
-            let layer = params.get("layer").and_then(Value::as_u64).map(localpaint_doc::LayerId).or(st.active_layer).ok_or("no layer selected")?;
-            let Some(localpaint_doc::LayerContent::Smart(sm)) = st.doc.layer(layer).map(|l| &l.content) else {
+            let layer = params.get("layer").and_then(Value::as_u64).map(localraster_doc::LayerId).or(st.active_layer).ok_or("no layer selected")?;
+            let Some(localraster_doc::LayerContent::Smart(sm)) = st.doc.layer(layer).map(|l| &l.content) else {
                 return Err("the layer is not a Smart Object".into());
             };
             let index = match params.get("index") {
@@ -371,7 +371,7 @@ pub(crate) fn invoke_unguarded(app: &mut LocalPaintApp, ctx: &egui::Context, id:
         // Edit › Stroke…: open its full options dialog when called from menus/context
         // menus. Explicit params from Actions, CLI, MCP and control channel execute directly.
         crate::stroke_ui::COMMAND if params.as_object().is_none_or(|o| o.is_empty()) => {
-            if let Some(Err(why)) = localpaint_engine::commands::find(id).map(|c| (c.enabled)(&app.session)) {
+            if let Some(Err(why)) = localraster_engine::commands::find(id).map(|c| (c.enabled)(&app.session)) {
                 return Err(why);
             }
             Ok(json!({"dialog": crate::stroke_ui::open(app)}))
@@ -380,7 +380,7 @@ pub(crate) fn invoke_unguarded(app: &mut LocalPaintApp, ctx: &egui::Context, id:
         // New Group button): Photoshop's New Group dialog. Explicit params run the engine directly,
         // and Group Layers (⌘G) never asks.
         _ if crate::new_group_ui::fronts(id) && params.as_object().is_none_or(|o| o.is_empty()) => {
-            if let Some(Err(why)) = localpaint_engine::commands::find(id).map(|c| (c.enabled)(&app.session)) {
+            if let Some(Err(why)) = localraster_engine::commands::find(id).map(|c| (c.enabled)(&app.session)) {
                 return Err(why);
             }
             Ok(json!({"dialog": crate::new_group_ui::open(app, id)}))
@@ -393,7 +393,7 @@ pub(crate) fn invoke_unguarded(app: &mut LocalPaintApp, ctx: &egui::Context, id:
             let st = app.session.active().ok_or("no document is open")?;
             let channel = match st.channel_view.target {
                 _ if st.doc.quick_mask.is_some() => json!("quickMask"),
-                localpaint_engine::channel_cmds::ChannelTarget::Alpha(i) => json!(i),
+                localraster_engine::channel_cmds::ChannelTarget::Alpha(i) => json!(i),
                 _ if mask => json!("mask"),
                 _ => return Err("target an alpha or spot channel, or a layer mask, first".into()),
             };
@@ -410,12 +410,12 @@ pub(crate) fn invoke_unguarded(app: &mut LocalPaintApp, ctx: &egui::Context, id:
         "select.colorRange" if params.as_object().is_none_or(|o| o.is_empty()) => Ok(json!({"dialog": crate::color_range_ui::open(app)})),
         // Layer › New Fill Layer › Pattern… from the menu: the Pattern Fill dialog (with params:
         // the engine directly).
-        localpaint_engine::pattern_fill_cmds::CREATE if params.as_object().is_none_or(|o| o.is_empty()) => {
+        localraster_engine::pattern_fill_cmds::CREATE if params.as_object().is_none_or(|o| o.is_empty()) => {
             Ok(json!({"dialog": crate::pattern_fill_ui::open_new(app)?}))
         }
         // Edit › Fill… from the menu or its shortcuts: the Fill dialog (with params: the engine).
         crate::fill_ui::COMMAND if params.as_object().is_none_or(|o| o.is_empty()) => {
-            if let Some(Err(why)) = localpaint_engine::commands::find(id).map(|c| (c.enabled)(&app.session)) {
+            if let Some(Err(why)) = localraster_engine::commands::find(id).map(|c| (c.enabled)(&app.session)) {
                 return Err(why);
             }
             Ok(json!({"dialog": crate::fill_ui::open(app)}))
@@ -438,7 +438,7 @@ pub(crate) fn invoke_unguarded(app: &mut LocalPaintApp, ctx: &egui::Context, id:
                     let pz = app.point_zoom();
                     let (hw, hh) = (app.last_canvas_rect.width() / 2.0 / pz / app.ui.view.display_aspect(), app.last_canvas_rect.height() / 2.0 / pz);
                     let r =
-                        localpaint_geom::Rect::new((v.center[0] - hw) as i32, (v.center[1] - hh) as i32, (v.center[0] + hw) as i32, (v.center[1] + hh) as i32);
+                        localraster_geom::Rect::new((v.center[0] - hw) as i32, (v.center[1] - hh) as i32, (v.center[0] + hw) as i32, (v.center[1] + hh) as i32);
                     !clip.bounds.intersect(&r).is_empty()
                 });
             let p = match app.session.active_index() {
@@ -467,11 +467,11 @@ pub(super) fn data_sets_text(bytes: Vec<u8>) -> Result<String, String> {
     String::from_utf8(bytes).map_err(|e| format!("the data set file is not valid UTF-8: {e}"))
 }
 
-fn open_path(app: &mut LocalPaintApp, path: &str) -> Result<Value, String> {
+fn open_path(app: &mut LocalRasterApp, path: &str) -> Result<Value, String> {
     app.open_path(path).map(|w| json!({"warnings": w}))
 }
 
-fn invoke_export_command(app: &mut LocalPaintApp, id: &str, params: &Value) -> Result<Option<Result<Value, String>>, String> {
+fn invoke_export_command(app: &mut LocalRasterApp, id: &str, params: &Value) -> Result<Option<Result<Value, String>>, String> {
     let result = match id {
         "file.export.exportAs" => Some(Ok(json!({"dialog": crate::export_dialog::open(app)?}))),
         "file.export.quickExportAsPng" => Some(crate::export_dialog::quick_export_png(app)),
@@ -502,7 +502,7 @@ fn invoke_export_command(app: &mut LocalPaintApp, id: &str, params: &Value) -> R
     Ok(result)
 }
 
-fn invoke_type_command(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, params: &Value) -> Option<Result<Value, String>> {
+fn invoke_type_command(app: &mut LocalRasterApp, ctx: &egui::Context, id: &str, params: &Value) -> Option<Result<Value, String>> {
     match id {
         "type.increaseSize" | "type.decreaseSize" | "type.increaseSizeMore" | "type.decreaseSizeMore"
             if params.as_object().is_none_or(|object| object.is_empty()) =>
@@ -559,7 +559,7 @@ fn invoke_type_command(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, p
     }
 }
 
-fn type_command_target(app: &LocalPaintApp) -> Option<Value> {
+fn type_command_target(app: &LocalRasterApp) -> Option<Value> {
     let (layer, range) = crate::type_tool::target(app)?;
     let mut params = json!({"layer": layer});
     if let Some(range) = range {
@@ -571,7 +571,7 @@ fn type_command_target(app: &LocalPaintApp) -> Option<Value> {
     Some(params)
 }
 
-fn invoke_view_command(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, params: &Value) -> Option<Result<Value, String>> {
+fn invoke_view_command(app: &mut LocalRasterApp, ctx: &egui::Context, id: &str, params: &Value) -> Option<Result<Value, String>> {
     match id {
         "view.zoomIn" | "view.zoomOut" | "view.fitOnScreen" | "view.actualPixels" => Some(app.run(id, params.clone())),
         "view.rulers" | "view.show.grid" | "view.show.guides" | "view.snap" | "view.lockGuides" => {
@@ -640,7 +640,7 @@ fn invoke_view_command(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, p
     }
 }
 
-fn invoke_window_command(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str) -> Option<Result<Value, String>> {
+fn invoke_window_command(app: &mut LocalRasterApp, ctx: &egui::Context, id: &str) -> Option<Result<Value, String>> {
     match id {
         "window.newWindowForDocument" => Some((|| {
             let doc = app.session.active_index().ok_or("no document")?;
@@ -715,7 +715,7 @@ fn invoke_window_command(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str)
     }
 }
 
-fn toggle_panels(app: &mut LocalPaintApp) -> Result<Value, String> {
+fn toggle_panels(app: &mut LocalRasterApp) -> Result<Value, String> {
     if app.ui.view.hides_chrome() {
         // Full Screen Mode: Tab only shows or hides the chrome for now (#6760); the panels'
         // own state, `hidden_by_tab` included, stays as it was before entering.
@@ -736,7 +736,7 @@ fn toggle_panels(app: &mut LocalPaintApp) -> Result<Value, String> {
     Ok(Value::Null)
 }
 
-fn toggle_panel(app: &mut LocalPaintApp, id: &str) -> Result<Value, String> {
+fn toggle_panel(app: &mut LocalRasterApp, id: &str) -> Result<Value, String> {
     let key = &id["window.toggle.".len()..];
     // A shown but collapsed dock group is expanded rather than hidden (#129).
     if let Some(group) = crate::dock::Group::from_key(key).filter(|group| group.shown(&app.ui.panels) && app.ui.dock.is_collapsed(*group)) {
@@ -765,7 +765,7 @@ fn toggle_panel(app: &mut LocalPaintApp, id: &str) -> Result<Value, String> {
 }
 
 /// Workspace presets (Window → Workspace): which panels are visible.
-pub fn apply_workspace(app: &mut LocalPaintApp) {
+pub fn apply_workspace(app: &mut LocalRasterApp) {
     // Saved workspaces (Window › Workspace › New Workspace…) restore their own layout.
     if crate::workspace_ui::apply_custom(app) {
         return;
@@ -805,7 +805,7 @@ pub fn apply_workspace(app: &mut LocalPaintApp) {
 }
 
 /// Pointer-dependent shell command; pixel picking and selection remain engine commands.
-fn select_layer_under_cursor(app: &mut LocalPaintApp, ctx: &egui::Context) -> Result<Value, String> {
+fn select_layer_under_cursor(app: &mut LocalRasterApp, ctx: &egui::Context) -> Result<Value, String> {
     if app.drag.is_some() || app.brush_resize.is_some() {
         return Ok(json!({"layer": null}));
     }

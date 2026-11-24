@@ -16,21 +16,21 @@ fn hue_tracks_run_between_the_neighbouring_bands() {
 
 #[test]
 fn preview_texture_uses_linear_document_display_encoding() {
-    let mut doc = localpaint_doc::Document::new("test", localpaint_geom::Size::new(1, 1), localpaint_doc::ColorMode::Rgb, localpaint_doc::SampleType::F32);
-    doc.icc_profile = Some(localpaint_cms::Builtin::LinearSrgb.profile().to_bytes());
-    let mut color = localpaint_engine::color_cmds::ColorState::default();
+    let mut doc = localraster_doc::Document::new("test", localraster_geom::Size::new(1, 1), localraster_doc::ColorMode::Rgb, localraster_doc::SampleType::F32);
+    doc.icc_profile = Some(localraster_cms::Builtin::LinearSrgb.profile().to_bytes());
+    let mut color = localraster_engine::color_cmds::ColorState::default();
     color.settings.monitor_profile = "srgb".into();
     let display = color.canvas_display(&doc).unwrap();
     let px = [[0.25, 0.25, 0.25, 1.0]];
     let preview = CameraRawDialog::image(&px, 1, 1, &display);
-    let expected = display.to_rgba8(&localpaint_compose::Buffer::filled(Rect::new(0, 0, 1, 1), px[0]));
+    let expected = display.to_rgba8(&localraster_compose::Buffer::filled(Rect::new(0, 0, 1, 1), px[0]));
     assert_eq!(preview.pixels[0].to_array(), expected.pixels[..4]);
     assert_ne!(preview.pixels[0].r(), 64, "linear light must be encoded before display");
 }
 
 #[test]
 fn histogram_follows_preview_and_view_changes_do_not_render_or_edit() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     let ctx = egui::Context::default();
     app.run("file.new", json!({"width": 64, "height": 48})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
@@ -60,14 +60,14 @@ fn histogram_follows_preview_and_view_changes_do_not_render_or_edit() {
 /// it is drawn in; the overlay fallback (`embed_viewports`) keeps the dialog open.
 #[test]
 fn closing_the_camera_raw_window_cancels() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     let ctx = egui::Context::default();
-    LocalPaintApp::setup_context(&ctx, crate::theme::ThemeKind::Pro);
+    LocalRasterApp::setup_context(&ctx, crate::theme::ThemeKind::Pro);
     app.run("file.new", json!({"width": 64, "height": 48})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     app.run("edit.fill", json!({"color": "#808080"})).unwrap();
     let steps = app.session.active().unwrap().history.past_len();
-    let frame = |app: &mut LocalPaintApp, close: bool| {
+    let frame = |app: &mut LocalRasterApp, close: bool| {
         let mut input = egui::RawInput::default();
         if close {
             let info = input.viewports.entry(egui::ViewportId::ROOT).or_default();
@@ -87,8 +87,8 @@ fn closing_the_camera_raw_window_cancels() {
 }
 
 /// A layer with tonal variation, a selection over part of it and the dialog open on it.
-fn worker_app() -> (LocalPaintApp, egui::Context) {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+fn worker_app() -> (LocalRasterApp, egui::Context) {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     let ctx = egui::Context::default();
     app.run("file.new", json!({"width": 64, "height": 48})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
@@ -165,8 +165,8 @@ fn a_stale_worker_never_replaces_a_newer_synchronous_render() {
 #[test]
 fn a_dialog_edit_develops_off_the_ui_thread() {
     let (mut app, ctx) = worker_app();
-    LocalPaintApp::setup_context(&ctx, crate::theme::ThemeKind::Pro);
-    let frame = |app: &mut LocalPaintApp| {
+    LocalRasterApp::setup_context(&ctx, crate::theme::ThemeKind::Pro);
+    let frame = |app: &mut LocalRasterApp| {
         ctx.run_ui(egui::RawInput::default(), |ui| show(app, ui.ctx())).textures_delta.clear();
     };
     frame(&mut app);
@@ -189,18 +189,18 @@ fn a_dialog_edit_develops_off_the_ui_thread() {
 #[test]
 fn a_worker_failure_is_reported_until_the_next_frame() {
     let (mut app, ctx) = worker_app();
-    LocalPaintApp::setup_context(&ctx, crate::theme::ThemeKind::Pro);
-    let frame = |app: &mut LocalPaintApp| {
+    LocalRasterApp::setup_context(&ctx, crate::theme::ThemeKind::Pro);
+    let frame = |app: &mut LocalRasterApp| {
         ctx.run_ui(egui::RawInput::default(), |ui| show(app, ui.ctx())).textures_delta.clear();
     };
-    let fail = |app: &mut LocalPaintApp| {
+    let fail = |app: &mut LocalRasterApp| {
         let (tx, rx) = std::sync::mpsc::channel();
         tx.send(Err("Camera Raw preview failed".to_string())).unwrap();
         let d = app.camera_raw.as_mut().unwrap();
         d.pending = Some(rx);
         d.dirty = false;
     };
-    let edit = |app: &mut LocalPaintApp, exposure: f32| {
+    let edit = |app: &mut LocalRasterApp, exposure: f32| {
         let d = app.camera_raw.as_mut().unwrap();
         d.params.exposure = exposure;
         d.dirty = true;
@@ -238,7 +238,7 @@ fn a_worker_failure_is_reported_until_the_next_frame() {
 
 #[test]
 fn smart_filter_double_click_edits_the_stored_camera_raw_filter_in_its_own_dialog() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     let ctx = egui::Context::default();
     app.run("file.new", json!({"width": 64, "height": 48})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
@@ -249,8 +249,8 @@ fn smart_filter_double_click_edits_the_stored_camera_raw_filter_in_its_own_dialo
     app.run("filter.cameraRaw", json!({"exposure": 1.0, "contrast": 20})).unwrap();
     app.run("layer.smartFilter.setParams", json!({"index": 0, "params": {"pointCurve": legacy}})).unwrap();
     let layer = app.session.active().unwrap().active_layer.unwrap();
-    let smart = |app: &LocalPaintApp| match &app.session.active().unwrap().doc.layer(layer).unwrap().content {
-        localpaint_doc::LayerContent::Smart(sm) => sm.clone(),
+    let smart = |app: &LocalRasterApp| match &app.session.active().unwrap().doc.layer(layer).unwrap().content {
+        localraster_doc::LayerContent::Smart(sm) => sm.clone(),
         _ => panic!("not a smart object"),
     };
     let steps = app.session.active().unwrap().history.past_len();
@@ -288,12 +288,12 @@ fn smart_filter_double_click_edits_the_stored_camera_raw_filter_in_its_own_dialo
 
 #[test]
 fn distant_sparse_pixels_cannot_trigger_an_unbounded_proxy_scan() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     let ctx = egui::Context::default();
     app.run("file.new", json!({"width":64,"height":48})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     let layer = app.session.active().unwrap().active_layer.unwrap();
-    let mut source = localpaint_raster::Surface::new(localpaint_color::PixelFormat::RGBA8);
+    let mut source = localraster_raster::Surface::new(localraster_color::PixelFormat::RGBA8);
     source.write_region(Rect::new(30_000, 30_000, 30_001, 30_001), &[0.5, 0.5, 0.5, 1.0]);
     let result = open_pixels(&mut app, &ctx, layer, source, CameraRaw::default(), Coverage::None, Target::NewFilter);
     assert!(result.unwrap_err().contains("bounds are too large"));
@@ -302,7 +302,7 @@ fn distant_sparse_pixels_cannot_trigger_an_unbounded_proxy_scan() {
 
 #[test]
 fn dialog_drives_the_engine() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     let ctx = egui::Context::default();
     app.run("file.new", json!({"width": 64, "height": 48})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
@@ -325,25 +325,25 @@ fn dialog_drives_the_engine() {
 }
 
 /// An app whose importer is the real one, opening a synthetic DNG.
-fn raw_app() -> (LocalPaintApp, Vec<u8>) {
-    use localpaint_raw::testgen::{DngSpec, mosaic, scene};
+fn raw_app() -> (LocalRasterApp, Vec<u8>) {
+    use localraster_raw::testgen::{DngSpec, mosaic, scene};
     let services = crate::Services {
-        import: Some(Box::new(|name: &str, b: &[u8], opts: &localpaint_io::ImportOptions| {
-            localpaint_io::import_with_options(name, b, opts).map(|r| (r.document, r.warnings)).map_err(|e| e.to_string())
+        import: Some(Box::new(|name: &str, b: &[u8], opts: &localraster_io::ImportOptions| {
+            localraster_io::import_with_options(name, b, opts).map(|r| (r.document, r.warnings)).map_err(|e| e.to_string())
         })),
         ..Default::default()
     };
     let (w, h) = (48, 32);
     let mut spec = DngSpec::cfa(w, h, mosaic(&scene(w, h), w, [0, 1, 1, 2], 0, 30000));
     spec.as_shot_neutral = Some([0.5, 1.0, 0.7]);
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), services);
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), services);
     // The pixel comparisons below read the developed ProPhoto values: no conversion on open
     // (Camera Raw Defaults › Color space is Adobe RGB otherwise).
     app.run("prefs.set", json!({"path": "rawDefaults.colorSpace", "value": "proPhoto"})).unwrap();
     (app, spec.build())
 }
 
-fn mean_red(app: &LocalPaintApp) -> f32 {
+fn mean_red(app: &LocalRasterApp) -> f32 {
     let st = app.session.active().unwrap();
     let s = st.doc.layer(st.active_layer.unwrap()).unwrap().surface().unwrap();
     (0..8).map(|i| s.rgba(4 + i * 4, 16)[0]).sum::<f32>() / 8.0
@@ -354,7 +354,7 @@ fn raw_opens_in_camera_raw_and_open_redevelops() {
     let (mut app, dng) = raw_app();
     let ctx = egui::Context::default();
     let warnings = app.open_bytes("IMG_0001.dng", &dng).unwrap();
-    assert!(warnings.iter().any(|w| w.contains(localpaint_io::raw::DEVELOPED_NOTE)), "{warnings:?}");
+    assert!(warnings.iter().any(|w| w.contains(localraster_io::raw::DEVELOPED_NOTE)), "{warnings:?}");
     // A raw has no embedded profile (ProPhoto RGB is the space it is developed into), so Ask
     // When Opening (on by default) has nothing to ask about.
     assert!(app.ui.dialogs.is_empty(), "no profile prompt for a raw");
@@ -372,11 +372,11 @@ fn raw_opens_in_camera_raw_and_open_redevelops() {
     assert_eq!(app.session.documents().len(), 1);
     let st = app.session.active().unwrap();
     assert_eq!(st.saved_revision, st.revision, "Open leaves the document unmodified");
-    assert_eq!(st.doc.depth, localpaint_color::SampleType::U16);
+    assert_eq!(st.doc.depth, localraster_color::SampleType::U16);
     assert!(mean_red(&app) > before + 0.05, "{before} → {}", mean_red(&app));
 }
 
-fn pixels(app: &LocalPaintApp) -> Vec<f32> {
+fn pixels(app: &LocalRasterApp) -> Vec<f32> {
     let st = app.session.active().unwrap();
     let s = st.doc.layer(st.active_layer.unwrap()).unwrap().surface().unwrap();
     (0..32).flat_map(|y| (0..48).map(move |x| (x, y))).flat_map(|(x, y)| s.rgba(x, y)).collect()
@@ -424,7 +424,7 @@ fn the_demosaic_method_is_chosen_at_open() {
     let document = app.session.active().unwrap().doc.id;
     queue_open_dialog(&mut app, document, "IMG_0004.dng", None, Some(&dng), &warnings).unwrap();
     let raw = app.pending_raw_open.take().unwrap();
-    use localpaint_io::raw::Demosaic;
+    use localraster_io::raw::Demosaic;
     assert_eq!((raw.developed_with, raw.demosaic), (Demosaic::Bilinear, Demosaic::Bilinear));
 }
 
@@ -500,7 +500,7 @@ fn background_redevelop_keeps_the_tab_position_and_view() {
     assert_eq!(docs.len(), 3);
     assert_eq!((docs[0].doc.size.width, docs[2].doc.size.width), (10, 12), "the other tabs keep their places");
     assert_ne!(docs[1].doc.id, old_id, "re-developed");
-    assert_eq!(docs[1].doc.depth, localpaint_color::SampleType::U16);
+    assert_eq!(docs[1].doc.depth, localraster_color::SampleType::U16);
     assert_eq!(docs[1].saved_revision, docs[1].revision, "Open leaves the document unmodified");
     assert_eq!(app.session.active_index(), Some(1));
     assert_eq!(app.ui.views[1].zoom, 3.0, "the view carries over to the re-developed document");
@@ -553,7 +553,7 @@ fn cancel_closes_the_raw_and_the_preference_skips_the_dialog() {
             &mut app,
             &ctx,
             RawOpen {
-                document: localpaint_doc::DocId(u64::MAX),
+                document: localraster_doc::DocId(u64::MAX),
                 name: "x".into(),
                 path: None,
                 bytes: None,
@@ -582,10 +582,10 @@ fn calibration_changes_the_preview_and_round_trips_through_xmp() {
         d.processed.iter().zip(&before).any(|(a, b)| (a[0] - b[0]).abs() > 0.01 || (a[1] - b[1]).abs() > 0.01),
         "the Calibration panel changes the preview"
     );
-    let xmp = localpaint_io::camera_raw_xmp::save(&d.params);
+    let xmp = localraster_io::camera_raw_xmp::save(&d.params);
     assert!(xmp.contains("crs:ShadowTint=\"+100\"") && xmp.contains("crs:RedHue=\"+100\"") && xmp.contains("crs:BlueSaturation=\"-100\""), "{xmp}");
     let mut back = CameraRaw::default();
-    localpaint_io::camera_raw_xmp::load(&mut back, xmp.as_bytes()).unwrap();
+    localraster_io::camera_raw_xmp::load(&mut back, xmp.as_bytes()).unwrap();
     assert_eq!((back.shadow_tint, back.calibration_hue, back.calibration_sat), (100.0, [100.0, 0.0, 0.0], [0.0, 0.0, -100.0]));
     assert!(menu(&mut app, &ctx, "filter.cameraRaw", &json!({"ui": {"auto": "yes"}})).unwrap().is_err(), "auto must be a boolean");
 }
@@ -614,7 +614,7 @@ fn auto_sets_the_light_sliders_from_the_image() {
 fn a_sidecar_fills_the_dialog_and_open_writes_it_back() {
     use std::sync::{Arc, Mutex};
     let (mut app, dng) = raw_app();
-    let dir = std::env::temp_dir().join(format!("localpaint-sidecar-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("localraster-sidecar-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     let raw_path = dir.join("IMG_0008.cr2").to_string_lossy().into_owned();
@@ -623,7 +623,7 @@ fn a_sidecar_fills_the_dialog_and_open_writes_it_back() {
     assert_eq!(sidecar_path("/a/b.c/noext"), "/a/b.c/noext.xmp");
     std::fs::write(
         sidecar_path(&raw_path),
-        "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Local Paint\"><rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"><rdf:Description xmlns:crs=\"http://ns.adobe.com/camera-raw-settings/1.0/\" crs:Exposure2012=\"+1.50\" crs:ShadowTint=\"20\" crs:Temperature=\"5500\"/></rdf:RDF></x:xmpmeta>",
+        "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Local Raster\"><rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"><rdf:Description xmlns:crs=\"http://ns.adobe.com/camera-raw-settings/1.0/\" crs:Exposure2012=\"+1.50\" crs:ShadowTint=\"20\" crs:Temperature=\"5500\"/></rdf:RDF></x:xmpmeta>",
     )
     .unwrap();
     type Written = Arc<Mutex<Vec<(String, Vec<u8>)>>>;
@@ -688,12 +688,12 @@ fn camera_raw_defaults_apply_when_a_raw_opens() {
     app.open_bytes("IMG_0010.dng", &dng).unwrap();
     assert!(app.pending_raw_open.is_none());
     let st = app.session.active().unwrap();
-    assert_eq!(st.doc.depth, localpaint_color::SampleType::U8, "Bit depth 8");
+    assert_eq!(st.doc.depth, localraster_color::SampleType::U8, "Bit depth 8");
     assert_eq!(st.doc.resolution_dpi, 240.0, "Resolution");
-    let profile = st.doc.icc_profile.as_deref().and_then(|p| localpaint_cms::Profile::parse(p).ok()).map(|p| p.description).unwrap_or_default();
+    let profile = st.doc.icc_profile.as_deref().and_then(|p| localraster_cms::Profile::parse(p).ok()).map(|p| p.description).unwrap_or_default();
     assert!(profile.to_lowercase().contains("srgb"), "Color space: {profile}");
     let layer = st.doc.layer(st.active_layer.unwrap()).unwrap();
-    assert!(matches!(layer.content, localpaint_doc::LayerContent::Smart(_)), "Open as Smart Object");
+    assert!(matches!(layer.content, localraster_doc::LayerContent::Smart(_)), "Open as Smart Object");
     assert_eq!(st.saved_revision, st.revision, "the defaults are part of opening: unmodified");
     // The dialog's Open applies them too, and reports what it applied.
     app.run("prefs.set", json!({"values": {"rawDefaults.openInCameraRaw": true, "rawDefaults.openAsSmartObject": false, "rawDefaults.bitDepth": "16"}}))
@@ -706,7 +706,7 @@ fn camera_raw_defaults_apply_when_a_raw_opens() {
     assert_eq!(r["defaults"], json!(["sharpenFor", "colorSpace"]), "{r}");
     assert!(r.get("filter").is_some(), "Sharpen For is a Camera Raw step: {r}");
     let st = app.session.active().unwrap();
-    assert_eq!(st.doc.depth, localpaint_color::SampleType::U16);
+    assert_eq!(st.doc.depth, localraster_color::SampleType::U16);
     assert_eq!(st.saved_revision, st.revision);
 }
 
@@ -734,9 +734,9 @@ const LIGHTROOM_SIDECAR: &str = r#"<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="
 /// `raw_app` whose `write` service records what it is asked to write, and a raw file in a fresh
 /// folder with `sidecar` beside it when given. Returns the app, the raw's bytes, the folder,
 /// the raw's path and the recorded writes.
-fn raw_with_sidecar(tag: &str, sidecar: Option<&str>) -> (LocalPaintApp, Vec<u8>, std::path::PathBuf, String, Written) {
+fn raw_with_sidecar(tag: &str, sidecar: Option<&str>) -> (LocalRasterApp, Vec<u8>, std::path::PathBuf, String, Written) {
     let (mut app, dng) = raw_app();
-    let dir = std::env::temp_dir().join(format!("localpaint-sidecar-{tag}-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("localraster-sidecar-{tag}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     let raw_path = dir.join("IMG_0100.cr2").to_string_lossy().into_owned();
@@ -754,7 +754,7 @@ fn raw_with_sidecar(tag: &str, sidecar: Option<&str>) -> (LocalPaintApp, Vec<u8>
 }
 
 /// Opens the raw at `raw_path` in the open-time dialog, as File › Open does.
-fn open_dialog_at(app: &mut LocalPaintApp, ctx: &egui::Context, dng: &[u8], raw_path: &str) {
+fn open_dialog_at(app: &mut LocalRasterApp, ctx: &egui::Context, dng: &[u8], raw_path: &str) {
     app.open_bytes("IMG_0100.cr2", dng).unwrap();
     let mut raw = app.pending_raw_open.take().unwrap();
     raw.path = Some(raw_path.to_string());
@@ -762,11 +762,11 @@ fn open_dialog_at(app: &mut LocalPaintApp, ctx: &egui::Context, dng: &[u8], raw_
 }
 
 /// The notices about the sidecar (the open's own import notes aside).
-fn notice_titles(app: &LocalPaintApp) -> Vec<String> {
+fn notice_titles(app: &LocalRasterApp) -> Vec<String> {
     app.ui.notices.iter().map(|n| n.title.clone()).filter(|t| t.contains(".xmp")).collect()
 }
 
-/// A Lightroom or Bridge sidecar holds settings Local Paint can't keep (crop, masks, rating,
+/// A Lightroom or Bridge sidecar holds settings Local Raster can't keep (crop, masks, rating,
 /// keywords): Open uses its develop settings but never writes over it, and says so.
 #[test]
 fn a_foreign_sidecar_is_never_overwritten() {
@@ -783,7 +783,7 @@ fn a_foreign_sidecar_is_never_overwritten() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
-/// Bridge writes a sidecar with only a rating (no Camera Raw settings): it is not Local Paint's
+/// Bridge writes a sidecar with only a rating (no Camera Raw settings): it is not Local Raster's
 /// to replace, with or without a change in the dialog.
 #[test]
 fn a_rating_only_sidecar_is_left_alone() {
@@ -820,7 +820,7 @@ fn opening_without_the_dialog_does_not_rewrite_the_sidecar() {
 /// develops the raw but writes no sidecar. The same Open from the dialog does.
 #[test]
 fn a_control_request_never_writes_the_sidecar() {
-    fn allow(_: &str, _: &Value) -> localpaint_engine::Result<()> {
+    fn allow(_: &str, _: &Value) -> localraster_engine::Result<()> {
         Ok(())
     }
     let (mut app, dng, dir, raw_path, written) = raw_with_sidecar("control", None);
@@ -853,16 +853,16 @@ fn a_sidecar_write_error_stays_reported() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
-fn open_with_settings(app: &mut LocalPaintApp, ctx: &egui::Context, dng: &[u8], name: &str) {
+fn open_with_settings(app: &mut LocalRasterApp, ctx: &egui::Context, dng: &[u8], name: &str) {
     app.open_bytes(name, dng).unwrap();
     let raw = app.pending_raw_open.take().unwrap();
     open_raw(app, ctx, raw).unwrap();
     menu(app, ctx, "filter.cameraRaw", &json!({"ui": {"set": {"exposure": 0.5, "contrast": 60, "saturation": 40, "vibrance": 30}}})).unwrap().unwrap();
 }
 
-fn profile_name(app: &LocalPaintApp) -> String {
+fn profile_name(app: &LocalRasterApp) -> String {
     let st = app.session.active().unwrap();
-    st.doc.icc_profile.as_deref().and_then(|p| localpaint_cms::Profile::parse(p).ok()).map(|p| p.description).unwrap_or_default()
+    st.doc.icc_profile.as_deref().and_then(|p| localraster_cms::Profile::parse(p).ok()).map(|p| p.description).unwrap_or_default()
 }
 
 /// Camera Raw renders in its own space and converts to the workflow space last, so Open gives
@@ -941,10 +941,10 @@ fn two_raws_opened_back_to_back_both_finish_their_open() {
 /// one byte larger, is not read (a pipe or device named like one would never end).
 #[test]
 fn sidecars_are_read_from_small_regular_files_only() {
-    let dir = std::env::temp_dir().join(format!("localpaint-sidecar-bounded-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("localraster-sidecar-bounded-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(dir.join("folder.xmp")).unwrap();
-    let cap = localpaint_io::camera_raw_xmp::MAX_XMP_BYTES;
+    let cap = localraster_io::camera_raw_xmp::MAX_XMP_BYTES;
     let (fits, larger) = (dir.join("fits.xmp"), dir.join("larger.xmp"));
     std::fs::write(&fits, vec![b' '; cap]).unwrap();
     std::fs::write(&larger, vec![b' '; cap + 1]).unwrap();
@@ -983,9 +983,9 @@ fn save_and_load_settings_round_trip_through_xmp_files() {
         })),
         ..Default::default()
     };
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), services);
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), services);
     let ctx = egui::Context::default();
-    let frame = |app: &mut LocalPaintApp| app.poll_file_dialog(&egui::Context::default(), None);
+    let frame = |app: &mut LocalRasterApp| app.poll_file_dialog(&egui::Context::default(), None);
     app.run("file.new", json!({"width": 16, "height": 16})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     app.run("edit.fill", json!({"color": "#808080"})).unwrap();

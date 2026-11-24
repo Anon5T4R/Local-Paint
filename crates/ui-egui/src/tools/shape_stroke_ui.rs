@@ -1,6 +1,6 @@
 //! Shape stroke geometry controls shared by the tool defaults and Properties.
 use egui::vec2;
-use localpaint_doc::{LineCap, LineJoin, ShapeStroke, StrokeAlign};
+use localraster_doc::{LineCap, LineJoin, ShapeStroke, StrokeAlign};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
@@ -36,7 +36,7 @@ impl StrokeOptions {
             "miterLimit": self.miter_limit, "dashes": self.dashes, "dashOffset": self.dash_offset, "opacity": self.opacity * 100.0})
     }
 
-    pub fn stroke(&self, width: f32, paint: localpaint_doc::Fill) -> ShapeStroke {
+    pub fn stroke(&self, width: f32, paint: localraster_doc::Fill) -> ShapeStroke {
         ShapeStroke {
             width,
             paint,
@@ -75,13 +75,13 @@ impl StrokeOptions {
     }
 
     pub(crate) fn valid(&self) -> bool {
-        self.stroke(3.0, localpaint_doc::Fill::Solid(localpaint_doc::Color::BLACK)).validate().is_ok()
+        self.stroke(3.0, localraster_doc::Fill::Solid(localraster_doc::Color::BLACK)).validate().is_ok()
     }
 }
 
 #[derive(Clone)]
 struct DragCache {
-    shape: localpaint_doc::ShapeLayer,
+    shape: localraster_doc::ShapeLayer,
     clip: egui::Rect,
     image_rect: egui::Rect,
     texture: egui::TextureHandle,
@@ -89,7 +89,7 @@ struct DragCache {
 
 /// The drag uses the committed vector rasterizer. Cache by geometry/style/visible region, and
 /// cap proxy resolution so oversized windows cannot allocate a document-sized preview.
-pub fn paint_shape_preview(painter: &egui::Painter, shape: &localpaint_doc::ShapeLayer) {
+pub fn paint_shape_preview(painter: &egui::Painter, shape: &localraster_doc::ShapeLayer) {
     let clip = painter.clip_rect();
     if !clip.is_finite() || clip.is_negative() {
         return;
@@ -99,13 +99,14 @@ pub fn paint_shape_preview(painter: &egui::Painter, shape: &localpaint_doc::Shap
     let cache = cached.filter(|c| c.shape == *shape && c.clip == clip).or_else(|| {
         let scale = (2048.0 / clip.width().max(clip.height()).max(1.0)).min(1.0);
         let mut proxy = shape.clone();
-        let tr = localpaint_geom::Affine { m: [scale as f64, 0.0, 0.0, scale as f64, -(clip.left() * scale) as f64, -(clip.top() * scale) as f64] };
+        let tr = localraster_geom::Affine { m: [scale as f64, 0.0, 0.0, scale as f64, -(clip.left() * scale) as f64, -(clip.top() * scale) as f64] };
         proxy.path = proxy.path.transform(&tr);
         if let Some(stroke) = proxy.stroke.as_mut() {
             stroke.width *= scale;
         }
-        let canvas = localpaint_geom::Rect::from_size(localpaint_geom::Size::new((clip.width() * scale).ceil() as u32, (clip.height() * scale).ceil() as u32));
-        let compiled = localpaint_vector::CompiledShape::new(&proxy, localpaint_vector::DEFAULT_TOLERANCE, canvas);
+        let canvas =
+            localraster_geom::Rect::from_size(localraster_geom::Size::new((clip.width() * scale).ceil() as u32, (clip.height() * scale).ceil() as u32));
+        let compiled = localraster_vector::CompiledShape::new(&proxy, localraster_vector::DEFAULT_TOLERANCE, canvas);
         let bounds = compiled.bounds()?.intersect(&canvas);
         if bounds.is_empty() {
             return None;
@@ -146,7 +147,7 @@ pub(super) fn mark_rendered(ctx: &egui::Context, key: &str) {
 
 /// A hidden options row or collapsed Appearance section no longer owns input.
 /// Called after all options bars and Properties windows have had a chance to draw.
-pub(crate) fn finish_frame(app: &mut crate::LocalPaintApp, ctx: &egui::Context) {
+pub(crate) fn finish_frame(app: &mut crate::LocalRasterApp, ctx: &egui::Context) {
     let Some(e) = &app.ui.stroke_editor else { return };
     let shown = ctx.data(|d| d.get_temp::<u64>(egui::Id::unique(("shape-stroke-rendered", e.key.as_str()))));
     if shown != Some(ctx.cumulative_pass_nr()) {
@@ -163,7 +164,7 @@ struct CanvasDismissal {
 
 /// Pressing the canvas dismisses this popup and consumes that entire gesture. In particular,
 /// its release must not open a shape-size dialog or commit a shape dragged behind the popup.
-pub(crate) fn dismiss_from_canvas(app: &mut crate::LocalPaintApp, response: &egui::Response) -> bool {
+pub(crate) fn dismiss_from_canvas(app: &mut crate::LocalRasterApp, response: &egui::Response) -> bool {
     let ctx = &response.ctx;
     let frame = ctx.cumulative_frame_nr();
     let was_open = app.ui.stroke_editor.is_some() || ctx.data(|d| d.get_temp::<u64>(open_frame_id())) == Some(frame);
@@ -186,7 +187,7 @@ pub(crate) fn dismiss_from_canvas(app: &mut crate::LocalPaintApp, response: &egu
 }
 
 /// Drop a popup whose source disappeared or changed outside this editor (including Undo).
-pub(crate) fn sync_editor(app: &mut crate::LocalPaintApp, ctx: &egui::Context) {
+pub(crate) fn sync_editor(app: &mut crate::LocalRasterApp, ctx: &egui::Context) {
     let Some(e) = &app.ui.stroke_editor else { return };
     let valid = if let Some((doc, layer)) = e.target {
         app.session.active().is_some_and(|st| {
@@ -196,7 +197,7 @@ pub(crate) fn sync_editor(app: &mut crate::LocalPaintApp, ctx: &egui::Context) {
                 && !locks.all
                 && !locks.pixels
                 && st.doc.layer(layer).is_some_and(|l| match &l.content {
-                    localpaint_doc::LayerContent::Shape(shape) => shape.stroke.as_ref().map(StrokeOptions::from).unwrap_or_default() == e.original,
+                    localraster_doc::LayerContent::Shape(shape) => shape.stroke.as_ref().map(StrokeOptions::from).unwrap_or_default() == e.original,
                     _ => false,
                 })
         })

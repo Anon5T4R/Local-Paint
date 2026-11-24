@@ -4,9 +4,9 @@
 
 #![cfg(all(feature = "corpus", feature = "heif"))]
 
-use localpaint_codecs::{Format, decode, detect, exif_orientation};
-use localpaint_doc::{ColorMode, SampleType};
-use localpaint_io::{ExportOptions, export, import};
+use localraster_codecs::{Format, decode, detect, exif_orientation};
+use localraster_doc::{ColorMode, SampleType};
+use localraster_io::{ExportOptions, export, import};
 
 /// A file of `corpus/heif/`; a missing corpus fails.
 fn corpus(rel: &str) -> Vec<u8> {

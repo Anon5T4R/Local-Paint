@@ -9,12 +9,12 @@
 
 use std::sync::Arc;
 
-use localpaint_algo::{
+use localraster_algo::{
     self as algo, BlurPath, BlurQuality, BlurShape, DepthSource, DiffuseMode, Distribution, ExtrudeType, FieldPin, FilterParams, HsbModel, IrisPin, LensType,
     Light, LightKind, MezzotintType, SmartBlurMode, SpinPin, TextureChannel, TileFill, UndefinedAreas, WindMethod, ZigZagStyle,
 };
-use localpaint_doc::{Document, Layer};
-use localpaint_geom::Rect;
+use localraster_doc::{Document, Layer};
+use localraster_geom::Rect;
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;
@@ -288,7 +288,7 @@ fn displace(p: &Value) -> FilterParams {
         stretch: s(p, "fit", "stretch") != "tile",
         undefined: undefined(p, "repeat"),
         // PSD imports carry the map, and `mapPath` or `mapDocument` resolve later.
-        map: localpaint_io::smart_map::displace_embedded_map(p),
+        map: localraster_io::smart_map::displace_embedded_map(p),
     }
 }
 
@@ -491,9 +491,9 @@ pub(crate) fn prepare(s: &Session, id: &str, p: &Value) -> Value {
 
 /// A flattened document (or one of its layers) as an RGBA map image.
 fn map_from_document(doc: &Document, layer: Option<u64>) -> Option<algo::Image> {
-    let buf = match layer.and_then(|l| doc.layer(localpaint_doc::LayerId(l))) {
-        Some(l) => localpaint_compose::render_layer(l, l.surface().map(|s| s.content_bounds()).filter(|r| !r.is_empty()).unwrap_or_else(|| doc.bounds())),
-        None => localpaint_compose::flatten(doc),
+    let buf = match layer.and_then(|l| doc.layer(localraster_doc::LayerId(l))) {
+        Some(l) => localraster_compose::render_layer(l, l.surface().map(|s| s.content_bounds()).filter(|r| !r.is_empty()).unwrap_or_else(|| doc.bounds())),
+        None => localraster_compose::flatten(doc),
     };
     if buf.rect.is_empty() {
         return None;
@@ -541,7 +541,7 @@ pub(crate) fn resolve(s: &Session, fp: &mut FilterParams, p: &Value) -> Result<(
 /// wins over the one already embedded, which is read only when none is named. Otherwise a dialog
 /// or agent passing the filter's stored params back with a new map got the old map again.
 pub(crate) fn displace_request(p: &Value) -> Value {
-    if map_path(p).is_some() || map_document(p).is_some() { localpaint_io::smart_map::displace_without_map(p) } else { p.clone() }
+    if map_path(p).is_some() || map_document(p).is_some() { localraster_io::smart_map::displace_without_map(p) } else { p.clone() }
 }
 
 pub(crate) fn map_path(p: &Value) -> Option<&str> {

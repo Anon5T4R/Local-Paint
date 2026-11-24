@@ -77,21 +77,21 @@ impl Host {
 }
 
 struct Desktop {
-    h: Harness<'static, LocalPaintApp>,
+    h: Harness<'static, LocalRasterApp>,
     host: Rc<RefCell<Host>>,
 }
 
 impl Desktop {
-    fn new(app: LocalPaintApp) -> Self {
+    fn new(app: LocalRasterApp) -> Self {
         let size = vec2(1400.0, 900.0);
         let host = Rc::new(RefCell::new(Host { size, ..Default::default() }));
         let shared = host.clone();
         egui::Context::set_immediate_viewport_renderer(move |ctx, viewport| Host::render(&shared, ctx, viewport));
         let mut ready = false;
         let h = Harness::builder().with_size(size).with_step_dt(1.0 / 60.0).build_ui_state(
-            move |ui, app: &mut LocalPaintApp| {
+            move |ui, app: &mut LocalRasterApp| {
                 if !ready {
-                    LocalPaintApp::setup_context(ui.ctx(), app.ui.theme);
+                    LocalRasterApp::setup_context(ui.ctx(), app.ui.theme);
                     ui.ctx().set_embed_viewports(false);
                     ready = true;
                     return;
@@ -163,12 +163,12 @@ impl Desktop {
     }
 }
 
-fn lay(app: &LocalPaintApp) -> &Layout<String> {
+fn lay(app: &LocalRasterApp) -> &Layout<String> {
     &app.ui.docking.as_ref().expect("a customized workspace").layout
 }
 
-fn app_with_document() -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+fn app_with_document() -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 64, "height": 48})).unwrap();
     app
 }
@@ -200,7 +200,7 @@ fn undocking_a_panel_opens_its_own_window_and_the_studio_card_stays_in_the_main_
     desktop.steps(3);
     assert!(desktop.window_of("history").is_some(), "History has its own window");
 
-    let mut studio = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut studio = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     studio.ui.theme = crate::theme::ThemeKind::Studio;
     studio.run("file.new", json!({"width": 64, "height": 48})).unwrap();
     let mut desktop = Desktop::new(studio);
@@ -213,7 +213,7 @@ fn undocking_a_panel_opens_its_own_window_and_the_studio_card_stays_in_the_main_
     assert!(refused.is_err(), "{refused:?}");
 }
 
-fn studio_app() -> LocalPaintApp {
+fn studio_app() -> LocalRasterApp {
     let mut app = app_with_document();
     app.ui.theme = crate::theme::ThemeKind::Studio;
     app
@@ -241,7 +241,7 @@ fn the_studio_card_stays_in_the_main_window_after_a_reload() {
 }
 
 #[test]
-fn keys_pressed_in_a_panel_window_run_localpaints_shortcuts() {
+fn keys_pressed_in_a_panel_window_run_localrasters_shortcuts() {
     let mut desktop = Desktop::new(app_with_document());
     desktop.h.state_mut().run("window.panel.float", json!({"panel": "info"})).unwrap();
     desktop.steps(3);
@@ -331,9 +331,9 @@ fn keys_held_in_a_panel_window_count_as_released_once_it_loses_the_keyboard() {
 
 #[test]
 fn a_dialog_blocks_the_panel_windows() {
-    let about = |app: &mut LocalPaintApp| _ = app.ui.open_dialog(crate::state::DialogKind::About, Default::default());
-    let blur = |app: &mut LocalPaintApp| _ = crate::dialogs::open_command_dialog(app, "filter.blur.gaussianBlur", "Gaussian Blur");
-    for (name, open) in [("About", &about as &dyn Fn(&mut LocalPaintApp)), ("Gaussian Blur", &blur)] {
+    let about = |app: &mut LocalRasterApp| _ = app.ui.open_dialog(crate::state::DialogKind::About, Default::default());
+    let blur = |app: &mut LocalRasterApp| _ = crate::dialogs::open_command_dialog(app, "filter.blur.gaussianBlur", "Gaussian Blur");
+    for (name, open) in [("About", &about as &dyn Fn(&mut LocalRasterApp)), ("Gaussian Blur", &blur)] {
         let mut desktop = Desktop::new(app_with_document());
         desktop.h.state_mut().run("window.panel.float", json!({"panel": "info"})).unwrap();
         desktop.steps(3);
@@ -375,12 +375,12 @@ impl egui::DroppedFile for Dropped {
 
 #[test]
 fn a_file_dropped_on_a_panel_window_opens_as_a_document() {
-    // An importer that names the document after the file, as localpaint-io does.
-    let import = |name: &str, _: &[u8], _: &localpaint_io::ImportOptions| {
-        let size = localpaint_geom::Size::new(4, 4);
-        Ok((localpaint_doc::Document::new(name, size, localpaint_color::ColorMode::Rgb, localpaint_color::SampleType::U8), Vec::new()))
+    // An importer that names the document after the file, as localraster-io does.
+    let import = |name: &str, _: &[u8], _: &localraster_io::ImportOptions| {
+        let size = localraster_geom::Size::new(4, 4);
+        Ok((localraster_doc::Document::new(name, size, localraster_color::ColorMode::Rgb, localraster_color::SampleType::U8), Vec::new()))
     };
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services { import: Some(Box::new(import)), ..Default::default() });
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services { import: Some(Box::new(import)), ..Default::default() });
     app.run("file.new", json!({"width": 64, "height": 48})).unwrap();
     let mut desktop = Desktop::new(app);
     desktop.h.state_mut().run("window.panel.float", json!({"panel": "info"})).unwrap();

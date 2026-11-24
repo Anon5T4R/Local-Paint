@@ -2,17 +2,17 @@
 //! visible layer with pixels under the pointer (or its outermost group in Group mode) and the drag
 //! then moves it; ⌘/Ctrl held at the press inverts the option for that click.
 
-use localpaint_doc::LayerId;
-use localpaint_geom::Rect;
+use localraster_doc::LayerId;
+use localraster_geom::Rect;
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::canvas::ToolEvent;
 use crate::state::{Tool, ToolOptions};
 
 /// A 64×64 document with two painted layers: A covers (8..24)², B covers (40..56)². B is active.
-fn app() -> (LocalPaintApp, LayerId, LayerId) {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn app() -> (LocalRasterApp, LayerId, LayerId) {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 64, "height": 64})).unwrap();
     app.sync_views();
     let mut ids = Vec::new();
@@ -33,15 +33,15 @@ fn app() -> (LocalPaintApp, LayerId, LayerId) {
     (app, ids[0], ids[1])
 }
 
-fn bounds(app: &LocalPaintApp, id: LayerId) -> Rect {
+fn bounds(app: &LocalRasterApp, id: LayerId) -> Rect {
     app.session.active().unwrap().doc.layer(id).unwrap().surface().unwrap().content_bounds()
 }
 
-fn active(app: &LocalPaintApp) -> Option<LayerId> {
+fn active(app: &LocalRasterApp) -> Option<LayerId> {
     app.session.active().unwrap().active_layer
 }
 
-fn drag(app: &mut LocalPaintApp, from: [f64; 2], by: [f64; 2], mods: egui::Modifiers) {
+fn drag(app: &mut LocalRasterApp, from: [f64; 2], by: [f64; 2], mods: egui::Modifiers) {
     crate::canvas::tool_event(app, ToolEvent::Down { x: from[0], y: from[1], pressure: 1.0 }, mods);
     let mid = [from[0] + by[0] / 2.0, from[1] + by[1] / 2.0];
     crate::canvas::tool_event(app, ToolEvent::Move { x: mid[0], y: mid[1], pressure: 1.0 }, mods);
@@ -135,7 +135,7 @@ fn every_theme_shows_the_auto_select_toggle() {
     for theme in [crate::theme::ThemeKind::ProMedium, crate::theme::ThemeKind::Studio] {
         let (app, _, _) = app();
         let mut h = Harness::builder().with_size(egui::vec2(1400.0, 60.0)).build_ui_state(
-            |ui, app: &mut LocalPaintApp| {
+            |ui, app: &mut LocalRasterApp| {
                 if !ui.ctx().fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                     return;
                 }
@@ -143,7 +143,7 @@ fn every_theme_shows_the_auto_select_toggle() {
             },
             app,
         );
-        LocalPaintApp::setup_context(&h.ctx, theme);
+        LocalRasterApp::setup_context(&h.ctx, theme);
         h.run_steps(4);
         assert!(h.state().ui.tool_options.move_auto_select);
         h.get_by_role_and_label(egui::accesskit::Role::CheckBox, "Auto-Select:").click();
@@ -161,7 +161,7 @@ fn every_theme_shows_the_transform_controls_toggle() {
     for theme in crate::theme::ThemeKind::ALL {
         let (app, _, _) = app();
         let mut h = Harness::builder().with_size(egui::vec2(1400.0, 60.0)).build_ui_state(
-            |ui, app: &mut LocalPaintApp| {
+            |ui, app: &mut LocalRasterApp| {
                 if !ui.ctx().fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                     return;
                 }
@@ -169,7 +169,7 @@ fn every_theme_shows_the_transform_controls_toggle() {
             },
             app,
         );
-        LocalPaintApp::setup_context(&h.ctx, theme);
+        LocalRasterApp::setup_context(&h.ctx, theme);
         h.run_steps(4);
         let before = h.state().ui.tool_options.move_show_transform;
         h.get_by_label("Show Transform Controls").click();
@@ -185,12 +185,12 @@ fn every_theme_shows_the_type_options() {
     use egui_kittest::Harness;
     use egui_kittest::kittest::{NodeT, Queryable};
     // The font menus show "Loading fonts…" until the font scan is done (#3021): wait for it.
-    let _ = localpaint_text::shared();
+    let _ = localraster_text::shared();
     for theme in crate::theme::ThemeKind::ALL {
         let (mut app, _, _) = app();
         app.ui.tool = Tool::Type;
         let mut h = Harness::builder().with_size(egui::vec2(1600.0, 60.0)).build_ui_state(
-            |ui, app: &mut LocalPaintApp| {
+            |ui, app: &mut LocalRasterApp| {
                 if !ui.ctx().fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                     return;
                 }
@@ -198,7 +198,7 @@ fn every_theme_shows_the_type_options() {
             },
             app,
         );
-        LocalPaintApp::setup_context(&h.ctx, theme);
+        LocalRasterApp::setup_context(&h.ctx, theme);
         h.run_steps(4);
         let fields: Vec<String> = h
             .query_all_by_role(egui::accesskit::Role::TextInput)
@@ -219,7 +219,7 @@ fn every_theme_shows_the_gradient_options() {
         let (mut app, _, _) = app();
         app.ui.tool = Tool::Gradient;
         let mut h = Harness::builder().with_size(egui::vec2(1600.0, 60.0)).build_ui_state(
-            |ui, app: &mut LocalPaintApp| {
+            |ui, app: &mut LocalRasterApp| {
                 if !ui.ctx().fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                     return;
                 }
@@ -227,7 +227,7 @@ fn every_theme_shows_the_gradient_options() {
             },
             app,
         );
-        LocalPaintApp::setup_context(&h.ctx, theme);
+        LocalRasterApp::setup_context(&h.ctx, theme);
         h.run_steps(4);
         let combos: Vec<String> = h
             .query_all_by_role(egui::accesskit::Role::ComboBox)
@@ -240,7 +240,7 @@ fn every_theme_shows_the_gradient_options() {
 #[test]
 fn shift_click_adds_shape_layers_one_after_another() {
     // Shapes, as in Photoshop: a click selects one, each ⇧-click adds the one under it.
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 200, "height": 200})).unwrap();
     for rect in [[10, 10, 40, 40], [80, 10, 40, 40], [10, 100, 40, 40]] {
         app.session.execute("shape.create", json!({"kind": "rect", "rect": rect, "fill": "#ff0000"})).unwrap();

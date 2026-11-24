@@ -2,24 +2,24 @@
 //! box's size in the Units & Rulers unit (as Photoshop does), not always its scale in percent.
 //!
 //! The real app runs offscreen on wgpu with real egui pointer events. Skips when no GPU adapter
-//! exists (like `drag_preview_canvas.rs`). Set `LOCALPAINT_TRANSFORM_READOUT_EVIDENCE_DIR` to save
+//! exists (like `drag_preview_canvas.rs`). Set `LOCALRASTER_TRANSFORM_READOUT_EVIDENCE_DIR` to save
 //! the frames, mid-drag, as PNGs.
 
 use egui::{Modifiers, PointerButton, Pos2};
 use egui_kittest::kittest::Queryable;
-use localpaint_engine::prefs::Unit;
-use localpaint_ui_egui::LocalPaintApp;
-use localpaint_ui_egui::canvas::ViewXform;
-use localpaint_ui_egui::control::{ControlRequest, handle};
+use localraster_engine::prefs::Unit;
+use localraster_ui_egui::LocalRasterApp;
+use localraster_ui_egui::canvas::ViewXform;
+use localraster_ui_egui::control::{ControlRequest, handle};
 use serde_json::{Value, json};
 
-type Harness = egui_kittest::Harness<'static, LocalPaintApp>;
+type Harness = egui_kittest::Harness<'static, LocalRasterApp>;
 
 fn harness() -> Option<Harness> {
     let built = std::panic::catch_unwind(|| {
         egui_kittest::Harness::builder().with_size(egui::vec2(900.0, 640.0)).with_max_steps(64).wgpu().build_eframe(|cc| {
-            LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-            let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+            LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+            let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
             // The queries below use English labels; don't follow the system locale.
             app.session.prefs.edit(|p| p.interface.language = "en".into());
             if let Some(rs) = cc.wgpu_render_state.as_ref() {
@@ -81,7 +81,7 @@ fn setup() -> Option<Harness> {
 fn the_scale_readout_shows_the_size_in_the_ruler_unit() {
     // Windows WARP can access-violate when GPU harnesses initialize or tear down concurrently:
     // hold the GPU lock for the whole test, harness included.
-    let _gpu = localpaint_testkit::gpu_lock();
+    let _gpu = localraster_testkit::gpu_lock();
     // The right edge from x 200 to 300 doubles the box (proportionally): 200 × 100 px, which at
     // 72 ppi is 7.06 × 3.53 cm; 200 % of the original box with the rulers in percent.
     for (unit, name, w, h_text) in
@@ -104,7 +104,7 @@ fn the_scale_readout_shows_the_size_in_the_ruler_unit() {
         if unit != Unit::Percent {
             assert!(h.query_all_by_label("200.0%").next().is_none(), "{name}: no percent readout");
         }
-        if let Some(dir) = std::env::var_os("LOCALPAINT_TRANSFORM_READOUT_EVIDENCE_DIR") {
+        if let Some(dir) = std::env::var_os("LOCALRASTER_TRANSFORM_READOUT_EVIDENCE_DIR") {
             let dir = std::path::PathBuf::from(dir);
             std::fs::create_dir_all(&dir).expect("evidence directory");
             h.render().expect("render").save(dir.join(format!("transform-readout-{name}.png"))).expect("save evidence");

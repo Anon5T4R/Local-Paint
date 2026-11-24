@@ -1,8 +1,8 @@
 //! #7789: the headless (MCP) `doc.open` opens a developed raw at Preferences › Raw Defaults ›
 //! Resolution, as the app's File › Open does.
 
-use localpaint_automation::Headless;
-use localpaint_raw::testgen::{DngSpec, mosaic, scene};
+use localraster_automation::Headless;
+use localraster_raw::testgen::{DngSpec, mosaic, scene};
 use serde_json::json;
 
 #[test]

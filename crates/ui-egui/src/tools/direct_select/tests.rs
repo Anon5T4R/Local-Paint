@@ -3,17 +3,17 @@
 //! is a tool of its own, in the Pen's flyout.
 
 use egui::Modifiers;
-use localpaint_doc::vector::Path;
-use localpaint_geom::Point;
+use localraster_doc::vector::Path;
+use localraster_geom::Point;
 use serde_json::json;
 
 use super::{Drag, PathRef};
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::canvas::{ToolEvent, tool_event};
 use crate::state::Tool;
 
-fn app(tool: Tool) -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn app(tool: Tool) -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 200, "height": 200})).unwrap();
     app.sync_views();
     app.ui.tool = tool;
@@ -21,7 +21,7 @@ fn app(tool: Tool) -> LocalPaintApp {
 }
 
 /// A square work path; knot 1 at (120, 40) is smooth with horizontal handles.
-fn with_path(app: &mut LocalPaintApp) {
+fn with_path(app: &mut LocalRasterApp) {
     let path = json!({"subpaths": [{"closed": true, "knots": [
         [40, 40],
         {"anchor": [120, 40], "in": [100, 40], "out": [140, 40], "smooth": true},
@@ -31,19 +31,19 @@ fn with_path(app: &mut LocalPaintApp) {
     app.run("path.set", json!({"name": "work", "path": path})).unwrap();
 }
 
-fn work(app: &LocalPaintApp) -> Path {
+fn work(app: &LocalRasterApp) -> Path {
     app.session.active().unwrap().doc.work_path.clone().unwrap()
 }
 
-fn anchor(app: &LocalPaintApp, k: usize) -> Point {
+fn anchor(app: &LocalRasterApp, k: usize) -> Point {
     work(app).subpaths[0].knots[k].anchor
 }
 
-fn steps(app: &LocalPaintApp) -> usize {
+fn steps(app: &LocalRasterApp) -> usize {
     app.session.active().unwrap().history.entries().len()
 }
 
-fn drag(app: &mut LocalPaintApp, from: [f64; 2], to: [f64; 2], mods: Modifiers) {
+fn drag(app: &mut LocalRasterApp, from: [f64; 2], to: [f64; 2], mods: Modifiers) {
     tool_event(app, ToolEvent::Down { x: from[0], y: from[1], pressure: 1.0 }, mods);
     let mid = [(from[0] + to[0]) / 2.0, (from[1] + to[1]) / 2.0];
     tool_event(app, ToolEvent::Move { x: mid[0], y: mid[1], pressure: 1.0 }, mods);
@@ -51,7 +51,7 @@ fn drag(app: &mut LocalPaintApp, from: [f64; 2], to: [f64; 2], mods: Modifiers) 
     tool_event(app, ToolEvent::Up { x: to[0], y: to[1] }, mods);
 }
 
-fn click(app: &mut LocalPaintApp, at: [f64; 2], mods: Modifiers) {
+fn click(app: &mut LocalRasterApp, at: [f64; 2], mods: Modifiers) {
     drag(app, at, at, mods);
 }
 
@@ -204,7 +204,7 @@ fn pen_with_alt_converts_points() {
     let mut app = app(Tool::Pen);
     with_path(&mut app);
     click(&mut app, [120.0, 40.0], Modifiers::ALT);
-    assert_eq!(work(&app).subpaths[0].knots[1], localpaint_doc::Knot::corner(120.0, 40.0), "⌥-click makes a corner");
+    assert_eq!(work(&app).subpaths[0].knots[1], localraster_doc::Knot::corner(120.0, 40.0), "⌥-click makes a corner");
     drag(&mut app, [40.0, 120.0], [40.0, 140.0], Modifiers::ALT);
     let k = work(&app).subpaths[0].knots[3];
     assert_eq!((k.in_ctrl, k.out_ctrl, k.smooth), (Point::new(40.0, 100.0), Point::new(40.0, 140.0), true), "⌥-drag pulls out smooth handles");
@@ -232,7 +232,7 @@ fn the_convert_point_tool_converts_points_without_a_modifier() {
     with_path(&mut app);
     let n = steps(&app);
     click(&mut app, [120.0, 40.0], Modifiers::NONE);
-    assert_eq!(work(&app).subpaths[0].knots[1], localpaint_doc::Knot::corner(120.0, 40.0), "a click makes a corner");
+    assert_eq!(work(&app).subpaths[0].knots[1], localraster_doc::Knot::corner(120.0, 40.0), "a click makes a corner");
     assert_eq!(steps(&app), n + 1);
     assert_eq!(app.ui.direct_selection.anchors, vec![[0, 1]], "the converted anchor is selected");
     drag(&mut app, [40.0, 120.0], [40.0, 140.0], Modifiers::NONE);
@@ -291,7 +291,7 @@ fn the_convert_point_tool_shows_the_path_overlay() {
 }
 
 /// One key press through the canvas arrow keys, as egui delivers it.
-fn press(app: &mut LocalPaintApp, key: egui::Key, mods: Modifiers) -> bool {
+fn press(app: &mut LocalRasterApp, key: egui::Key, mods: Modifiers) -> bool {
     let ctx = egui::Context::default();
     ctx.input_mut(|i| {
         i.modifiers = mods;
@@ -399,14 +399,14 @@ fn a_closed_curvature_pen_path_stays_editable_with_the_curvature_pen() {
     assert_eq!((work(&app).subpaths.len(), steps(&app)), (1, n + 1));
     // The whole loop reflows through the moved anchor, as the Curvature Pen drew it.
     let pts = [[40.0, 40.0], [160.0, 40.0], [100.0, 180.0]];
-    let want = localpaint_vector::edit::curvature_knots(&pts, &[false; 3], true);
+    let want = localraster_vector::edit::curvature_knots(&pts, &[false; 3], true);
     for (k, w) in work(&app).subpaths[0].knots.iter().zip(want) {
         assert_eq!([[k.anchor.x, k.anchor.y], [k.in_ctrl.x, k.in_ctrl.y], [k.out_ctrl.x, k.out_ctrl.y]], w);
     }
 }
 
 /// A Pen-drawn work path: a closed square of corners (40, 40)–(160, 160).
-fn with_corner_square(app: &mut LocalPaintApp) {
+fn with_corner_square(app: &mut LocalRasterApp) {
     let path = json!({"subpaths": [{"closed": true, "knots": [[40, 40], [160, 40], [160, 160], [40, 160]]}]});
     app.run("path.set", json!({"name": "work", "path": path})).unwrap();
 }
@@ -475,7 +475,7 @@ fn a_curvature_pen_double_click_through_the_canvas_rounds_a_corner() {
     with_corner_square(&mut app);
     app.ui.extras.rulers = false;
     let mut h = Harness::builder().with_size(vec2(1000.0, 700.0)).with_step_dt(1.0 / 60.0).build_ui_state(
-        |ui, app: &mut LocalPaintApp| {
+        |ui, app: &mut LocalRasterApp| {
             let ctx = ui.ctx().clone();
             if !ctx.fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                 return;
@@ -484,7 +484,7 @@ fn a_curvature_pen_double_click_through_the_canvas_rounds_a_corner() {
         },
         app,
     );
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
     h.run_steps(4);
     let v = &mut h.state_mut().ui.views[0];
     v.zoom = 1.0;
@@ -526,8 +526,8 @@ fn dragging_an_anchor_of_type_on_a_path_moves_the_type() {
     app.run("path.set", json!({"name": "work", "path": {"subpaths": [{"closed": false, "knots": [[100, 20], [100, 180]]}]}})).unwrap();
     let id = app.run("type.create", json!({"x": 20, "y": 70, "text": "On a path", "size": 24})).unwrap()["layer"].as_u64().unwrap();
     app.run("type.attachToPath", json!({})).unwrap();
-    let type_path = |app: &LocalPaintApp| match &app.session.active().unwrap().doc.layer(localpaint_doc::LayerId(id)).unwrap().content {
-        localpaint_doc::LayerContent::Text(t) => localpaint_engine::type_extra_cmds::type_path(t).unwrap(),
+    let type_path = |app: &LocalRasterApp| match &app.session.active().unwrap().doc.layer(localraster_doc::LayerId(id)).unwrap().content {
+        localraster_doc::LayerContent::Text(t) => localraster_engine::type_extra_cmds::type_path(t).unwrap(),
         _ => panic!("not a type layer"),
     };
     let n = steps(&app);
@@ -552,9 +552,9 @@ fn a_targeted_vector_mask_on_type_on_a_path_is_edited_not_the_type_path() {
     let rect = json!({"subpaths": [{"closed": true, "knots": [[20, 20], [180, 20], [180, 160], [20, 160]]}]});
     app.run("layer.vectorMask.add", json!({"layer": id, "path": rect})).unwrap();
     app.ui.vector_mask_target = true;
-    let layer = |app: &LocalPaintApp| app.session.active().unwrap().doc.layer(localpaint_doc::LayerId(id)).unwrap().clone();
-    let type_path = |app: &LocalPaintApp| match &layer(app).content {
-        localpaint_doc::LayerContent::Text(t) => localpaint_engine::type_extra_cmds::type_path(t).unwrap(),
+    let layer = |app: &LocalRasterApp| app.session.active().unwrap().doc.layer(localraster_doc::LayerId(id)).unwrap().clone();
+    let type_path = |app: &LocalRasterApp| match &layer(app).content {
+        localraster_doc::LayerContent::Text(t) => localraster_engine::type_extra_cmds::type_path(t).unwrap(),
         _ => panic!("not a type layer"),
     };
     let before = type_path(&app);
@@ -570,12 +570,12 @@ fn a_targeted_vector_mask_on_type_on_a_path_is_edited_not_the_type_path() {
     assert_eq!(layer(&app).vector_mask.unwrap().path.subpaths[0].knots[0].anchor, Point::new(40.0, 30.0));
 }
 
-fn save_path(app: &mut LocalPaintApp) {
-    let path = localpaint_engine::vector_cmds::path_json(&work(app));
+fn save_path(app: &mut LocalRasterApp) {
+    let path = localraster_engine::vector_cmds::path_json(&work(app));
     app.run("path.set", json!({"name": "Saved", "path": path})).unwrap();
 }
 
-fn saved(app: &LocalPaintApp) -> Path {
+fn saved(app: &LocalRasterApp) -> Path {
     app.session.active().unwrap().doc.paths.iter().find(|path| path.name == "Saved").unwrap().path.clone()
 }
 
@@ -623,12 +623,12 @@ fn selected_saved_and_work_paths_win_overlapping_shape_hits() {
     }
 }
 
-fn start_command_drag(app: &mut LocalPaintApp) {
+fn start_command_drag(app: &mut LocalRasterApp) {
     assert!(super::pointer(app, ToolEvent::Down { x: 40.0, y: 120.0, pressure: 1.0 }, Modifiers::COMMAND));
     assert!(matches!(app.ui.direct_selection.drag, Some(Drag::Edit { .. })));
 }
 
-fn consume_stale_drag(app: &mut LocalPaintApp) {
+fn consume_stale_drag(app: &mut LocalRasterApp) {
     assert!(super::pointer(app, ToolEvent::Move { x: 60.0, y: 140.0, pressure: 1.0 }, Modifiers::NONE));
     assert!(super::pointer(app, ToolEvent::Up { x: 60.0, y: 140.0 }, Modifiers::NONE));
     assert!(app.ui.direct_selection.drag.is_none());
@@ -797,7 +797,7 @@ fn the_convert_point_tool_edits_selected_saved_paths_without_changing_the_work_p
     app.ui.selected_path = Some("Saved".into());
     let (before_work, before_saved, n) = (work(&app), saved(&app), steps(&app));
     click(&mut app, [120.0, 40.0], Modifiers::NONE);
-    assert_eq!(saved(&app).subpaths[0].knots[1], localpaint_doc::Knot::corner(120.0, 40.0));
+    assert_eq!(saved(&app).subpaths[0].knots[1], localraster_doc::Knot::corner(120.0, 40.0));
     assert_eq!(work(&app), before_work);
     assert_eq!(steps(&app), n + 1);
     assert_eq!(app.ui.direct_selection.target, Some(PathRef::Saved(0)));
@@ -812,7 +812,7 @@ fn changing_the_channel_vector_mask_target_cancels_an_owned_edit() {
     tool_event(&mut app, ToolEvent::Down { x: 40.0, y: 120.0, pressure: 1.0 }, Modifiers::NONE);
     assert!(app.ui.direct_selection.drag.is_some());
     let (before, n) = (work(&app), steps(&app));
-    app.session.active_mut().unwrap().channel_view.target = localpaint_engine::channel_cmds::ChannelTarget::VectorMask;
+    app.session.active_mut().unwrap().channel_view.target = localraster_engine::channel_cmds::ChannelTarget::VectorMask;
     assert!(!app.ui.vector_mask_target, "the channel target can change before the UI syncs its mask flag");
     consume_stale_drag(&mut app);
     assert_eq!((work(&app), steps(&app)), (before, n));

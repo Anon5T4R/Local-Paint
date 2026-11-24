@@ -13,7 +13,7 @@ fn os_clipboard_bridge() {
         clipboard_get_image: Some(Box::new(move || Ok(b.lock().unwrap().clone()))),
         ..Default::default()
     };
-    let mut app = LocalPaintApp::new(Session::new(), services);
+    let mut app = LocalRasterApp::new(Session::new(), services);
     app.session.execute("file.new", serde_json::json!({"width": 64, "height": 64})).unwrap();
     app.sync_views();
     app.run("select.rect", serde_json::json!({"x": 0, "y": 0, "width": 8, "height": 4})).unwrap();
@@ -47,7 +47,7 @@ fn os_clipboard_honours_export_clipboard_preference() {
         })),
         ..Default::default()
     };
-    let mut app = LocalPaintApp::new(Session::new(), services);
+    let mut app = LocalRasterApp::new(Session::new(), services);
     app.session.execute("prefs.set", serde_json::json!({"values": {"general.exportClipboard": false}})).unwrap();
     app.session.execute("file.new", serde_json::json!({"width": 32, "height": 32})).unwrap();
     app.sync_views();
@@ -75,7 +75,7 @@ fn failed_clipboard_reads_preserve_editable_contents_until_retry() {
             })),
             ..Default::default()
         };
-        let mut app = LocalPaintApp::new(Session::new(), services);
+        let mut app = LocalRasterApp::new(Session::new(), services);
         app.run("file.new", serde_json::json!({"width": 80, "height": 60})).unwrap();
         app.run("shape.create", serde_json::json!({"kind": "rect", "rect": [10, 10, 40, 20], "fill": "#ff0000"})).unwrap();
         app.run("edit.copy", serde_json::json!({})).unwrap();
@@ -104,7 +104,7 @@ fn failed_clipboard_reads_preserve_editable_contents_until_retry() {
         busy.store(false, Ordering::SeqCst);
         app.run("edit.pasteSpecial.pasteInPlace", serde_json::json!({})).unwrap();
         let state = app.session.active().unwrap();
-        assert!(matches!(state.doc.layer(state.active_layer.unwrap()).unwrap().content, localpaint_doc::LayerContent::Shape(_)));
+        assert!(matches!(state.doc.layer(state.active_layer.unwrap()).unwrap().content, localraster_doc::LayerContent::Shape(_)));
         assert!(!app.ui.status_error);
     }
 }
@@ -124,7 +124,7 @@ fn internal_only_clipboard_remains_usable_when_native_access_fails() {
                 })),
                 ..Default::default()
             };
-            let mut app = LocalPaintApp::new(Session::new(), services);
+            let mut app = LocalRasterApp::new(Session::new(), services);
             app.session.edit_prefs(|prefs| prefs.general.export_clipboard = export);
             app.run("file.new", serde_json::json!({"width": 80, "height": 60})).unwrap();
             app.run("shape.create", serde_json::json!({"kind": "rect", "rect": [10, 10, 40, 20], "fill": "#ff0000"})).unwrap();
@@ -143,7 +143,7 @@ fn internal_only_clipboard_remains_usable_when_native_access_fails() {
             } else {
                 assert_eq!(app.session.documents().len(), 2);
                 let state = app.session.active().unwrap();
-                assert!(matches!(state.doc.layer(state.active_layer.unwrap()).unwrap().content, localpaint_doc::LayerContent::Shape(_)));
+                assert!(matches!(state.doc.layer(state.active_layer.unwrap()).unwrap().content, localraster_doc::LayerContent::Shape(_)));
             }
             app.run("edit.purge.clipboard", serde_json::json!({})).unwrap();
             assert!(app.session.clipboard.is_none());
@@ -183,7 +183,7 @@ fn newer_unexported_copies_do_not_track_an_older_os_signature() {
                     })),
                     ..Default::default()
                 };
-                let mut app = LocalPaintApp::new(Session::new(), services);
+                let mut app = LocalRasterApp::new(Session::new(), services);
                 app.run("file.new", serde_json::json!({"width": 8, "height": 8})).unwrap();
                 if imported {
                     *os.lock().unwrap() = Some((2, 2, [255u8, 0, 0, 255].repeat(4)));
@@ -240,7 +240,7 @@ fn failed_clipboard_reads_do_not_paste_an_external_or_missing_copy() {
             })),
             ..Default::default()
         };
-        let mut app = LocalPaintApp::new(Session::new(), services);
+        let mut app = LocalRasterApp::new(Session::new(), services);
         app.run("file.new", serde_json::json!({"width": 80, "height": 60})).unwrap();
         if external {
             assert!(app.import_os_clipboard().unwrap());
@@ -262,13 +262,13 @@ fn failed_clipboard_reads_do_not_paste_an_external_or_missing_copy() {
 }
 
 /// An app whose OS clipboard is `os`, counting every read in `reads`.
-fn app_with_os_clipboard(os: &OsClip, reads: &Arc<std::sync::atomic::AtomicUsize>) -> LocalPaintApp {
+fn app_with_os_clipboard(os: &OsClip, reads: &Arc<std::sync::atomic::AtomicUsize>) -> LocalRasterApp {
     let (b, n) = (os.clone(), reads.clone());
     let get = move || {
         n.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         Ok(b.lock().unwrap().clone())
     };
-    let mut app = LocalPaintApp::new(Session::new(), Services { clipboard_get_image: Some(Box::new(get)), ..Default::default() });
+    let mut app = LocalRasterApp::new(Session::new(), Services { clipboard_get_image: Some(Box::new(get)), ..Default::default() });
     app.session.execute("file.new", serde_json::json!({"width": 64, "height": 64})).unwrap();
     app.sync_views();
     app
@@ -291,7 +291,7 @@ fn external_clipboard_enables_and_centres_paste() {
     assert_eq!(r["offset"], serde_json::json!([38, 18]), "external image is centred in the view: {r}");
     assert_eq!(reads.load(std::sync::atomic::Ordering::SeqCst), 1, "one read per explicit paste");
     // Without a clipboard service Paste greys until something is copied in the app.
-    let mut plain = LocalPaintApp::new(Session::new(), Services::default());
+    let mut plain = LocalRasterApp::new(Session::new(), Services::default());
     plain.session.execute("file.new", serde_json::json!({"width": 8, "height": 8})).unwrap();
     assert!(!crate::menus::is_enabled(&plain, "edit.paste"));
 }
@@ -306,7 +306,7 @@ fn os_clipboard_image_becomes_a_new_document() {
         n.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         Ok(b.lock().unwrap().clone())
     };
-    let mut app = LocalPaintApp::new(Session::new(), Services { clipboard_get_image: Some(Box::new(get)), ..Default::default() });
+    let mut app = LocalRasterApp::new(Session::new(), Services { clipboard_get_image: Some(Box::new(get)), ..Default::default() });
     let ctx = egui::Context::default();
     // Listed right after File › New…, enabled without reading the clipboard.
     let items = crate::menus::menu_items(&app);
@@ -351,12 +351,12 @@ fn idle_frames_never_read_the_os_clipboard() {
     *os.lock().unwrap() = Some((4, 4, [255u8, 0, 0, 255].repeat(16)));
     let (b, n) = (os.clone(), reads.clone());
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1200.0, 800.0)).with_max_steps(64).build_eframe(move |cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
         let get = move || {
             n.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             Ok(b.lock().unwrap().clone())
         };
-        let mut app = LocalPaintApp::new(Session::new(), Services { clipboard_get_image: Some(Box::new(get)), ..Default::default() });
+        let mut app = LocalRasterApp::new(Session::new(), Services { clipboard_get_image: Some(Box::new(get)), ..Default::default() });
         app.session.execute("file.new", serde_json::json!({"width": 64, "height": 64})).unwrap();
         app
     });
@@ -426,12 +426,12 @@ fn targeting_a_mask_swaps_to_its_own_colour_pair() {
     const BLUE: [f32; 4] = [0.0, 0.0, 1.0, 1.0];
     const WHITE: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
     const BLACK: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
-    let mut app = LocalPaintApp::new(Session::new(), Services::default());
+    let mut app = LocalRasterApp::new(Session::new(), Services::default());
     app.run("file.new", json!({"width": 32, "height": 32})).unwrap();
     let masked = app.run("layer.new.layer", json!({})).unwrap()["layer"].clone();
     app.run("tools.setColors", json!({"foreground": "#ff0000", "background": "#0000ff"})).unwrap();
-    let pair = |app: &LocalPaintApp| (app.session.tools.foreground, app.session.tools.background);
-    let target = |app: &mut LocalPaintApp, mask: bool| {
+    let pair = |app: &LocalRasterApp| (app.session.tools.foreground, app.session.tools.background);
+    let target = |app: &mut LocalRasterApp, mask: bool| {
         app.ui.mask_target = mask;
         app.sync_views();
     };

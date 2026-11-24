@@ -16,7 +16,7 @@ use std::fmt;
 
 use serde_json::{Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
 /// Changes the history keeps.
 pub const HISTORY: usize = 32;
@@ -50,7 +50,7 @@ pub enum CpuReason {
 
 impl CpuReason {
     /// The reason from a device fault.
-    pub fn from_fault(f: &localpaint_gpu::Fault) -> Self {
+    pub fn from_fault(f: &localraster_gpu::Fault) -> Self {
         if f.is_lost() { CpuReason::DeviceLost(f.to_string()) } else { CpuReason::GpuError(f.to_string()) }
     }
 
@@ -165,7 +165,7 @@ impl RenderPath {
     }
 }
 
-fn doc_name(app: &LocalPaintApp, doc: u64) -> String {
+fn doc_name(app: &LocalRasterApp, doc: u64) -> String {
     app.session.documents().iter().find(|st| st.doc.id.0 == doc).map_or_else(|| format!("document {doc}"), |st| st.doc.name.clone())
 }
 
@@ -179,7 +179,7 @@ fn log_change(who: &str, reason: Option<&CpuReason>) {
 /// Record what drew document `doc`: the one entry point of every exit from the GPU path. A new
 /// kind of reason (not new numbers) is logged once and kept in the history; a partial GPU refresh
 /// leaves a reason that applies to full refreshes only.
-pub fn note(app: &mut LocalPaintApp, doc: u64, path: Path) {
+pub fn note(app: &mut LocalRasterApp, doc: u64, path: Path) {
     let rp = &mut app.render_path;
     let prev = rp.docs.get(&doc);
     let next = match path {
@@ -200,7 +200,7 @@ pub fn note(app: &mut LocalPaintApp, doc: u64, path: Path) {
 }
 
 /// Record a reason for every document (the GPU canvas was dropped or never started), or its end.
-pub fn note_app(app: &mut LocalPaintApp, reason: Option<CpuReason>) {
+pub fn note_app(app: &mut LocalRasterApp, reason: Option<CpuReason>) {
     let rp = &mut app.render_path;
     let changed = rp.app_wide.as_ref().map(CpuReason::kind) != reason.as_ref().map(CpuReason::kind);
     rp.app_wide = reason.clone();
@@ -218,14 +218,14 @@ pub fn note_app(app: &mut LocalPaintApp, reason: Option<CpuReason>) {
 /// A flipped or pixel-aspect-corrected view of document `doc` draws through the CPU path. It
 /// has its own slot, so the canvas's reason (Advanced Blending…) is still there once the view
 /// draws on the GPU again.
-pub fn view_cpu(app: &mut LocalPaintApp, doc: u64) {
+pub fn view_cpu(app: &mut LocalRasterApp, doc: u64) {
     if app.render_path.views.insert(doc) {
         view_changed(app, doc, Some(CpuReason::ViewTransform));
     }
 }
 
 /// A view that may draw on the GPU again: end its [`CpuReason::ViewTransform`] reason.
-pub fn view_ok(app: &mut LocalPaintApp, doc: u64) {
+pub fn view_ok(app: &mut LocalRasterApp, doc: u64) {
     if app.render_path.views.remove(&doc) {
         let reason = app.render_path.docs.get(&doc).cloned();
         view_changed(app, doc, reason);
@@ -234,7 +234,7 @@ pub fn view_ok(app: &mut LocalPaintApp, doc: u64) {
 
 /// Log and keep the document's reason after a change of its view slot: the canvas's own reason
 /// when the view ended, so the log doesn't say "back on the GPU" while that one still applies.
-fn view_changed(app: &mut LocalPaintApp, doc: u64, reason: Option<CpuReason>) {
+fn view_changed(app: &mut LocalRasterApp, doc: u64, reason: Option<CpuReason>) {
     sync_perf(app);
     log_change(&doc_name(app, doc), reason.as_ref());
     app.render_path.push(doc, reason, false);
@@ -243,7 +243,7 @@ fn view_changed(app: &mut LocalPaintApp, doc: u64, reason: Option<CpuReason>) {
 /// GPU Memory, Memory Usage or a switch of document measured whether `fit`'s layers fit the GPU
 /// memory budget. When they fit, its [`CpuReason::OverBudget`] reason ends at once: the next full
 /// refresh is on the GPU, and GPU Memory Full mustn't keep showing the old numbers until then.
-pub fn layer_fit(app: &mut LocalPaintApp, fit: crate::gpu_canvas::LayerFit) {
+pub fn layer_fit(app: &mut LocalRasterApp, fit: crate::gpu_canvas::LayerFit) {
     app.perf.gpu_layer_fit = Some(fit);
     if fit.fits() && matches!(app.render_path.docs.get(&fit.doc), Some(CpuReason::OverBudget { .. })) {
         note(app, fit.doc, Path::Gpu { full: true });
@@ -251,7 +251,7 @@ pub fn layer_fit(app: &mut LocalPaintApp, fit: crate::gpu_canvas::LayerFit) {
 }
 
 /// Whether the window has a GPU canvas.
-fn has_gpu_canvas(app: &LocalPaintApp) -> bool {
+fn has_gpu_canvas(app: &LocalRasterApp) -> bool {
     #[cfg(test)]
     return app.gpu.is_some() || app.render_path.assume_gpu;
     #[cfg(not(test))]
@@ -260,14 +260,14 @@ fn has_gpu_canvas(app: &LocalPaintApp) -> bool {
 
 /// Whether the window composites on the GPU at all: a GPU canvas, and no reason for every
 /// document other than a software adapter (which runs the GPU canvas).
-fn window_on_gpu(app: &LocalPaintApp) -> bool {
+fn window_on_gpu(app: &LocalRasterApp) -> bool {
     has_gpu_canvas(app) && matches!(app.render_path.app_wide, None | Some(CpuReason::SoftwareAdapter))
 }
 
 /// An adjustment dialog on document `doc` previews through the CPU proxy for `why`. It has its
 /// own slot, so it never replaces or ends the canvas's or the window's reason. Not recorded when
 /// the whole window is off the GPU: the proxy is then simply part of a CPU window.
-pub fn adjust_preview_cpu(app: &mut LocalPaintApp, doc: u64, why: &'static str) {
+pub fn adjust_preview_cpu(app: &mut LocalRasterApp, doc: u64, why: &'static str) {
     if !window_on_gpu(app) {
         adjust_preview_ok(app);
         return;
@@ -284,7 +284,7 @@ pub fn adjust_preview_cpu(app: &mut LocalPaintApp, doc: u64, why: &'static str) 
 
 /// The adjustment dialog closed, or retargeted to a layer the layer path can preview: end its
 /// CPU proxy preview, if one was recorded. The canvas's and the window's reasons are untouched.
-pub fn adjust_preview_ok(app: &mut LocalPaintApp) {
+pub fn adjust_preview_ok(app: &mut LocalRasterApp) {
     let Some((doc, _)) = app.render_path.preview.take() else { return };
     sync_perf(app);
     log::info!("render path: {}: adjustment preview no longer uses the CPU proxy", doc_name(app, doc));
@@ -293,20 +293,20 @@ pub fn adjust_preview_ok(app: &mut LocalPaintApp) {
 
 /// `perf.gpu_fallback`: the active document's reason as text, the same as `perf.renderPath`'s
 /// `current`, whichever document a refresh (an arranged cell, another window) just recorded.
-fn sync_perf(app: &mut LocalPaintApp) {
+fn sync_perf(app: &mut LocalRasterApp) {
     let active = app.session.active().map(|st| st.doc.id.0);
     app.perf.gpu_fallback = active.and_then(|d| app.render_path.current(d)).map(ToString::to_string);
 }
 
 /// Each frame: the startup reason (once), and `perf.gpu_fallback` after a switch of document.
-pub fn frame(app: &mut LocalPaintApp) {
+pub fn frame(app: &mut LocalRasterApp) {
     startup(app);
     sync_perf(app);
 }
 
 /// Once: a software adapter (`set_wgpu` builds the GPU canvas on one, so it is checked with or
 /// without a GPU canvas) or, without a GPU canvas, CPU mode chosen at startup.
-fn startup(app: &mut LocalPaintApp) {
+fn startup(app: &mut LocalRasterApp) {
     if app.render_path.startup_checked || app.gpu_fault.is_some() {
         return;
     }
@@ -341,7 +341,7 @@ fn change_json(c: &Change) -> Value {
 
 /// The control channel's `perf.renderPath`: the active document's reason (`null` on the GPU) and
 /// the history, oldest first.
-pub fn inspect(app: &LocalPaintApp) -> Value {
+pub fn inspect(app: &LocalRasterApp) -> Value {
     let active = app.session.active().map(|st| st.doc.id.0);
     let current = active.and_then(|d| app.render_path.current(d).map(|r| reason_json(d, Some(r))));
     let history: Vec<Value> = app.render_path.history().map(change_json).collect();
@@ -352,12 +352,12 @@ pub fn inspect(app: &LocalPaintApp) -> Value {
 mod tests {
     use super::*;
 
-    fn app() -> LocalPaintApp {
-        LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default())
+    fn app() -> LocalRasterApp {
+        LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default())
     }
 
     /// An app with one document, active: `perf.gpu_fallback` follows the active document.
-    fn app_with_doc() -> (LocalPaintApp, u64) {
+    fn app_with_doc() -> (LocalRasterApp, u64) {
         let mut app = app();
         app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
         let doc = app.session.active().unwrap().doc.id.0;
@@ -406,7 +406,7 @@ mod tests {
         app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
         let second = app.session.active().unwrap().doc.id.0;
         assert_ne!(first, second);
-        let current_detail = |app: &LocalPaintApp| inspect(app)["current"]["detail"].as_str().map(str::to_owned);
+        let current_detail = |app: &LocalRasterApp| inspect(app)["current"]["detail"].as_str().map(str::to_owned);
         note(&mut app, first, Path::Cpu(CpuReason::ViewTransform));
         assert_eq!(app.perf.gpu_fallback, None, "the inactive document's reason");
         assert_eq!(app.perf.gpu_fallback, current_detail(&app));

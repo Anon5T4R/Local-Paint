@@ -1,15 +1,15 @@
-//! # localpaint-automation
+//! # localraster-automation
 //!
 //! Agent-facing automation (architecture §12):
 //!
-//! * [`LocalPaintMcp`]: an MCP server (official `rmcp` SDK) exposing session,
+//! * [`LocalRasterMcp`]: an MCP server (official `rmcp` SDK) exposing session,
 //!   document and command tools. Headless mode drives an in-process
-//!   [`localpaint_engine::Session`]; bridge mode forwards to a running desktop
+//!   [`localraster_engine::Session`]; bridge mode forwards to a running desktop
 //!   app over the JSON-lines control protocol (`docs/control-protocol.md`), so
 //!   agents can also inspect, screenshot and click the live UI.
 //! * [`Headless`]: the synchronous session + file I/O core, shared with the CLI.
 //! * [`rpc`]: a headless JSON-lines server (stdio or loopback TCP) with the
-//!   control protocol's envelope, used by `localpaint-cli serve`.
+//!   control protocol's envelope, used by `localraster-cli serve`.
 //! * [`files`]: open/save any supported format, `.pcraft` natively.
 //!
 //! L6, no UI-toolkit dependencies.
@@ -28,7 +28,7 @@ pub mod workspace;
 
 pub use bridge::BridgeClient;
 pub use headless::Headless;
-pub use server::{Backend, LocalPaintMcp};
+pub use server::{Backend, LocalRasterMcp};
 pub use workspace::AuthorizedWorkspace;
 
 #[derive(Debug, thiserror::Error)]
@@ -38,11 +38,11 @@ pub enum AutomationError {
     #[error("I/O: {0}")]
     Io(String),
     #[error(transparent)]
-    Engine(#[from] localpaint_engine::EngineError),
+    Engine(#[from] localraster_engine::EngineError),
     #[error(transparent)]
-    Import(#[from] localpaint_io::IoError),
+    Import(#[from] localraster_io::IoError),
     #[error(transparent)]
-    Format(#[from] localpaint_format::FormatError),
+    Format(#[from] localraster_format::FormatError),
     #[error("bridge: {0}")]
     Bridge(String),
     #[error("app: {0}")]

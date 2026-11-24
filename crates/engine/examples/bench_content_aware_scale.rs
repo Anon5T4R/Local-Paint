@@ -1,10 +1,10 @@
 //! End-to-end timing of `edit.contentAwareScale` (perf scenario P28, #211) without the UI: a
 //! synthetic 24 MP RGB photo opened from JPEG like `perf_scenarios`' (gradients, soft blobs, fine
 //! noise and a high-contrast disc), scaled to 90 % width, undone between runs.
-//! `cargo run --release -p localpaint-engine --example bench_content_aware_scale [reps] [width height]`
+//! `cargo run --release -p localraster-engine --example bench_content_aware_scale [reps] [width height]`
 use std::time::Instant;
 
-use localpaint_engine::Session;
+use localraster_engine::Session;
 use serde_json::json;
 
 fn photo_jpeg(w: u32, h: u32) -> Result<Vec<u8>, String> {
@@ -24,8 +24,8 @@ fn photo_jpeg(w: u32, h: u32) -> Result<Vec<u8>, String> {
         }
     }
     let img =
-        localpaint_codecs::Image::from_raw(w, h, localpaint_codecs::ChannelLayout::Rgb, localpaint_codecs::SampleType::U8, px).map_err(|e| e.to_string())?;
-    localpaint_codecs::encode(&img, localpaint_codecs::Format::Jpeg, &Default::default()).map_err(|e| e.to_string())
+        localraster_codecs::Image::from_raw(w, h, localraster_codecs::ChannelLayout::Rgb, localraster_codecs::SampleType::U8, px).map_err(|e| e.to_string())?;
+    localraster_codecs::encode(&img, localraster_codecs::Format::Jpeg, &Default::default()).map_err(|e| e.to_string())
 }
 
 fn main() -> Result<(), String> {
@@ -33,7 +33,7 @@ fn main() -> Result<(), String> {
     let num = |i: usize, d: u32| args.get(i).and_then(|v| v.parse::<u32>().ok()).unwrap_or(d);
     let (reps, w, h) = (num(1, 3).clamp(1, 20) as usize, num(2, 6000).clamp(16, 20_000), num(3, 4000).clamp(16, 20_000));
     let jpeg = photo_jpeg(w, h)?;
-    let doc = localpaint_io::import("photo.jpg", &jpeg).map_err(|e| e.to_string())?.document;
+    let doc = localraster_io::import("photo.jpg", &jpeg).map_err(|e| e.to_string())?.document;
     let mut s = Session::new();
     s.open_document(doc, Some("photo.jpg".into()));
     let mut times = Vec::with_capacity(reps);

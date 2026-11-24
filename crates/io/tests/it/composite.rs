@@ -4,24 +4,24 @@
 use crate::common;
 
 use common::*;
-use localpaint_color::{BlendMode, ColorMode, SampleType};
-use localpaint_io::*;
-use localpaint_psd::{PixelData, PsdBuilder, PsdFile};
+use localraster_color::{BlendMode, ColorMode, SampleType};
+use localraster_io::*;
+use localraster_psd::{PixelData, PsdBuilder, PsdFile};
 
 const TOL: f32 = 1.0 / 255.0 + 1e-4;
 
-fn check_export_oracle(d: &localpaint_doc::Document, tol: f32) {
+fn check_export_oracle(d: &localraster_doc::Document, tol: f32) {
     let r = export(d, "x.psd", &ExportOptions::default()).unwrap();
     let f = PsdFile::from_bytes(&r.bytes).unwrap();
     let merged = merged_composite(&f).unwrap();
     let d2 = import("x.psd", &r.bytes).unwrap().document;
-    let mut ours = localpaint_compose::flatten(&d2).px;
+    let mut ours = localraster_compose::flatten(&d2).px;
     if d.mode == ColorMode::Cmyk {
         // The merged CMYK image is the RGB composite separated through the CMYK profile, which
         // gamut-maps colours that blend modes push outside CMYK: project ours the same way.
         let fmt = d.pixel_format();
         for p in &mut ours {
-            *p = localpaint_raster::to_rgba(&fmt, &localpaint_raster::from_rgba(&fmt, *p));
+            *p = localraster_raster::to_rgba(&fmt, &localraster_raster::from_rgba(&fmt, *p));
         }
     }
     let m = max_diff(&ours, &merged);
@@ -50,17 +50,17 @@ oracle!(oracle_cmyk8, ColorMode::Cmyk, SampleType::U8, Features::PIXELS, 3.0 / 2
 oracle!(oracle_lab8, ColorMode::Lab, SampleType::U8, Features::PIXELS, 16.0 / 255.0);
 
 /// Builds a PSD with the *builder* (independent writer) whose merged image
-/// is produced by localpaint-compose, then checks import + flatten against it.
+/// is produced by localraster-compose, then checks import + flatten against it.
 fn builder_oracle(depth: u16, mode: ColorMode) {
     let sample = if depth == 16 { SampleType::U16 } else { SampleType::U8 };
     let d = gen_doc(mode, sample, Features { groups: false, masks: true, adjustments: false, fills: false, all_blends: true, extras: false });
-    let flat = localpaint_compose::flatten(&d);
+    let flat = localraster_compose::flatten(&d);
     let to_pixels = |px: &[[f32; 4]]| -> PixelData {
         let fmt = d.pixel_format();
         let vals: Vec<f32> = px
             .iter()
             .flat_map(|p| {
-                let v = localpaint_raster::from_rgba(&fmt, *p);
+                let v = localraster_raster::from_rgba(&fmt, *p);
                 v.into_iter()
             })
             .collect();
@@ -72,8 +72,8 @@ fn builder_oracle(depth: u16, mode: ColorMode) {
         }
     };
     let mut b = PsdBuilder::new(d.size.width, d.size.height).depth(depth).color_mode(match mode {
-        ColorMode::Grayscale => localpaint_psd::ColorMode::Grayscale,
-        _ => localpaint_psd::ColorMode::Rgb,
+        ColorMode::Grayscale => localraster_psd::ColorMode::Grayscale,
+        _ => localraster_psd::ColorMode::Rgb,
     });
     for l in &d.layers {
         let s = l.surface().unwrap();
@@ -82,10 +82,10 @@ fn builder_oracle(depth: u16, mode: ColorMode) {
             Vec::new()
         } else {
             let fmt = s.format();
-            s.read_region(r).chunks_exact(fmt.channels()).map(|p| localpaint_raster::to_rgba(&fmt, p)).collect()
+            s.read_region(r).chunks_exact(fmt.channels()).map(|p| localraster_raster::to_rgba(&fmt, p)).collect()
         };
-        let mut spec = localpaint_psd::LayerSpec::new(l.name.clone(), r.x0, r.y0, r.width(), r.height(), to_pixels(&buf));
-        spec.blend_mode = localpaint_psd::BlendMode::from_key(l.blend.psd_key());
+        let mut spec = localraster_psd::LayerSpec::new(l.name.clone(), r.x0, r.y0, r.width(), r.height(), to_pixels(&buf));
+        spec.blend_mode = localraster_psd::BlendMode::from_key(l.blend.psd_key());
         spec.opacity = (l.opacity * 255.0).round() as u8;
         spec.fill_opacity = Some((l.fill_opacity * 255.0).round() as u8);
         spec.visible = l.visible;
@@ -93,8 +93,8 @@ fn builder_oracle(depth: u16, mode: ColorMode) {
         if let Some(m) = &l.mask {
             let mr = m.surface.content_bounds();
             let data = m.surface.read_region(mr).iter().map(|v| (v * 255.0).round() as u8).collect();
-            spec.mask = Some(localpaint_psd::MaskSpec {
-                rect: localpaint_psd::Rect { top: mr.y0, left: mr.x0, bottom: mr.y1, right: mr.x1 },
+            spec.mask = Some(localraster_psd::MaskSpec {
+                rect: localraster_psd::Rect { top: mr.y0, left: mr.x0, bottom: mr.y1, right: mr.x1 },
                 data,
                 default_color: (m.surface.default_pixel()[0] * 255.0).round() as u8,
                 disabled: !m.enabled,
@@ -107,7 +107,7 @@ fn builder_oracle(depth: u16, mode: ColorMode) {
     let f = PsdFile::from_bytes(&bytes).unwrap();
     let merged = merged_composite(&f).unwrap();
     let d2 = import("b.psd", &bytes).unwrap().document;
-    let ours = localpaint_compose::flatten(&d2).px;
+    let ours = localraster_compose::flatten(&d2).px;
     let m = max_diff(&ours, &merged);
     // Density/feather of masks are not written by the builder; the generated
     // doc uses them only on a disabled mask, so results must match.
@@ -137,10 +137,10 @@ fn every_blend_mode_single_layer_oracle() {
         if m == BlendMode::Dissolve {
             continue;
         }
-        let mut d = localpaint_doc::Document::new("b", localpaint_geom::Size::new(8, 8), ColorMode::Rgb, SampleType::U8);
+        let mut d = localraster_doc::Document::new("b", localraster_geom::Size::new(8, 8), ColorMode::Rgb, SampleType::U8);
         let fmt = d.pixel_format();
         d.layers.push(raster("bg", fmt, d.bounds(), 1, false));
-        let mut top = raster("top", fmt, localpaint_geom::Rect::new(2, 2, 7, 7), 9, true);
+        let mut top = raster("top", fmt, localraster_geom::Rect::new(2, 2, 7, 7), 9, true);
         top.blend = m;
         top.opacity = g(190);
         d.layers.push(top);
@@ -157,15 +157,15 @@ fn hidden_and_clipped_affect_composite() {
     for l in &mut d2.layers {
         l.visible = true;
     }
-    let other = localpaint_compose::flatten(&d2).px;
+    let other = localraster_compose::flatten(&d2).px;
     assert!(max_diff(&other, &merged) > 0.0, "unhiding a layer must change the composite");
 }
 
 #[test]
 fn merged_alpha_written_when_transparent() {
-    let mut d = localpaint_doc::Document::new("t", localpaint_geom::Size::new(4, 4), ColorMode::Rgb, SampleType::U8);
+    let mut d = localraster_doc::Document::new("t", localraster_geom::Size::new(4, 4), ColorMode::Rgb, SampleType::U8);
     let fmt = d.pixel_format();
-    d.layers.push(raster("half", fmt, localpaint_geom::Rect::new(0, 0, 2, 4), 3, true));
+    d.layers.push(raster("half", fmt, localraster_geom::Rect::new(0, 0, 2, 4), 3, true));
     let f = document_to_psd(&d);
     assert_eq!(f.header.channels, 4);
     assert!(f.merged_has_alpha());
@@ -173,8 +173,8 @@ fn merged_alpha_written_when_transparent() {
     assert_eq!(merged[3][3], 0.0);
 
     // U8 rounding must not erase transparency that is representable in the exported U16 plane.
-    let mut near = localpaint_doc::Document::new("near opaque", localpaint_geom::Size::new(1, 1), ColorMode::Rgb, SampleType::U16);
-    let mut layer = localpaint_doc::Layer::raster("pixel", near.pixel_format());
+    let mut near = localraster_doc::Document::new("near opaque", localraster_geom::Size::new(1, 1), ColorMode::Rgb, SampleType::U16);
+    let mut layer = localraster_doc::Layer::raster("pixel", near.pixel_format());
     layer.surface_mut().unwrap().fill_rect(near.bounds(), &[1.0, 0.0, 0.0, 65500.0 / 65535.0]);
     near.layers.push(layer);
     let out = export(&near, "near.psd", &ExportOptions::default()).unwrap();

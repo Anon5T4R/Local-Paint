@@ -1,5 +1,5 @@
 use super::tabs::{open_on_double_click, paint_dots};
-use super::{LocalPaintApp, Rect, Sense};
+use super::{LocalRasterApp, Rect, Sense};
 
 /// The Home screen's card is this wide when the canvas has room, and as wide as the canvas when it doesn't.
 const HOME_CARD_WIDTH: f32 = 460.0;
@@ -10,7 +10,7 @@ const HOME_BUTTON_WIDTH: f32 = 190.0;
 /// Space between the Home screen's two buttons.
 const HOME_BUTTON_GAP: f32 = 12.0;
 
-pub(super) fn start_screen(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+pub(super) fn start_screen(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     let t = crate::theme::Tokens::get(ui.ctx());
     let area = ui.available_rect_before_wrap();
     paint_dots(ui, area, app.session.prefs().interface.show_canvas_dots);
@@ -32,7 +32,7 @@ pub(super) fn start_screen(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
     ui.scope_builder(egui::UiBuilder::new().max_rect(card), |ui| {
         ui.vertical_centered(|ui| {
             ui.horizontal(|ui| {
-                let title = ui.painter().layout_no_wrap(tl!("Local Paint").into(), crate::theme::semibold(38.0), t.text);
+                let title = ui.painter().layout_no_wrap(tl!("Local Raster").into(), crate::theme::semibold(38.0), t.text);
                 let by = ui.painter().layout_no_wrap(tl!("open source").into(), egui::FontId::proportional(13.0), t.text_faint);
                 let total = title.size().x + by.size().x + 10.0;
                 ui.add_space(((card.width() - total) / 2.0).max(0.0));
@@ -84,7 +84,7 @@ pub(super) fn start_screen(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
 }
 
 /// Wayland has no native file drops (winit 0.30, #386), so the hint offers File › Open and paste.
-pub(super) fn start_screen_drop_hint(app: &LocalPaintApp) -> std::borrow::Cow<'static, str> {
+pub(super) fn start_screen_drop_hint(app: &LocalRasterApp) -> std::borrow::Cow<'static, str> {
     if app.services.is_wayland {
         crate::i18n::fmt(tl!("Use File › Open, or paste a copied image with {paste}."), &[("paste", &crate::notices::paste_hint(app))]).into()
     } else {
@@ -101,7 +101,7 @@ const HOME_RECENT_ROW: f32 = 30.0;
 /// The Home screen's "Recent" list: file name, its folder on the right, click to open. The
 /// hovered row shows a × that takes it off the list, and right-click offers Remove from Recent
 /// and Clear Recent Files (#2691).
-fn home_recent(app: &mut LocalPaintApp, ui: &mut egui::Ui, recent: &[String]) {
+fn home_recent(app: &mut LocalRasterApp, ui: &mut egui::Ui, recent: &[String]) {
     let t = crate::theme::Tokens::get(ui.ctx());
     let width = 380.0;
     ui.horizontal(|ui| {

@@ -6,11 +6,11 @@
 //! height, compressed size, bits per pixel 24, planes 1) followed by the JFIF stream. Photoshop
 //! keeps the long side at 160 px or less.
 
-use localpaint_cms::{Builtin, ColorSpace, Intent, Profile, Transform};
-use localpaint_codecs::{ChannelLayout, EncodeOptions, Format, Image, SampleType as CSample};
-use localpaint_color::ColorMode;
-use localpaint_doc::Document;
-use localpaint_psd::resources::{ImageResource, ids};
+use localraster_cms::{Builtin, ColorSpace, Intent, Profile, Transform};
+use localraster_codecs::{ChannelLayout, EncodeOptions, Format, Image, SampleType as CSample};
+use localraster_color::ColorMode;
+use localraster_doc::Document;
+use localraster_psd::resources::{ImageResource, ids};
 
 use crate::IoError;
 
@@ -23,7 +23,7 @@ pub const HEADER_LEN: usize = 28;
 /// The 1036 resource for `doc`: its composite reduced to at most [`MAX_SIDE`], converted to
 /// sRGB through the document's profile, matted over white and JPEG-compressed.
 pub(crate) fn resource(doc: &Document) -> Result<ImageResource, IoError> {
-    let mut buf = localpaint_compose::thumbnail_buffer(doc, MAX_SIDE);
+    let mut buf = localraster_compose::thumbnail_buffer(doc, MAX_SIDE);
     let (w, h) = (buf.rect.width(), buf.rect.height());
     if w == 0 || h == 0 || w > MAX_SIDE || h > MAX_SIDE || buf.px.len() != (w as usize) * (h as usize) {
         return Err(IoError::Unsupported("the image preview could not be rendered".into()));
@@ -45,7 +45,7 @@ pub(crate) fn resource(doc: &Document) -> Result<ImageResource, IoError> {
     }
     let img = Image::from_raw(w, h, ChannelLayout::Rgb, CSample::U8, rgb)?;
     let opts = EncodeOptions { jpeg_quality: 80, embed_icc: false, embed_metadata: false, ..EncodeOptions::default() };
-    let jfif = localpaint_codecs::encode(&img, Format::Jpeg, &opts)?;
+    let jfif = localraster_codecs::encode(&img, Format::Jpeg, &opts)?;
     Ok(ImageResource::new(ids::THUMBNAIL, thumbnail_bytes(w, h, &jfif)?))
 }
 

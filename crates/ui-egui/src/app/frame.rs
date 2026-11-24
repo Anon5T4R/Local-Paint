@@ -1,12 +1,12 @@
 use super::{
-    LocalPaintApp, analysis_ui, brush_panel, brush_picker, camera_raw_ui, canvas, dds_options_ui, dialogs, discard_ui, distort_ui, field_wheel, file_open,
+    LocalRasterApp, analysis_ui, brush_panel, brush_picker, camera_raw_ui, canvas, dds_options_ui, dialogs, discard_ui, distort_ui, field_wheel, file_open,
     gpu_canvas, gpu_status, gradient_ui, i18n, jobs_ui, jpeg_options_ui, kys_import, last_brush, layers_panel_ui, monitor_status, native_menu, notices,
     paint_mouse, palette, panels, prefs_ui, preset_panels, rasterize_prompt, screen_picker, shape_stroke_ui, shortcuts, smart_svg_ui, targa_options_ui,
     text_field_menu, theme, tiff_options_ui, timeline_ui, titlebar, tool_cursor, tool_memory, transform_tool, type_panels_ui, type_tool, updates_ui, vector_ui,
     view_cmds, wide_angle_ui, work_area, workspace_ui,
 };
 
-impl LocalPaintApp {
+impl LocalRasterApp {
     /// Wait out the rest of [`Self::min_frame_ms`] since the last frame started.
     fn cap_frame_rate(&mut self) {
         if let Some(min) = self.min_frame_ms.filter(|m| m.is_finite() && *m > 0.0) {
@@ -19,7 +19,7 @@ impl LocalPaintApp {
     }
 }
 
-impl LocalPaintApp {
+impl LocalRasterApp {
     /// Shared logic body. A wrapping host owns the final reset tail after its own work.
     pub fn logic_frame(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         self.cap_frame_rate();
@@ -112,7 +112,7 @@ impl LocalPaintApp {
         if !dropped.is_empty() {
             let at = self.services.cursor_pos.as_mut().and_then(|f| f(ctx));
             self.open_dropped(ctx, dropped, at);
-            // Files dragged in from another app's window: Local Paint comes to the front and takes
+            // Files dragged in from another app's window: Local Raster comes to the front and takes
             // the keyboard, as Photoshop does, instead of staying behind the source (#5687).
             ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
         }
@@ -161,7 +161,7 @@ impl LocalPaintApp {
         i18n::set_current(i18n::Lang::from_pref(&self.session.prefs().interface.language));
         // Fonts registered via set_fonts only take effect next frame; named families would panic now.
         if !self.fonts_ready {
-            // egui consumed this pass's input without Local Paint handling it: keep the synthetic
+            // egui consumed this pass's input without Local Raster handling it: keep the synthetic
             // batch for the next pass instead of losing the step.
             self.defer_synthetic_pass();
             ctx.request_repaint();

@@ -1,8 +1,8 @@
 //! Interleaved 24 MP command timings. The same harness runs on the pre-change base.
-//! `cargo run --release -p localpaint-engine --example multi_channel_bench -- --subset`
-use localpaint_engine::{Session, brush_cmds::LiveStroke};
-use localpaint_geom::Rect;
-use localpaint_paint::StrokePoint;
+//! `cargo run --release -p localraster-engine --example multi_channel_bench -- --subset`
+use localraster_engine::{Session, brush_cmds::LiveStroke};
+use localraster_geom::Rect;
+use localraster_paint::StrokePoint;
 use serde_json::{Value, json};
 use std::time::Instant;
 
@@ -18,17 +18,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     fixture.execute("layer.new.layer", json!({}))?;
     fixture.edit("synthetic bands", |doc, id| {
         let surf = doc
-            .layer_mut(id.ok_or(localpaint_engine::EngineError::NoDocument)?)
+            .layer_mut(id.ok_or(localraster_engine::EngineError::NoDocument)?)
             .and_then(|l| l.surface_mut())
-            .ok_or(localpaint_engine::EngineError::NoDocument)?;
+            .ok_or(localraster_engine::EngineError::NoDocument)?;
         for x in (0..6000).step_by(64) {
             let value = 0.15 + (x % 640) as f32 / 1000.0;
             surf.fill_rect(Rect::new(x, 0, (x + 64).min(6000), 4000), &[value, 0.4, 1.0 - value, 0.8]);
         }
         Ok(())
     })?;
-    let layer = fixture.active().and_then(|st| st.active_layer).ok_or(localpaint_engine::EngineError::NoDocument)?;
-    let base = fixture.active().ok_or(localpaint_engine::EngineError::NoDocument)?.doc.clone();
+    let layer = fixture.active().and_then(|st| st.active_layer).ok_or(localraster_engine::EngineError::NoDocument)?;
+    let base = fixture.active().ok_or(localraster_engine::EngineError::NoDocument)?.doc.clone();
     let commands: [(&str, Value); 9] = [
         ("image.adjustments.invert", json!({})),
         ("image.adjustments.threshold", json!({"level":128})),

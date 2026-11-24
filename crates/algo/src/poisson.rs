@@ -239,8 +239,8 @@ pub fn membrane_fill_with(
     ch: usize,
     img: &[f32],
     hole: &[bool],
-    ctl: &localpaint_raster::Interrupt,
-) -> Result<Vec<f32>, localpaint_raster::Cancelled> {
+    ctl: &localraster_raster::Interrupt,
+) -> Result<Vec<f32>, localraster_raster::Cancelled> {
     ctl.check()?;
     let stop = || ctl.cancelled();
     let out = per_channel(w, h, ch, |c| {

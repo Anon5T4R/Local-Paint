@@ -1,6 +1,6 @@
 # Plug-ins: the WebAssembly plug-in API (ABI v1)
 
-Local Paint does not host native Photoshop plug-ins (`.8BF`, CEP, UXP): that needs unsafe FFI into
+Local Raster does not host native Photoshop plug-ins (`.8BF`, CEP, UXP): that needs unsafe FFI into
 arbitrary machine code. Instead, plug-ins are **WebAssembly
 modules** run in a sandbox. One `.wasm` file works on macOS, Windows and Linux.
 
@@ -27,12 +27,12 @@ installed at startup and whenever the preference changes.
 Plug-ins are installed **per process**, not per document. A smart filter recorded from a plug-in
 (`{"command": "plugin.run", "params": {"id", "params"}}`) re-runs on re-render while that plug-in is
 installed; if it is missing, the filter is skipped (the cached pixels stay as they were), like other
-filters Local Paint does not implement.
+filters Local Raster does not implement.
 
 ## The sandbox
 
 The host is [`wasmi`](https://github.com/wasmi-labs/wasmi), a pure-Rust WebAssembly interpreter
-(MIT OR Apache-2.0). Limits (`localpaint_plugins::Limits`, defaults):
+(MIT OR Apache-2.0). Limits (`localraster_plugins::Limits`, defaults):
 
 | Limit | Default | On violation |
 |---|---|---|
@@ -174,8 +174,8 @@ The interpreter costs roughly 10–100× native speed per instruction, so plug-i
 small-neighbourhood filters. Because bands run in parallel, the example Invert on a 6000 × 4000
 RGBA 8-bit layer (24 MP, release, 14-core Apple Silicon under heavy load) took 1.1–1.6 s through
 `plugin.run`, versus 3.6–5.1 s for the (single-threaded) built-in Image › Adjustments › Invert
-(`cargo run --release -p localpaint-engine --example bench_plugin_invert`; plug-in alone:
-`cargo run --release -p localpaint-plugins --example bench_invert`). Peak extra memory is about three bands per worker thread (input,
+(`cargo run --release -p localraster-engine --example bench_plugin_invert`; plug-in alone:
+`cargo run --release -p localraster-plugins --example bench_invert`). Peak extra memory is about three bands per worker thread (input,
 original for the selection blend, and the instance's memory), i.e. ~12 MiB per thread.
 
 ## Not in v1

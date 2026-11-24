@@ -1,6 +1,6 @@
 use super::basic::reset_color_balance;
 use super::gradient_map::{gradient_presets, is_gray, swatches};
-use super::{Adjustment, EditorCx, HistSource, LayerId, LocalPaintApp, RichText, Tokens, Value, adjust_params, editor, json, needs_histogram, space_of, tone};
+use super::{Adjustment, EditorCx, HistSource, LayerId, LocalRasterApp, RichText, Tokens, Value, adjust_params, editor, json, needs_histogram, space_of, tone};
 
 /// Root of an adjustment layer's Properties editor view state in egui memory.
 pub fn layer_mem(id: LayerId) -> egui::Id {
@@ -61,7 +61,7 @@ pub fn session_start(ctx: &egui::Context, doc: u64, id: LayerId) -> Option<Value
 /// found (Tone choice kept); otherwise the defaults (Color Balance: [`reset_color_balance`]).
 /// Either way part of the layer's edit step.
 pub fn properties_reset(ctx: &egui::Context, doc: u64, id: LayerId, adj: &Adjustment) -> Option<Value> {
-    let kind = localpaint_engine::commands::adjustment_kind(adj);
+    let kind = localraster_engine::commands::adjustment_kind(adj);
     if !photoshop_session(kind) {
         return None;
     }
@@ -81,9 +81,9 @@ pub fn properties_reset(ctx: &egui::Context, doc: u64, id: LayerId, adj: &Adjust
 
 /// The Properties-panel editor of an adjustment layer: previews live (`app.live_adjust`) while a
 /// control moves and commits one `layer.setAdjustment` per gesture.
-pub fn layer_editor(app: &mut LocalPaintApp, ui: &mut egui::Ui, id: LayerId, adj: &Adjustment) {
+pub fn layer_editor(app: &mut LocalRasterApp, ui: &mut egui::Ui, id: LayerId, adj: &Adjustment) {
     let t = Tokens::get(ui.ctx());
-    let kind = localpaint_engine::commands::adjustment_kind(adj);
+    let kind = localraster_engine::commands::adjustment_kind(adj);
     match adj {
         Adjustment::SelectiveColor { .. } => return crate::adjust_ui::selective_color_editor(app, ui, id, adj),
         Adjustment::ColorLookup { .. } => return crate::adjust_ui::color_lookup_editor(app, ui, id, adj),

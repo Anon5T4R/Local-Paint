@@ -1,6 +1,6 @@
 //! Stylize: Diffuse, Extrude, Tiles, Trace Contour, Wind.
 
-use localpaint_geom::Rect;
+use localraster_geom::Rect;
 
 mod extrude;
 mod wind;

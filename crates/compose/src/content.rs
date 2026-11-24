@@ -37,7 +37,7 @@ pub(crate) fn recycle_buffer(buf: Buffer) {
 fn scratch_reuse_preserves_pixels_and_bounds_retention() {
     SCRATCH.with(|slot| slot.borrow_mut().clear());
     let rect = Rect::new(-2, -3, 18, 11);
-    for fmt in [localpaint_color::PixelFormat::RGBA8, localpaint_color::PixelFormat::RGBA16, localpaint_color::PixelFormat::RGBA32F] {
+    for fmt in [localraster_color::PixelFormat::RGBA8, localraster_color::PixelFormat::RGBA16, localraster_color::PixelFormat::RGBA32F] {
         let s = Surface::with_default(fmt, &[0.2, 0.4, 0.6, 0.8]);
         let buf = surface_to_scratch(&s, rect);
         assert_eq!(buf, surface_to_buffer(&s, rect));
@@ -72,7 +72,7 @@ pub(crate) fn render_content(layer: &Layer, rect: Rect, cx: &Ctx) -> Option<Buff
         LayerContent::Fill(f) => match &layer.fill_cache {
             // Photoshop's own rendering, valid while the fill is unchanged.
             Some(c) if c.fill == *f => surface_to_scratch(&c.surface, rect),
-            _ if cx.mode == localpaint_color::ColorMode::Cmyk => {
+            _ if cx.mode == localraster_color::ColorMode::Cmyk => {
                 let frame = fill_frame(layer, cx.canvas);
                 let native_rect = if matches!(f, Fill::Solid(_)) { Rect::new(0, 0, 1, 1) } else { rect };
                 match gradient_fill::render_cmyk_fill(f, native_rect, frame, cx.depth) {
@@ -115,8 +115,8 @@ pub fn layer_shape(doc: &Document, layer: &Layer, rect: Rect) -> Vec<f32> {
 /// The frame a gradient stroke `st` of `layer` is laid out in (`effects::FxMaps::stroke_frame`),
 /// from the layer's cached effect maps; `None` when `st` isn't a gradient stroke of the layer.
 /// For the GPU compositor.
-pub fn stroke_frame(doc: &Document, layer: &Layer, st: &localpaint_doc::StrokeFx) -> Option<Rect> {
-    if !matches!(st.paint, localpaint_doc::FxPaint::Gradient(_)) || !effects::has_effects(layer) {
+pub fn stroke_frame(doc: &Document, layer: &Layer, st: &localraster_doc::StrokeFx) -> Option<Rect> {
+    if !matches!(st.paint, localraster_doc::FxPaint::Gradient(_)) || !effects::has_effects(layer) {
         return None;
     }
     let patterns = pattern::PreparedPatterns::new(&doc.patterns, pattern::PREPARED_PATTERN_BYTES).in_mode(doc.pixel_format().mode);
@@ -219,8 +219,8 @@ pub(crate) fn empty_in(layer: &Layer, rect: Rect) -> bool {
 /// directly and a grayscale document's single channel covers all three; other modes composite in
 /// display RGB, where a restriction to their own channels has no exact equivalent, so it is
 /// ignored there.
-pub fn channel_weights(layer: &Layer, mode: localpaint_color::ColorMode) -> Option<[f32; 3]> {
-    use localpaint_color::ColorMode as M;
+pub fn channel_weights(layer: &Layer, mode: localraster_color::ColorMode) -> Option<[f32; 3]> {
+    use localraster_color::ColorMode as M;
     let x = layer.excluded_channels;
     if x == 0 {
         return None;

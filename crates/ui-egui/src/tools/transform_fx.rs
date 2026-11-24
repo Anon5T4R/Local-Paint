@@ -22,13 +22,13 @@
 use std::sync::{Arc, Mutex, PoisonError};
 
 use egui::{Color32, ColorImage, TextureHandle, TextureId, TextureOptions};
-use localpaint_algo::transform::Homography;
-use localpaint_color::{BlendMode, PixelFormat};
-use localpaint_compose::Buffer;
-use localpaint_compose::effects::{self, TextureCtx};
-use localpaint_doc::{Document, Effect, Layer, LayerContent};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_algo::transform::Homography;
+use localraster_color::{BlendMode, PixelFormat};
+use localraster_compose::Buffer;
+use localraster_compose::effects::{self, TextureCtx};
+use localraster_doc::{Document, Effect, Layer, LayerContent};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 
 use crate::transform_tex::PreviewTextures;
 
@@ -106,7 +106,7 @@ pub fn work_layer(layer: &Layer, scale: f64) -> Layer {
     l.vector_mask = None;
     l.fill_cache = None;
     l.blend = BlendMode::Normal;
-    localpaint_engine::image_cmds::scale_effects(&mut l.effects, scale as f32);
+    localraster_engine::image_cmds::scale_effects(&mut l.effects, scale as f32);
     l.effects.reference = l.effects.reference.map(|(x, y)| (x * scale, y * scale));
     l
 }
@@ -389,7 +389,7 @@ impl StyledPreview {
         &self,
         ctx: &egui::Context,
         frame: &Frame,
-        display: Option<&localpaint_engine::display_color::CanvasDisplay>,
+        display: Option<&localraster_engine::display_color::CanvasDisplay>,
     ) -> Option<(TextureId, [f32; 4])> {
         let (plan, work, level) = frame.plan()?;
         let crisp = plan.scale >= 1.0 && frame.zoom >= CRISP_ZOOM;
@@ -424,8 +424,8 @@ impl StyledPreview {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_color::Color;
-    use localpaint_doc::{Contour, FxCommon, FxPaint, Shadow, StrokeFx, StrokePosition};
+    use localraster_color::Color;
+    use localraster_doc::{Contour, FxCommon, FxPaint, Shadow, StrokeFx, StrokePosition};
 
     const BLUE: Color32 = Color32::from_rgb(0, 0, 255);
 
@@ -463,7 +463,7 @@ mod tests {
     }
 
     fn doc() -> Document {
-        Document::new("t", localpaint_geom::Size::new(200, 200), localpaint_color::ColorMode::Rgb, localpaint_color::SampleType::U8)
+        Document::new("t", localraster_geom::Size::new(200, 200), localraster_color::ColorMode::Rgb, localraster_color::SampleType::U8)
     }
 
     fn rect_quad(r: [f64; 4]) -> [[f64; 2]; 4] {

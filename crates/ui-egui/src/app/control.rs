@@ -1,6 +1,6 @@
-use super::{ControlRequest, LocalPaintApp, Receiver, gpu_canvas};
+use super::{ControlRequest, LocalRasterApp, Receiver, gpu_canvas};
 
-impl LocalPaintApp {
+impl LocalRasterApp {
     /// Attach a control channel (requests arrive from a transport thread: TCP, stdin, tests).
     pub fn with_control(mut self, rx: Receiver<ControlRequest>) -> Self {
         self.control_rx = Some(rx);

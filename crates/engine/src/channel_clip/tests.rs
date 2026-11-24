@@ -1,6 +1,6 @@
 use super::*;
-use localpaint_color::ColorMode;
-use localpaint_geom::Rect;
+use localraster_color::ColorMode;
+use localraster_geom::Rect;
 
 const W: i32 = 40;
 const H: i32 = 20;
@@ -167,7 +167,7 @@ fn copying_and_pasting_channels_fail_cleanly() {
     s.execute("channel.target", json!({"channel": "red"})).unwrap();
     // An empty selection copies nothing and leaves the clipboard alone.
     s.edit("empty selection", |doc, _| {
-        doc.selection = Some(Surface::new(localpaint_color::PixelFormat::GRAY8));
+        doc.selection = Some(Surface::new(localraster_color::PixelFormat::GRAY8));
         Ok(())
     })
     .unwrap();

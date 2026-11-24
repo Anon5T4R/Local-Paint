@@ -3,16 +3,16 @@
 //! View › Clear Slices.
 //!
 //! The document stores user and layer-based slices (`Document::slices`); auto slices are derived
-//! (`localpaint_doc::slices::resolve`). Layer-based slices follow their layer: after every
+//! (`localraster_doc::slices::resolve`). Layer-based slices follow their layer: after every
 //! command [`refresh`] re-fits them to the layer's bounds including layer effects, plus outsets,
 //! without a history step of their own (the change is implied by the edit that moved the layer).
 //! Slices are addressed by stored id (`"slice"`) or by their displayed number (`"number"`).
 
 use std::sync::Arc;
 
-use localpaint_doc::slices::{self, ResolvedSlice, Slice, SliceKind, SliceOrigin};
-use localpaint_doc::{Document, Layer, LayerContent};
-use localpaint_geom::Rect;
+use localraster_doc::slices::{self, ResolvedSlice, Slice, SliceKind, SliceOrigin};
+use localraster_doc::{Document, Layer, LayerContent};
+use localraster_geom::Rect;
 use serde_json::{Value, json};
 
 use crate::commands::{CommandSpec, layer_param};
@@ -76,12 +76,12 @@ pub fn layer_bounds(l: &Layer) -> Rect {
                 }
             }),
         },
-        _ => localpaint_doc::comps::position_bounds(l),
+        _ => localraster_doc::comps::position_bounds(l),
     };
-    if own.is_empty() || !localpaint_compose::effects::has_effects(l) {
+    if own.is_empty() || !localraster_compose::effects::has_effects(l) {
         return own;
     }
-    own.inflate(localpaint_compose::effects::margin(l))
+    own.inflate(localraster_compose::effects::margin(l))
 }
 
 fn layer_slice_rect(doc: &Document, s: &Slice) -> Option<Rect> {

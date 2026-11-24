@@ -1,13 +1,13 @@
-//! `filter.*` commands (Photoshop's Filter menu) backed by `localpaint-algo`.
+//! `filter.*` commands (Photoshop's Filter menu) backed by `localraster-algo`.
 //!
 //! Every command acts on the active pixel layer (or the cached pixels of a
 //! smart object, recording a smart filter), respects the selection, and is
 //! undoable. `filter.lastFilter` re-runs the most recent filter command.
 
-use localpaint_algo::{
+use localraster_algo::{
     self as algo, Distribution, FilterParams, PolarMode, Preserve, RadialMethod, RadialQuality, RippleSize, SpherizeMode, UndefinedAreas, WaveType,
 };
-use localpaint_doc::{LayerContent, SmartFilter};
+use localraster_doc::{LayerContent, SmartFilter};
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;
@@ -180,11 +180,11 @@ pub fn params_for(id: &str, p: &Value) -> Option<FilterParams> {
 pub fn apply_filter_to_surface(
     id: &str,
     params: &Value,
-    surf: &localpaint_raster::Surface,
-    bounds: localpaint_geom::Rect,
-    selection: Option<&localpaint_raster::Surface>,
-    canvas: localpaint_geom::Rect,
-) -> Result<Option<localpaint_raster::Surface>> {
+    surf: &localraster_raster::Surface,
+    bounds: localraster_geom::Rect,
+    selection: Option<&localraster_raster::Surface>,
+    canvas: localraster_geom::Rect,
+) -> Result<Option<localraster_raster::Surface>> {
     // Replays bypass command dispatch; nested paths must still obey the requesting session's
     // authority, including adjustment LUTs and plug-ins, before any resolver can read them.
     crate::jobs::authorize_render_command(id, params)?;
@@ -210,7 +210,7 @@ pub fn apply_filter_to_surface(
     if crate::filters_ext::resolve_map_path(&mut fp, params).is_err() {
         return Ok(None);
     }
-    let sel_bounds = selection.map(localpaint_raster::Surface::content_bounds);
+    let sel_bounds = selection.map(localraster_raster::Surface::content_bounds);
     let content = surf.content_bounds();
     let area = algo::output_area(&fp, content, bounds, sel_bounds);
     Ok(Some(algo::apply_in(surf, &fp, area, bounds, selection, canvas.union(&content))))
@@ -258,11 +258,11 @@ pub(crate) fn run_filter(s: &mut Session, id: &str, p: &Value) -> Result<Value> 
         s,
         &label,
         move |doc, _, ctx| {
-            let filter = |surf: &localpaint_raster::Surface, fp: &FilterParams, area, bounds, sel: Option<&localpaint_raster::Surface>, extent| {
+            let filter = |surf: &localraster_raster::Surface, fp: &FilterParams, area, bounds, sel: Option<&localraster_raster::Surface>, extent| {
                 ctx.stage(0.0, 1.0, &msg, |ctl| algo::apply_in_with(surf, fp, area, bounds, sel, extent, ctl)).ok_or(EngineError::Cancelled)
             };
             let selection = doc.selection.clone();
-            let sel_bounds = selection.as_ref().map(localpaint_raster::Surface::content_bounds);
+            let sel_bounds = selection.as_ref().map(localraster_raster::Surface::content_bounds);
             // Distortions centre on the selection when there is one, else the canvas. Clouds and
             // Fibers place and size their pattern by the canvas either way; the selection masks them.
             let doc_bounds = doc.bounds();
@@ -305,9 +305,9 @@ pub(crate) fn run_filter(s: &mut Session, id: &str, p: &Value) -> Result<Value> 
                     // document on each re-render.
                     let params = match &fp {
                         FilterParams::Displace { map: Some(map), .. }
-                            if localpaint_io::smart_map::displace_embedded_map(&params).is_none() && crate::filters_ext::map_path(&params).is_none() =>
+                            if localraster_io::smart_map::displace_embedded_map(&params).is_none() && crate::filters_ext::map_path(&params).is_none() =>
                         {
-                            localpaint_io::smart_map::displace_embed_map(&params, map).ok_or_else(|| {
+                            localraster_io::smart_map::displace_embed_map(&params, map).ok_or_else(|| {
                                 EngineError::Other(
                                     "Displace: the displacement map is too large to keep in a Smart Object's filter: rasterize the layer first".into(),
                                 )
@@ -316,7 +316,7 @@ pub(crate) fn run_filter(s: &mut Session, id: &str, p: &Value) -> Result<Value> 
                         _ => params.clone(),
                     };
                     // Non-destructive: record the filter and re-render the smart object from its source.
-                    let sf = SmartFilter { command: id.clone(), params, blend: localpaint_color::BlendMode::Normal, opacity: 1.0, visible: true };
+                    let sf = SmartFilter { command: id.clone(), params, blend: localraster_color::BlendMode::Normal, opacity: 1.0, visible: true };
                     return crate::smart_cmds::add_smart_filter(doc, layer, sf, selection.as_ref()).map(|()| fp);
                 }
                 _ => return Err(EngineError::Other("not a pixel layer".into())),
@@ -363,8 +363,8 @@ pub(crate) fn run_filter(s: &mut Session, id: &str, p: &Value) -> Result<Value> 
 /// own, and `cancelled` is asked before each one: on a 24 MP layer (a Background, whose
 /// transparency is locked) a serial pass took about 400 ms that a cancelled job had to sit out
 /// (#6205). `Err(Cancelled)` leaves `new` holding all its tiles, some of them not yet fixed.
-pub(crate) fn keep_alpha(old: &localpaint_raster::Surface, new: &mut localpaint_raster::Surface, cancelled: &(dyn Fn() -> bool + Sync)) -> Result<()> {
-    use localpaint_raster::Surface;
+pub(crate) fn keep_alpha(old: &localraster_raster::Surface, new: &mut localraster_raster::Surface, cancelled: &(dyn Fn() -> bool + Sync)) -> Result<()> {
+    use localraster_raster::Surface;
     use rayon::prelude::*;
     if old.format() != new.format() || !new.format().alpha {
         return Ok(());
@@ -375,7 +375,7 @@ pub(crate) fn keep_alpha(old: &localpaint_raster::Surface, new: &mut localpaint_
     let default = new.default_pixel();
     // Each changed tile alone in a surface (a tile `new` lacks is taken as its default pixel, as
     // `write_region` would create it).
-    let mut tiles: Vec<(localpaint_geom::Rect, Surface)> = coords
+    let mut tiles: Vec<(localraster_geom::Rect, Surface)> = coords
         .iter()
         .map(|c| {
             let mut s = Surface::with_default(fmt, &default);

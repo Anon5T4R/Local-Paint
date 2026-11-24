@@ -1,9 +1,9 @@
 use super::tiles::{Space, lzf_decompress};
 use super::*;
-use localpaint_codecs::{ChannelLayout, Format, Image, SampleType as CSample};
-use localpaint_color::{ColorMode, SampleType};
-use localpaint_format::zip::ZipWriter;
-use localpaint_geom::Rect;
+use localraster_codecs::{ChannelLayout, Format, Image, SampleType as CSample};
+use localraster_color::{ColorMode, SampleType};
+use localraster_format::zip::ZipWriter;
+use localraster_geom::Rect;
 
 const T: usize = 4; // small tiles keep the fixtures short
 
@@ -179,7 +179,7 @@ fn raw_tiles_hold_interleaved_pixels() {
 
 fn merged_png() -> Vec<u8> {
     let img = Image::from_raw(12, 8, ChannelLayout::Rgba, CSample::U8, vec![90; 12 * 8 * 4]).unwrap();
-    localpaint_codecs::encode(&img, Format::Png, &Default::default()).unwrap()
+    localraster_codecs::encode(&img, Format::Png, &Default::default()).unwrap()
 }
 
 #[test]

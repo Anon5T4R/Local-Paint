@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use cap_std::ambient_authority;
 use cap_std::fs::{Dir, OpenOptions};
-use localpaint_format::atomic::RenameRetry;
+use localraster_format::atomic::RenameRetry;
 use serde_json::Value;
 
 use crate::AutomationError;
@@ -59,7 +59,7 @@ impl AuthorizedWorkspace {
     /// Load one `.pcraft` document in directory form — the native on-disk layout — below the
     /// read root. `read` serves regular files only (the zip form), so a regular file at the
     /// path is reported as `Ok(None)` for the caller to fall back to.
-    pub fn open_pcraft(&self, path: &str) -> Result<Option<localpaint_doc::Document>, AutomationError> {
+    pub fn open_pcraft(&self, path: &str) -> Result<Option<localraster_doc::Document>, AutomationError> {
         let relative = request_path(path, self.read.as_ref())?;
         let root = self.read.as_ref().ok_or_else(|| AutomationError::BadRequest(format!("{DENIED}: read authority is absent")))?;
         let dir = match root.dir.open_dir(&relative) {
@@ -68,18 +68,18 @@ impl AuthorizedWorkspace {
             Err(e) => return Err(file_error("read", path, e)),
         };
         let source = DirHandle { dir };
-        Ok(Some(localpaint_format::load_bytes_source(&source, &localpaint_format::LoadOptions::default())?))
+        Ok(Some(localraster_format::load_bytes_source(&source, &localraster_format::LoadOptions::default())?))
     }
 
     /// Create or replace one file below the configured write root, crash-safely: the bytes go to
     /// a temporary file beside the target, which is synced and renamed over it (the same steps
-    /// as [`localpaint_format::atomic_write`], through the directory capability). On failure
+    /// as [`localraster_format::atomic_write`], through the directory capability). On failure
     /// the previous file is untouched and the temporary file is removed.
     ///
     /// Replacing a file carries its extended attributes — macOS Finder tags, Linux `user.*` —
     /// onto the file that takes its place (#7095), through the two open descriptors rather than
     /// their paths, so nothing here reaches outside the write root to finish a write. The rest
-    /// of what [`localpaint_format::atomic_write`] preserves does not follow: its permission
+    /// of what [`localraster_format::atomic_write`] preserves does not follow: its permission
     /// step is tracked in #4963, and the Windows `ReplaceFileW` swap is path-based, which this
     /// path may not use.
     ///
@@ -91,7 +91,7 @@ impl AuthorizedWorkspace {
         let root = self.write.as_ref().ok_or_else(|| AutomationError::BadRequest(format!("{DENIED}: write authority is absent")))?;
         let leaf = relative.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         // The bytes are an image or document whatever the name says (`format` picks them), so
-        // only a file of a kind Local Paint writes is replaced: never source, settings or notes
+        // only a file of a kind Local Raster writes is replaced: never source, settings or notes
         // that share the root (`src/main.rs`, `.env`; #9439). A new file may have any name, and
         // an image saved under one (`out` with `format: png`) can be saved over again.
         let exists = root.dir.symlink_metadata(&relative).is_ok();
@@ -103,11 +103,11 @@ impl AuthorizedWorkspace {
         }
         if exists && !written_kind(&leaf) && !holds_image(&root.dir, &relative) {
             return Err(AutomationError::BadRequest(format!(
-                "automation write refused: `{path}` already exists and is not an image or document file Local Paint writes; save to a new name"
+                "automation write refused: `{path}` already exists and is not an image or document file Local Raster writes; save to a new name"
             )));
         }
         let parent = relative.parent().map(Path::to_path_buf).unwrap_or_default();
-        let tmp = parent.join(localpaint_format::atomic::temp_name(&leaf));
+        let tmp = parent.join(localraster_format::atomic::temp_name(&leaf));
         let mut options = OpenOptions::new();
         options.write(true).create_new(true);
         let written = root.dir.open_with(&tmp, &options).and_then(|file| {
@@ -120,15 +120,15 @@ impl AuthorizedWorkspace {
                 // succeeds for a document whose Finder tag could not come along.
                 if let Ok(old) = root.dir.open(&relative) {
                     let old = old.into_std();
-                    let _ = localpaint_format::atomic::meta::copy_xattrs(old.as_fd(), file.as_fd());
+                    let _ = localraster_format::atomic::meta::copy_xattrs(old.as_fd(), file.as_fd());
                     // The creation time too (#9388), through the same handles.
-                    let _ = localpaint_format::atomic::meta::copy_created_file(&old, &file);
+                    let _ = localraster_format::atomic::meta::copy_created_file(&old, &file);
                 }
             }
             // Falls back to a plain fsync on shares that refuse a full flush (#1336).
-            localpaint_format::atomic::sync_file(&file)
+            localraster_format::atomic::sync_file(&file)
         });
-        let renamed = written.and_then(|()| localpaint_format::atomic::retry_rename(RenameRetry::platform(), || root.dir.rename(&tmp, &root.dir, &relative)));
+        let renamed = written.and_then(|()| localraster_format::atomic::retry_rename(RenameRetry::platform(), || root.dir.rename(&tmp, &root.dir, &relative)));
         if let Err(e) = renamed {
             let _ = root.dir.remove_file(&tmp);
             return Err(file_error("write", path, e));
@@ -138,28 +138,28 @@ impl AuthorizedWorkspace {
         {
             let dir = if parent.as_os_str().is_empty() { PathBuf::from(".") } else { parent };
             if let Ok(d) = root.dir.open(&dir) {
-                let _ = localpaint_format::atomic::sync_file(&d.into_std());
+                let _ = localraster_format::atomic::sync_file(&d.into_std());
             }
         }
         Ok(())
     }
 }
 
-/// Whether `name`'s extension is one of the formats Local Paint saves or exports.
+/// Whether `name`'s extension is one of the formats Local Raster saves or exports.
 fn written_kind(name: &str) -> bool {
     let Some((_, ext)) = name.rsplit_once('.') else { return false };
     let ext = ext.to_ascii_lowercase();
-    ["psd", "psb", "ora", "pdf", localpaint_format::EXTENSION].contains(&ext.as_str()) || localpaint_codecs::from_extension(&ext).is_some()
+    ["psd", "psb", "ora", "pdf", localraster_format::EXTENSION].contains(&ext.as_str()) || localraster_codecs::from_extension(&ext).is_some()
 }
 
-/// Whether the file at `relative` starts like an image Local Paint reads (PSD/PSB or a codec's
+/// Whether the file at `relative` starts like an image Local Raster reads (PSD/PSB or a codec's
 /// magic). Containers that also hold other things (zip, PDF) are judged by name only.
 fn holds_image(dir: &Dir, relative: &Path) -> bool {
     let mut head = [0u8; 64];
     let Ok(mut file) = dir.open(relative) else { return false };
     let Ok(n) = file.read(&mut head) else { return false };
     let head = &head[..n];
-    head.starts_with(b"8BPS") || localpaint_codecs::detect(head).is_some()
+    head.starts_with(b"8BPS") || localraster_codecs::detect(head).is_some()
 }
 
 fn read_to_observed_length(reader: &mut impl Read, observed_length: u64) -> Result<Vec<u8>, AutomationError> {
@@ -303,16 +303,16 @@ struct DirHandle {
     dir: Dir,
 }
 
-impl localpaint_format::ByteSource for DirHandle {
-    fn get(&self, path: &str, max: usize) -> localpaint_format::Result<Vec<u8>> {
-        let missing = || localpaint_format::FormatError::Corrupt(format!("missing `{path}`"));
+impl localraster_format::ByteSource for DirHandle {
+    fn get(&self, path: &str, max: usize) -> localraster_format::Result<Vec<u8>> {
+        let missing = || localraster_format::FormatError::Corrupt(format!("missing `{path}`"));
         let mut file = self.dir.open(path).map_err(|_| missing())?;
         let metadata = file.metadata().map_err(|_| missing())?;
         if !metadata.is_file() {
             // A FIFO or device would block the open and stream without end.
-            return Err(localpaint_format::FormatError::Corrupt(format!("`{path}` is not a regular file")));
+            return Err(localraster_format::FormatError::Corrupt(format!("`{path}` is not a regular file")));
         }
-        localpaint_format::read_entry(&mut file, metadata.len(), max, path)
+        localraster_format::read_entry(&mut file, metadata.len(), max, path)
     }
 }
 
@@ -388,15 +388,15 @@ pub fn authorize_desktop_engine_command(id: &str, params: &Value) -> Result<(), 
     Ok(())
 }
 
-/// [`authorize_engine_command`] as the function pointer [`localpaint_engine::Session::authorize`]
+/// [`authorize_engine_command`] as the function pointer [`localraster_engine::Session::authorize`]
 /// stores. `actions.play` calls it for every nested step.
-pub fn authorize_engine_step(id: &str, params: &Value) -> localpaint_engine::Result<()> {
-    authorize_engine_command(id, params).map_err(|e| localpaint_engine::EngineError::Other(e.to_string()))
+pub fn authorize_engine_step(id: &str, params: &Value) -> localraster_engine::Result<()> {
+    authorize_engine_command(id, params).map_err(|e| localraster_engine::EngineError::Other(e.to_string()))
 }
 
-/// [`authorize_desktop_engine_command`] as a [`localpaint_engine::Session::authorize`] hook.
-pub fn authorize_desktop_engine_step(id: &str, params: &Value) -> localpaint_engine::Result<()> {
-    authorize_desktop_engine_command(id, params).map_err(|e| localpaint_engine::EngineError::Other(e.to_string()))
+/// [`authorize_desktop_engine_command`] as a [`localraster_engine::Session::authorize`] hook.
+pub fn authorize_desktop_engine_step(id: &str, params: &Value) -> localraster_engine::Result<()> {
+    authorize_desktop_engine_command(id, params).map_err(|e| localraster_engine::EngineError::Other(e.to_string()))
 }
 
 fn params_contain_ambient_path(id: &str, params: &Value) -> bool {

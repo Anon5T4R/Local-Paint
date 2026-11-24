@@ -20,17 +20,17 @@
 //!
 //! What the workspace holds is plain data (the sampling option, brush strokes, lasso edits and
 //! fill settings); OK and Apply run `edit.contentAwareFill` with it, and the preview runs the same
-//! plan ([`localpaint_engine::edit_menu_cmds::content_aware_plan`]), so the preview is exactly
+//! plan ([`localraster_engine::edit_menu_cmds::content_aware_plan`]), so the preview is exactly
 //! what gets written. The settings are remembered for the next time (`prefs.dialogs`).
 
 use egui::{Align2, Color32, FontId, Pos2, Rect as ERect, Sense, Stroke, TextureHandle, pos2, vec2};
-use localpaint_algo::content_aware::{SamplingStroke, paint_strokes};
-use localpaint_doc::LayerId;
-use localpaint_engine::edit_menu_cmds::{MAX_CAF_EDITS, MAX_CAF_POINTS};
-use localpaint_geom::Rect;
+use localraster_algo::content_aware::{SamplingStroke, paint_strokes};
+use localraster_doc::LayerId;
+use localraster_engine::edit_menu_cmds::{MAX_CAF_EDITS, MAX_CAF_POINTS};
+use localraster_geom::Rect;
 use serde_json::{Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::canvas::ToolEvent;
 use crate::theme::Tokens;
 use crate::widgets;

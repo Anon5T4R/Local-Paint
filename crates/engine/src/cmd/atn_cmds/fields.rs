@@ -14,7 +14,7 @@ pub(super) enum Kind {
     ExactLong,
     Dbl,
     Bool,
-    /// An enumeration: its type id and the Photoshop ↔ Local Paint value pairs.
+    /// An enumeration: its type id and the Photoshop ↔ Local Raster value pairs.
     Enum(&'static str, &'static [(&'static str, &'static str)]),
     /// A blend mode (`BlnM`).
     Blend,
@@ -94,9 +94,9 @@ pub(super) fn fields_to(p: &Value, fields: &[F], mut d: Descriptor) -> Option<De
 
 /// What one Photoshop step maps to.
 pub(super) enum Mapped {
-    /// One or more Local Paint steps (a `make` with a name becomes new layer + rename).
+    /// One or more Local Raster steps (a `make` with a name becomes new layer + rename).
     Steps(Vec<(String, Value)>),
-    /// No Local Paint equivalent; `harmless` steps (tool selections…) are imported switched off.
+    /// No Local Raster equivalent; `harmless` steps (tool selections…) are imported switched off.
     Unsupported { harmless: bool },
 }
 

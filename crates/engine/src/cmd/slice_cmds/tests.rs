@@ -1,6 +1,6 @@
 use super::*;
-use localpaint_doc::LayerId;
-use localpaint_doc::effects::Effect;
+use localraster_doc::LayerId;
+use localraster_doc::effects::Effect;
 
 fn session(depth: u32) -> Session {
     let mut s = Session::new();
@@ -16,7 +16,7 @@ fn add_square(s: &mut Session, r: Rect) -> LayerId {
     s.edit("sq", |doc, active| {
         let fmt = doc.pixel_format();
         let mut l = Layer::raster(doc.next_layer_name("Layer"), fmt);
-        l.surface_mut().unwrap().fill_rect(r, &localpaint_raster::from_rgba(&fmt, [1.0, 0.0, 0.0, 1.0]));
+        l.surface_mut().unwrap().fill_rect(r, &localraster_raster::from_rgba(&fmt, [1.0, 0.0, 0.0, 1.0]));
         let id = doc.insert_above(None, l);
         *active = Some(id);
         Ok(id)
@@ -260,8 +260,8 @@ fn slices_round_trip_through_psd_and_pcraft() {
     s.execute("slice.new", json!({"rect": [5, 5, 30, 20], "name": "hero", "url": "https://example.org", "alt": "Hero", "target": "_blank"})).unwrap();
     let d = doc(&s).clone();
     for ext in ["psd", "pcraft"] {
-        let bytes = localpaint_io::export(&d, &format!("x.{ext}"), &Default::default()).unwrap().bytes;
-        let back = localpaint_io::import(&format!("x.{ext}"), &bytes).unwrap().document;
+        let bytes = localraster_io::export(&d, &format!("x.{ext}"), &Default::default()).unwrap().bytes;
+        let back = localraster_io::import(&format!("x.{ext}"), &bytes).unwrap().document;
         assert_eq!(back.slices.list.len(), 2, "{ext}");
         let hero = back.slices.list.iter().find(|s| s.name == "hero").unwrap();
         assert_eq!((hero.url.as_str(), hero.alt.as_str(), hero.target.as_str()), ("https://example.org", "Hero", "_blank"));

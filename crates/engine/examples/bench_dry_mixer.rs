@@ -1,11 +1,11 @@
 //! Release benchmark for the live Mixer Brush on a 24 MP document.
 //! Setup and checksum are outside the timed command. Run with
-//! `cargo run --release -p localpaint-engine --example bench_dry_mixer`.
+//! `cargo run --release -p localraster-engine --example bench_dry_mixer`.
 
 use std::time::Instant;
 
-use localpaint_engine::{EngineError, Session};
-use localpaint_geom::Rect;
+use localraster_engine::{EngineError, Session};
+use localraster_geom::Rect;
 use serde_json::json;
 
 const W: i32 = 6000;

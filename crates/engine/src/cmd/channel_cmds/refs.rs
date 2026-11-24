@@ -95,7 +95,7 @@ pub(super) fn native_pixels(doc: &Document, layer: Option<LayerId>) -> Result<(V
             Ok((raw.chunks_exact(sf.channels()).flat_map(|p| from_rgba(&fmt, to_rgba(&sf, p))).collect(), n))
         }
         None => {
-            let buf = localpaint_compose::render(doc, r);
+            let buf = localraster_compose::render(doc, r);
             Ok((buf.px.iter().flat_map(|p| from_rgba(&fmt, *p)).collect(), n))
         }
     }
@@ -155,7 +155,7 @@ fn ref_planes(doc: &Document, layer: Option<LayerId>, active: Option<LayerId>, r
                 // Use its existing renderer rather than treating it as a canvas-wide fill.
                 None => match &l.content {
                     LayerContent::Shape(shape) => vec![
-                        localpaint_vector::CompiledShape::new(shape, localpaint_vector::DEFAULT_TOLERANCE, area)
+                        localraster_vector::CompiledShape::new(shape, localraster_vector::DEFAULT_TOLERANCE, area)
                             .render_rgba(area)
                             .into_iter()
                             .map(|p| p[3])
@@ -177,8 +177,8 @@ fn ref_planes(doc: &Document, layer: Option<LayerId>, active: Option<LayerId>, r
             let l = doc.layer(id).ok_or(EngineError::NoLayer(id))?;
             let m = l.vector_mask.as_ref().ok_or_else(|| EngineError::Other(format!("layer \"{}\" has no vector mask", l.name)))?;
             // The path's shape, whether or not the mask is enabled (as Photoshop loads it).
-            let shape = localpaint_doc::VectorMask { enabled: true, density: 1.0, feather: 0.0, ..m.clone() };
-            vec![localpaint_vector::vector_mask_values(&shape, area)]
+            let shape = localraster_doc::VectorMask { enabled: true, density: 1.0, feather: 0.0, ..m.clone() };
+            vec![localraster_vector::vector_mask_values(&shape, area)]
         }
     })
 }

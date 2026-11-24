@@ -29,13 +29,13 @@ enforce_margin = 0.6
 
 [[bench]]
 name = "perf_scenarios"
-package = "localpaint-ui-egui"
+package = "localraster-ui-egui"
 quick_args = ["--quick"]
 note = "the #209/#210/#211 rows: layered 20 MP, 150 layers, 16/32-bit, open, retouch, selection"
 
 [[bench]]
 name = "perf_scenarios_cpu"
-package = "localpaint-ui-egui"
+package = "localraster-ui-egui"
 example = "perf_scenarios"
 args = ["--cpu", "--group", "layered"]
 quick_args = ["--quick", "--cpu", "--group", "layered"]
@@ -43,44 +43,44 @@ note = "the layered #209 rows on the forced CPU compositor (#9330); run with per
 
 [[bench]]
 name = "interactive_bench"
-package = "localpaint-ui-egui"
+package = "localraster-ui-egui"
 args = ["--reps", "5"]
 note = "36 MP photo: dabs, filters, adjustment previews, saves"
 
 [[bench]]
 name = "fx_bench"
-package = "localpaint-ui-egui"
+package = "localraster-ui-egui"
 args = ["--no-cpu", "--reps", "5"]
 note = "36 MP document with layer effects, GPU compositor"
 
 [[bench]]
 name = "bevel_bench"
-package = "localpaint-ui-egui"
+package = "localraster-ui-egui"
 args = ["--reps", "9"]
 quick_args = ["--size", "1200x800", "--reps", "3"]
 note = "chisel bevel size change (a dragged slider) on a 12 MP ellipse and a text paragraph, GPU canvas and CPU"
 
 [[bench]]
 name = "camera_raw_bench"
-package = "localpaint-ui-egui"
+package = "localraster-ui-egui"
 quick_args = ["--quick"]
 note = "36 MP dense RGB layer: CPU develop, histogram, ICC vectorscope, clipping, nine Lab probes and egui tessellation; excludes GPU upload/presentation"
 
 [[bench]]
 name = "type_bench"
-package = "localpaint-ui-egui"
+package = "localraster-ui-egui"
 quick_args = ["--size", "2000x1500", "--layers", "20", "--steps", "15"]
 note = "font-size drag on 50 type layers"
 
 [[bench]]
 name = "large_image_bench"
-package = "localpaint-ui-egui"
+package = "localraster-ui-egui"
 args = ["--size", "14000x14000", "--op", "refresh"]
 note = "196 MP: open and full refresh"
 
 [[bench]]
 name = "large_file_bench"
-package = "localpaint-ui-egui"
+package = "localraster-ui-egui"
 args = ["--reps", "3"]
 note = "generated 2 GB PSD and 4.4 GB PSB (6.4 GB cached in <target>/fixtures): read + decode + open; needs ~30 GB of memory (the PSB)"
 
@@ -88,7 +88,7 @@ note = "generated 2 GB PSD and 4.4 GB PSB (6.4 GB cached in <target>/fixtures): 
 # rows are kept in results.json) as soon as the example exists; add scenarios for its rows then.
 [[bench]]
 name = "layout_bench"
-package = "localpaint-ui-egui"
+package = "localraster-ui-egui"
 requires = "crates/ui-egui/examples/layout_bench.rs"
 quick_args = []
 note = "layout PSDs with many styled layers (#125/#128)"
@@ -99,7 +99,7 @@ note = "layout PSDs with many styled layers (#125/#128)"
 # use the stand-alone example for the 4 x 24 MP stress test.
 [[bench]]
 name = "bench_multiband"
-package = "localpaint-algo"
+package = "localraster-algo"
 args = ["4", "2", "--reps", "5"]
 quick_args = ["2", "0.25", "--reps", "3"]
 note = "synthetic Photomerge multi-band blend; resident-set peak includes input/output buffers"
@@ -288,7 +288,7 @@ bench = "perf_scenarios"
 row = "open 20 MP layered PSD (decode + first composite)"
 budget_ms = 3000
 
-# P20/P63: generated fixtures (`localpaint_psd::fixtures`, #5107); the row checks a pixel, so a
+# P20/P63: generated fixtures (`localraster_psd::fixtures`, #5107); the row checks a pixel, so a
 # blank document fails it. No time budget yet: the target is the behaviour (progress, editable).
 [[scenario]]
 id = "P20"
@@ -606,7 +606,7 @@ row = "new 3 GP document + first reduced canvas refresh"
 
 [[bench]]
 name = "bench_filters2"
-package = "localpaint-algo"
+package = "localraster-algo"
 args = ["--reps", "3"]
 quick_args = ["--quick", "--reps", "1"]
 note = "24 MP RGBA8: Oil Paint, Relight, Reduce Noise, Smart Blur, the blur gallery, Crystallize, Color Halftone"

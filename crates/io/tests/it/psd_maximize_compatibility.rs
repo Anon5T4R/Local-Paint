@@ -3,12 +3,12 @@
 //! resource 1057 (`has_real_merged_data = false`). Layers, alpha channels and the Quick Mask are
 //! written as usual, so the file reopens the same.
 
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_doc::{AlphaChannel, Document, Layer};
-use localpaint_geom::{Rect, Size};
-use localpaint_io::{ExportOptions, export, import};
-use localpaint_psd::PsdFile;
-use localpaint_raster::Surface;
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_doc::{AlphaChannel, Document, Layer};
+use localraster_geom::{Rect, Size};
+use localraster_io::{ExportOptions, export, import};
+use localraster_psd::PsdFile;
+use localraster_raster::Surface;
 
 fn compat_off() -> ExportOptions {
     ExportOptions { psd_maximize_compatibility: false, ..Default::default() }
@@ -23,7 +23,7 @@ fn filled(mode: ColorMode, depth: SampleType, w: u32, h: u32, rgba: [f32; 4]) ->
     let mut d = Document::new("compat", Size::new(w, h), mode, depth);
     let fmt = d.pixel_format();
     let mut px = vec![0.0; fmt.channels()];
-    localpaint_raster::from_rgba_into(&fmt, rgba, &mut px);
+    localraster_raster::from_rgba_into(&fmt, rgba, &mut px);
     let mut layer = Layer::raster("pixels", fmt);
     layer.surface_mut().unwrap().fill_rect(Rect::new(0, 0, w as i32, h as i32), &px);
     d.layers.push(layer);
@@ -102,7 +102,7 @@ fn layers_and_alpha_channels_reopen_unchanged() {
     assert_eq!(off.channels, on.channels, "alpha channels follow the placeholder");
     assert_eq!(off.quick_mask, on.quick_mask);
     let canvas = d.bounds();
-    assert_eq!(localpaint_compose::render(&off, canvas).px, localpaint_compose::render(&on, canvas).px, "the same image");
+    assert_eq!(localraster_compose::render(&off, canvas).px, localraster_compose::render(&on, canvas).px, "the same image");
 }
 
 /// Without layer records the merged image is the only copy of the pixels, so it stays real.

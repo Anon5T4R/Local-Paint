@@ -1,11 +1,11 @@
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
-use localpaint_ui_egui::LocalPaintApp;
-use localpaint_ui_egui::state::DialogKind;
+use localraster_ui_egui::LocalRasterApp;
+use localraster_ui_egui::state::DialogKind;
 use serde_json::{Map, json};
 
-fn app_with_variables_dialog(cur: u64) -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), localpaint_ui_egui::Services::default());
+fn app_with_variables_dialog(cur: u64) -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), localraster_ui_egui::Services::default());
     app.run("file.new", json!({"width": 64, "height": 64})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     let state = json!({
@@ -27,18 +27,18 @@ fn app_with_variables_dialog(cur: u64) -> LocalPaintApp {
     app
 }
 
-fn harness(app: LocalPaintApp) -> Harness<'static, LocalPaintApp> {
+fn harness(app: LocalRasterApp) -> Harness<'static, LocalRasterApp> {
     let mut h = Harness::builder().with_size(egui::vec2(900.0, 700.0)).build_ui_state(
-        |ui, app: &mut LocalPaintApp| {
+        |ui, app: &mut LocalRasterApp| {
             let ctx = ui.ctx().clone();
             if !ctx.fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                 return;
             }
-            localpaint_ui_egui::dialogs::show(app, &ctx);
+            localraster_ui_egui::dialogs::show(app, &ctx);
         },
         app,
     );
-    LocalPaintApp::setup_context(&h.ctx, localpaint_ui_egui::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&h.ctx, localraster_ui_egui::theme::ThemeKind::ALL[0]);
     h.run_steps(3);
     h
 }
@@ -57,8 +57,8 @@ fn out_of_range_data_set_index_is_clamped_before_delete() {
 }
 
 /// `ui.dialog.set` can store any JSON in `__variables`; the editors write into its entries.
-fn app_with_malformed_variables(page: &str) -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), localpaint_ui_egui::Services::default());
+fn app_with_malformed_variables(page: &str) -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), localraster_ui_egui::Services::default());
     app.run("file.new", json!({"width": 64, "height": 64})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     let mut fields = Map::new();
@@ -71,7 +71,7 @@ fn app_with_malformed_variables(page: &str) -> LocalPaintApp {
     app
 }
 
-fn type_into_first_text_field(h: &mut Harness<'static, LocalPaintApp>) {
+fn type_into_first_text_field(h: &mut Harness<'static, LocalRasterApp>) {
     h.query_all_by_role(egui::accesskit::Role::TextInput).next().expect("a text field").click();
     h.run_steps(2);
     h.query_all_by_role(egui::accesskit::Role::TextInput).next().expect("a text field").type_text("z");

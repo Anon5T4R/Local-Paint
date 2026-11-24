@@ -1,5 +1,5 @@
 //! GIMP XCF files written by GIMP 3.2.6 itself (feature `corpus`; `cargo xtask test-corpus -p io`).
-//! They come from `corpus/gimp/` (`cargo xtask corpus --gimp`; pin `LOCALPAINT_CORPUS_GIMP_COMMIT` in
+//! They come from `corpus/gimp/` (`cargo xtask corpus --gimp`; pin `LOCALRASTER_CORPUS_GIMP_COMMIT` in
 //! `xtask/src/corpus_pins.rs`, generator `tools/gimp-xcf/xcf_fixtures.py` in photocraft-corpus); a
 //! missing corpus fails. What the reader gets out is checked against the procedural images the
 //! generator drew (`pattern`, `alpha`), and our composite of each file against GIMP's own merged
@@ -7,17 +7,17 @@
 
 #![cfg(feature = "corpus")]
 
-use localpaint_color::{BlendMode, ColorMode, SampleType};
-use localpaint_doc::{Document, Layer, LayerContent};
-use localpaint_geom::Rect;
-use localpaint_io::{ExportOptions, export, import};
+use localraster_color::{BlendMode, ColorMode, SampleType};
+use localraster_doc::{Document, Layer, LayerContent};
+use localraster_geom::Rect;
+use localraster_io::{ExportOptions, export, import};
 
 fn fixture(name: &str) -> Vec<u8> {
     let p = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../corpus/gimp").join(name);
     std::fs::read(&p).unwrap_or_else(|e| panic!("{}: {e}: run `cargo xtask corpus --gimp`", p.display()))
 }
 
-fn open(name: &str) -> localpaint_io::ImportResult {
+fn open(name: &str) -> localraster_io::ImportResult {
     import(name, &fixture(name)).unwrap_or_else(|e| panic!("{name}: {e}"))
 }
 
@@ -32,7 +32,7 @@ fn alpha(x: u32, y: u32, w: u32, h: u32, maxval: u32) -> u32 {
     ((x + y) * maxval / (w + h - 4).max(1)).min(maxval)
 }
 
-fn raster(layer: &Layer) -> &localpaint_raster::Surface {
+fn raster(layer: &Layer) -> &localraster_raster::Surface {
     match &layer.content {
         LayerContent::Raster(s) => s,
         _ => panic!("{} is not a pixel layer", layer.name),
@@ -52,8 +52,8 @@ fn names(layers: &[Layer]) -> Vec<&str> {
 fn composite_error(doc: &Document, png: &str, tolerance: f32) -> (f32, f32, String) {
     let oracle = import(png, &fixture(png)).unwrap().document;
     assert_eq!(doc.size, oracle.size, "{png}");
-    let ours = localpaint_compose::flatten(doc);
-    let theirs = localpaint_compose::flatten(&oracle);
+    let ours = localraster_compose::flatten(doc);
+    let theirs = localraster_compose::flatten(&oracle);
     let w = doc.size.width as usize;
     let mut worst = (0.0f32, String::new());
     let mut over = 0usize;
@@ -89,7 +89,7 @@ fn layers_8bit_open_with_their_properties_and_pixels() {
     }
     // Multiply at 60%, offset (5, 4), lock alpha, green tag.
     let m = &d.layers[1];
-    assert_eq!((m.blend, m.opacity, m.visible, m.locks.transparency, m.label), (BlendMode::Multiply, 0.6, true, true, localpaint_doc::LabelColor::Green));
+    assert_eq!((m.blend, m.opacity, m.visible, m.locks.transparency, m.label), (BlendMode::Multiply, 0.6, true, true, localraster_doc::LabelColor::Green));
     let p = px(m, 5, 4);
     assert!(
         (p[0] * 255.0 - pattern(3, 0, 0, 255) as f32).abs() < 0.51 && p[3] == 0.0,
@@ -116,8 +116,8 @@ fn layers_8bit_open_with_their_properties_and_pixels() {
 fn each_mode_against_gimp_in_gamma_space() {
     let d = open("legacy-modes-perceptual.xcf").document;
     let oracle = import("legacy-modes-perceptual.png", &fixture("legacy-modes-perceptual.png")).unwrap().document;
-    let ours = localpaint_compose::flatten(&d);
-    let theirs = localpaint_compose::flatten(&oracle);
+    let ours = localraster_compose::flatten(&d);
+    let theirs = localraster_compose::flatten(&oracle);
     let w = d.size.width as usize;
     // Where the layer pixel is fully opaque the formulas must agree. Where it is translucent,
     // GIMP applies the pixel's alpha before clamping the result of a mode that can leave 0..1
@@ -214,7 +214,7 @@ fn float_linear_opens_as_32_bit_float_with_a_linear_profile() {
     let d = open("float-linear.xcf").document;
     assert_eq!((d.mode, d.depth), (ColorMode::Rgb, SampleType::F32));
     let icc = d.icc_profile.as_ref().expect("a linear-light profile");
-    assert_eq!(**icc, localpaint_cms::Builtin::LinearSrgb.profile().to_bytes().as_ref().clone());
+    assert_eq!(**icc, localraster_cms::Builtin::LinearSrgb.profile().to_bytes().as_ref().clone());
     let bg = &d.layers[0];
     for (x, y) in [(0, 0), (39, 29), (5, 21)] {
         let p = px(bg, x as i32, y as i32);
@@ -295,7 +295,7 @@ fn broken_files_are_errors_not_crashes() {
 }
 
 /// Our composite against GIMP's merged rendering. The `-perceptual` files have every layer set
-/// to blend and composite in gamma-encoded RGB, which is how Local Paint composes, so they must
+/// to blend and composite in gamma-encoded RGB, which is how Local Raster composes, so they must
 /// match tightly. GIMP's defaults compose in linear light, so those files measure the known gap
 /// (the tolerance and the allowed share of pixels over it are the numbers seen, not goals).
 /// Per file: tolerance (premultiplied, 0..1), the share of pixels allowed over it, and why.

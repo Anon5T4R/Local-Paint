@@ -1,7 +1,7 @@
-# rustls-rustcrypto (fork vendored do Local Paint)
+# rustls-rustcrypto (fork vendored do Local Raster)
 
 Provider criptográfico 100% Rust para o `rustls`, baseado nos crates da
-RustCrypto. Este é um **fork vendored** usado só pelo app Local Paint (o
+RustCrypto. Este é um **fork vendored** usado só pelo app Local Raster (o
 experimento TLS puro do updater) — não é (ainda) o padrão da suíte craft. A
 cópia fica em `libs/rustls-rustcrypto` do próprio app, nunca dentro do
 `libs/craft-libs`, e é sincronizada à mão entre os apps que adotam o experimento.
@@ -14,7 +14,7 @@ cópia fica em `libs/rustls-rustcrypto` do próprio app, nunca dentro do
   Isso arrastava 5 advisories de webpki 0.102 para o `cargo deny` do app, sem
   como corrigir pela registry. Este fork resolve o problema localmente.
 
-## Divergências (todas marcadas com `// local-paint:` no código)
+## Divergências (todas marcadas com `// local-raster:` no código)
 
 | Arquivo | Mudança |
 | --- | --- |

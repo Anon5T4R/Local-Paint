@@ -10,9 +10,9 @@
 //! that cannot be read (noise gradients, profile lookups, CMYK channel mixers, unknown versions)
 //! stay [`Adjustment::Unsupported`] and are written back verbatim.
 
-use localpaint_doc::Adjustment;
-use localpaint_doc::adjust::{CURVE_MAP_LEN, CurvePoint, HueRange, LevelsChannel, LutFormat, LutSource, ToneSpace, curve_map};
-use localpaint_psd::descriptor::{Descriptor, Value, VersionedDescriptor};
+use localraster_doc::Adjustment;
+use localraster_doc::adjust::{CURVE_MAP_LEN, CurvePoint, HueRange, LevelsChannel, LutFormat, LutSource, ToneSpace, curve_map};
+use localraster_psd::descriptor::{Descriptor, Value, VersionedDescriptor};
 
 mod encode;
 
@@ -182,7 +182,7 @@ pub fn parse(key: &[u8; 4], data: &[u8], cged: Option<&[u8]>, channels: Channels
         }
         (Adjustment::Curves { space, black, .. }, Channels::Cmyk) => {
             *space = ToneSpace::Cmyk;
-            if localpaint_doc::adjust::is_identity_curve(black) {
+            if localraster_doc::adjust::is_identity_curve(black) {
                 black.clear();
             }
         }
@@ -347,10 +347,10 @@ pub(crate) fn retarget_gradient_map(data: &mut [u8], target: &Adjustment, channe
     }
 }
 
-/// `true` for a `grdm` block exactly as older Local Paint builds wrote it: [`write_gradient_map`]'s
+/// `true` for a `grdm` block exactly as older Local Raster builds wrote it: [`write_gradient_map`]'s
 /// output without the two padding bytes, which makes Photoshop refuse the file (#8070). Blocks
 /// from other writers, whatever their length, are not matched.
-pub(crate) fn is_unpadded_localpaint_gradient_map(data: &[u8]) -> bool {
+pub(crate) fn is_unpadded_localraster_gradient_map(data: &[u8]) -> bool {
     if data.len().is_multiple_of(4) {
         return false;
     }
@@ -486,13 +486,13 @@ fn read_lookup(d: &[u8]) -> Result<Adjustment, String> {
 }
 
 /// A LUT file's table, read the way a PSD read does (an XML file tagged `.cube` is sniffed as `.look`).
-fn parse_lut_source(format: LutFormat, bytes: &[u8]) -> Result<localpaint_cms::lutfile::LutFile, localpaint_cms::lutfile::LutError> {
+fn parse_lut_source(format: LutFormat, bytes: &[u8]) -> Result<localraster_cms::lutfile::LutFile, localraster_cms::lutfile::LutError> {
     let format = match format {
-        LutFormat::Cube => localpaint_cms::lutfile::Format::Cube,
-        LutFormat::ThreeDl => localpaint_cms::lutfile::Format::ThreeDl,
-        LutFormat::Look => localpaint_cms::lutfile::Format::Look,
+        LutFormat::Cube => localraster_cms::lutfile::Format::Cube,
+        LutFormat::ThreeDl => localraster_cms::lutfile::Format::ThreeDl,
+        LutFormat::Look => localraster_cms::lutfile::Format::Look,
     };
-    localpaint_cms::lutfile::parse(&format!("x.{}", format.extension()), bytes)
+    localraster_cms::lutfile::parse(&format!("x.{}", format.extension()), bytes)
 }
 
 /// Photoshop's `LUTFormatType` value for a format.
@@ -617,9 +617,9 @@ fn parse_photo_filter(d: &[u8]) -> Option<Adjustment> {
                 return None;
             }
             // Relative to the D50 white: bring it back to absolute D50 XYZ before converting.
-            let xyz = [rel[0] * localpaint_color::convert::D50[0], rel[1], rel[2] * localpaint_color::convert::D50[2]];
-            let lin = localpaint_color::convert::mat3_mul(&localpaint_color::convert::XYZ_D50_TO_SRGB, xyz);
-            (lin.map(|v| localpaint_color::convert::linear_to_srgb(v.clamp(0.0, 1.0))), 14)
+            let xyz = [rel[0] * localraster_color::convert::D50[0], rel[1], rel[2] * localraster_color::convert::D50[2]];
+            let lin = localraster_color::convert::mat3_mul(&localraster_color::convert::XYZ_D50_TO_SRGB, xyz);
+            (lin.map(|v| localraster_color::convert::linear_to_srgb(v.clamp(0.0, 1.0))), 14)
         }
         _ => return None,
     };

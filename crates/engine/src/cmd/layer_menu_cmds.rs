@@ -3,11 +3,11 @@
 //! Options / Global Light / Create Layer / Scale Effects, Layer Content Options, and exporting
 //! just the active layer (Quick Export as PNG, Export As).
 
-use localpaint_algo::selection::Region;
-use localpaint_color::{BlendMode, ColorMode};
-use localpaint_doc::{BlendIf, BlendRange, Document, Effect, Effects, Knockout, Layer, LayerContent, LayerId, LayerMask, SmartSource, StackMode};
-use localpaint_geom::Rect;
-use localpaint_raster::{Surface, from_rgba_into, to_rgba};
+use localraster_algo::selection::Region;
+use localraster_color::{BlendMode, ColorMode};
+use localraster_doc::{BlendIf, BlendRange, Document, Effect, Effects, Knockout, Layer, LayerContent, LayerId, LayerMask, SmartSource, StackMode};
+use localraster_geom::Rect;
+use localraster_raster::{Surface, from_rgba_into, to_rgba};
 use serde_json::{Value, json};
 
 use crate::commands::{CommandSpec, layer_param};
@@ -131,14 +131,14 @@ fn apply_mask(s: &mut Session, p: &Value) -> Result<Value> {
         // displays. LayerMask::values_into accounts for density but not feather (#3044).
         let feathered = {
             let layer = doc.layer(id).ok_or(EngineError::NoLayer(id))?;
-            if layer.mask.as_ref().is_some_and(|m| m.enabled && localpaint_compose::masks::feather_sigma(m.feather) > 0.0) {
+            if layer.mask.as_ref().is_some_and(|m| m.enabled && localraster_compose::masks::feather_sigma(m.feather) > 0.0) {
                 // Do not bake an independent vector mask that remains attached after Apply.
                 let mut mask_only = layer.clone();
                 mask_only.vector_mask = None;
                 // Cover off-canvas pixels too: outside its area the combined mask is only the
                 // mask's default value, which would hide moved-off content (#3043).
                 let area = layer.surface().map_or(doc.bounds(), |surf| doc.bounds().union(&surf.content_bounds()));
-                localpaint_compose::masks::combined_mask(&mask_only, area)
+                localraster_compose::masks::combined_mask(&mask_only, area)
             } else {
                 None
             }
@@ -224,16 +224,16 @@ fn mask_all_objects(s: &mut Session, p: &Value) -> Result<Value> {
     let layer = doc.layer(id).ok_or(EngineError::NoLayer(id))?;
     let region: Option<Region> = match layer.surface() {
         Some(surf) if matches!(layer.content, LayerContent::Raster(_)) => {
-            localpaint_algo::segment::subject::select_subject(&localpaint_algo::segment::SurfaceSampler(surf), doc.bounds())
+            localraster_algo::segment::subject::select_subject(&localraster_algo::segment::SurfaceSampler(surf), doc.bounds())
         }
         _ => {
             struct Composite<'a>(&'a Document);
-            impl localpaint_algo::segment::Sampler for Composite<'_> {
+            impl localraster_algo::segment::Sampler for Composite<'_> {
                 fn rgba(&self, r: Rect) -> Vec<[f32; 4]> {
-                    localpaint_compose::render(self.0, r).px
+                    localraster_compose::render(self.0, r).px
                 }
             }
-            localpaint_algo::segment::subject::select_subject(&Composite(&doc), doc.bounds())
+            localraster_algo::segment::subject::select_subject(&Composite(&doc), doc.bounds())
         }
     };
     let region = region.ok_or_else(|| other("no objects were found"))?;
@@ -259,7 +259,7 @@ pub fn defringe(px: &mut [[f32; 4]], w: usize, h: usize, width: usize) {
     if !outside.iter().any(|o| *o) {
         return;
     }
-    let dist = localpaint_algo::selection::edt(&outside, w, h);
+    let dist = localraster_algo::selection::edt(&outside, w, h);
     let mut known: Vec<bool> = (0..px.len()).map(|i| !outside[i] && dist[i] > width as f32).collect();
     let mut todo: Vec<usize> = (0..px.len()).filter(|&i| !outside[i] && !known[i]).collect();
     while !todo.is_empty() {
@@ -330,7 +330,7 @@ fn color_decontaminate(s: &mut Session, p: &Value) -> Result<Value> {
         }
         let alpha: Vec<u8> = read_rgba(surf, r).iter().map(|q| (q[3].clamp(0.0, 1.0) * 255.0).round() as u8).collect();
         let region = Region { bbox: r, mask: alpha };
-        *surf = localpaint_algo::matting::decontaminate(surf, &region, radius, amount);
+        *surf = localraster_algo::matting::decontaminate(surf, &region, radius, amount);
         Ok(())
     })?;
     Ok(Value::Null)
@@ -733,15 +733,15 @@ fn transfer_effects(s: &mut Session, p: &Value) -> Result<Value> {
 fn is_below(e: &Effect) -> bool {
     match e {
         Effect::DropShadow(_) | Effect::OuterGlow(_) => true,
-        Effect::Stroke(st) => st.position == localpaint_doc::StrokePosition::Outside,
+        Effect::Stroke(st) => st.position == localraster_doc::StrokePosition::Outside,
         Effect::BevelEmboss(b) => {
-            matches!(b.style, localpaint_doc::BevelStyle::OuterBevel | localpaint_doc::BevelStyle::Emboss | localpaint_doc::BevelStyle::PillowEmboss)
+            matches!(b.style, localraster_doc::BevelStyle::OuterBevel | localraster_doc::BevelStyle::Emboss | localraster_doc::BevelStyle::PillowEmboss)
         }
         _ => false,
     }
 }
 
-fn effect_common_mut(e: &mut Effect) -> Option<&mut localpaint_doc::FxCommon> {
+fn effect_common_mut(e: &mut Effect) -> Option<&mut localraster_doc::FxCommon> {
     match e {
         Effect::DropShadow(s) | Effect::InnerShadow(s) => Some(&mut s.common),
         Effect::OuterGlow(g) | Effect::InnerGlow(g) => Some(&mut g.common),
@@ -795,9 +795,9 @@ fn create_layer(s: &mut Session, p: &Value) -> Result<Value> {
             tmp.global_light = light;
             tmp.patterns = doc.patterns.clone();
             tmp.layers = vec![alone];
-            let buf = localpaint_compose::render(&tmp, area);
+            let buf = localraster_compose::render(&tmp, area);
             let mut surf = Surface::new(fmt);
-            let data: Vec<f32> = buf.px.iter().flat_map(|q| localpaint_raster::from_rgba(&fmt, *q)).collect();
+            let data: Vec<f32> = buf.px.iter().flat_map(|q| localraster_raster::from_rgba(&fmt, *q)).collect();
             surf.write_region(area, &data);
             surf.prune();
             let mut nl = Layer::new(format!("{}'s {}", l.name, e.label()), LayerContent::Raster(surf));
@@ -863,7 +863,7 @@ pub fn layer_document(doc: &Document, id: LayerId) -> Result<Document> {
     tmp.layers = vec![alone];
     tmp.selection = None;
     let area = doc.bounds();
-    let buf = localpaint_compose::render(&tmp, area);
+    let buf = localraster_compose::render(&tmp, area);
     let w = area.width() as usize;
     let mut b = Rect::EMPTY;
     for (i, q) in buf.px.iter().enumerate() {
@@ -876,7 +876,7 @@ pub fn layer_document(doc: &Document, id: LayerId) -> Result<Document> {
         return Err(other("the layer is empty"));
     }
     let fmt = doc.pixel_format();
-    let mut out = Document::new(l.name.clone(), localpaint_doc::Size::new(b.width(), b.height()), doc.mode, doc.depth);
+    let mut out = Document::new(l.name.clone(), localraster_doc::Size::new(b.width(), b.height()), doc.mode, doc.depth);
     out.resolution_dpi = doc.resolution_dpi;
     out.icc_profile = doc.icc_profile.clone();
     let mut surf = Surface::new(fmt);
@@ -884,7 +884,7 @@ pub fn layer_document(doc: &Document, id: LayerId) -> Result<Document> {
         .flat_map(|y| {
             let row = (y - area.y0) as usize * w;
             let px = &buf.px;
-            (b.x0..b.x1).flat_map(move |x| localpaint_raster::from_rgba(&fmt, px[row + (x - area.x0) as usize]))
+            (b.x0..b.x1).flat_map(move |x| localraster_raster::from_rgba(&fmt, px[row + (x - area.x0) as usize]))
         })
         .collect();
     surf.write_region(Rect::from_xywh(0, 0, b.width(), b.height()), &rows);
@@ -914,7 +914,7 @@ fn export_layer(s: &mut Session, p: &Value, cmd: &str, png_only: bool) -> Result
         tmp.execute("image.imageSize", json!({"width": w, "resample": resample}))?;
         ldoc = (*tmp.active().ok_or(EngineError::NoDocument)?.doc).clone();
     }
-    let out = localpaint_io::export(&ldoc, path, &Default::default()).map_err(|e| other(e.to_string()))?;
+    let out = localraster_io::export(&ldoc, path, &Default::default()).map_err(|e| other(e.to_string()))?;
     write_file(path, &out.bytes)?;
     Ok(json!({"path": path, "bytes": out.bytes.len(), "width": ldoc.size.width, "height": ldoc.size.height, "warnings": out.warnings}))
 }
@@ -977,7 +977,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "layer.layerStyle.blendingOptions",
             "Blending Options…",
             ["Layer", "Layer Style"],
-            r##"{"layer":id?,"blend":"normal|multiply|…"?,"opacity":0..100?,"fillOpacity":0..100?,"blendIf":{"channel":"gray|red|green|blue|cyan|…"|index="gray","thisLayer":[black,white]|[blackLo,blackHi,whiteLo,whiteHi]?,"underlying":[…]?}|[{…},…]|null?,"channels":[bool,…]?,"knockout":"none|shallow|deep"?,"blendInteriorEffectsAsGroup":bool?,"blendClippedLayersAsGroup":bool?,"transparencyShapesLayer":bool?,"layerMaskHidesEffects":bool?,"vectorMaskHidesEffects":bool?} (Blend If values 0..255; split points fade; null resets. Advanced Blending: channels = which colour channels blend (R G B / C M Y K / L a b); Local Paint's defaults are knockout none, interior effects off, clipped layers as group on, transparency shapes on, masks hide effects off)"##,
+            r##"{"layer":id?,"blend":"normal|multiply|…"?,"opacity":0..100?,"fillOpacity":0..100?,"blendIf":{"channel":"gray|red|green|blue|cyan|…"|index="gray","thisLayer":[black,white]|[blackLo,blackHi,whiteLo,whiteHi]?,"underlying":[…]?}|[{…},…]|null?,"channels":[bool,…]?,"knockout":"none|shallow|deep"?,"blendInteriorEffectsAsGroup":bool?,"blendClippedLayersAsGroup":bool?,"transparencyShapesLayer":bool?,"layerMaskHidesEffects":bool?,"vectorMaskHidesEffects":bool?} (Blend If values 0..255; split points fade; null resets. Advanced Blending: channels = which colour channels blend (R G B / C M Y K / L a b); Local Raster's defaults are knockout none, interior effects off, clipped layers as group on, transparency shapes on, masks hide effects off)"##,
             has_layer,
             blending_options
         ),

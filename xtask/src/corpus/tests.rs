@@ -33,7 +33,7 @@ struct Fixture(PathBuf);
 impl Fixture {
     fn new() -> Self {
         let id = PNGSUITE_STAGE_ID.fetch_add(1, Ordering::Relaxed);
-        let path = std::env::temp_dir().join(format!("localpaint-pngsuite-test-{}-{id}", std::process::id()));
+        let path = std::env::temp_dir().join(format!("localraster-pngsuite-test-{}-{id}", std::process::id()));
         std::fs::create_dir(&path).unwrap();
         Self(path)
     }
@@ -263,7 +263,7 @@ fn pngsuite_download_copy_accepts_boundary_and_never_writes_excess() {
 // enables emission; it stays alive so cleanup must kill and reap that particular child.
 #[test]
 fn pngsuite_stream_fixture() {
-    if std::env::var_os("LOCALPAINT_PNGSUITE_STREAM_TEST").is_some() {
+    if std::env::var_os("LOCALRASTER_PNGSUITE_STREAM_TEST").is_some() {
         let mut out = std::io::stdout().lock();
         for _ in 0..256 {
             let _ = out.write_all(&[0xa5; 8192]);
@@ -275,7 +275,7 @@ fn pngsuite_stream_fixture() {
 fn stream_child() -> Child {
     Command::new(std::env::current_exe().unwrap())
         .args(["--exact", "corpus::tests::pngsuite_stream_fixture", "--nocapture"])
-        .env("LOCALPAINT_PNGSUITE_STREAM_TEST", "1")
+        .env("LOCALRASTER_PNGSUITE_STREAM_TEST", "1")
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()

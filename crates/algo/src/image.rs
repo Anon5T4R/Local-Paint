@@ -1,7 +1,7 @@
 //! Interleaved `f32` image regions and sampling helpers.
 
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 
 /// How samples outside an image are read.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

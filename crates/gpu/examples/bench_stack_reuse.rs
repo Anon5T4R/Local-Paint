@@ -1,12 +1,12 @@
 //! Dense 24-MP stack, synchronized GPU rendering with/without lower-stack reuse.
-//! `cargo run --release -p localpaint-gpu --example bench_stack_reuse [-- --quick]`
+//! `cargo run --release -p localraster-gpu --example bench_stack_reuse [-- --quick]`
 use std::time::Instant;
 
-use localpaint_color::{ColorMode, SampleType};
-use localpaint_doc::{Document, Layer, LayerContent};
-use localpaint_geom::Size;
-use localpaint_gpu::{Compositor, Stats};
-use localpaint_raster::Surface;
+use localraster_color::{ColorMode, SampleType};
+use localraster_doc::{Document, Layer, LayerContent};
+use localraster_geom::Size;
+use localraster_gpu::{Compositor, Stats};
+use localraster_raster::Surface;
 
 fn render(comp: &mut Compositor, device: &wgpu::Device, queue: &wgpu::Queue, doc: &Document) -> Result<Stats, Box<dyn std::error::Error>> {
     let stats = comp.render(device, queue, doc, doc.bounds(), |_, _| {})?;

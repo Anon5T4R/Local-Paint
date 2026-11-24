@@ -1,6 +1,6 @@
 [package]
-name = "localpaint-io"
-description = "Import/export between localpaint documents and PSD/PSB and flat raster formats"
+name = "localraster-io"
+description = "Import/export between localraster documents and PSD/PSB and flat raster formats"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -13,25 +13,25 @@ workspace = true
 [features]
 # Real-file corpus tests (opt-in; `cargo xtask test-corpus`). Fail when the corpus is missing.
 corpus = []
-# HEIC/HEIF decode (forwarded to localpaint-codecs; see its `heif` feature).
-heif = ["localpaint-codecs/heif"]
+# HEIC/HEIF decode (forwarded to localraster-codecs; see its `heif` feature).
+heif = ["localraster-codecs/heif"]
 
 [dependencies]
-localpaint-geom = { workspace = true }
-localpaint-color = { workspace = true }
-localpaint-cms = { workspace = true }
-localpaint-raster = { workspace = true }
-localpaint-doc = { workspace = true }
-localpaint-compose = { workspace = true }
-localpaint-algo = { workspace = true }
-localpaint-psd = { workspace = true }
-localpaint-codecs = { workspace = true }
-localpaint-raw = { workspace = true }
-localpaint-affinity = { workspace = true }
-localpaint-text = { workspace = true }
-localpaint-paint = { workspace = true }
-localpaint-vector = { workspace = true }
-localpaint-format = { path = "../format" }
+localraster-geom = { workspace = true }
+localraster-color = { workspace = true }
+localraster-cms = { workspace = true }
+localraster-raster = { workspace = true }
+localraster-doc = { workspace = true }
+localraster-compose = { workspace = true }
+localraster-algo = { workspace = true }
+localraster-psd = { workspace = true }
+localraster-codecs = { workspace = true }
+localraster-raw = { workspace = true }
+localraster-affinity = { workspace = true }
+localraster-text = { workspace = true }
+localraster-paint = { workspace = true }
+localraster-vector = { workspace = true }
+localraster-format = { path = "../format" }
 craft-docpath = { workspace = true }
 thiserror = { workspace = true }
 serde_json = { workspace = true }
@@ -54,13 +54,13 @@ resvg = { version = "0.45", default-features = false, features = ["text", "raste
 [dev-dependencies]
 miniz_oxide = "0.9"
 crc32fast = "1.5"
-localpaint-affinity = { workspace = true, features = ["synth"] }
+localraster-affinity = { workspace = true, features = ["synth"] }
 flate2 = { workspace = true }
-localpaint-psd = { workspace = true, features = ["testgen"] }
-localpaint-raw = { workspace = true, features = ["testgen"] }
-localpaint-testkit = { workspace = true }
+localraster-psd = { workspace = true, features = ["testgen"] }
+localraster-raw = { workspace = true, features = ["testgen"] }
+localraster-testkit = { workspace = true }
 proptest = { workspace = true }
-# Lossless JPEG XL encoder for the JPEG XL DNG preview test (tests only), as in localpaint-raw.
+# Lossless JPEG XL encoder for the JPEG XL DNG preview test (tests only), as in localraster-raw.
 zune-jpegxl = { version = "=0.5.2", default-features = false, features = ["std"] }
 zune-core = { workspace = true }
 tiff = { version = "0.11", default-features = false, features = ["deflate", "lzw"] }

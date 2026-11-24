@@ -1,6 +1,6 @@
 use super::invoke::{panel_alias, proof_preset, workspace_name};
 use super::state::{checked, is_enabled, reveal_label};
-use super::{DOCUMENT_ITEM, LocalPaintApp, UI_COMMANDS};
+use super::{DOCUMENT_ITEM, LocalRasterApp, UI_COMMANDS};
 
 /// Menu tree entry for rendering and for `ui.inspect`.
 #[derive(Clone, Debug, serde::Serialize)]
@@ -20,7 +20,7 @@ pub struct MenuItem {
 /// the parity report ([`crate::parity`]).
 pub fn is_live(id: &str) -> bool {
     static UI_IDS: std::sync::OnceLock<std::collections::HashSet<&'static str>> = std::sync::OnceLock::new();
-    localpaint_engine::commands::find(id).is_some()
+    localraster_engine::commands::find(id).is_some()
         || crate::tool_shortcuts::tool(id).is_some()
         || UI_IDS.get_or_init(|| UI_COMMANDS.iter().map(|c| c.0).collect()).contains(id)
         || panel_alias(id).is_some()
@@ -45,7 +45,7 @@ const PLACE_AFTER: &[(&str, &str)] = &[
     ("filter.other.colorToAlpha", "filter.other.offset"),
 ];
 
-pub fn menu_items(app: &LocalPaintApp) -> Vec<MenuItem> {
+pub fn menu_items(app: &LocalRasterApp) -> Vec<MenuItem> {
     // 1) Photoshop's full menu tree, in Photoshop order; live where we implement the command.
     let known = is_live;
     let mut items: Vec<MenuItem> = crate::menu_catalog::CATALOG
@@ -75,7 +75,7 @@ pub fn menu_items(app: &LocalPaintApp) -> Vec<MenuItem> {
             color: None,
         });
     }
-    for c in localpaint_engine::command_specs().iter().filter(|c| !c.menu.is_empty()) {
+    for c in localraster_engine::command_specs().iter().filter(|c| !c.menu.is_empty()) {
         extra.push(MenuItem {
             id: c.id.into(),
             label: c.label.into(),
@@ -109,7 +109,7 @@ pub fn menu_items(app: &LocalPaintApp) -> Vec<MenuItem> {
     // Layer › Merge Layers reads Merge Group with just a group selected, as in Photoshop (#3832).
     if let Some(st) = app.session.active()
         && st.selected_layers().len() <= 1
-        && st.active_layer.and_then(|id| st.doc.layer(id)).is_some_and(|l| matches!(l.content, localpaint_doc::LayerContent::Group(_)))
+        && st.active_layer.and_then(|id| st.doc.layer(id)).is_some_and(|l| matches!(l.content, localraster_doc::LayerContent::Group(_)))
         && let Some(item) = items.iter_mut().find(|i| i.id == "layer.mergeLayers")
     {
         item.label = "Merge Group".into();
@@ -117,7 +117,7 @@ pub fn menu_items(app: &LocalPaintApp) -> Vec<MenuItem> {
     // The File quick-export command uses the format selected in Export Preferences; the Layer
     // quick-export command always produces PNG.
     if let Some(item) = items.iter_mut().find(|i| i.id == "file.export.quickExportAsPng") {
-        use localpaint_engine::prefs::QuickExportFormat;
+        use localraster_engine::prefs::QuickExportFormat;
         let format = match app.session.prefs().export.quick_export_format {
             QuickExportFormat::Png => "PNG",
             QuickExportFormat::Jpg => "JPG",

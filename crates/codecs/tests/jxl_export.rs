@@ -1,6 +1,6 @@
 //! Lossless JPEG XL export and honest export-only capability reporting.
 
-use localpaint_codecs::{
+use localraster_codecs::{
     ASYMMETRIC_EXCEPTIONS, ChannelLayout, CodecError, EncodeOptions, Format, Image, SampleType, caps, decode, detect, encode, from_extension,
 };
 

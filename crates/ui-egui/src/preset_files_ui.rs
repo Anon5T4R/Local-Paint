@@ -10,7 +10,7 @@
 
 use serde_json::{Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
 /// Extensions handled here rather than by the document importer (`.aco`/`.act`/`.ase` swatches go to
 /// the Swatches panel through [`crate::swatches_ui::import_bytes`]).
@@ -32,7 +32,7 @@ pub const BRUSH_IMAGE_EXTS: &[&str] = &["png", "jpg", "jpeg", "tif", "tiff", "ps
 
 /// Brushes panel / brush preset picker › Import Brushes…: an `.abr` joins the brush library as a
 /// group (as File › Open does), an image file becomes a new brush preset with that image as its tip.
-pub fn import_brushes(app: &mut LocalPaintApp) -> Result<Value, String> {
+pub fn import_brushes(app: &mut LocalRasterApp) -> Result<Value, String> {
     let exts: Vec<&str> = std::iter::once("abr").chain(BRUSH_IMAGE_EXTS.iter().copied()).collect();
     app.pick_file_bytes_filtered(&exts, |app, name, bytes| match open(app, &name, &bytes) {
         Some(r) => r.map(|()| Value::Null),
@@ -41,7 +41,7 @@ pub fn import_brushes(app: &mut LocalPaintApp) -> Result<Value, String> {
 }
 
 /// An image file as a brush tip: a new preset named after the file, made the current brush.
-pub fn import_brush_image(app: &mut LocalPaintApp, name: &str, bytes: &[u8]) -> Result<Value, String> {
+pub fn import_brush_image(app: &mut LocalRasterApp, name: &str, bytes: &[u8]) -> Result<Value, String> {
     let file = std::path::Path::new(name).file_name().map(|f| f.to_string_lossy().to_string()).unwrap_or_else(|| name.to_string());
     let mut p = source(name, bytes);
     if p.get("data").is_some() {
@@ -58,7 +58,7 @@ pub fn import_brush_image(app: &mut LocalPaintApp, name: &str, bytes: &[u8]) -> 
 }
 
 /// Import from a gradient picker through the same preset command as File › Open.
-pub(crate) fn import_gradients_dialog(app: &mut LocalPaintApp) {
+pub(crate) fn import_gradients_dialog(app: &mut LocalRasterApp) {
     let result = app.pick_file_bytes_filtered(&["grd"], |app, name, bytes| {
         if ext(&name) != "grd" {
             return Err(tl!("Choose a gradient file (.grd).").into());
@@ -80,11 +80,11 @@ fn source(name: &str, bytes: &[u8]) -> Value {
         return json!({"path": name});
     }
     let _ = name;
-    json!({"data": localpaint_engine::paint::tile::b64_encode(bytes)})
+    json!({"data": localraster_engine::paint::tile::b64_encode(bytes)})
 }
 
 /// Import a preset file; `None` when `name` isn't one.
-pub fn open(app: &mut LocalPaintApp, name: &str, bytes: &[u8]) -> Option<Result<(), String>> {
+pub fn open(app: &mut LocalRasterApp, name: &str, bytes: &[u8]) -> Option<Result<(), String>> {
     let (cmd, what) = match ext(name).as_str() {
         "abr" => ("brush.presets.importAbr", "brushes"),
         "grd" => ("gradient.presets.importGrd", "gradients"),
@@ -118,7 +118,7 @@ pub fn open(app: &mut LocalPaintApp, name: &str, bytes: &[u8]) -> Option<Result<
 }
 
 /// Run the import command for a preset file and report it in the status bar.
-pub(crate) fn run_import(app: &mut LocalPaintApp, cmd: &str, what: &str, stem: &str, p: Value) -> Result<(), String> {
+pub(crate) fn run_import(app: &mut LocalRasterApp, cmd: &str, what: &str, stem: &str, p: Value) -> Result<(), String> {
     app.run(cmd, p).map(|r| {
         // A background import (#210): `jobs_ui` reports the count when it lands.
         if r.get("pending").and_then(Value::as_bool) == Some(true) {
@@ -180,7 +180,7 @@ mod tests {
     /// New Group (Enter) keeps it, Cancel imports nothing, Replace deletes it (#10640).
     #[test]
     fn reimporting_a_brush_file_asks_before_touching_its_group() {
-        use localpaint_psd::abr::{LegacyBrush, LegacyTip, write_v12};
+        use localraster_psd::abr::{LegacyBrush, LegacyTip, write_v12};
         let round = |name: &str| LegacyBrush {
             name: name.into(),
             spacing: 25,
@@ -188,9 +188,9 @@ mod tests {
             tip: LegacyTip::Computed { diameter: 9, hardness: 100, angle: 0, roundness: 100 },
         };
         let abr = write_v12(2, &[round("Chalk"), round("Ink")], true).unwrap();
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
-        let in_group = |app: &LocalPaintApp, g: &str| app.session.tools.presets.iter().filter(|p| p.group == g).count();
-        let prompt = |app: &LocalPaintApp| app.ui.dialogs.iter().find(|d| crate::preset_group_prompt::owns(&d.fields)).map(|d| d.id);
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
+        let in_group = |app: &LocalRasterApp, g: &str| app.session.tools.presets.iter().filter(|p| p.group == g).count();
+        let prompt = |app: &LocalRasterApp| app.ui.dialogs.iter().find(|d| crate::preset_group_prompt::owns(&d.fields)).map(|d| d.id);
         open(&mut app, "Kit.abr", &abr).unwrap().unwrap();
         assert_eq!(in_group(&app, "Kit"), 2);
         assert!(prompt(&app).is_none(), "a new group imports without asking");
@@ -220,7 +220,7 @@ mod tests {
         assert_eq!((in_group(&app, "Kit"), in_group(&app, "Kit (2)")), (2, 2));
         // The status names the file and the group it landed in.
         assert!(app.ui.status.ends_with("from Kit into “Kit (2)”"), "{}", app.ui.status);
-        let size = |app: &LocalPaintApp| app.session.tools.presets.iter().find(|p| p.name == edited).map(|p| p.brush.size);
+        let size = |app: &LocalRasterApp| app.session.tools.presets.iter().find(|p| p.name == edited).map(|p| p.brush.size);
         assert_eq!(size(&app), Some(77.0), "the edited brush is kept");
 
         // Replace deletes the group's brushes first.
@@ -239,14 +239,14 @@ mod tests {
     /// Import as New Group adds "Fire (2)", Replace swaps "Fire" alone (#10640).
     #[test]
     fn reimporting_a_gradient_file_asks_before_touching_its_group() {
-        use localpaint_psd::grd::{GrdColor, GrdGradient, GrdStop, write};
+        use localraster_psd::grd::{GrdColor, GrdGradient, GrdStop, write};
         let stop = |location: f32, color| GrdStop { location, midpoint: 0.5, color };
         let ember =
             GrdGradient { name: "Ember".into(), stops: vec![stop(0.0, GrdColor::Foreground), stop(1.0, GrdColor::Rgb([1.0, 0.0, 0.0]))], ..Default::default() };
         let grd = write(&[ember]);
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
-        let groups = |app: &LocalPaintApp, g: &str| app.session.presets.gradients.iter().filter(|x| x.name == g).count();
-        let prompt = |app: &LocalPaintApp| app.ui.dialogs.iter().find(|d| crate::preset_group_prompt::owns(&d.fields)).map(|d| d.id);
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
+        let groups = |app: &LocalRasterApp, g: &str| app.session.presets.gradients.iter().filter(|x| x.name == g).count();
+        let prompt = |app: &LocalRasterApp| app.ui.dialogs.iter().find(|d| crate::preset_group_prompt::owns(&d.fields)).map(|d| d.id);
         open(&mut app, "Fire.grd", &grd).unwrap().unwrap();
         assert_eq!(groups(&app, "Fire"), 1);
         assert!(prompt(&app).is_none(), "a new group imports without asking");
@@ -274,17 +274,17 @@ mod tests {
     /// Import Brushes… with a PNG: the image becomes the current brush's tip (TOOL-213-12).
     #[test]
     fn import_brushes_turns_an_image_into_a_brush_tip() {
-        use localpaint_engine::paint::TipShape;
+        use localraster_engine::paint::TipShape;
         let mut px = vec![255u8; 16 * 16];
         for y in 4..12 {
             for x in 6..9 {
                 px[y * 16 + x] = 0;
             }
         }
-        let img = localpaint_codecs::Image::from_u8(16, 16, localpaint_codecs::ChannelLayout::Gray, px).unwrap();
-        let png = localpaint_codecs::encode(&img, localpaint_codecs::Format::Png, &Default::default()).unwrap();
+        let img = localraster_codecs::Image::from_u8(16, 16, localraster_codecs::ChannelLayout::Gray, px).unwrap();
+        let png = localraster_codecs::encode(&img, localraster_codecs::Format::Png, &Default::default()).unwrap();
         let (show, asked) = crate::file_dialog::fake(vec![Some(crate::file_dialog::FileDialogAnswer::Contents("Leaf.png".into(), png))]);
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services { file_dialog: Some(show), ..Default::default() });
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services { file_dialog: Some(show), ..Default::default() });
         import_brushes(&mut app).unwrap();
         app.poll_file_dialog(&egui::Context::default(), None);
         match asked.borrow().first() {

@@ -8,13 +8,13 @@
 //! recomposited per frame.
 
 use egui::{Color32, TextureOptions};
-use localpaint_doc::{AlphaChannel, ColorMode, Document};
-use localpaint_engine::channel_cmds::{ChannelView, color_count};
-use localpaint_engine::mask_view_cmds::MaskViewMode;
-use localpaint_geom::Rect;
-use localpaint_raster::{Surface, from_rgba, to_rgba};
+use localraster_doc::{AlphaChannel, ColorMode, Document};
+use localraster_engine::channel_cmds::{ChannelView, color_count};
+use localraster_engine::mask_view_cmds::MaskViewMode;
+use localraster_geom::Rect;
+use localraster_raster::{Surface, from_rgba, to_rgba};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
 /// Largest overlay texture side; bigger documents show a downsampled overlay.
 const MAX_SIDE: u32 = 4096;
@@ -84,7 +84,7 @@ impl Default for Look {
 
 impl Look {
     /// The current preferences of `s`.
-    pub fn of(s: &localpaint_engine::Session) -> Self {
+    pub fn of(s: &localraster_engine::Session) -> Self {
         let p = s.prefs();
         Self { in_color: p.interface.show_channels_in_color, mask_rgb: p.layer_mask_overlay.rgb(), mask_opacity: p.layer_mask_overlay.alpha() }
     }
@@ -96,7 +96,7 @@ fn composite(doc: &Document, r: Rect, factor: u32) -> Vec<[f32; 4]> {
     let (w, h) = (r.width().div_ceil(factor), r.height().div_ceil(factor));
     let mut out = Vec::with_capacity((w * h) as usize);
     let f = factor as i32;
-    let _ = localpaint_compose::render_bands(doc, r, 0, |band| -> Result<(), ()> {
+    let _ = localraster_compose::render_bands(doc, r, 0, |band| -> Result<(), ()> {
         let first = band.rect.y0 + (r.y0 - band.rect.y0).rem_euclid(f);
         for y in (first..band.rect.y1).step_by(factor as usize) {
             for x in (r.x0..r.x1).step_by(factor as usize) {
@@ -112,7 +112,7 @@ fn composite(doc: &Document, r: Rect, factor: u32) -> Vec<[f32; 4]> {
 
 /// The channel view of `r` (document pixels, sampled every `factor` px) as premultiplied pixels,
 /// or `None` when the plain composite is all there is to show.
-pub fn render(doc: &Document, v: &ChannelView, r: Rect, factor: u32, look: Look, active: Option<localpaint_doc::LayerId>) -> Option<Vec<Color32>> {
+pub fn render(doc: &Document, v: &ChannelView, r: Rect, factor: u32, look: Look, active: Option<localraster_doc::LayerId>) -> Option<Vec<Color32>> {
     let mut unused = None;
     render_with_source(doc, v, r, factor, look, active, CompositeSource { cached: None, fresh: &mut unused })
 }
@@ -123,7 +123,7 @@ fn render_with_source(
     r: Rect,
     factor: u32,
     look: Look,
-    active: Option<localpaint_doc::LayerId>,
+    active: Option<localraster_doc::LayerId>,
     source: CompositeSource<'_>,
 ) -> Option<Vec<Color32>> {
     if v.is_plain(doc) || r.is_empty() {
@@ -138,11 +138,11 @@ fn render_with_source(
     let feathered_mask = v
         .layer_mask
         .and_then(|view| doc.layer(view.layer))
-        .filter(|layer| layer.mask.as_ref().is_some_and(|mask| mask.enabled && localpaint_compose::masks::feather_sigma(mask.feather) > 0.0))
+        .filter(|layer| layer.mask.as_ref().is_some_and(|mask| mask.enabled && localraster_compose::masks::feather_sigma(mask.feather) > 0.0))
         .and_then(|layer| {
             let mut pixel_mask_layer = layer.clone();
             pixel_mask_layer.vector_mask = None;
-            localpaint_compose::masks::combined_mask(&pixel_mask_layer, doc.bounds())
+            localraster_compose::masks::combined_mask(&pixel_mask_layer, doc.bounds())
         });
     let shown_mask = layer_mask.map(|(m, mode)| (feathered_mask.as_ref().unwrap_or(&m.surface), mode));
     let only_mask = ChannelView { layer_mask: None, ..v.clone() }.is_plain(doc);
@@ -219,7 +219,7 @@ fn render_with_source(
         vec![[0.0; 4]; n]
     };
     // Rubylith: `color` at `opacity` × coverage over the accumulated pixels.
-    let mut tint = |values: Vec<f32>, color: localpaint_color::Color, opacity: f32, coverage: &dyn Fn(f32) -> f32| {
+    let mut tint = |values: Vec<f32>, color: localraster_color::Color, opacity: f32, coverage: &dyn Fn(f32) -> f32| {
         let c = color.to_rgb();
         for (o, val) in out.iter_mut().zip(values) {
             let a = (coverage(val.clamp(0.0, 1.0)) * opacity).clamp(0.0, 1.0);
@@ -242,7 +242,7 @@ fn render_with_source(
     // Display Options colour and opacity (red at 50 % unless set).
     if !solo_mask && let Some((m, MaskViewMode::Overlay)) = shown_mask {
         let [cr, cg, cb] = mask_rgb;
-        tint(sample(m, r, factor), localpaint_color::Color::rgb(cr, cg, cb), mask_opacity, &|x| 1.0 - x);
+        tint(sample(m, r, factor), localraster_color::Color::rgb(cr, cg, cb), mask_opacity, &|x| 1.0 - x);
     }
     Some(out.into_iter().map(|p| Color32::from_rgba_premultiplied(q(p[0]), q(p[1]), q(p[2]), q(p[3]))).collect())
 }
@@ -280,7 +280,7 @@ fn view_key(v: &ChannelView, look: Look) -> u64 {
 }
 
 /// Make the channel-view texture of document `idx` current; `None` = nothing to draw.
-pub fn ensure(app: &mut LocalPaintApp, ctx: &egui::Context, idx: usize) -> Option<egui::TextureId> {
+pub fn ensure(app: &mut LocalRasterApp, ctx: &egui::Context, idx: usize) -> Option<egui::TextureId> {
     let st = app.session.documents().get(idx)?;
     let view = st.channel_view.clone();
     let active = st.active_layer;

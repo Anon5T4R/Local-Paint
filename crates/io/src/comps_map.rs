@@ -14,11 +14,11 @@
 
 use std::collections::HashMap;
 
-use localpaint_doc::comps::layer_position;
-use localpaint_doc::{Artboard, ArtboardBackground, CompLayerState, Document, Guides, Layer, LayerComp};
-use localpaint_geom::Rect;
-use localpaint_psd::descriptor::{Descriptor, UnicodeString, Value, VersionedDescriptor};
-use localpaint_psd::metadata::{MetadataItem, parse_shmd, write_shmd};
+use localraster_doc::comps::layer_position;
+use localraster_doc::{Artboard, ArtboardBackground, CompLayerState, Document, Guides, Layer, LayerComp};
+use localraster_geom::Rect;
+use localraster_psd::descriptor::{Descriptor, UnicodeString, Value, VersionedDescriptor};
+use localraster_psd::metadata::{MetadataItem, parse_shmd, write_shmd};
 
 use crate::blocks::{color_from_desc, color_to_desc, num};
 
@@ -78,7 +78,7 @@ pub fn parse_artboard(data: &[u8]) -> Option<Artboard> {
     let background = match int(d, "artboardBackgroundType").unwrap_or(1) {
         2 => ArtboardBackground::Black,
         3 => ArtboardBackground::Transparent,
-        4 => ArtboardBackground::Custom(desc(d, "Clr ").and_then(color_from_desc).unwrap_or(localpaint_doc::Color::WHITE)),
+        4 => ArtboardBackground::Custom(desc(d, "Clr ").and_then(color_from_desc).unwrap_or(localraster_doc::Color::WHITE)),
         _ => ArtboardBackground::White,
     };
     let preset = text(d, "artboardPresetName").unwrap_or_default();
@@ -92,8 +92,8 @@ pub fn write_artboard(a: &Artboard, guides: &[i32]) -> Vec<u8> {
     let rect = Descriptor::new("classFloatRect").with("Top ", f(a.rect.y0)).with("Left", f(a.rect.x0)).with("Btom", f(a.rect.y1)).with("Rght", f(a.rect.x1));
     let color = match a.background {
         ArtboardBackground::Custom(c) => c,
-        ArtboardBackground::Black => localpaint_doc::Color::BLACK,
-        _ => localpaint_doc::Color::WHITE,
+        ArtboardBackground::Black => localraster_doc::Color::BLACK,
+        _ => localraster_doc::Color::WHITE,
     };
     let d = Descriptor::new("artboard")
         .with("artboardRect", Value::Descriptor(rect))
@@ -353,7 +353,7 @@ pub(crate) fn set_cmls(raw: &mut Vec<([u8; 4], Vec<u8>)>, cmls: Option<Vec<u8>>)
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_doc::{Color, ColorMode, LayerContent, PixelFormat, SampleType, Size};
+    use localraster_doc::{Color, ColorMode, LayerContent, PixelFormat, SampleType, Size};
 
     #[test]
     fn artboard_roundtrip() {
@@ -488,7 +488,7 @@ mod tests {
 
     /// A layer at origin (4, 4) whose `shmd` carries a `cmls` item with one `layerSettings`
     /// entry for comp 1: visible, offset by `ofst`.
-    fn doc_with_cmls_offset(ofst: (Value, Value)) -> (Document, localpaint_doc::LayerId, Vec<u8>) {
+    fn doc_with_cmls_offset(ofst: (Value, Value)) -> (Document, localraster_doc::LayerId, Vec<u8>) {
         let mut d = Document::with_background("t", Size::new(32, 32), ColorMode::Rgb, SampleType::U8, Color::WHITE);
         let mut l = Layer::raster("A", PixelFormat::RGBA8);
         l.surface_mut().unwrap().fill_rect(Rect::new(4, 4, 8, 8), &[1.0, 0.0, 0.0, 1.0]);

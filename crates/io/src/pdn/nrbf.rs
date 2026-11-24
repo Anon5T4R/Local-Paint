@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use localpaint_raster::Interrupt;
+use localraster_raster::Interrupt;
 
 use super::{Result, invalid};
 

@@ -1,7 +1,7 @@
 use super::*;
 
-fn app() -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+fn app() -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.session.execute("file.new", json!({"width": 90, "height": 60, "depth": 16})).unwrap();
     app.session.execute("layer.new.layer", json!({})).unwrap();
     app.session
@@ -26,9 +26,9 @@ fn app() -> LocalPaintApp {
 #[test]
 fn zoom_shortcuts_zoom_the_preview_not_the_canvas() {
     let ctx = egui::Context::default();
-    LocalPaintApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
     // Large enough that Fit in View is well under 100 % in a 1000 × 700 window.
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.session.execute("file.new", json!({"width": 3000, "height": 2000})).unwrap();
     app.sync_views();
     open(&mut app).unwrap();
@@ -124,8 +124,8 @@ fn smart_filter_double_click_edits_the_stored_gallery_stack() {
     app.run("filter.filterGallery", stack).unwrap();
     app.run("filter.blur.gaussianBlur", json!({"radius": 2.0})).unwrap();
     let layer = app.session.active().unwrap().active_layer.unwrap();
-    let smart = |app: &LocalPaintApp| match &app.session.active().unwrap().doc.layer(layer).unwrap().content {
-        localpaint_doc::LayerContent::Smart(sm) => sm.clone(),
+    let smart = |app: &LocalRasterApp| match &app.session.active().unwrap().doc.layer(layer).unwrap().content {
+        localraster_doc::LayerContent::Smart(sm) => sm.clone(),
         _ => panic!("not a smart object"),
     };
     let steps = app.session.active().unwrap().history.past_len();
@@ -138,7 +138,7 @@ fn smart_filter_double_click_edits_the_stored_gallery_stack() {
     assert_eq!(d.effects.len(), 1);
     assert_eq!((d.effects[0].filter, &d.effects[0].params["detail"]), (GalleryFilter::Chrome, &json!(2)));
     // The preview starts from the pixels below the filter (no blur, no chrome).
-    let below = localpaint_engine::smart_cmds::render_below_filter(&app.session.active().unwrap().doc, &sm, 0).unwrap().unwrap();
+    let below = localraster_engine::smart_cmds::render_below_filter(&app.session.active().unwrap().doc, &sm, 0).unwrap().unwrap();
     let d = app.distort.gallery.as_ref().unwrap();
     assert_eq!(d.src.read_region(d.canvas), below.read_region(d.canvas));
 
@@ -174,7 +174,7 @@ fn preview_and_thumbnails_render() {
     // Preview equals the engine's algorithm on the sampled pixels.
     let src = sample(&d.src, d.canvas, 1);
     let a = render(&src, &d.params());
-    let mut s2 = localpaint_engine::Session::new();
+    let mut s2 = localraster_engine::Session::new();
     s2.add_document(app.session.active().unwrap().doc.as_ref().clone(), None);
     s2.select_layer(d.layer).unwrap();
     s2.execute("filter.filterGallery", d.params()).unwrap();
@@ -213,9 +213,9 @@ fn native_component_gallery_previews_match_commit_and_capture_the_target() {
 
 /// A 240×160 layer with gradients, edges and fine detail, so every gallery filter has
 /// something to draw.
-fn photo_app() -> LocalPaintApp {
+fn photo_app() -> LocalRasterApp {
     let (w, h) = (240, 160);
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.session.execute("file.new", json!({"width": w, "height": h, "depth": 16})).unwrap();
     app.session.execute("layer.new.layer", json!({})).unwrap();
     app.session
@@ -237,8 +237,8 @@ fn photo_app() -> LocalPaintApp {
 }
 
 /// What OK applies: `filter.filterGallery` with the dialog's stack on a copy of the document.
-fn applied(app: &LocalPaintApp, d: &GalleryDialog) -> Surface {
-    let mut s2 = localpaint_engine::Session::new();
+fn applied(app: &LocalRasterApp, d: &GalleryDialog) -> Surface {
+    let mut s2 = localraster_engine::Session::new();
     s2.add_document(app.session.active().unwrap().doc.as_ref().clone(), None);
     s2.select_layer(d.layer).unwrap();
     s2.execute("filter.filterGallery", d.params()).unwrap();
@@ -321,7 +321,7 @@ fn a_region_renders_the_same_pixels_as_the_full_result() {
 
 #[test]
 fn reduce_averages_blocks_weighted_by_alpha() {
-    let mut s = Surface::new(localpaint_color::PixelFormat::new(localpaint_color::ColorMode::Rgb, localpaint_color::SampleType::F32, true));
+    let mut s = Surface::new(localraster_color::PixelFormat::new(localraster_color::ColorMode::Rgb, localraster_color::SampleType::F32, true));
     s.write_pixel(0, 0, &[1.0, 0.0, 0.0, 1.0]);
     s.write_pixel(1, 0, &[0.0, 1.0, 0.0, 0.0]); // transparent: its colour doesn't count
     s.write_pixel(2, 0, &[0.2, 0.4, 0.6, 1.0]); // a partial block at the edge
@@ -362,13 +362,13 @@ fn background_preview_renders_off_the_ui_thread() {
     app.distort.gallery = None;
 }
 
-/// Preview cost on 24 MP: `cargo test -p localpaint-ui-egui --lib bench_gallery_preview -- --ignored --nocapture`.
+/// Preview cost on 24 MP: `cargo test -p localraster-ui-egui --lib bench_gallery_preview -- --ignored --nocapture`.
 #[test]
 #[ignore]
 fn bench_gallery_preview() {
     let (w, h) = (6000, 4000);
     let canvas = Rect::new(0, 0, w, h);
-    let mut s = Surface::new(localpaint_color::PixelFormat::new(localpaint_color::ColorMode::Rgb, localpaint_color::SampleType::U8, true));
+    let mut s = Surface::new(localraster_color::PixelFormat::new(localraster_color::ColorMode::Rgb, localraster_color::SampleType::U8, true));
     s.fill_rect(canvas, &[0.5, 0.4, 0.3, 1.0]);
     for y in (0..h).step_by(9) {
         s.fill_rect(Rect::new(0, y, w, y + 3), &[0.9, 0.8, 0.2, 1.0]);

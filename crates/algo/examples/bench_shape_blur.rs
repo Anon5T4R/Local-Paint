@@ -2,10 +2,10 @@
 //! Arguments: width height repetitions radius (or all) depth (8/16/32) shape (or all).
 use std::{hint::black_box, time::Instant};
 
-use localpaint_algo::{BlurShape, FilterParams, apply_in};
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_algo::{BlurShape, FilterParams, apply_in};
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().skip(1).collect();

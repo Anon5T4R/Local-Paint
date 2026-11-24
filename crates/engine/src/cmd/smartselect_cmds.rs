@@ -1,13 +1,13 @@
 //! Smart selection commands: Quick Selection, Object Selection, Select Subject, Select and Mask
-//! (Refine Edge) and Focus Area. The algorithms live in `localpaint_algo::segment` and
-//! `localpaint_algo::matting`; these commands pick the pixels to analyse (active layer or
+//! (Refine Edge) and Focus Area. The algorithms live in `localraster_algo::segment` and
+//! `localraster_algo::matting`; these commands pick the pixels to analyse (active layer or
 //! composite), run them, and store the result as the selection (or a mask / new layer).
 
-use localpaint_algo::matting::{self, RefineParams};
-use localpaint_algo::segment::{Sampler, SurfaceSampler, focus, grabcut, quick, subject};
-use localpaint_algo::selection::{Region, SelectionMode, combine_region};
-use localpaint_doc::{Document, Layer, LayerContent, LayerId, LayerMask};
-use localpaint_geom::Rect;
+use localraster_algo::matting::{self, RefineParams};
+use localraster_algo::segment::{Sampler, SurfaceSampler, focus, grabcut, quick, subject};
+use localraster_algo::selection::{Region, SelectionMode, combine_region};
+use localraster_doc::{Document, Layer, LayerContent, LayerId, LayerMask};
+use localraster_geom::Rect;
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;
@@ -49,7 +49,7 @@ struct CompositeSampler<'a>(&'a Document);
 
 impl Sampler for CompositeSampler<'_> {
     fn rgba(&self, r: Rect) -> Vec<[f32; 4]> {
-        localpaint_compose::render(self.0, r).px
+        localraster_compose::render(self.0, r).px
     }
 }
 
@@ -159,7 +159,7 @@ pub const OBJECT_FINDER_ENTRIES: usize = 12;
 #[derive(Debug, Default)]
 pub struct ObjectFinderCache {
     doc: std::sync::Weak<Document>,
-    doc_id: Option<localpaint_doc::DocId>,
+    doc_id: Option<localraster_doc::DocId>,
     target: Option<LayerId>,
     regions: Vec<std::sync::Arc<Region>>,
 }
@@ -204,7 +204,7 @@ impl ObjectFinderCache {
     }
 
     /// Forget the results if they were computed from the document `id` (it is closing).
-    pub(crate) fn forget_doc(&mut self, id: localpaint_doc::DocId) {
+    pub(crate) fn forget_doc(&mut self, id: localraster_doc::DocId) {
         if self.doc_id == Some(id) {
             *self = Self::default();
         }
@@ -287,7 +287,7 @@ fn object_selection(s: &mut Session, p: &Value) -> Result<Value> {
 #[derive(Debug, Default)]
 pub struct SubjectCache {
     doc: std::sync::Weak<Document>,
-    doc_id: Option<localpaint_doc::DocId>,
+    doc_id: Option<localraster_doc::DocId>,
     /// The sampled layer; `None` = the composite.
     target: Option<LayerId>,
     region: Option<std::sync::Arc<Region>>,
@@ -295,7 +295,7 @@ pub struct SubjectCache {
 
 impl SubjectCache {
     /// Forget the result if it was computed from the document `id` (it is closing).
-    pub(crate) fn forget_doc(&mut self, id: localpaint_doc::DocId) {
+    pub(crate) fn forget_doc(&mut self, id: localraster_doc::DocId) {
         if self.doc_id == Some(id) {
             *self = Self::default();
         }
@@ -460,7 +460,7 @@ fn refine_edge(s: &mut Session, p: &Value) -> Result<Value> {
             let id = active.ok_or_else(|| EngineError::Other("no active layer".into()))?;
             s.edit("Select and Mask", |doc, _| {
                 let surface =
-                    region.as_ref().map(matting::region_surface).unwrap_or_else(|| localpaint_raster::Surface::new(localpaint_color::PixelFormat::GRAY8));
+                    region.as_ref().map(matting::region_surface).unwrap_or_else(|| localraster_raster::Surface::new(localraster_color::PixelFormat::GRAY8));
                 crate::extra_cmds::background_to_layer_for_mask(doc, id);
                 let existing = doc.layer(id).and_then(|l| l.mask.as_ref()).cloned().unwrap_or_else(LayerMask::reveal_all);
                 doc.layer_mut(id).ok_or(EngineError::NoLayer(id))?.mask = Some(LayerMask { surface, ..existing });

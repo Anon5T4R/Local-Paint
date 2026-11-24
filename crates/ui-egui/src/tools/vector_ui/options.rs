@@ -2,13 +2,13 @@ use super::path_ops::active_path_name;
 use super::pen::path_operations_menu;
 use super::shapes::is_shape_tool;
 use super::{ArrowDefaultLink, arrow_default_link_id, copy_arrow_to_tool_defaults};
-use super::{GradientChoices, LayerContent, LocalPaintApp, PaintChange, Tokens, Tool, Value, json, paint_param, swatch};
+use super::{GradientChoices, LayerContent, LocalRasterApp, PaintChange, Tokens, Tool, Value, json, paint_param, swatch};
 
 // ---------------------------------------------------------------------------------------------
 // Options bars
 
 /// Options bar for vector tools; false for other tools.
-pub fn options_bar(app: &mut LocalPaintApp, ui: &mut egui::Ui, tool: Tool) -> bool {
+pub fn options_bar(app: &mut LocalRasterApp, ui: &mut egui::Ui, tool: Tool) -> bool {
     if !(is_shape_tool(tool)
         || matches!(
             tool,
@@ -147,7 +147,7 @@ pub fn options_bar(app: &mut LocalPaintApp, ui: &mut egui::Ui, tool: Tool) -> bo
 }
 
 /// Whether the active layer supplies the selected-shape options.
-pub(super) fn selected_shape(session: &localpaint_engine::Session) -> Option<localpaint_doc::LayerId> {
+pub(super) fn selected_shape(session: &localraster_engine::Session) -> Option<localraster_doc::LayerId> {
     let st = session.active()?;
     let layer = st.active_layer?;
     matches!(st.doc.layer(layer)?.content, LayerContent::Shape(_)).then_some(layer)
@@ -156,8 +156,8 @@ pub(super) fn selected_shape(session: &localpaint_engine::Session) -> Option<loc
 // ---------------------------------------------------------------------------------------------
 // Properties (shape layers)
 
-pub(super) fn solid_paint(c: [f32; 4]) -> localpaint_doc::Fill {
-    localpaint_doc::Fill::Solid(localpaint_doc::Color::rgba(c[0], c[1], c[2], c[3]))
+pub(super) fn solid_paint(c: [f32; 4]) -> localraster_doc::Fill {
+    localraster_doc::Fill::Solid(localraster_doc::Color::rgba(c[0], c[1], c[2], c[3]))
 }
 
 pub(crate) fn enabled_stroke_width(width: f32) -> f32 {
@@ -190,7 +190,7 @@ pub(crate) fn paint_gesture(ui: &egui::Ui, key: egui::Id) -> u64 {
 }
 
 /// Properties panel for a shape layer: Appearance (fill, stroke) and live shape geometry.
-pub fn shape_properties(app: &mut LocalPaintApp, ui: &mut egui::Ui, id: localpaint_doc::LayerId) {
+pub fn shape_properties(app: &mut LocalRasterApp, ui: &mut egui::Ui, id: localraster_doc::LayerId) {
     if app.session.active().is_some_and(|st| {
         let locks = st.doc.effective_locks(id);
         locks.all || locks.pixels
@@ -267,7 +267,7 @@ pub fn shape_properties(app: &mut LocalPaintApp, ui: &mut egui::Ui, id: localpai
             &style,
             &mut app.ui.stroke_editor,
             sh.path.subpaths.iter().all(|s| s.closed),
-            !matches!(sh.live, Some(localpaint_doc::LiveShape::Ellipse { .. })),
+            !matches!(sh.live, Some(localraster_doc::LiveShape::Ellipse { .. })),
             app.session.active().map(|st| (st.doc.id, id)),
             stroke_enabled,
         ) {
@@ -296,9 +296,9 @@ pub fn shape_properties(app: &mut LocalPaintApp, ui: &mut egui::Ui, id: localpai
             crate::widgets::value_field(ui, v, range, unit, 64.0).accessible_name(tl!(&label)).changed()
         };
         match live {
-            localpaint_doc::vector::LiveShape::Rect { rect, .. }
-            | localpaint_doc::vector::LiveShape::Ellipse { rect }
-            | localpaint_doc::vector::LiveShape::Polygon { rect, .. } => {
+            localraster_doc::vector::LiveShape::Rect { rect, .. }
+            | localraster_doc::vector::LiveShape::Ellipse { rect }
+            | localraster_doc::vector::LiveShape::Polygon { rect, .. } => {
                 ui.horizontal(|ui| {
                     let (mut w, mut h) = (rect[2] as f32, rect[3] as f32);
                     let cw = num(ui, "W", &mut w, 1.0..=300000.0, "px");
@@ -308,10 +308,10 @@ pub fn shape_properties(app: &mut LocalPaintApp, ui: &mut egui::Ui, id: localpai
                     }
                 });
             }
-            localpaint_doc::vector::LiveShape::Line { .. } | localpaint_doc::vector::LiveShape::ArrowLine { .. } => {}
+            localraster_doc::vector::LiveShape::Line { .. } | localraster_doc::vector::LiveShape::ArrowLine { .. } => {}
         }
         ui.vertical(|ui| match live {
-            localpaint_doc::vector::LiveShape::Rect { radii, .. } => {
+            localraster_doc::vector::LiveShape::Rect { radii, .. } => {
                 // Keep the uniform workflow available after independent corner edits too.
                 ui.horizontal(|ui| {
                     let mut all = radii[0] as f32;
@@ -332,7 +332,7 @@ pub fn shape_properties(app: &mut LocalPaintApp, ui: &mut egui::Ui, id: localpai
                     });
                 }
             }
-            localpaint_doc::vector::LiveShape::Polygon { sides, star_ratio, corner_radius, .. } => {
+            localraster_doc::vector::LiveShape::Polygon { sides, star_ratio, corner_radius, .. } => {
                 // One radius rounds every vertex of a triangle, polygon or star, as in Photoshop.
                 ui.horizontal(|ui| {
                     let mut r = *corner_radius as f32;
@@ -352,7 +352,7 @@ pub fn shape_properties(app: &mut LocalPaintApp, ui: &mut egui::Ui, id: localpai
                 })
                 .inner
             }
-            localpaint_doc::vector::LiveShape::ArrowLine { weight, start, end, width, length, concavity, .. } => {
+            localraster_doc::vector::LiveShape::ArrowLine { weight, start, end, width, length, concavity, .. } => {
                 // This is a selected, saved Arrow; unlike the tool's defaults, edits update its geometry.
                 ui.horizontal(|ui| {
                     let mut value = *start;
@@ -405,7 +405,7 @@ pub fn shape_properties(app: &mut LocalPaintApp, ui: &mut egui::Ui, id: localpai
                     }
                 }
             }
-            localpaint_doc::vector::LiveShape::Line { weight, .. } => {
+            localraster_doc::vector::LiveShape::Line { weight, .. } => {
                 ui.horizontal(|ui| {
                     let mut w = *weight as f32;
                     if num(ui, tl!("Weight"), &mut w, 1.0..=10000.0, "px") {

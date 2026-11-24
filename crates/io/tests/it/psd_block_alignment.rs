@@ -5,12 +5,12 @@
 //! layer record's extra data unaligned: a Pattern Fill's `PtFl` came out 2 bytes short of the
 //! boundary for half of all pattern names.
 
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_doc::{Adjustment, Document, Fill, Layer, LayerContent, Pattern};
-use localpaint_geom::{Rect, Size};
-use localpaint_io::*;
-use localpaint_psd::PsdFile;
-use localpaint_raster::Surface;
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_doc::{Adjustment, Document, Fill, Layer, LayerContent, Pattern};
+use localraster_geom::{Rect, Size};
+use localraster_io::*;
+use localraster_psd::PsdFile;
+use localraster_raster::Surface;
 
 fn pattern(name: &str) -> Pattern {
     let mut s = Surface::new(PixelFormat::RGBA8);

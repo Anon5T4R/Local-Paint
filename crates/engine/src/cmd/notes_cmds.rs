@@ -1,9 +1,9 @@
 //! Note tool annotations (Window › Notes, File › Import › Notes…). Notes are document data
-//! ([`localpaint_doc::Note`]), saved in `.pcraft` and as the PSD `Anno` block; each change is
+//! ([`localraster_doc::Note`]), saved in `.pcraft` and as the PSD `Anno` block; each change is
 //! one history step.
 
-use localpaint_color::Color;
-use localpaint_doc::{Document, Note};
+use localraster_color::Color;
+use localraster_doc::{Document, Note};
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;
@@ -289,7 +289,7 @@ mod tests {
         let a = s.active().unwrap();
         assert_eq!(a.doc.notes[0], before);
         assert_eq!(a.history.past_len(), past);
-        assert!(localpaint_format::save_to_bytes(&a.doc, &Default::default()).is_ok());
+        assert!(localraster_format::save_to_bytes(&a.doc, &Default::default()).is_ok());
     }
 
     #[test]
@@ -307,10 +307,10 @@ mod tests {
     fn import_notes_from_pcraft_and_psd() {
         let dir = std::env::temp_dir().join(format!("pc-notes-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
-        let mut src = Document::new("src", localpaint_doc::Size::new(400, 400), localpaint_color::ColorMode::Rgb, localpaint_color::SampleType::U8);
+        let mut src = Document::new("src", localraster_doc::Size::new(400, 400), localraster_color::ColorMode::Rgb, localraster_color::SampleType::U8);
         src.notes.push(Note { text: "from pcraft".into(), position: [300.0, 300.0], ..Default::default() });
         let pc = dir.join("a.pcraft");
-        std::fs::write(&pc, localpaint_format::save_to_bytes(&src, &Default::default()).unwrap()).unwrap();
+        std::fs::write(&pc, localraster_format::save_to_bytes(&src, &Default::default()).unwrap()).unwrap();
         let mut s = session();
         let r = s.execute("file.import.notes", json!({"path": pc.to_str().unwrap()})).unwrap();
         assert_eq!(r["imported"], 1);
@@ -329,7 +329,7 @@ mod tests {
         // A file without notes is an error.
         let empty = dir.join("b.pcraft");
         src.notes.clear();
-        std::fs::write(&empty, localpaint_format::save_to_bytes(&src, &Default::default()).unwrap()).unwrap();
+        std::fs::write(&empty, localraster_format::save_to_bytes(&src, &Default::default()).unwrap()).unwrap();
         assert!(s.execute("file.import.notes", json!({"path": empty.to_str().unwrap()})).is_err());
         let _ = std::fs::remove_dir_all(&dir);
     }

@@ -1,5 +1,5 @@
-use localpaint_color::SampleType;
-use localpaint_engine::Session;
+use localraster_color::SampleType;
+use localraster_engine::Session;
 use serde_json::{Value, json};
 
 const STYLES: [&str; 10] =

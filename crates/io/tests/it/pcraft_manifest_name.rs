@@ -4,11 +4,11 @@
 use crate::common;
 
 use common::*;
-use localpaint_color::{ColorMode, SampleType};
-use localpaint_format::zip::ZipReader;
-use localpaint_io::*;
+use localraster_color::{ColorMode, SampleType};
+use localraster_format::zip::ZipReader;
+use localraster_io::*;
 
-fn doc() -> localpaint_doc::Document {
+fn doc() -> localraster_doc::Document {
     let mut d = gen_doc(ColorMode::Rgb, SampleType::U8, Features::PIXELS);
     d.name = "FirstTest.psd".into();
     d
@@ -27,7 +27,7 @@ fn manifest_name(bytes: &[u8]) -> String {
 fn export_names_the_manifest_after_the_file() {
     let r = export(&doc(), "/tmp/somewhere/_nametest.pcraft", &ExportOptions::default()).expect("export");
     assert_eq!(manifest_name(&r.bytes), "_nametest.pcraft");
-    assert_eq!(localpaint_format::load_from_bytes(&r.bytes).expect("load").name, "_nametest.pcraft");
+    assert_eq!(localraster_format::load_from_bytes(&r.bytes).expect("load").name, "_nametest.pcraft");
 }
 
 /// A bare extension names no file and leaves the document's own name alone.

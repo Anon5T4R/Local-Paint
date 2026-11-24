@@ -150,7 +150,7 @@ impl DabNeighborhood {
         }
     }
 
-    fn read_rect(self, rect: Rect, dab: &localpaint_paint::Dab) -> Rect {
+    fn read_rect(self, rect: Rect, dab: &localraster_paint::Dab) -> Rect {
         match self {
             Self::Halo(radius) => rect.inflate(radius),
             Self::Smudge(radius) => {
@@ -256,7 +256,7 @@ impl DabTool {
                 })
             }
             Self::Smudge { strength, finger, max_size } => {
-                let finger_px = finger.map(|fg| localpaint_raster::from_rgba(&fmt, fg));
+                let finger_px = finger.map(|fg| localraster_raster::from_rgba(&fmt, fg));
                 // Premultiplied mixing: transparent pixels carry no colour, so no dark fringes.
                 let mut sm = Smudge::new(strength, finger_px, max_size).with_alpha(alpha_index(&fmt));
                 Box::new(move |work, fp| sm.dab(work, fp))
@@ -380,11 +380,11 @@ pub struct LiveDab {
     /// The active document with the stroke so far.
     pub doc: std::sync::Arc<Document>,
     cmd: String,
-    ctx: localpaint_paint::BrushContext,
-    generator: localpaint_paint::dynamics::DabGenerator,
+    ctx: localraster_paint::BrushContext,
+    generator: localraster_paint::dynamics::DabGenerator,
     /// Only the current batch is retained; sequential effects don't use accumulated coverage.
-    pending: Vec<localpaint_paint::Dab>,
-    dual_pending: Vec<localpaint_paint::Dab>,
+    pending: Vec<localraster_paint::Dab>,
+    dual_pending: Vec<localraster_paint::Dab>,
     done: usize,
     effect: DabEffect,
     neighborhood: DabNeighborhood,
@@ -410,7 +410,7 @@ pub struct LiveDab {
     tool: Option<(DabTool, Box<BrushSettings>)>,
     /// The document and revision the stroke started on, for strokes started from the session's
     /// active document ([`Self::with_effect`]); `None` for strokes on a prepared copy.
-    base: Option<(localpaint_doc::DocId, u64)>,
+    base: Option<(localraster_doc::DocId, u64)>,
     /// Every point rendered so far, in order.
     points: Vec<StrokePoint>,
 }
@@ -499,8 +499,8 @@ impl LiveDab {
         let effect = effect(&pre_surf);
         // Generate the same dabs as `apply_dab_stroke` (zoom 1), without a StrokeRenderer:
         // its accumulated coverage isn't used here, and each effect rasterizes its own footprint.
-        let ctx = localpaint_paint::BrushContext::new(&stroke.brush);
-        let generator = localpaint_paint::dynamics::DabGenerator::new(&stroke.brush, 1.0);
+        let ctx = localraster_paint::BrushContext::new(&stroke.brush);
+        let generator = localraster_paint::dynamics::DabGenerator::new(&stroke.brush, 1.0);
         let mut live = Self {
             doc: std::sync::Arc::new(doc),
             cmd: cmd.into(),
@@ -569,7 +569,7 @@ impl LiveDab {
     /// Mix the working pixels of `r` back over the original into the shown document.
     fn show(&mut self, r: Rect, work: &Region) -> Result<()> {
         let (surf, _) = crate::channel_cmds::target_surface(std::sync::Arc::make_mut(&mut self.doc), self.id, &self.params)?;
-        localpaint_paint::retouch::mix_back(surf, &Region::read(&self.pre_surf, r), work, r, self.opacity, self.sel.as_ref(), self.lock);
+        localraster_paint::retouch::mix_back(surf, &Region::read(&self.pre_surf, r), work, r, self.opacity, self.sel.as_ref(), self.lock);
         Ok(())
     }
 

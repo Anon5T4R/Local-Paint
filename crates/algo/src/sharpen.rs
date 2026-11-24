@@ -1,6 +1,6 @@
 //! Unsharp Mask, Smart Sharpen (basic), High Pass.
 
-use localpaint_geom::Rect;
+use localraster_geom::Rect;
 
 use crate::Ctx;
 use crate::blur::{conv_sep, gaussian_kernel};
@@ -34,7 +34,7 @@ fn with_blur(src: &Image, out: Rect, ctx: &Ctx, radius: f32, mut f: impl FnMut(f
 }
 
 pub(crate) fn unsharp(src: &Image, out: Rect, ctx: &Ctx, amount: f32, radius: f32, threshold: f32) -> Vec<f32> {
-    exact::run(src, out, ctx, amount, radius, threshold, &localpaint_raster::Interrupt::NONE).unwrap_or_default()
+    exact::run(src, out, ctx, amount, radius, threshold, &localraster_raster::Interrupt::NONE).unwrap_or_default()
 }
 
 pub(crate) fn smart(src: &Image, out: Rect, ctx: &Ctx, amount: f32, radius: f32, reduce_noise: f32) -> Vec<f32> {

@@ -1,8 +1,8 @@
-//! # localpaint-io
+//! # localraster-io
 //!
-//! Import and export between [`localpaint_doc::Document`] and files:
+//! Import and export between [`localraster_doc::Document`] and files:
 //!
-//! * PSD / PSB (detected by the `8BPS` signature) via `localpaint-psd`, with
+//! * PSD / PSB (detected by the `8BPS` signature) via `localraster-psd`, with
 //!   fidelity levels 1–3 (raster layers, masks, blend/opacity/fill,
 //!   visibility, names, groups, clipping, adjustment and fill layers).
 //!   Every layer keeps its unmodelled tagged blocks in `Layer::psd_blocks`
@@ -11,7 +11,7 @@
 //!   smart-object layers also keep their pixels as the cached raster, and fill
 //!   layers keep Photoshop's rendering in `Layer::fill_cache`.
 //! * Camera raws (DNG, CR2, uncompressed / lossless TIFF-EP raws) via
-//!   `localpaint-raw`, developed into a 16-bit ProPhoto RGB "Background"
+//!   `localraster-raw`, developed into a 16-bit ProPhoto RGB "Background"
 //!   layer; unsupported raw variants fall back to the embedded JPEG preview.
 //! * Layered TIFFs (Photoshop layer data in tags 37724 and 34377) open with their
 //!   layers through the PSD path and are written back the same way; see `tiff_layers`.
@@ -25,12 +25,12 @@
 //! * Affinity documents (`.af`, `.afdesign`, `.afphoto`, `.afpub`) open natively
 //!   with no source save path, what isn't imported listed in the warnings; a file
 //!   whose native data can't be read opens as its embedded preview; see `affinity`.
-//! * Every other format goes through `localpaint-codecs` as a single layer
+//! * Every other format goes through `localraster-codecs` as a single layer
 //!   (depth and Gray/RGB/CMYK model preserved): a locked "Background" when the
 //!   image is opaque, a normal "Layer 0" when it has transparency.
 //!
 //! Exports to PSD render the merged composite with
-//! `localpaint_compose::flatten`; flat exports report what is lost.
+//! `localraster_compose::flatten`; flat exports report what is lost.
 #![forbid(unsafe_code)]
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
@@ -81,10 +81,10 @@ pub mod vector_preview;
 mod xcf;
 pub mod xml;
 
-use localpaint_codecs::{CodecError, EncodeOptions};
-pub use localpaint_codecs::{DdsCompression, DdsOptions, DpxBits};
-use localpaint_doc::{Adjustment, Document, Layer, LayerContent};
-use localpaint_psd::{PsdError, PsdFile};
+use localraster_codecs::{CodecError, EncodeOptions};
+pub use localraster_codecs::{DdsCompression, DdsOptions, DpxBits};
+use localraster_doc::{Adjustment, Document, Layer, LayerContent};
+use localraster_psd::{PsdError, PsdFile};
 
 pub use adjust_map::ADJUSTMENT_KEYS;
 pub use flat::{
@@ -130,10 +130,10 @@ pub enum IoError {
     Unsupported(String),
     /// Native `.pcraft` bundle failure.
     #[error("pcraft: {0}")]
-    Pcraft(#[from] localpaint_format::FormatError),
+    Pcraft(#[from] localraster_format::FormatError),
     /// Camera raw decode failure.
     #[error("{0}")]
-    Raw(#[from] localpaint_raw::RawError),
+    Raw(#[from] localraster_raw::RawError),
     /// An SVG that does not parse (or is too large to rasterise).
     #[error("SVG: {0}")]
     Svg(String),
@@ -176,7 +176,7 @@ pub fn open_warnings(doc: &Document) -> Vec<String> {
     let mut stack: Vec<&Layer> = doc.layers.iter().rev().collect();
     while let Some(l) = stack.pop() {
         if let LayerContent::Adjustment(Adjustment::ColorLookup { name: _, size, lut, .. }) = &l.content {
-            match lut.as_deref().zip(localpaint_doc::adjust::lut3d_len(*size)) {
+            match lut.as_deref().zip(localraster_doc::adjust::lut3d_len(*size)) {
                 Some((table, len)) if table.len() >= len => {}
                 Some((table, len)) => out.push(format!(
                     "layer \"{}\": its Color Lookup table has {} values, but a {size}³ lookup needs {len}; the layer renders without the lookup",
@@ -310,25 +310,25 @@ pub fn is_psd(bytes: &[u8]) -> bool {
 /// signature is present. A PNG/JPEG/TIFF downloaded as `.psd` still opens from its bytes
 /// (#5258 review).
 fn is_psd_input(name: &str, bytes: &[u8]) -> bool {
-    is_psd(bytes) || (PSD_EXTS.iter().any(|e| has_extension(name, e)) && localpaint_codecs::detect(bytes).is_none())
+    is_psd(bytes) || (PSD_EXTS.iter().any(|e| has_extension(name, e)) && localraster_codecs::detect(bytes).is_none())
 }
 
 /// Imports a file. PSD/PSB, Affinity containers and camera raws are detected by magic; everything
-/// else is decoded with `localpaint-codecs`.
+/// else is decoded with `localraster-codecs`.
 pub fn import(name: &str, bytes: &[u8]) -> Result<ImportResult, IoError> {
-    import_with_svg_group_depth(name, bytes, localpaint_doc::MAX_GROUP_DEPTH)
+    import_with_svg_group_depth(name, bytes, localraster_doc::MAX_GROUP_DEPTH)
 }
 
 /// [`import`] for a background open: checks `ctl` between stages (and per layer for PSD/PSB) and
 /// reports progress. A cancelled import fails with [`IoError::Cancelled`].
-pub fn import_with(name: &str, bytes: &[u8], ctl: &localpaint_raster::Interrupt) -> Result<ImportResult, IoError> {
-    import_with_svg_group_depth_and_interrupt(name, bytes, localpaint_doc::MAX_GROUP_DEPTH, ctl)
+pub fn import_with(name: &str, bytes: &[u8], ctl: &localraster_raster::Interrupt) -> Result<ImportResult, IoError> {
+    import_with_svg_group_depth_and_interrupt(name, bytes, localraster_doc::MAX_GROUP_DEPTH, ctl)
 }
 
 /// Imports a file with a configurable SVG editability threshold. SVG groups deeper than this are
 /// rasterised during conversion; the XML parser safety cap and document nesting limit stay fixed.
 pub fn import_with_svg_group_depth(name: &str, bytes: &[u8], max_group_depth: usize) -> Result<ImportResult, IoError> {
-    import_with_svg_group_depth_and_interrupt(name, bytes, max_group_depth, &localpaint_raster::Interrupt::NONE)
+    import_with_svg_group_depth_and_interrupt(name, bytes, max_group_depth, &localraster_raster::Interrupt::NONE)
 }
 
 /// [`import_with`] with the SVG editable-group threshold selected by the user.
@@ -336,7 +336,7 @@ pub fn import_with_svg_group_depth_and_interrupt(
     name: &str,
     bytes: &[u8],
     max_group_depth: usize,
-    ctl: &localpaint_raster::Interrupt,
+    ctl: &localraster_raster::Interrupt,
 ) -> Result<ImportResult, IoError> {
     import_with_options_and_interrupt(name, bytes, &ImportOptions { max_group_depth, ..Default::default() }, ctl)
 }
@@ -356,7 +356,7 @@ pub struct ImportOptions {
 impl Default for ImportOptions {
     fn default() -> Self {
         ImportOptions {
-            max_group_depth: localpaint_doc::MAX_GROUP_DEPTH,
+            max_group_depth: localraster_doc::MAX_GROUP_DEPTH,
             demosaic: raw::Demosaic::default(),
             psd_max_pixel_bytes: DEFAULT_PSD_IMPORT_PIXEL_BYTES,
         }
@@ -365,11 +365,11 @@ impl Default for ImportOptions {
 
 /// [`import`] with the user's import settings.
 pub fn import_with_options(name: &str, bytes: &[u8], opts: &ImportOptions) -> Result<ImportResult, IoError> {
-    import_with_options_and_interrupt(name, bytes, opts, &localpaint_raster::Interrupt::NONE)
+    import_with_options_and_interrupt(name, bytes, opts, &localraster_raster::Interrupt::NONE)
 }
 
 /// [`import_with`] with the user's import settings.
-pub fn import_with_options_and_interrupt(name: &str, bytes: &[u8], opts: &ImportOptions, ctl: &localpaint_raster::Interrupt) -> Result<ImportResult, IoError> {
+pub fn import_with_options_and_interrupt(name: &str, bytes: &[u8], opts: &ImportOptions, ctl: &localraster_raster::Interrupt) -> Result<ImportResult, IoError> {
     import_for_open_with(name, bytes, opts, ctl).map(|(result, _)| result)
 }
 
@@ -382,11 +382,11 @@ pub fn import_with_options_and_interrupt(name: &str, bytes: &[u8], opts: &Import
 /// The flag is independent of the wording of `warnings`. An ordinary compatibility
 /// warning does not set it. No file is decoded a second time to obtain this information.
 pub fn import_for_open(name: &str, bytes: &[u8], opts: &ImportOptions) -> Result<(ImportResult, bool), IoError> {
-    import_for_open_with(name, bytes, opts, &localpaint_raster::Interrupt::NONE)
+    import_for_open_with(name, bytes, opts, &localraster_raster::Interrupt::NONE)
 }
 
 /// [`import_for_open`] with cancellation and progress, shared with [`import_with_options_and_interrupt`].
-pub fn import_for_open_with(name: &str, bytes: &[u8], opts: &ImportOptions, ctl: &localpaint_raster::Interrupt) -> Result<(ImportResult, bool), IoError> {
+pub fn import_for_open_with(name: &str, bytes: &[u8], opts: &ImportOptions, ctl: &localraster_raster::Interrupt) -> Result<(ImportResult, bool), IoError> {
     ctl.check().map_err(|_| IoError::Cancelled)?;
     let mut damaged = false;
     let result = import_stages(name, bytes, ctl, opts, &mut damaged)?;
@@ -399,13 +399,13 @@ pub fn import_for_open_with(name: &str, bytes: &[u8], opts: &ImportOptions, ctl:
 /// `want` and `recover`: of the file's bytes, or of the file itself ([`import_file_for_open_with`]).
 fn import_psd(
     name: &str,
-    ctl: &localpaint_raster::Interrupt,
+    ctl: &localraster_raster::Interrupt,
     damaged: &mut bool,
     pixel_limit: u64,
     parse: impl FnOnce(
-        &dyn Fn(&PsdFile) -> localpaint_psd::Result<bool>,
+        &dyn Fn(&PsdFile) -> localraster_psd::Result<bool>,
         &dyn Fn(&PsdFile) -> bool,
-    ) -> localpaint_psd::Result<(PsdFile, Option<localpaint_psd::Result<Vec<u8>>>)>,
+    ) -> localraster_psd::Result<(PsdFile, Option<localraster_psd::Result<Vec<u8>>>)>,
 ) -> Result<ImportResult, IoError> {
     // A merged image the import reads is decoded with the parse: a ZIP one is inflated once.
     // A failed read of the file (one parsed from its source) is a read error, as reading the
@@ -435,7 +435,7 @@ fn import_psd(
     ctl.check().map_err(|_| IoError::Cancelled)?;
     ctl.progress(0.05);
     // Read before the conversion, which moves the global blocks into the document.
-    let txt2 = file.global_blocks.iter().find(|b| &b.key == b"Txt2").and_then(|b| localpaint_text::psd::parse_txt2(&b.data));
+    let txt2 = file.global_blocks.iter().find(|b| &b.key == b"Txt2").and_then(|b| localraster_text::psd::parse_txt2(&b.data));
     let (mut document, warnings, psd_damaged, fatal_error) = psd_import::psd_to_document_owned(file, ctl, merged).ok_or(IoError::Cancelled)?;
     // Source reads and allocation failures fail the entire open; partial layers are discarded.
     if let Some(e) = fatal_error {
@@ -457,30 +457,30 @@ pub fn import_file_for_open_with(
     name: &str,
     path: &std::path::Path,
     opts: &ImportOptions,
-    ctl: &localpaint_raster::Interrupt,
+    ctl: &localraster_raster::Interrupt,
 ) -> Result<(ImportResult, bool), IoError> {
     let read_failed = |e: std::io::Error| IoError::Read(format!("{}: {e}", path.display()));
     ctl.check().map_err(|_| IoError::Cancelled)?;
-    let source = localpaint_psd::FileSource::open(path).map_err(read_failed)?;
+    let source = localraster_psd::FileSource::open(path).map_err(read_failed)?;
     let mut magic = [0u8; 4];
-    let psd = !has_extension(name, localpaint_format::EXTENSION) && localpaint_psd::ReadAt::read_at(&source, 0, &mut magic).is_ok() && is_psd(&magic);
+    let psd = !has_extension(name, localraster_format::EXTENSION) && localraster_psd::ReadAt::read_at(&source, 0, &mut magic).is_ok() && is_psd(&magic);
     if !psd {
         drop(source);
-        let bytes = localpaint_format::read_file(path).map_err(read_failed)?;
+        let bytes = localraster_format::read_file(path).map_err(read_failed)?;
         return import_for_open_with(name, &bytes, opts, ctl);
     }
-    import_source_with_limit(name, localpaint_psd::Source::new(source), ctl, opts.psd_max_pixel_bytes.min(DEFAULT_PSD_IMPORT_PIXEL_BYTES))
+    import_source_with_limit(name, localraster_psd::Source::new(source), ctl, opts.psd_max_pixel_bytes.min(DEFAULT_PSD_IMPORT_PIXEL_BYTES))
 }
 
-/// [`import_file_for_open_with`] for a PSD/PSB in any [`localpaint_psd::ReadAt`] source.
-pub fn import_source_for_open_with(name: &str, source: localpaint_psd::Source, ctl: &localpaint_raster::Interrupt) -> Result<(ImportResult, bool), IoError> {
+/// [`import_file_for_open_with`] for a PSD/PSB in any [`localraster_psd::ReadAt`] source.
+pub fn import_source_for_open_with(name: &str, source: localraster_psd::Source, ctl: &localraster_raster::Interrupt) -> Result<(ImportResult, bool), IoError> {
     import_source_with_limit(name, source, ctl, DEFAULT_PSD_IMPORT_PIXEL_BYTES)
 }
 
 fn import_source_with_limit(
     name: &str,
-    source: localpaint_psd::Source,
-    ctl: &localpaint_raster::Interrupt,
+    source: localraster_psd::Source,
+    ctl: &localraster_raster::Interrupt,
     pixel_limit: u64,
 ) -> Result<(ImportResult, bool), IoError> {
     ctl.check().map_err(|_| IoError::Cancelled)?;
@@ -493,16 +493,16 @@ fn import_source_with_limit(
 
 /// [`import_file_for_open_with`] without the damage flag.
 #[cfg(any(unix, windows))]
-pub fn import_file(name: &str, path: &std::path::Path, opts: &ImportOptions, ctl: &localpaint_raster::Interrupt) -> Result<ImportResult, IoError> {
+pub fn import_file(name: &str, path: &std::path::Path, opts: &ImportOptions, ctl: &localraster_raster::Interrupt) -> Result<ImportResult, IoError> {
     import_file_for_open_with(name, path, opts, ctl).map(|(result, _)| result)
 }
 
 /// Dispatches format-specific importers and propagates a structured PSD damage
 /// flag alongside the ordinary best-effort import result.
-fn import_stages(name: &str, bytes: &[u8], ctl: &localpaint_raster::Interrupt, opts: &ImportOptions, damaged: &mut bool) -> Result<ImportResult, IoError> {
+fn import_stages(name: &str, bytes: &[u8], ctl: &localraster_raster::Interrupt, opts: &ImportOptions, damaged: &mut bool) -> Result<ImportResult, IoError> {
     // A declared native extension must reach its loader so malformed bundles retain format errors.
-    if has_extension(name, localpaint_format::EXTENSION) || localpaint_format::is_pcraft(bytes) {
-        let document = localpaint_format::load_from_bytes(bytes)?;
+    if has_extension(name, localraster_format::EXTENSION) || localraster_format::is_pcraft(bytes) {
+        let document = localraster_format::load_from_bytes(bytes)?;
         return Ok(ImportResult { warnings: open_warnings(&document), document, source_read_only: false, preview_only: false });
     }
     // Magic first: an Affinity file renamed .psd is still Affinity (#5258 corpus
@@ -520,12 +520,12 @@ fn import_stages(name: &str, bytes: &[u8], ctl: &localpaint_raster::Interrupt, o
     }
     // Krita files are ZIP containers. A recognized raster signature still wins over a
     // misleading .kra suffix (as with SVG imports).
-    if kra::is_kra(bytes) || (kra::EXTENSIONS.iter().any(|e| has_extension(name, e)) && localpaint_codecs::detect(bytes).is_none()) {
+    if kra::is_kra(bytes) || (kra::EXTENSIONS.iter().any(|e| has_extension(name, e)) && localraster_codecs::detect(bytes).is_none()) {
         return kra::import(name, bytes, ctl);
     }
     // GIMP files are gzip or raw; as above, a recognized raster signature still wins over a
     // misleading .xcf suffix.
-    if xcf::is_xcf(bytes) || (has_extension(name, "xcf") && localpaint_codecs::detect(bytes).is_none()) {
+    if xcf::is_xcf(bytes) || (has_extension(name, "xcf") && localraster_codecs::detect(bytes).is_none()) {
         return xcf::import(name, bytes, ctl);
     }
     if xcf::is_gzipped_xcf(name, bytes) {
@@ -558,7 +558,7 @@ fn is_svg_input(name: &str, bytes: &[u8]) -> bool {
     // actionable SVG error. A recognized raster signature still wins over a misleading `.svg`
     // suffix (for example, a WebP downloaded as Firefox_logo.svg).
     svg::is_svg(bytes)
-        || (has_extension(name, "svg") && localpaint_codecs::detect(bytes).is_none())
+        || (has_extension(name, "svg") && localraster_codecs::detect(bytes).is_none())
         || (has_extension(name, "svgz") && bytes.starts_with(&[0x1f, 0x8b]))
 }
 
@@ -589,14 +589,14 @@ pub fn named_for_file<'a>(doc: &'a Document, name: &str) -> std::borrow::Cow<'a,
 /// Exports `doc` to the format named by `name_or_ext` (a file name, path or
 /// bare extension).
 pub fn export(doc: &Document, name_or_ext: &str, opts: &ExportOptions) -> Result<ExportResult, IoError> {
-    export_with(doc, name_or_ext, opts, &localpaint_raster::Interrupt::NONE)
+    export_with(doc, name_or_ext, opts, &localraster_raster::Interrupt::NONE)
 }
 
 /// [`export`] for a background save (#3389): reports how far encoding has got through `ctl`
 /// (monotonic, `1.0` once the bytes are ready; per layer and per composite band for PSD/PSB and
 /// layered TIFF, in coarse steps for the other formats) and checks it between stages. A cancelled
 /// export fails with [`IoError::Cancelled`]; otherwise the bytes are exactly [`export`]'s.
-pub fn export_with(doc: &Document, name_or_ext: &str, opts: &ExportOptions, ctl: &localpaint_raster::Interrupt) -> Result<ExportResult, IoError> {
+pub fn export_with(doc: &Document, name_or_ext: &str, opts: &ExportOptions, ctl: &localraster_raster::Interrupt) -> Result<ExportResult, IoError> {
     ctl.check().map_err(|_| IoError::Cancelled)?;
     let r = export_stages(doc, name_or_ext, opts, ctl)?;
     ctl.check().map_err(|_| IoError::Cancelled)?;
@@ -605,10 +605,10 @@ pub fn export_with(doc: &Document, name_or_ext: &str, opts: &ExportOptions, ctl:
 }
 
 /// Run `f` with an interrupt whose progress `0..=1` fills `lo..=hi` of `ctl`'s (same cancellation).
-pub(crate) fn with_span<R>(ctl: &localpaint_raster::Interrupt, lo: f32, hi: f32, f: impl FnOnce(&localpaint_raster::Interrupt) -> R) -> R {
+pub(crate) fn with_span<R>(ctl: &localraster_raster::Interrupt, lo: f32, hi: f32, f: impl FnOnce(&localraster_raster::Interrupt) -> R) -> R {
     let cancelled = || ctl.cancelled();
     let progress = |p: f32| ctl.progress(lo + (hi - lo) * p.clamp(0.0, 1.0));
-    f(&localpaint_raster::Interrupt::new(&cancelled, &progress))
+    f(&localraster_raster::Interrupt::new(&cancelled, &progress))
 }
 
 /// Where a .pcraft save's progress stands once its thumbnail, then its 1024 px composite preview,
@@ -619,7 +619,7 @@ const PCRAFT_PREVIEWS_DONE: f32 = 0.4;
 /// before its bytes are assembled: about 2.7 s of 3.0 s for a 24 MP, 5-layer RGB/8 document.
 const PSD_MODEL_DONE: f32 = 0.9;
 
-fn export_stages(doc: &Document, name_or_ext: &str, opts: &ExportOptions, ctl: &localpaint_raster::Interrupt) -> Result<ExportResult, IoError> {
+fn export_stages(doc: &Document, name_or_ext: &str, opts: &ExportOptions, ctl: &localraster_raster::Interrupt) -> Result<ExportResult, IoError> {
     let ext = extension(name_or_ext);
     if ext == "pdn" {
         return Err(IoError::Unsupported("PDN is import-only; save as .pcraft to preserve all layers and blend modes".into()));
@@ -632,7 +632,7 @@ fn export_stages(doc: &Document, name_or_ext: &str, opts: &ExportOptions, ctl: &
     }
     if ext == "xcf" {
         return Err(IoError::Unsupported(
-            "XCF is GIMP's own format and Local Paint only opens it; save as .pcraft to keep the layers, or export a flat image".into(),
+            "XCF is GIMP's own format and Local Raster only opens it; save as .pcraft to keep the layers, or export a flat image".into(),
         ));
     }
     if ext == "ora" {
@@ -641,18 +641,18 @@ fn export_stages(doc: &Document, name_or_ext: &str, opts: &ExportOptions, ctl: &
     if ext == "pdf" {
         return pdf::export(doc);
     }
-    if ext == localpaint_format::EXTENSION {
+    if ext == localraster_format::EXTENSION {
         let doc = named_for_file(doc, name_or_ext);
-        let thumbnail = Some(localpaint_compose::thumbnail(doc.as_ref(), 256));
+        let thumbnail = Some(localraster_compose::thumbnail(doc.as_ref(), 256));
         ctl.check().map_err(|_| IoError::Cancelled)?;
         ctl.progress(PCRAFT_THUMBNAIL_DONE);
-        let composite = Some(localpaint_compose::thumbnail(doc.as_ref(), 1024));
+        let composite = Some(localraster_compose::thumbnail(doc.as_ref(), 1024));
         ctl.check().map_err(|_| IoError::Cancelled)?;
         ctl.progress(PCRAFT_PREVIEWS_DONE);
-        let previews = localpaint_format::SaveOptions { thumbnail, composite };
+        let previews = localraster_format::SaveOptions { thumbnail, composite };
         let bytes = match &opts.pcraft_cache {
             Some(cache) => cache.encode(doc.as_ref(), &previews)?,
-            None => localpaint_format::save_to_bytes(doc.as_ref(), &previews)?,
+            None => localraster_format::save_to_bytes(doc.as_ref(), &previews)?,
         };
         return Ok(ExportResult { bytes, warnings: Vec::new() });
     }
@@ -675,7 +675,7 @@ fn export_stages(doc: &Document, name_or_ext: &str, opts: &ExportOptions, ctl: &
             match psd_thumbnail::resource(doc) {
                 // Beside the other resources Photoshop writes ahead of the version info.
                 Ok(r) => {
-                    let at = file.resources.iter().position(|r| r.id == localpaint_psd::resources::ids::VERSION_INFO).unwrap_or(file.resources.len());
+                    let at = file.resources.iter().position(|r| r.id == localraster_psd::resources::ids::VERSION_INFO).unwrap_or(file.resources.len());
                     file.resources.insert(at, r);
                 }
                 Err(e) => warnings.push(format!("image preview not saved: {e}")),
@@ -686,8 +686,8 @@ fn export_stages(doc: &Document, name_or_ext: &str, opts: &ExportOptions, ctl: &
         let bytes = file.to_bytes()?;
         return Ok(ExportResult { bytes, warnings });
     }
-    let format = localpaint_codecs::from_extension(&ext).ok_or_else(|| IoError::UnknownFormat(name_or_ext.to_string()))?;
-    if format == localpaint_codecs::Format::Tiff && opts.tiff_layers && tiff_layers::would_write_layers(doc) {
+    let format = localraster_codecs::from_extension(&ext).ok_or_else(|| IoError::UnknownFormat(name_or_ext.to_string()))?;
+    if format == localraster_codecs::Format::Tiff && opts.tiff_layers && tiff_layers::would_write_layers(doc) {
         return tiff_layers::export_layered(doc, opts, ctl);
     }
     flat::export_flat_with(doc, format, opts, ctl)
@@ -699,7 +699,7 @@ fn export_stages(doc: &Document, name_or_ext: &str, opts: &ExportOptions, ctl: &
 pub fn merged_composite(file: &PsdFile) -> Result<Vec<[f32; 4]>, IoError> {
     let h = &file.header;
     h.validate()?;
-    if h.color_mode == localpaint_psd::ColorMode::Rgb && file.merged_has_alpha() {
+    if h.color_mode == localraster_psd::ColorMode::Rgb && file.merged_has_alpha() {
         // Preserve native sample precision before removing the white matte.
         let raw = file.decode_merged()?;
         let plane = raw.len() / usize::from(h.channels);
@@ -710,9 +710,9 @@ pub fn merged_composite(file: &PsdFile) -> Result<Vec<[f32; 4]>, IoError> {
             .chunks_exact(plane)
             .take(4)
             .map(|bytes| match h.depth {
-                32 => Ok(localpaint_psd::pixels::samples_f32(bytes)),
-                16 => Ok(localpaint_psd::pixels::samples_u16(bytes).into_iter().map(|v| f32::from(v) / 65535.0).collect()),
-                _ => localpaint_psd::pixels::plane_to_u8(bytes, h.depth, h.width as usize, h.height as usize)
+                32 => Ok(localraster_psd::pixels::samples_f32(bytes)),
+                16 => Ok(localraster_psd::pixels::samples_u16(bytes).into_iter().map(|v| f32::from(v) / 65535.0).collect()),
+                _ => localraster_psd::pixels::plane_to_u8(bytes, h.depth, h.width as usize, h.height as usize)
                     .map(|values| values.into_iter().map(|v| f32::from(v) / 255.0).collect()),
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -740,7 +740,7 @@ pub fn merged_composite(file: &PsdFile) -> Result<Vec<[f32; 4]>, IoError> {
     let img = if h.depth == 32 { None } else { file.composite_rgba8().ok() };
     // CMYK goes through the colour-managed model conversion (the PSD crate's RGBA preview is a
     // naive, profile-free conversion).
-    if let (Some(img), false) = (img, matches!(h.color_mode, localpaint_psd::ColorMode::Lab | localpaint_psd::ColorMode::Cmyk)) {
+    if let (Some(img), false) = (img, matches!(h.color_mode, localraster_psd::ColorMode::Lab | localraster_psd::ColorMode::Cmyk)) {
         let unmatte = file.merged_has_alpha();
         return Ok(img
             .data
@@ -761,24 +761,24 @@ pub fn merged_composite(file: &PsdFile) -> Result<Vec<[f32; 4]>, IoError> {
     // Generic path (Lab, CMYK and others) via the raster model conversion.
     // Keep the merged-alpha marker while discarding layers: otherwise an extra
     // spot/alpha channel in an opaque composite is mistaken for transparency.
-    let layer_info = Some(localpaint_psd::LayerInfo { merged_alpha: file.merged_has_alpha(), layers: Vec::new(), padding: None });
+    let layer_info = Some(localraster_psd::LayerInfo { merged_alpha: file.merged_has_alpha(), layers: Vec::new(), padding: None });
     let (doc, _) = psd_to_document(&PsdFile { layer_info, ..file.clone() });
     // Multichannel documents keep their channels apart (no layer): composite them.
-    if doc.layers.is_empty() && doc.mode == localpaint_color::ColorMode::Multichannel {
-        return Ok(localpaint_compose::flatten(&doc).px);
+    if doc.layers.is_empty() && doc.mode == localraster_color::ColorMode::Multichannel {
+        return Ok(localraster_compose::flatten(&doc).px);
     }
     let l = doc.layers.first().ok_or_else(|| IoError::Unsupported("no merged image".into()))?;
     let s = l.surface().ok_or_else(|| IoError::Unsupported("no merged image".into()))?;
     // CMYK reads through the file's own profile, as the compositor reads its layers, so a tagged
     // file's merged image and its composite are compared in the same colours.
-    let cmyk = localpaint_compose::cmyk_space(&doc);
-    Ok(localpaint_color::convert::with_cmyk_space(cmyk.as_ref(), || localpaint_compose::surface_to_buffer(s, doc.bounds()).px))
+    let cmyk = localraster_compose::cmyk_space(&doc);
+    Ok(localraster_color::convert::with_cmyk_space(cmyk.as_ref(), || localraster_compose::surface_to_buffer(s, doc.bounds()).px))
 }
 
 #[cfg(test)]
 mod tests {
     use super::{ImportOptions, import, import_for_open, is_psd_input, is_svg_input};
-    use localpaint_psd::{Compression, Version, testgen};
+    use localraster_psd::{Compression, Version, testgen};
 
     /// Verifies a valid PSD remains editable after import.
     #[test]
@@ -845,11 +845,11 @@ mod tests {
     /// as on main and in Photoshop.
     #[test]
     fn raster_bytes_named_psd_still_open() {
-        use localpaint_codecs::{ChannelLayout, EncodeOptions, Format, Image};
+        use localraster_codecs::{ChannelLayout, EncodeOptions, Format, Image};
         let n = 8 * 8 * 3;
         let img = Image::from_u8(8, 8, ChannelLayout::Rgb, vec![180; n]).unwrap();
-        let png = localpaint_codecs::encode(&img, Format::Png, &EncodeOptions::default()).unwrap();
-        let jpeg = localpaint_codecs::encode(&img, Format::Jpeg, &EncodeOptions::default()).unwrap();
+        let png = localraster_codecs::encode(&img, Format::Png, &EncodeOptions::default()).unwrap();
+        let jpeg = localraster_codecs::encode(&img, Format::Jpeg, &EncodeOptions::default()).unwrap();
         for (name, bytes) in [("download.psd", png.as_slice()), ("scan.PSB", jpeg.as_slice())] {
             assert!(!is_psd_input(name, bytes), "{name}");
             let d = import(name, bytes).unwrap_or_else(|e| panic!("{name}: {e}")).document;

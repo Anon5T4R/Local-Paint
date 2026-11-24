@@ -2,7 +2,7 @@
 
 use crate::common;
 use common::*;
-use localpaint_codecs::*;
+use localraster_codecs::*;
 use proptest::prelude::*;
 
 fn tight() -> DecodeOptions {

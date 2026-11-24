@@ -1,5 +1,5 @@
-use localpaint_doc::LayerMask;
-use localpaint_engine::Session;
+use localraster_doc::LayerMask;
+use localraster_engine::Session;
 use serde_json::json;
 
 const COMMANDS: [&str; 7] = [

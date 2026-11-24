@@ -115,19 +115,19 @@ pub fn apply(ctx: &egui::Context) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{LocalPaintApp, state::Tool};
+    use crate::{LocalRasterApp, state::Tool};
     use egui::Modifiers;
     use serde_json::json;
 
-    fn app() -> LocalPaintApp {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    fn app() -> LocalRasterApp {
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
         app.run("file.new", json!({"width": 32, "height": 32})).unwrap();
         app.ui.tool = Tool::Brush;
         app
     }
 
     /// One key press the way a layout reports it: logical `key`, physical position, typed text.
-    fn press(app: &mut LocalPaintApp, ctx: &egui::Context, key: Key, physical: Key, text: &str) {
+    fn press(app: &mut LocalRasterApp, ctx: &egui::Context, key: Key, physical: Key, text: &str) {
         let modifiers = Modifiers::NONE;
         let press = Event::Key { key, physical_key: Some(physical), pressed: true, repeat: false, modifiers };
         let raw = egui::RawInput { events: vec![press, Event::Text(text.into())], ..Default::default() };

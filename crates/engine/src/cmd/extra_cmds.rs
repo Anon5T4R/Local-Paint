@@ -4,10 +4,10 @@
 //! Delete Hidden / Empty Layers, Ungroup, Hide/Show Layers, Show Only This Layer (⌥-click an eye),
 //! Average and Clouds.
 
-use localpaint_algo::selection as sel;
-use localpaint_doc::{Document, Layer, LayerContent, LayerId, LayerMask};
-use localpaint_geom::Rect;
-use localpaint_raster::{from_rgba_into, to_rgba};
+use localraster_algo::selection as sel;
+use localraster_doc::{Document, Layer, LayerContent, LayerId, LayerMask};
+use localraster_geom::Rect;
+use localraster_raster::{from_rgba_into, to_rgba};
 use serde_json::{Value, json};
 
 use crate::commands::{CommandSpec, color_param, layer_param};
@@ -144,9 +144,9 @@ fn stroke(s: &mut Session, p: &Value) -> Result<Value> {
     // A colour picked as CMYK strokes a CMYK document with the picked inks (#4196).
     let picked = s.tools.picked_cmyk([color[0], color[1], color[2]]);
     let mode = match p.get("mode") {
-        None | Some(Value::Null) => localpaint_color::BlendMode::Normal,
+        None | Some(Value::Null) => localraster_color::BlendMode::Normal,
         Some(Value::String(m)) => crate::commands::blend_from_str(m)
-            .filter(|m| *m != localpaint_color::BlendMode::PassThrough)
+            .filter(|m| *m != localraster_color::BlendMode::PassThrough)
             .ok_or_else(|| EngineError::BadParams { cmd: "edit.stroke".into(), msg: format!("unknown blend mode `{m}`") })?,
         Some(v) => return Err(EngineError::BadParams { cmd: "edit.stroke".into(), msg: format!("mode must be a blend mode name, not {v}") }),
     };
@@ -323,7 +323,7 @@ fn transform_preset(s: &mut Session, p: &Value, kind: &str) -> Result<Value> {
 
 // ---------- selection / clipboard ----------
 
-fn reselect_target(s: &Session) -> Option<localpaint_raster::Surface> {
+fn reselect_target(s: &Session) -> Option<localraster_raster::Surface> {
     let d = s.active()?;
     if d.doc.selection.is_some() {
         return None;
@@ -349,7 +349,7 @@ fn paste_into(s: &mut Session, p: &Value, outside: bool) -> Result<Value> {
     let limit = if outside {
         let area = b.intersect(&canvas);
         let inv: Vec<f32> = sel::mask_from_surface(Some(&selection), area).iter().map(|v| 1.0 - v).collect();
-        let mut m = localpaint_raster::Surface::with_default(localpaint_color::PixelFormat::GRAY8, &[1.0]);
+        let mut m = localraster_raster::Surface::with_default(localraster_color::PixelFormat::GRAY8, &[1.0]);
         m.write_region(area, &inv);
         m
     } else {
@@ -416,13 +416,13 @@ pub fn reveal_all_bounds(doc: &Document) -> Rect {
 /// Bounds of `s`'s pixels outside `canvas` with alpha > 0, as Photoshop's layer bounds (#9379):
 /// the Eraser only clears alpha, so an erased pixel keeps its colour bytes and `content_bounds`
 /// counts it. Pixels inside `canvas` can't grow the result and aren't read.
-fn visible_bounds(s: &localpaint_raster::Surface, canvas: Rect) -> Rect {
+fn visible_bounds(s: &localraster_raster::Surface, canvas: Rect) -> Rect {
     use rayon::prelude::*;
     let fmt = s.format();
     if !fmt.alpha || s.default_pixel().last().is_none_or(|a| *a > 0.0) {
         return s.content_bounds();
     }
-    let (n, bpp, side) = (fmt.channels(), fmt.bytes_per_pixel(), localpaint_geom::TILE_SIZE);
+    let (n, bpp, side) = (fmt.channels(), fmt.bytes_per_pixel(), localraster_geom::TILE_SIZE);
     let tiles: Vec<_> = s.tiles().filter(|(c, _)| !canvas.contains_rect(&c.rect())).collect();
     let tile_bounds = |o: Rect, bytes: &[u8]| {
         let mut out = Rect::EMPTY;
@@ -432,7 +432,7 @@ fn visible_bounds(s: &localpaint_raster::Surface, canvas: Rect) -> Rect {
             let visible = |lx: &i32| {
                 let x = o.x0.saturating_add(*lx);
                 !(on_canvas && (canvas.x0..canvas.x1).contains(&x))
-                    && row.get(*lx as usize * bpp..).is_some_and(|px| localpaint_color::read_sample(px, fmt.sample, n - 1) > 0.0)
+                    && row.get(*lx as usize * bpp..).is_some_and(|px| localraster_color::read_sample(px, fmt.sample, n - 1) > 0.0)
             };
             let Some(first) = (0..side).find(visible) else { continue };
             let last = (first..side).rfind(visible).unwrap_or(first);
@@ -472,14 +472,14 @@ pub(crate) fn unlock_background(l: &mut Layer) {
 
 /// Before `id` gets a layer mask: the Background can't have one, so it becomes a normal layer
 /// first ("Layer 0"), as when adding a mask to it in Photoshop. Other layers are left alone.
-pub(crate) fn background_to_layer_for_mask(doc: &mut localpaint_doc::Document, id: localpaint_doc::LayerId) {
+pub(crate) fn background_to_layer_for_mask(doc: &mut localraster_doc::Document, id: localraster_doc::LayerId) {
     background_to_layer(doc, id);
 }
 
-/// If `id` is the Background ([`localpaint_doc::Document::background`], whatever its name), turns
+/// If `id` is the Background ([`localraster_doc::Document::background`], whatever its name), turns
 /// it into a normal layer ("Layer 0"), as Photoshop does before an edit the Background can't
 /// take (moving, transforming, exposing transparency, a style). Other layers are left alone.
-pub(crate) fn background_to_layer(doc: &mut localpaint_doc::Document, id: localpaint_doc::LayerId) {
+pub(crate) fn background_to_layer(doc: &mut localraster_doc::Document, id: localraster_doc::LayerId) {
     if let Some(l) = doc.background_mut().filter(|l| l.id == id) {
         unlock_background(l);
     }
@@ -664,25 +664,25 @@ fn show_only(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 /// Pixels of a fill or smart-object layer's content alone (no mask, effects or opacity).
-fn content_pixels(doc: &Document, l: &Layer) -> localpaint_raster::Surface {
+fn content_pixels(doc: &Document, l: &Layer) -> localraster_raster::Surface {
     let mut tmp = l.clone();
     tmp.mask = None;
     tmp.vector_mask = None;
     tmp.effects.items.clear();
     tmp.opacity = 1.0;
     tmp.fill_opacity = 1.0;
-    tmp.blend = localpaint_color::BlendMode::Normal;
+    tmp.blend = localraster_color::BlendMode::Normal;
     tmp.clipped = false;
     tmp.visible = true;
     let canvas = doc.bounds();
-    let buf = localpaint_compose::render_layer(&tmp, canvas);
+    let buf = localraster_compose::render_layer(&tmp, canvas);
     let fmt = doc.pixel_format();
     let n = fmt.channels();
     let mut data = vec![0.0f32; buf.px.len() * n];
     for (p, out) in buf.px.iter().zip(data.chunks_exact_mut(n)) {
         from_rgba_into(&fmt, *p, out);
     }
-    let mut s = localpaint_raster::Surface::new(fmt);
+    let mut s = localraster_raster::Surface::new(fmt);
     s.write_region(canvas, &data);
     s.prune();
     s
@@ -933,7 +933,7 @@ pub fn specs() -> Vec<CommandSpec> {
                     } else {
                         // Through `set`, which keeps the normalised form (no trailing full
                         // entries), so a full Gray range pastes as the default.
-                        let mut gray = localpaint_doc::BlendIf::default();
+                        let mut gray = localraster_doc::BlendIf::default();
                         gray.set(0, style.blend_if.get(0));
                         gray
                     };
@@ -943,8 +943,8 @@ pub fn specs() -> Vec<CommandSpec> {
                         l.effects = fx.clone();
                         // Pass Through is a group's mode: a group's style pastes onto other layers as
                         // Normal, as a merged group's Pass Through becomes Normal.
-                        l.blend = if style.blend == localpaint_color::BlendMode::PassThrough && !l.is_group() {
-                            localpaint_color::BlendMode::Normal
+                        l.blend = if style.blend == localraster_color::BlendMode::PassThrough && !l.is_group() {
+                            localraster_color::BlendMode::Normal
                         } else {
                             style.blend
                         };

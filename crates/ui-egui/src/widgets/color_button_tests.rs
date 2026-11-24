@@ -4,11 +4,11 @@ use egui_kittest::{Harness, kittest::Queryable};
 
 /// The app, the swatch's value, and whether the swatch committed this frame (changed with its
 /// picker closed: a host commits then).
-type State<T> = (crate::LocalPaintApp, T, bool);
+type State<T> = (crate::LocalRasterApp, T, bool);
 
 /// Draw `swatch` with the dialogs, the frame loop's [`crate::color_picker_ui::widget_tick`] first.
 fn harness<T: 'static>(value: T, swatch: fn(&mut Ui, &mut T) -> Response) -> Harness<'static, State<T>> {
-    let app = crate::LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let app = crate::LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     let mut h = Harness::builder().with_size(vec2(900.0, 600.0)).build_ui_state(
         move |ui, state: &mut State<T>| {
             crate::color_picker_ui::widget_tick(&mut state.0, ui.ctx());
@@ -18,7 +18,7 @@ fn harness<T: 'static>(value: T, swatch: fn(&mut Ui, &mut T) -> Response) -> Har
         },
         (app, value, false),
     );
-    crate::LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
+    crate::LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
     h.run_steps(2);
     h
 }

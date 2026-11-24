@@ -3,8 +3,8 @@
 //!
 //! All three take their whole edit as data, so each is one replayable command and one history
 //! step: Liquify the brush strokes (replayed onto a fresh displacement field,
-//! `localpaint_algo::liquify`), Puppet Warp the pins (`localpaint_algo::puppet`, ARAP on a mesh
-//! of the opaque region), Perspective Warp the planes (`localpaint_algo::perspective`). On a
+//! `localraster_algo::liquify`), Puppet Warp the pins (`localraster_algo::puppet`, ARAP on a mesh
+//! of the opaque region), Perspective Warp the planes (`localraster_algo::perspective`). On a
 //! smart object each becomes a smart filter (as in Photoshop): the params are stored with the
 //! smart object and re-applied to a fresh render of the source, so editing never accumulates
 //! resampling. The params are the data in every case (strokes, pins and planes are small
@@ -12,15 +12,15 @@
 
 use std::cell::RefCell;
 
-use localpaint_algo::liquify::{LiquifyField, LiquifyStroke, apply_liquify, auto_cell};
-use localpaint_algo::perspective::{PerspectiveMap, Plane, Straighten, straighten};
-use localpaint_algo::puppet::{PuppetDensity, PuppetMode, PuppetPin, PuppetWarp, puppet_warp, puppet_warp_with_mask};
-use localpaint_algo::transform::Interp;
-use localpaint_algo::warp::{warp_mesh_gray, warp_mesh_surface};
-use localpaint_color::PixelFormat;
-use localpaint_doc::{Document, Layer, LayerContent, LayerId, Locks, SmartFilter};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_algo::liquify::{LiquifyField, LiquifyStroke, apply_liquify, auto_cell};
+use localraster_algo::perspective::{PerspectiveMap, Plane, Straighten, straighten};
+use localraster_algo::puppet::{PuppetDensity, PuppetMode, PuppetPin, PuppetWarp, puppet_warp, puppet_warp_with_mask};
+use localraster_algo::transform::Interp;
+use localraster_algo::warp::{warp_mesh_gray, warp_mesh_surface};
+use localraster_color::PixelFormat;
+use localraster_doc::{Document, Layer, LayerContent, LayerId, Locks, SmartFilter};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;
@@ -154,7 +154,7 @@ pub fn liquify_surface(surf: &Surface, strokes: &[LiquifyStroke], cell: f64, can
 }
 
 /// Puppet-warps a surface's content; `None` when the result would span more than
-/// [`localpaint_algo::puppet::MAX_WARP_PIXELS`].
+/// [`localraster_algo::puppet::MAX_WARP_PIXELS`].
 pub fn puppet_surface(surf: &Surface, w: &PuppetWarp, interp: Interp) -> Option<Surface> {
     let b = surf.content_bounds();
     if w.is_identity() || b.is_empty() {
@@ -247,7 +247,7 @@ fn run_on_layer(s: &mut Session, cmd: &str, label: &str, p: &Value, moves: bool,
             // As filters do: a pixel or full lock refuses the smart filter (the position lock
             // doesn't, since the smart object itself stays put).
             check_locks(l, group, false)?;
-            let sf = SmartFilter { command: cmd.to_string(), params: params.clone(), blend: localpaint_color::BlendMode::Normal, opacity: 1.0, visible: true };
+            let sf = SmartFilter { command: cmd.to_string(), params: params.clone(), blend: localraster_color::BlendMode::Normal, opacity: 1.0, visible: true };
             return crate::smart_cmds::add_smart_filter(doc, id, sf, selection.as_ref());
         }
         check_locks(l, group, moves && !colors)?;

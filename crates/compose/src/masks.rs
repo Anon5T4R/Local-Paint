@@ -9,10 +9,10 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Mutex, OnceLock, Weak};
 
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_doc::Layer;
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_doc::Layer;
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 
 // A U16 mask keeps substantially smaller cached tiles than F32 while adding at most
 // 1/65535 quantization error. Mask values are normalized coverage, so this is finer than
@@ -171,8 +171,8 @@ fn key(layer: &Layer, canvas: Rect) -> u64 {
     h.finish()
 }
 
-pub use localpaint_vector::feather::feather_sigma;
-use localpaint_vector::feather::gaussian;
+pub use localraster_vector::feather::feather_sigma;
+use localraster_vector::feather::gaussian;
 
 /// Whether `layer` has an enabled mask with a feather (rendered through [`combined_mask`]).
 pub fn has_feather(layer: &Layer) -> bool {
@@ -195,7 +195,7 @@ fn build_mask(layer: &Layer, canvas: Rect) -> Surface {
     let vm = layer.vector_mask.as_ref().filter(|v| v.enabled);
     let pixel = layer.mask.as_ref().filter(|m| m.enabled);
     let (sv, sp) = (vm.map_or(0.0, |v| feather_sigma(v.feather)), pixel.map_or(0.0, |m| feather_sigma(m.feather)));
-    let compiled = vm.map(localpaint_vector::CompiledVectorMask::new);
+    let compiled = vm.map(localraster_vector::CompiledVectorMask::new);
     // Far outside the path the vector mask is constant.
     let far = Rect::from_xywh(canvas.x0 - 1_000_000, canvas.y0 - 1_000_000, 1, 1);
     let v_out = compiled.as_ref().map_or(1.0, |vm| vm.render_sequential(far)[0]);
@@ -206,11 +206,11 @@ fn build_mask(layer: &Layer, canvas: Rect) -> Surface {
     // Where the product can differ from `p_def × v_out`: the path's bounds, plus the pixel
     // mask's painted tiles when the vector mask lets them through outside the path, each grown
     // by its feather.
-    let mut area = vm.map_or(Rect::EMPTY, |vm| localpaint_vector::feather::path_area(&vm.path, sv));
+    let mut area = vm.map_or(Rect::EMPTY, |vm| localraster_vector::feather::path_area(&vm.path, sv));
     if let Some(m) = pixel
         && v_out > 0.0
     {
-        let b = localpaint_vector::feather::grow(m.surface.content_bounds(), sp);
+        let b = localraster_vector::feather::grow(m.surface.content_bounds(), sp);
         area = if area.is_empty() {
             b
         } else if b.is_empty() {

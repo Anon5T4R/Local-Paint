@@ -2,9 +2,9 @@
 //! unit tests, so these tests can tell a cached stage from a re-render.
 use std::sync::Arc;
 
-use localpaint_doc::LayerContent;
-use localpaint_engine::{Session, smart_cmds};
-use localpaint_raster::Surface;
+use localraster_doc::LayerContent;
+use localraster_engine::{Session, smart_cmds};
+use localraster_raster::Surface;
 use serde_json::json;
 
 fn rendered(s: &Session) -> Surface {

@@ -1,5 +1,5 @@
 [package]
-name = "localpaint-engine"
+name = "localraster-engine"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -13,33 +13,33 @@ workspace = true
 corpus = []
 
 [dependencies]
-localpaint-geom = { workspace = true }
-localpaint-color = { workspace = true }
-localpaint-cms = { workspace = true }
-localpaint-raster = { workspace = true }
-localpaint-doc = { workspace = true }
-localpaint-ops = { workspace = true }
-localpaint-compose = { workspace = true }
+localraster-geom = { workspace = true }
+localraster-color = { workspace = true }
+localraster-cms = { workspace = true }
+localraster-raster = { workspace = true }
+localraster-doc = { workspace = true }
+localraster-ops = { workspace = true }
+localraster-compose = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 rayon = { workspace = true }
-localpaint-paint = { workspace = true }
-localpaint-algo = { workspace = true }
-localpaint-text = { workspace = true }
-localpaint-vector = { workspace = true }
-localpaint-io = { workspace = true }
-localpaint-psd = { workspace = true }
-localpaint-format = { workspace = true }
-localpaint-plugins = { workspace = true }
+localraster-paint = { workspace = true }
+localraster-algo = { workspace = true }
+localraster-text = { workspace = true }
+localraster-vector = { workspace = true }
+localraster-io = { workspace = true }
+localraster-psd = { workspace = true }
+localraster-format = { workspace = true }
+localraster-plugins = { workspace = true }
 base64 = "0.22"
 blake3 = { workspace = true }
-localpaint-codecs = { workspace = true }
+localraster-codecs = { workspace = true }
 flate2 = { workspace = true }
 craft-print = { workspace = true }
 
 # Photoshop `.kys` shortcut sets (`edit.keyboardShortcuts` `importKys`); already in the tree
-# through localpaint-ui-egui and usvg.
+# through localraster-ui-egui and usvg.
 roxmltree = "0.21"
 # Release tags use the same semantic versions as Cargo.
 semver = "1"
@@ -58,13 +58,13 @@ winsafe = { version = "=0.0.29", default-features = false, features = ["kernel"]
 
 # Printing on Unix: an IPP client for CUPS (pure Rust); the web build cannot print.
 [target.'cfg(all(not(target_arch = "wasm32"), not(target_os = "windows")))'.dependencies]
-localpaint-ipp = { workspace = true }
+localraster-ipp = { workspace = true }
 
 [dev-dependencies]
-localpaint-affinity = { workspace = true, features = ["synth"] }
+localraster-affinity = { workspace = true, features = ["synth"] }
 # Synthetic camera raw files for the open tests.
-localpaint-raw = { workspace = true, features = ["testgen"] }
-localpaint-testkit = { workspace = true }
+localraster-raw = { workspace = true, features = ["testgen"] }
+localraster-testkit = { workspace = true }
 # WebAssembly text -> binary for plug-in test modules (Apache-2.0 WITH LLVM-exception).
 wat = "1.228"
 # Synthetic multi-part EXR fixtures for the parts-commands tests.

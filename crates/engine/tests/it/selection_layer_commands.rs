@@ -2,8 +2,8 @@
 //! take them (one history step), not only on the active one. An explicit `layer`, or a single
 //! selected layer, behaves exactly as before.
 
-use localpaint_doc::LayerId;
-use localpaint_engine::Session;
+use localraster_doc::LayerId;
+use localraster_engine::Session;
 use serde_json::{Value, json};
 
 fn id_of(r: Value) -> LayerId {

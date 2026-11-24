@@ -4,8 +4,8 @@
 
 use std::time::Duration;
 
-use localpaint_automation::security::authentication_reply;
-use localpaint_automation::{AutomationError, BridgeClient};
+use localraster_automation::security::authentication_reply;
+use localraster_automation::{AutomationError, BridgeClient};
 use serde_json::{Value, json};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{TcpListener, TcpStream};

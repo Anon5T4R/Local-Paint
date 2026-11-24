@@ -1,7 +1,7 @@
 use super::*;
-use localpaint_color::{ColorMode, SampleType};
-use localpaint_doc::{Layer, Size};
-use localpaint_geom::Rect;
+use localraster_color::{ColorMode, SampleType};
+use localraster_doc::{Layer, Size};
+use localraster_geom::Rect;
 
 /// A 100×80 white document.
 fn session() -> Session {
@@ -47,7 +47,7 @@ fn add_reads_an_actual_painted_pixel() {
     let mut s = session();
     s.edit("paint", |doc, _| {
         let surf = doc.layers[0].surface_mut().unwrap();
-        let black = localpaint_raster::from_rgba(&surf.format(), [0.0, 0.0, 0.0, 1.0]);
+        let black = localraster_raster::from_rgba(&surf.format(), [0.0, 0.0, 0.0, 1.0]);
         surf.fill_rect(Rect::new(3, 3, 4, 4), &black);
         Ok(())
     })
@@ -58,7 +58,7 @@ fn add_reads_an_actual_painted_pixel() {
     // Painting over the point changes its readout (the list is computed live).
     s.edit("paint", |doc, _| {
         let surf = doc.layers[0].surface_mut().unwrap();
-        let red = localpaint_raster::from_rgba(&surf.format(), [1.0, 0.0, 0.0, 1.0]);
+        let red = localraster_raster::from_rgba(&surf.format(), [1.0, 0.0, 0.0, 1.0]);
         surf.fill_rect(Rect::new(3, 3, 4, 4), &red);
         Ok(())
     })
@@ -187,7 +187,7 @@ fn flips_and_right_angle_turns_keep_points_on_their_pixel() {
         let mut s = session();
         s.edit("paint", |doc, _| {
             let surf = doc.layers[0].surface_mut().unwrap();
-            let black = localpaint_raster::from_rgba(&surf.format(), [0.0, 0.0, 0.0, 1.0]);
+            let black = localraster_raster::from_rgba(&surf.format(), [0.0, 0.0, 0.0, 1.0]);
             surf.fill_rect(Rect::new(3, 3, 4, 4), &black);
             Ok(())
         })
@@ -209,7 +209,7 @@ fn an_arbitrary_rotation_keeps_points_on_their_pixel() {
         let mut s = session();
         s.edit("paint", |doc, _| {
             let surf = doc.layers[0].surface_mut().unwrap();
-            let black = localpaint_raster::from_rgba(&surf.format(), [0.0, 0.0, 0.0, 1.0]);
+            let black = localraster_raster::from_rgba(&surf.format(), [0.0, 0.0, 0.0, 1.0]);
             surf.fill_rect(Rect::new(3, 3, 4, 4), &black);
             Ok(())
         })
@@ -231,7 +231,7 @@ fn a_rotated_crop_moves_points() {
     let mut s = session();
     s.edit("paint", |doc, _| {
         let surf = doc.layers[0].surface_mut().unwrap();
-        let black = localpaint_raster::from_rgba(&surf.format(), [0.0, 0.0, 0.0, 1.0]);
+        let black = localraster_raster::from_rgba(&surf.format(), [0.0, 0.0, 0.0, 1.0]);
         surf.fill_rect(Rect::new(50, 40, 51, 41), &black);
         Ok(())
     })
@@ -293,7 +293,7 @@ fn bad_params_and_no_document_are_errors_not_panics() {
 #[test]
 fn device_cmyk_agrees_with_the_color_picker_conversion() {
     for rgb in [[1.0, 1.0, 1.0], [0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.5, 0.5, 0.5], [0.2, 0.6, 0.9], [1.0, 0.93, 0.0]] {
-        let picker = localpaint_color::convert::rgb_to_cmyk(rgb).map(|v| (v * 100.0).round() as i32);
+        let picker = localraster_color::convert::rgb_to_cmyk(rgb).map(|v| (v * 100.0).round() as i32);
         assert_eq!(device_cmyk(rgb[0], rgb[1], rgb[2]), picker, "{rgb:?}");
     }
     assert_eq!(device_cmyk(1.0, 1.0, 1.0), [0, 0, 0, 0]);
@@ -320,7 +320,7 @@ fn hdr_pixel_on_a_32_bit_document_reads_in_range() {
     s.execute("file.new", json!({"width": 8, "height": 8, "depth": 32, "background": "white"})).unwrap();
     s.edit("paint", |doc, _| {
         let surf = doc.layers[0].surface_mut().unwrap();
-        let hdr = localpaint_raster::from_rgba(&surf.format(), [2.0, 2.0, 2.0, 1.0]);
+        let hdr = localraster_raster::from_rgba(&surf.format(), [2.0, 2.0, 2.0, 1.0]);
         surf.fill_rect(Rect::new(3, 3, 4, 4), &hdr);
         Ok(())
     })

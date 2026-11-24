@@ -5,7 +5,7 @@
 
 use crate::common;
 use common::*;
-use localpaint_codecs::*;
+use localraster_codecs::*;
 
 fn lossy(q: u8) -> EncodeOptions {
     EncodeOptions { webp_lossless: false, webp_quality: q, ..Default::default() }

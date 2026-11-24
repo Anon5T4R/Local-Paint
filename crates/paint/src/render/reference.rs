@@ -2,7 +2,7 @@
 use super::*;
 use crate::tile::GrayTile;
 use crate::{soft_exp, tip_reach, tip_shape};
-use localpaint_geom::Point;
+use localraster_geom::Point;
 
 impl BrushContext {
     fn rasterize_reference(&self, d: &Dab, dual: bool, rect: Rect, out: &mut Vec<f32>, mut depth: Option<&mut Vec<f32>>) {

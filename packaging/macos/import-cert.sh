@@ -18,8 +18,8 @@ if [[ -z "${APPLE_CERTIFICATE:-}" ]]; then
 fi
 
 TMP="${RUNNER_TEMP:-${TMPDIR:-/tmp}}"
-KEYCHAIN="$TMP/localpaint-signing.keychain-db"
-CERT="$TMP/localpaint-signing.p12"
+KEYCHAIN="$TMP/localraster-signing.keychain-db"
+CERT="$TMP/localraster-signing.p12"
 KC_PASS="${KEYCHAIN_PASSWORD:-$(openssl rand -hex 24)}"
 
 trap 'rm -f "$CERT"' EXIT

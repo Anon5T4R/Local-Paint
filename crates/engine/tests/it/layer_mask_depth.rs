@@ -1,9 +1,9 @@
 //! A native document and its PSD must quantize the same later mask edit alike.
 
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_doc::{Document, LayerMask};
-use localpaint_engine::Session;
-use localpaint_raster::Surface;
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_doc::{Document, LayerMask};
+use localraster_engine::Session;
+use localraster_raster::Surface;
 use serde_json::json;
 
 fn session(depth: u64, mode: &str) -> Session {
@@ -71,14 +71,14 @@ fn soft_mask_edits_match_after_native_and_psd_reopen() {
         s.execute("select.rect", json!({"x": 8, "y": 6, "width": 40, "height": 32, "antiAlias": false})).unwrap();
         s.execute("layer.newFillLayer.solidColor", json!({"color": "#000000"})).unwrap();
         let before = s.active().unwrap().doc.clone();
-        let native = localpaint_format::save_to_bytes(&before, &Default::default()).unwrap();
-        let psd = localpaint_io::export(&before, "psd", &Default::default()).unwrap();
+        let native = localraster_format::save_to_bytes(&before, &Default::default()).unwrap();
+        let psd = localraster_io::export(&before, "psd", &Default::default()).unwrap();
         assert!(psd.warnings.is_empty(), "{:?}", psd.warnings);
         let mut branches = Vec::new();
-        for reopened in [localpaint_format::load_from_bytes(&native).unwrap(), localpaint_io::import("mask.psd", &psd.bytes).unwrap().document] {
+        for reopened in [localraster_format::load_from_bytes(&native).unwrap(), localraster_io::import("mask.psd", &psd.bytes).unwrap().document] {
             assert_eq!(mask(&reopened).surface.format(), mask(&before).surface.format(), "{depth}-bit mask depth survives reopening");
             assert_eq!(mask(&reopened).surface.read_region(before.bounds()), mask(&before).surface.read_region(before.bounds()));
-            assert_eq!(localpaint_compose::flatten(&reopened), localpaint_compose::flatten(&before));
+            assert_eq!(localraster_compose::flatten(&reopened), localraster_compose::flatten(&before));
             let layer = reopened.walk().into_iter().find_map(|(_, _, l)| l.mask.as_ref().map(|_| l.id.0)).unwrap();
             let mut edited = Session::new();
             edited.add_document(reopened, None);
@@ -103,7 +103,7 @@ fn soft_mask_edits_match_after_native_and_psd_reopen() {
         let changed = a.iter().zip(&b).filter(|(a, b)| a != b).count();
         let worst = a.iter().zip(&b).map(|(a, b)| (a - b).abs()).fold(0.0f32, f32::max);
         assert_eq!(changed, 0, "{depth}-bit mask edit depends on the save format (worst coverage difference {worst})");
-        assert_eq!(localpaint_compose::flatten(&branches[0]), localpaint_compose::flatten(&branches[1]), "{depth}-bit composite depends on the save format");
+        assert_eq!(localraster_compose::flatten(&branches[0]), localraster_compose::flatten(&branches[1]), "{depth}-bit composite depends on the save format");
         if depth > 8 {
             assert!(a.iter().any(|v| (v * 255.0 - (v * 255.0).round()).abs() > 0.01), "{depth}-bit mask edits retain sub-8-bit coverage");
         }
@@ -118,7 +118,7 @@ fn mask_creation_preserves_selection_coverage_and_existing_masks() {
             s.execute("layer.new.layer", json!({})).unwrap();
             s.edit("synthetic coverage", |doc, _| {
                 let mut selection = Surface::with_default(PixelFormat::GRAY8, &[1.0]);
-                selection.write_region(localpaint_geom::Rect::new(0, 0, 16, 16), &(0..256).map(|i| i as f32 / 255.0).collect::<Vec<_>>());
+                selection.write_region(localraster_geom::Rect::new(0, 0, 16, 16), &(0..256).map(|i| i as f32 / 255.0).collect::<Vec<_>>());
                 doc.selection = Some(selection);
                 let mut existing = LayerMask::reveal_all();
                 existing.surface = Surface::with_default(PixelFormat::new(ColorMode::Grayscale, SampleType::F32, false), &[0.123456]);

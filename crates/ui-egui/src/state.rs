@@ -53,10 +53,10 @@ pub struct Panels {
     /// (#6760). Only a view of the moment: not saved, and the panels' own flags stay untouched.
     #[serde(skip)]
     pub full_screen_chrome: bool,
-    /// The right dock's icon rail. An app that embeds Local Paint's UI can hide it for a simpler view.
+    /// The right dock's icon rail. An app that embeds Local Raster's UI can hide it for a simpler view.
     #[serde(default = "yes")]
     pub rail: bool,
-    /// The title bar with the in-window menus. An app that embeds Local Paint's UI and draws its own
+    /// The title bar with the in-window menus. An app that embeds Local Raster's UI and draws its own
     /// bar can hide it; the caption buttons of a custom title bar go with it.
     #[serde(default = "yes")]
     pub menu_bar: bool,
@@ -117,7 +117,7 @@ pub enum DialogKind {
 pub struct View {
     /// Screen (device) pixels per document pixel: the user-facing zoom (`100%` is `1.0`).
     /// Canvas geometry works in egui points and divides by `ctx.pixels_per_point`
-    /// (`LocalPaintApp::point_zoom`), so neither the display scale nor Interface › UI Scale
+    /// (`LocalRasterApp::point_zoom`), so neither the display scale nor Interface › UI Scale
     /// magnifies the image (#1943, #2121).
     pub zoom: f32,
     /// Document-space point shown at the canvas centre.
@@ -323,13 +323,13 @@ pub struct UiState {
     #[serde(default = "default_brush_tool")]
     pub brush_tool: Tool,
     #[serde(default)]
-    pub tool_brushes: Vec<(Tool, localpaint_engine::paint::BrushSettings)>,
+    pub tool_brushes: Vec<(Tool, localraster_engine::paint::BrushSettings)>,
     /// Pen path under construction.
     #[serde(default)]
     pub pen: Option<crate::vector_ui::PenPath>,
     /// The document the pen path is drawn on; switching away commits it to that Work Path.
     #[serde(default)]
-    pub pen_doc: Option<localpaint_doc::DocId>,
+    pub pen_doc: Option<localraster_doc::DocId>,
     #[serde(default)]
     pub stroke_editor: Option<crate::shape_stroke_ui::StrokeEditor>,
     /// Direct Selection tool: selected anchors and the drag in progress (#790).
@@ -345,7 +345,7 @@ pub struct UiState {
     /// Selection tool (#6079): the canvas hides that path until a path is selected again or the
     /// Work Path changes.
     #[serde(default)]
-    pub hidden_work_path: Option<(u64, localpaint_doc::Path)>,
+    pub hidden_work_path: Option<(u64, localraster_doc::Path)>,
     /// Layers panel kind filter ("pixel", "adjustment", "type", "shape", "smart"); empty = all.
     #[serde(default)]
     pub layer_filter: Vec<String>,
@@ -363,7 +363,7 @@ pub struct UiState {
     pub layer_filter_name: String,
     /// Layers panel blend-mode filter.
     #[serde(default = "default_layer_filter_mode")]
-    pub layer_filter_mode: localpaint_color::BlendMode,
+    pub layer_filter_mode: localraster_color::BlendMode,
     /// Actions panel: which row is selected and which are expanded. The list lives on the session.
     #[serde(default)]
     pub actions: crate::actions::ActionsUi,
@@ -461,7 +461,7 @@ pub struct UiState {
     /// The shape Fill / Stroke swatches' recently used gradients, newest first (the Gradient
     /// tab's Recent row).
     #[serde(default)]
-    pub recent_gradients: Vec<localpaint_doc::Fill>,
+    pub recent_gradients: Vec<localraster_doc::Fill>,
     /// In-progress polygonal lasso vertices (document coordinates).
     #[serde(default)]
     pub polygon: Vec<[f64; 2]>,
@@ -472,7 +472,7 @@ pub struct UiState {
     /// The document the polygon is drawn on (set at its first click): another document becoming
     /// active drops it (`canvas::polygon_cancel_stale`).
     #[serde(default)]
-    pub polygon_doc: Option<localpaint_doc::DocId>,
+    pub polygon_doc: Option<localraster_doc::DocId>,
     /// Magnetic Lasso border in progress (`magnetic_lasso_ui`).
     #[serde(default)]
     pub magnetic: crate::magnetic_lasso_ui::MagneticLasso,

@@ -1,6 +1,6 @@
 use super::*;
 
-fn frame(app: &mut LocalPaintApp, ctx: &egui::Context, time: f64, events: Vec<egui::Event>) {
+fn frame(app: &mut LocalRasterApp, ctx: &egui::Context, time: f64, events: Vec<egui::Event>) {
     let mut out = ctx.run_ui(
         egui::RawInput { time: Some(time), events, screen_rect: Some(Rect::from_min_size(egui::Pos2::ZERO, vec2(1200.0, 1800.0))), ..Default::default() },
         |ui| toolbar(app, ui),
@@ -10,10 +10,10 @@ fn frame(app: &mut LocalPaintApp, ctx: &egui::Context, time: f64, events: Vec<eg
 
 #[test]
 fn long_press_type_button_selects_type_then_vertical_from_the_flyout() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     assert_ne!(app.ui.tool, Tool::Type);
     let ctx = egui::Context::default();
-    LocalPaintApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
     frame(&mut app, &ctx, 0.0, vec![]);
     frame(&mut app, &ctx, 0.1, vec![]);
     let index = TOOL_SECTIONS.iter().flat_map(|section| section.iter()).position(|slot| slot.contains(&Tool::Type)).unwrap();
@@ -50,10 +50,10 @@ fn long_press_type_button_selects_type_then_vertical_from_the_flyout() {
 /// Change Screen Mode is greyed out: a click sends no viewport command.
 #[test]
 fn screen_mode_button_is_inert_without_a_document() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", serde_json::json!({"width": 64, "height": 48})).unwrap();
     let ctx = egui::Context::default();
-    LocalPaintApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
     frame(&mut app, &ctx, 0.0, vec![]);
     frame(&mut app, &ctx, 0.1, vec![]);
     let bx = if Tokens::get(&ctx).pro { 30.0 } else { 36.0 };
@@ -91,11 +91,11 @@ fn screen_mode_button_is_inert_without_a_document() {
 /// cycling the mode on release; a plain click still cycles, and right-click still opens it.
 #[test]
 fn long_press_screen_mode_opens_the_modes_without_cycling() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     // A document open: Full Screen Mode needs one (#9349), so without it a click can't cycle.
     app.run("file.new", serde_json::json!({"width": 64, "height": 48})).unwrap();
     let ctx = egui::Context::default();
-    LocalPaintApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
     frame(&mut app, &ctx, 0.0, vec![]);
     frame(&mut app, &ctx, 0.1, vec![]);
     let bx = if Tokens::get(&ctx).pro { 30.0 } else { 36.0 };
@@ -112,7 +112,7 @@ fn long_press_screen_mode_opens_the_modes_without_cycling() {
         })
         .unwrap()
         .center();
-    let standard = |app: &LocalPaintApp| crate::view_cmds::checked(app, "view.screenMode.standard") == Some(true);
+    let standard = |app: &LocalRasterApp| crate::view_cmds::checked(app, "view.screenMode.standard") == Some(true);
     let menu_open = |ctx: &egui::Context| egui::Popup::is_any_open(ctx);
     let pointer = |pos, pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
     assert!(standard(&app));
@@ -149,7 +149,7 @@ fn long_press_screen_mode_opens_the_modes_without_cycling() {
 }
 
 /// Every text drawn in one toolbar frame.
-fn frame_texts(app: &mut LocalPaintApp, ctx: &egui::Context, time: f64, events: Vec<egui::Event>) -> Vec<String> {
+fn frame_texts(app: &mut LocalRasterApp, ctx: &egui::Context, time: f64, events: Vec<egui::Event>) -> Vec<String> {
     fn collect(shape: &egui::Shape, out: &mut Vec<String>) {
         match shape {
             egui::Shape::Text(t) => out.push(t.galley.text().to_string()),
@@ -171,9 +171,9 @@ fn frame_texts(app: &mut LocalPaintApp, ctx: &egui::Context, time: f64, events: 
 /// held tool or any other; a plain hover still shows its tooltip.
 #[test]
 fn no_tooltips_over_an_open_tool_flyout() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
-    LocalPaintApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
     frame(&mut app, &ctx, 0.0, vec![]);
     frame(&mut app, &ctx, 0.1, vec![]);
     let bx = if Tokens::get(&ctx).pro { 30.0 } else { 36.0 };
@@ -221,9 +221,9 @@ fn no_tooltips_over_an_open_tool_flyout() {
 /// #4932: so does a click on its own tool button.
 #[test]
 fn a_drag_outside_closes_the_tool_flyout() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
-    LocalPaintApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
     frame(&mut app, &ctx, 0.0, vec![]);
     frame(&mut app, &ctx, 0.1, vec![]);
     let index = TOOL_SECTIONS.iter().flat_map(|section| section.iter()).position(|slot| slot.contains(&Tool::Brush)).unwrap();
@@ -243,7 +243,7 @@ fn a_drag_outside_closes_the_tool_flyout() {
     let secondary = |pressed| egui::Event::PointerButton { pos: at, button: egui::PointerButton::Secondary, pressed, modifiers: Default::default() };
     let primary = |pos, pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
     // A right-click on the button of an open flyout closes it (#4932), so open only a closed one.
-    let open = |app: &mut LocalPaintApp, t: f64| {
+    let open = |app: &mut LocalRasterApp, t: f64| {
         if !flyout(&ctx) {
             frame(app, &ctx, t, vec![egui::Event::PointerMoved(at), secondary(true)]);
             frame(app, &ctx, t + 0.05, vec![secondary(false)]);
@@ -305,9 +305,9 @@ fn art_history_is_in_the_y_flyout() {
 
 #[test]
 fn long_press_clone_stamp_selects_pattern_stamp() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
-    LocalPaintApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
     frame(&mut app, &ctx, 0.0, vec![]);
     frame(&mut app, &ctx, 0.1, vec![]);
     let index = TOOL_SECTIONS.iter().flat_map(|section| section.iter()).position(|slot| slot.contains(&Tool::CloneStamp)).unwrap();
@@ -341,9 +341,9 @@ fn long_press_clone_stamp_selects_pattern_stamp() {
 
 #[test]
 fn long_press_brush_selects_color_replacement() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
-    LocalPaintApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
     frame(&mut app, &ctx, 0.0, vec![]);
     frame(&mut app, &ctx, 0.1, vec![]);
     let index = TOOL_SECTIONS.iter().flat_map(|section| section.iter()).position(|slot| slot.contains(&Tool::Brush)).unwrap();
@@ -395,9 +395,9 @@ fn pro_toolbar_glyphs_fill_two_thirds_of_the_button() {
 
 #[test]
 fn long_press_y_button_selects_art_history() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     let ctx = egui::Context::default();
-    LocalPaintApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
     frame(&mut app, &ctx, 0.0, vec![]);
     frame(&mut app, &ctx, 0.1, vec![]);
     let index = TOOL_SECTIONS.iter().flat_map(|section| section.iter()).position(|slot| slot.contains(&Tool::HistoryBrush)).unwrap();

@@ -1,11 +1,11 @@
 //! End-to-end timing of the smart selection commands (including sampling the layer and storing
 //! the selection / layer) on a 6016×6016 8-bit document: a textured disc on a noisy background.
-//! `cargo run --release -p localpaint-engine --example bench_smartselect_cmds [size]`
+//! `cargo run --release -p localraster-engine --example bench_smartselect_cmds [size]`
 use std::time::Instant;
 
-use localpaint_algo::segment::Rng;
-use localpaint_engine::Session;
-use localpaint_geom::Rect;
+use localraster_algo::segment::Rng;
+use localraster_engine::Session;
+use localraster_geom::Rect;
 use serde_json::json;
 
 fn main() {

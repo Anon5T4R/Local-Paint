@@ -36,7 +36,7 @@ fn sized_harness(size: Vec2, scale: f32, theme: crate::theme::ThemeKind) -> Harn
         },
         State::default(),
     );
-    crate::LocalPaintApp::setup_context(&h.ctx, theme);
+    crate::LocalRasterApp::setup_context(&h.ctx, theme);
     h.run_steps(3);
     h
 }
@@ -341,7 +341,7 @@ fn options_serde_defaults_keep_old_tool_settings_and_full_stroke() {
     style.preset("Dotted");
     style.dashes = vec![0.0, 2.0, 4.0, 1.0];
     style.dash_offset = -0.5;
-    let stroke = style.stroke(5.0, localpaint_doc::Fill::Solid(localpaint_doc::Color::BLACK));
+    let stroke = style.stroke(5.0, localraster_doc::Fill::Solid(localraster_doc::Color::BLACK));
     assert_eq!(StrokeOptions::from(&stroke), style);
     assert_eq!(serde_json::from_value::<StrokeOptions>(serde_json::to_value(&style).unwrap()).unwrap(), style);
 }
@@ -360,7 +360,7 @@ fn moving_the_editor_between_ui_roots_keeps_history_gestures_distinct() {
         },
         (0, State::default()),
     );
-    crate::LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ProMedium);
+    crate::LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ProMedium);
     h.run_steps(3);
     for (root, preset) in [(0, "Dashed"), (1, "Dotted")] {
         h.state_mut().0 = root;
@@ -377,14 +377,14 @@ fn moving_the_editor_between_ui_roots_keeps_history_gestures_distinct() {
     assert_ne!(changes[0], changes[1], "independent dock/floating counters must not merge edits of the same layer");
 }
 
-fn properties_harness(mut params: Value, depth: u32) -> Harness<'static, crate::LocalPaintApp> {
-    let mut app = crate::LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+fn properties_harness(mut params: Value, depth: u32) -> Harness<'static, crate::LocalRasterApp> {
+    let mut app = crate::LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 80, "height": 60, "depth": depth})).unwrap();
     params["fill"] = json!("#d92070");
     params["stroke"] = json!({"width": 5, "color": "#21bb66"});
     app.run("shape.create", params).unwrap();
     let mut h = Harness::builder().with_size(vec2(640.0, 800.0)).with_step_dt(1.0 / 60.0).build_ui_state(
-        |ui, app: &mut crate::LocalPaintApp| {
+        |ui, app: &mut crate::LocalRasterApp| {
             let _language = crate::i18n::language_scope(crate::i18n::Lang::EN);
             if !ui.ctx().fonts(|f| f.families().contains(&egui::FontFamily::Name("semibold".into()))) {
                 return;
@@ -395,16 +395,16 @@ fn properties_harness(mut params: Value, depth: u32) -> Harness<'static, crate::
         },
         app,
     );
-    crate::LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ProMedium);
+    crate::LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ProMedium);
     h.run_steps(4);
     h
 }
 
-fn selected_shape(h: &Harness<'_, crate::LocalPaintApp>) -> localpaint_doc::ShapeLayer {
+fn selected_shape(h: &Harness<'_, crate::LocalRasterApp>) -> localraster_doc::ShapeLayer {
     let st = h.state().session.active().unwrap();
     let layer = st.doc.layer(st.active_layer.unwrap()).unwrap();
     match &layer.content {
-        localpaint_doc::LayerContent::Shape(shape) => shape.clone(),
+        localraster_doc::LayerContent::Shape(shape) => shape.clone(),
         _ => panic!("expected the selected vector shape"),
     }
 }
@@ -449,7 +449,7 @@ fn selected_shape_presets_edit_live_preserve_paint_and_undo_at_all_depths() {
     }
 }
 
-fn opacity_drag(h: &mut Harness<'_, crate::LocalPaintApp>, offsets: &[f32], expected_history: usize) -> f32 {
+fn opacity_drag(h: &mut Harness<'_, crate::LocalRasterApp>, offsets: &[f32], expected_history: usize) -> f32 {
     let start = h.get_by_role_and_label(Role::Slider, "Opacity").rect().center();
     h.hover_at(start);
     h.run_steps(1);
@@ -496,13 +496,13 @@ fn selected_shape_numeric_drags_are_live_and_undo_as_separate_gestures() {
 }
 
 struct CanvasScene {
-    app: crate::LocalPaintApp,
+    app: crate::LocalRasterApp,
     properties: bool,
     show_controls: bool,
 }
 
 fn canvas_harness(properties: bool) -> Harness<'static, CanvasScene> {
-    let mut app = crate::LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = crate::LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 800, "height": 600})).unwrap();
     app.ui.tool = crate::state::Tool::Rectangle;
     app.ui.tool_options.vector_mode = "shape".into();
@@ -541,7 +541,7 @@ fn canvas_harness(properties: bool) -> Harness<'static, CanvasScene> {
         },
         CanvasScene { app, properties, show_controls: true },
     );
-    crate::LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ProMedium);
+    crate::LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ProMedium);
     h.run_steps(4);
     h
 }

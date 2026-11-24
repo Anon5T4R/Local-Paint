@@ -1,12 +1,12 @@
 //! Edit › Free Transform / Transform: projective transforms of layers (and the selection).
 
-use localpaint_algo::transform::{Homography, Interp, WARP_REACH, warp_output_clipped, warp_output_size, warp_surface, warp_surface_with};
-use localpaint_color::PixelFormat;
+use localraster_algo::transform::{Homography, Interp, WARP_REACH, warp_output_clipped, warp_output_size, warp_surface, warp_surface_with};
+use localraster_color::PixelFormat;
 #[cfg(test)]
-use localpaint_color::{ColorMode, SampleType};
-use localpaint_doc::{Document, Layer, LayerContent, LayerId, Locks};
-use localpaint_geom::{Affine, Rect};
-use localpaint_raster::{Interrupt, Surface};
+use localraster_color::{ColorMode, SampleType};
+use localraster_doc::{Document, Layer, LayerContent, LayerId, Locks};
+use localraster_geom::{Affine, Rect};
+use localraster_raster::{Interrupt, Surface};
 use serde_json::{Value, json};
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -62,10 +62,10 @@ pub(crate) fn whole_layer_bounds(doc: &Document, layer: &Layer) -> Rect {
         LayerContent::Group(g) => g.children.iter().map(|c| whole_layer_bounds(doc, c)).fold(Rect::EMPTY, |a, b| a.union(&b)),
         // A soft shape (Density below 100 % or a Feather) renders past its path, over the whole
         // canvas below 100 %: its frame follows the path and stroke, as in Photoshop (#5846).
-        LayerContent::Shape(sh) if sh.has_soft_mask() => localpaint_compose::soft_shape_frame(sh, doc.pixel_format(), doc.bounds()).unwrap_or(Rect::EMPTY),
-        _ => layer.surface().map_or(Rect::EMPTY, localpaint_compose::bounds::content_bounds),
+        LayerContent::Shape(sh) if sh.has_soft_mask() => localraster_compose::soft_shape_frame(sh, doc.pixel_format(), doc.bounds()).unwrap_or(Rect::EMPTY),
+        _ => layer.surface().map_or(Rect::EMPTY, localraster_compose::bounds::content_bounds),
     };
-    if content.is_empty() { layer.mask.as_ref().map_or(Rect::EMPTY, |m| localpaint_compose::bounds::content_bounds(&m.surface)) } else { content }
+    if content.is_empty() { layer.mask.as_ref().map_or(Rect::EMPTY, |m| localraster_compose::bounds::content_bounds(&m.surface)) } else { content }
 }
 
 /// Warp a surface whose pixels outside the content read as `default` (masks, selections):
@@ -609,9 +609,9 @@ pub(crate) fn refresh_text(doc: &Document, l: &mut Layer) {
 /// `Arc<Tile>` directly with `dst`, and opaque/transparent pixels on border tiles copy encoded
 /// bytes without a whole-region `f32` round trip.
 pub(crate) fn composite_over(dst: &mut Surface, top: &Surface) {
-    use localpaint_color::{SampleType, read_sample};
-    use localpaint_geom::TileCoord;
-    use localpaint_raster::Tile;
+    use localraster_color::{SampleType, read_sample};
+    use localraster_geom::TileCoord;
+    use localraster_raster::Tile;
     use rayon::prelude::*;
     use std::sync::Arc;
 
@@ -711,7 +711,7 @@ pub(crate) fn composite_over(dst: &mut Surface, top: &Surface) {
                         }
                     }
                     dp[a] = oa;
-                    localpaint_raster::encode_pixel(&fmt, &dp[..n], out_px);
+                    localraster_raster::encode_pixel(&fmt, &dp[..n], out_px);
                 }
                 Some((tc, Arc::new(out_tile)))
             })

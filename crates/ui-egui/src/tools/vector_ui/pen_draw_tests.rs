@@ -6,17 +6,17 @@ use egui::{Key, Modifiers, PointerButton, Pos2, vec2};
 use egui_kittest::Harness;
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::canvas::ViewXform;
 use crate::state::Tool;
 
-fn harness() -> Harness<'static, LocalPaintApp> {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn harness() -> Harness<'static, LocalRasterApp> {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 200, "height": 150})).unwrap();
     app.sync_views();
     app.ui.tool = Tool::Pen;
     let mut h = Harness::builder().with_size(vec2(900.0, 600.0)).build_ui_state(
-        |ui, app: &mut LocalPaintApp| {
+        |ui, app: &mut LocalRasterApp| {
             let ctx = ui.ctx().clone();
             if !ctx.fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                 return;
@@ -26,7 +26,7 @@ fn harness() -> Harness<'static, LocalPaintApp> {
         },
         app,
     );
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
     h.run_steps(4);
     let v = &mut h.state_mut().ui.views[0];
     v.zoom = 1.0;
@@ -36,7 +36,7 @@ fn harness() -> Harness<'static, LocalPaintApp> {
     h
 }
 
-fn screen(h: &Harness<'static, LocalPaintApp>, p: [f32; 2]) -> Pos2 {
+fn screen(h: &Harness<'static, LocalRasterApp>, p: [f32; 2]) -> Pos2 {
     let app = h.state();
     let v = &app.ui.views[0];
     let xf = ViewXform {
@@ -50,17 +50,17 @@ fn screen(h: &Harness<'static, LocalPaintApp>, p: [f32; 2]) -> Pos2 {
     xf.to_screen(p[0], p[1])
 }
 
-fn mods(h: &mut Harness<'static, LocalPaintApp>, m: Modifiers) {
+fn mods(h: &mut Harness<'static, LocalRasterApp>, m: Modifiers) {
     h.event(egui::Event::ModifiersChanged(m));
     h.run_steps(1);
 }
 
-fn button(h: &mut Harness<'static, LocalPaintApp>, p: Pos2, down: bool, m: Modifiers) {
+fn button(h: &mut Harness<'static, LocalRasterApp>, p: Pos2, down: bool, m: Modifiers) {
     h.event(egui::Event::PointerButton { pos: p, button: PointerButton::Primary, pressed: down, modifiers: m });
     h.run_steps(1);
 }
 
-fn move_to(h: &mut Harness<'static, LocalPaintApp>, from: [f32; 2], to: [f32; 2]) {
+fn move_to(h: &mut Harness<'static, LocalRasterApp>, from: [f32; 2], to: [f32; 2]) {
     for i in 1..=6 {
         let t = i as f32 / 6.0;
         let q = screen(h, [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t]);
@@ -71,7 +71,7 @@ fn move_to(h: &mut Harness<'static, LocalPaintApp>, from: [f32; 2], to: [f32; 2]
 
 /// A drag from `pts[0]` through the other points; `alt_from` is the index of the point from
 /// which ⌥/Alt is held (`Some(0)`: before the press).
-fn drag(h: &mut Harness<'static, LocalPaintApp>, pts: &[[f32; 2]], alt_from: Option<usize>) {
+fn drag(h: &mut Harness<'static, LocalRasterApp>, pts: &[[f32; 2]], alt_from: Option<usize>) {
     let held = |i: usize| if alt_from.is_some_and(|a| i >= a) { Modifiers::ALT } else { Modifiers::NONE };
     let p = screen(h, pts[0]);
     mods(h, held(0));
@@ -88,7 +88,7 @@ fn drag(h: &mut Harness<'static, LocalPaintApp>, pts: &[[f32; 2]], alt_from: Opt
     h.run_steps(1);
 }
 
-fn click(h: &mut Harness<'static, LocalPaintApp>, p: [f32; 2]) {
+fn click(h: &mut Harness<'static, LocalRasterApp>, p: [f32; 2]) {
     drag(h, &[p], None);
 }
 
@@ -238,7 +238,7 @@ fn delete_with_the_pen_deletes_the_finished_work_path_not_the_pixels() {
     h.state_mut()
         .session
         .edit("paint", |doc, a| {
-            doc.layer_mut(a.unwrap()).unwrap().surface_mut().unwrap().fill_rect(localpaint_geom::Rect::new(0, 0, 200, 150), &[1.0, 0.0, 0.0, 1.0]);
+            doc.layer_mut(a.unwrap()).unwrap().surface_mut().unwrap().fill_rect(localraster_geom::Rect::new(0, 0, 200, 150), &[1.0, 0.0, 0.0, 1.0]);
             Ok(())
         })
         .unwrap();
@@ -247,8 +247,8 @@ fn delete_with_the_pen_deletes_the_finished_work_path_not_the_pixels() {
     }
     h.key_press(Key::Enter);
     h.run_steps(2);
-    let work = |h: &Harness<'static, LocalPaintApp>| h.state().session.active().unwrap().doc.work_path.is_some();
-    let red = |h: &Harness<'static, LocalPaintApp>| {
+    let work = |h: &Harness<'static, LocalRasterApp>| h.state().session.active().unwrap().doc.work_path.is_some();
+    let red = |h: &Harness<'static, LocalRasterApp>| {
         let st = h.state().session.active().unwrap();
         st.doc.layer(st.active_layer.unwrap()).unwrap().surface().unwrap().rgba(60, 60) == [1.0, 0.0, 0.0, 1.0]
     };
@@ -275,14 +275,14 @@ fn delete_with_the_pen_deletes_the_finished_work_path_not_the_pixels() {
     assert!(work(&h), "another tool's Delete is Edit › Clear, not Delete Path");
 }
 
-fn space(h: &mut Harness<'static, LocalPaintApp>, down: bool) {
+fn space(h: &mut Harness<'static, LocalRasterApp>, down: bool) {
     h.event(egui::Event::Key { key: Key::Space, physical_key: None, pressed: down, repeat: false, modifiers: Modifiers::NONE });
     h.run_steps(1);
 }
 
 /// Did the last frame paint the Pen's path in progress: an accent polyline starting at `at`, its
 /// first anchor on screen (`vector_ui::draw_overlay`)?
-fn pen_path_painted(h: &Harness<'static, LocalPaintApp>, at: Pos2) -> bool {
+fn pen_path_painted(h: &Harness<'static, LocalRasterApp>, at: Pos2) -> bool {
     let accent = crate::theme::Tokens::get(&h.ctx).accent;
     h.output().shapes.iter().any(|c| match &c.shape {
         egui::Shape::Path(p) => {

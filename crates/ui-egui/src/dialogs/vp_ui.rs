@@ -17,15 +17,15 @@
 use std::sync::Arc;
 
 use egui::{Color32, Pos2, Stroke, TextureHandle, pos2};
-use localpaint_algo::transform::Homography;
-use localpaint_algo::vanishing::{Edge, PlaneCheck, Scene, VpPlane, clone_dabs_from, clone_source};
-use localpaint_doc::{DocId, Document, Layer, LayerContent, LayerId};
-use localpaint_engine::vp_cmds::{CloneSpec, MAX_CLONE_DABS, MAX_CLONE_STROKES, VP, copy_changed, over, paste_onto, visible_image};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_algo::transform::Homography;
+use localraster_algo::vanishing::{Edge, PlaneCheck, Scene, VpPlane, clone_dabs_from, clone_source};
+use localraster_doc::{DocId, Document, Layer, LayerContent, LayerId};
+use localraster_engine::vp_cmds::{CloneSpec, MAX_CLONE_DABS, MAX_CLONE_STROKES, VP, copy_changed, over, paste_onto, visible_image};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 use serde_json::{Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::canvas::{ToolEvent, ViewXform};
 use crate::edit_history::{EditHistory, Step};
 
@@ -783,7 +783,7 @@ fn slid_quad(h: &Homography, u0: f64, v0: f64, u1: f64, v1: f64) -> Option<[[f64
 }
 
 /// Starts Vanishing Point on the active pixel layer.
-pub fn begin(app: &mut LocalPaintApp, ctx: &egui::Context) -> Result<(), String> {
+pub fn begin(app: &mut LocalRasterApp, ctx: &egui::Context) -> Result<(), String> {
     if app.ui.transform.is_some() {
         return Err("finish Free Transform first".into());
     }
@@ -847,7 +847,7 @@ pub fn begin(app: &mut LocalPaintApp, ctx: &egui::Context) -> Result<(), String>
 
 /// OK: runs `filter.vanishingPoint` with the planes (and the paste and the clone strokes). An
 /// invalid plane keeps the mode open; with nothing to paste or clone the mode just closes.
-pub fn commit(app: &mut LocalPaintApp) -> Result<Value, String> {
+pub fn commit(app: &mut LocalRasterApp) -> Result<Value, String> {
     let Some(s) = app.distort.vanishing.as_ref() else { return Ok(Value::Null) };
     let center = s.center();
     if s.planes.iter().any(|p| p.check(center) == PlaneCheck::Invalid) {
@@ -879,7 +879,7 @@ pub fn commit(app: &mut LocalPaintApp) -> Result<Value, String> {
 }
 
 /// Control channel: `filter.vanishingPoint {"ui": {...}}` while the mode is active.
-pub fn control(app: &mut LocalPaintApp, ui: &Value) -> Result<Value, String> {
+pub fn control(app: &mut LocalRasterApp, ui: &Value) -> Result<Value, String> {
     if ui.get("commit").and_then(Value::as_bool) == Some(true) {
         return commit(app);
     }
@@ -922,7 +922,7 @@ pub fn control(app: &mut LocalPaintApp, ui: &Value) -> Result<Value, String> {
         s.aligned_ref = None;
     }
     if let Some(c) = ui.get("clone") {
-        s.strokes = localpaint_engine::vp_cmds::clone_specs(&json!({"clone": c})).map_err(|e| e.to_string())?;
+        s.strokes = localraster_engine::vp_cmds::clone_specs(&json!({"clone": c})).map_err(|e| e.to_string())?;
         s.drag = None;
         s.rev += 1;
     }
@@ -997,7 +997,7 @@ fn parse_planes(v: &Value) -> Result<(Vec<VpPlane>, Vec<Option<Torn>>), String> 
 
 /// Brings the stamp preview up to date with the strokes (and repaints it after the planes
 /// changed, once no plane is being dragged).
-pub(crate) fn sync_preview(app: &mut LocalPaintApp) {
+pub(crate) fn sync_preview(app: &mut LocalRasterApp) {
     let Some(s) = app.distort.vanishing.as_mut() else { return };
     if let Some(st) = app.session.active() {
         s.rebase(&st.doc, st.revision);
@@ -1011,7 +1011,7 @@ pub(crate) fn sync_preview(app: &mut LocalPaintApp) {
 
 /// What changed between stamp preview (or document) key `seen` and `now` of document `doc` at
 /// `revision`: the areas the strokes painted. `None` when either key isn't the session's.
-pub(crate) fn damage(app: &LocalPaintApp, doc: DocId, revision: u64, seen: u64, now: u64) -> Option<Rect> {
+pub(crate) fn damage(app: &LocalRasterApp, doc: DocId, revision: u64, seen: u64, now: u64) -> Option<Rect> {
     let s = app.distort.vanishing.as_ref().filter(|s| s.base.id == doc && s.doc_revision == revision)?;
     let keys = &s.preview.as_ref()?.keys;
     let at = |k: u64| if k == 0 { Some(0) } else { keys.iter().position(|e| PREVIEW_KEY + e.0 == k).map(|i| i + 1) };
@@ -1022,7 +1022,7 @@ pub(crate) fn damage(app: &LocalPaintApp, doc: DocId, revision: u64, seen: u64, 
     Some(keys.get(a.min(b)..a.max(b))?.iter().fold(Rect::EMPTY, |r, k| union(r, k.1)))
 }
 
-pub fn pointer(app: &mut LocalPaintApp, ev: ToolEvent, mods: egui::Modifiers) {
+pub fn pointer(app: &mut LocalRasterApp, ev: ToolEvent, mods: egui::Modifiers) {
     let tol = crate::distort_ui::tolerance(app);
     let Some(s) = app.distort.vanishing.as_mut() else { return };
     match ev {
@@ -1042,7 +1042,7 @@ pub fn pointer(app: &mut LocalPaintApp, ev: ToolEvent, mods: egui::Modifiers) {
 }
 
 /// Keys while the mode is active (↩ and Esc are handled by `distort_ui::keys`).
-pub fn keys(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub fn keys(app: &mut LocalRasterApp, ctx: &egui::Context) {
     use egui::{Key, Modifiers};
     if ctx.memory(|m| m.focused().is_some()) {
         return;
@@ -1065,7 +1065,7 @@ pub fn keys(app: &mut LocalPaintApp, ctx: &egui::Context) {
 }
 
 /// Esc: drops a half-clicked plane first, then leaves the mode.
-pub fn escape(app: &mut LocalPaintApp) {
+pub fn escape(app: &mut LocalRasterApp) {
     match app.distort.vanishing.as_mut() {
         Some(s) if !s.pending.is_empty() => s.pending.clear(),
         _ => app.distort.vanishing = None,
@@ -1227,7 +1227,7 @@ fn draw_paste(painter: &egui::Painter, scr: &dyn Fn([f64; 2]) -> Pos2, h: &Homog
     painter.add(mesh);
 }
 
-pub fn options_bar(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+pub fn options_bar(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     // New Layer toggled last frame repaints the stamp preview.
     sync_preview(app);
     let Some(s) = app.distort.vanishing.as_mut() else { return };

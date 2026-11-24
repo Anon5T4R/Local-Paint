@@ -1,17 +1,17 @@
-//! The Local Paint brand mark at the left of the title bar: the app icon (the kitsune,
+//! The Local Raster brand mark at the left of the title bar: the app icon (the kitsune,
 //! `assets/app-icon/`, see its README), where Photoshop shows its "Ps" tile. The PNG carries the
 //! icon's rounded corners; it is decoded once per context into a mipmapped texture, so it stays
 //! crisp at the title bar's size on any display scale.
 
 use egui::{Color32, Context, Id, Rect, TextureHandle, TextureOptions, Ui, pos2};
-use localpaint_codecs::{ChannelLayout, SampleType};
+use localraster_codecs::{ChannelLayout, SampleType};
 
 /// 128 px: sharp at 20 pt on a 3× display, and the mipmaps keep it clean at 1×.
-const ICON_PNG: &[u8] = include_bytes!("../../../../assets/app-icon/hicolor/128x128/apps/com.localpaint.app.png");
+const ICON_PNG: &[u8] = include_bytes!("../../../../assets/app-icon/hicolor/128x128/apps/com.localraster.app.png");
 
 /// The icon's pixels (one transparent pixel if it couldn't be decoded, which a test rules out).
 fn decode() -> egui::ColorImage {
-    let rgba = localpaint_codecs::decode(ICON_PNG).ok().map(|img| img.convert(ChannelLayout::Rgba, SampleType::U8));
+    let rgba = localraster_codecs::decode(ICON_PNG).ok().map(|img| img.convert(ChannelLayout::Rgba, SampleType::U8));
     match rgba {
         Some(img) if img.data().len() == img.width() as usize * img.height() as usize * 4 => {
             egui::ColorImage::from_rgba_unmultiplied([img.width() as usize, img.height() as usize], img.data())
@@ -27,7 +27,7 @@ fn texture(ctx: &Context) -> TextureHandle {
         return tex;
     }
     let options = TextureOptions { mipmap_mode: Some(egui::TextureFilter::Linear), ..TextureOptions::LINEAR };
-    let tex = ctx.load_texture("localpaint-brand-mark", decode(), options);
+    let tex = ctx.load_texture("localraster-brand-mark", decode(), options);
     ctx.data_mut(|d| d.insert_temp(id, tex.clone()));
     tex
 }
@@ -66,8 +66,8 @@ mod tests {
     #[test]
     fn the_title_bar_paints_the_icon_from_one_cached_texture() {
         let ctx = Context::default();
-        crate::LocalPaintApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
-        let mut app = crate::LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        crate::LocalRasterApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
+        let mut app = crate::LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         // The system title bar hides the in-app mark (the OS draws its own icon), so paint the
         // app-drawn bar here.
         app.custom_titlebar = true;

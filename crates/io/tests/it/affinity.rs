@@ -2,14 +2,14 @@
 //! embedded preview only as a warned fallback that keeps its pixels and alpha; never written back.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
-use localpaint_codecs::{ChannelLayout, EncodeOptions, Format, Image, SampleType};
-use localpaint_io::{ExportOptions, export, import};
+use localraster_codecs::{ChannelLayout, EncodeOptions, Format, Image, SampleType};
+use localraster_io::{ExportOptions, export, import};
 use proptest::prelude::*;
 use std::io::Write as _;
 
 fn png() -> Vec<u8> {
     let img = Image::from_raw(2, 1, ChannelLayout::Rgba, SampleType::U8, vec![220, 40, 60, 255, 0, 0, 0, 0]).unwrap();
-    localpaint_codecs::encode(&img, Format::Png, &EncodeOptions::default()).unwrap()
+    localraster_codecs::encode(&img, Format::Png, &EncodeOptions::default()).unwrap()
 }
 
 fn chunk(kind: &[u8; 4], data: &[u8]) -> Vec<u8> {
@@ -24,7 +24,7 @@ fn chunk(kind: &[u8; 4], data: &[u8]) -> Vec<u8> {
 /// A synthetic record envelope, not an Affinity document writer (there is no object graph).
 fn file(png: &[u8]) -> Vec<u8> {
     let mut b = vec![0; 72];
-    b[..4].copy_from_slice(localpaint_affinity::MAGIC);
+    b[..4].copy_from_slice(localraster_affinity::MAGIC);
     b[4..6].copy_from_slice(&12u16.to_le_bytes());
     b[8..12].copy_from_slice(b"nsrP");
     b[12..16].copy_from_slice(b"#Inf");
@@ -51,13 +51,13 @@ fn preview_is_named_and_warns_at_its_actual_size() {
     assert!(r.warnings[0].contains("2×1"));
     assert!(r.warnings[0].contains("native Affinity document could not be read") && r.warnings[0].contains("no layers"), "{}", r.warnings[0]);
     let out = export(&r.document, "copy.png", &ExportOptions::default()).unwrap();
-    let img = localpaint_codecs::decode(&out.bytes).unwrap();
+    let img = localraster_codecs::decode(&out.bytes).unwrap();
     assert_eq!(img.data(), &[220, 40, 60, 255, 0, 0, 0, 0]);
     let native = export(&r.document, "copy.pcraft", &ExportOptions::default()).unwrap();
     let back = import("copy.pcraft", &native.bytes).unwrap();
     assert_eq!(back.document.size, r.document.size);
     assert!(!back.source_read_only && !back.preview_only);
-    for ext in localpaint_io::affinity::EXTENSIONS {
+    for ext in localraster_io::affinity::EXTENSIONS {
         assert!(export(&r.document, ext, &ExportOptions::default()).unwrap_err().to_string().contains("Affinity export"));
     }
 }
@@ -78,12 +78,12 @@ fn magic_wins_over_the_name_and_renamed_legacy_files_are_rejected() {
 #[test]
 fn preview_decoder_preserves_16_bit_gray_and_alpha() {
     let img = Image::from_u16(2, 1, ChannelLayout::GrayA, &[12345, 65535, 0, 0]).unwrap();
-    let encoded = localpaint_codecs::encode(&img, Format::Png, &EncodeOptions::default()).unwrap();
+    let encoded = localraster_codecs::encode(&img, Format::Png, &EncodeOptions::default()).unwrap();
     let r = import("gray.af", &file(&encoded)).unwrap();
-    assert_eq!(r.document.depth, localpaint_color::SampleType::U16);
-    assert_eq!(r.document.mode, localpaint_color::ColorMode::Grayscale);
+    assert_eq!(r.document.depth, localraster_color::SampleType::U16);
+    assert_eq!(r.document.mode, localraster_color::ColorMode::Grayscale);
     let out = export(&r.document, "copy.png", &ExportOptions::default()).unwrap();
-    let decoded = localpaint_codecs::decode(&out.bytes).unwrap();
+    let decoded = localraster_codecs::decode(&out.bytes).unwrap();
     assert_eq!(decoded.sample_type(), SampleType::U16);
     assert_eq!(decoded.data(), img.data());
 }
@@ -196,8 +196,8 @@ proptest! {
 
 mod native {
     use super::*;
-    use localpaint_affinity::synth::{self, F, Method, tag};
-    use localpaint_doc::LayerContent;
+    use localraster_affinity::synth::{self, F, Method, tag};
+    use localraster_doc::LayerContent;
 
     fn rgba(r: f32, g: f32, b: f32, a: f32) -> F {
         F::Struct([r, g, b, a].iter().flat_map(|v| v.to_le_bytes()).collect())
@@ -294,14 +294,14 @@ mod native {
             let LayerContent::Shape(sh) = &ring.content else { panic!() };
             assert_eq!(sh.path.subpaths.len(), 2);
             assert_eq!(sh.path.subpaths[0].knots.len(), 4, "the closing duplicate knot is merged");
-            assert_eq!(sh.path.subpaths[0].knots[0].anchor, localpaint_geom::Point::new(20.0, 10.0));
+            assert_eq!(sh.path.subpaths[0].knots[0].anchor, localraster_geom::Point::new(20.0, 10.0));
             assert_eq!(sh.stroke.as_ref().unwrap().width, 4.0);
             // The cache shows the ring: red on it, empty in its hole.
             let cache = sh.cache.as_ref().unwrap();
-            let px = |x: i32, y: i32| cache.to_interleaved(localpaint_geom::Rect::new(x, y, x + 1, y + 1));
+            let px = |x: i32, y: i32| cache.to_interleaved(localraster_geom::Rect::new(x, y, x + 1, y + 1));
             assert_eq!(px(30, 20), [255, 0, 0, 255]);
             assert_eq!(px(50, 40)[3], 0, "even-odd hole");
-            // Saved as a native Local Paint document and opened again.
+            // Saved as a native Local Raster document and opened again.
             let saved = export(d, "copy.pcraft", &ExportOptions::default()).unwrap();
             let back = import("copy.pcraft", &saved.bytes).unwrap();
             assert_eq!(back.document.layers.len(), d.layers.len());

@@ -5,9 +5,9 @@
 //! The built-in groups are our own designs, built from the same effect params as
 //! `layer.layerStyle.*`.
 
-use localpaint_color::{BlendMode, ColorMode, SampleType};
-use localpaint_doc::{Document, Effect, Layer, Pattern, Size};
-use localpaint_geom::Rect;
+use localraster_color::{BlendMode, ColorMode, SampleType};
+use localraster_doc::{Document, Effect, Layer, Pattern, Size};
+use localraster_geom::Rect;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
@@ -160,12 +160,12 @@ fn list(s: &mut Session, _: &Value) -> Result<Value> {
 }
 
 /// Target layers: `"layers": [ids]`, `"layer": id`, else every selected layer.
-fn targets(s: &Session, p: &Value) -> Vec<localpaint_doc::LayerId> {
+fn targets(s: &Session, p: &Value) -> Vec<localraster_doc::LayerId> {
     if let Some(a) = p.get("layers").and_then(Value::as_array) {
-        return a.iter().filter_map(Value::as_u64).map(localpaint_doc::LayerId).collect();
+        return a.iter().filter_map(Value::as_u64).map(localraster_doc::LayerId).collect();
     }
     if let Some(id) = p.get("layer").and_then(Value::as_u64) {
-        return vec![localpaint_doc::LayerId(id)];
+        return vec![localraster_doc::LayerId(id)];
     }
     crate::layer_multi_cmds::selected(s)
 }
@@ -180,7 +180,7 @@ fn resolve_style_effects(s: &Session, fx_list: &[Effect]) -> Result<(Vec<Effect>
         pats.extend(pat);
     }
     // Pattern strokes and bevel textures name their pattern too: copy it when the library has it.
-    for (name, id) in localpaint_io::asl_map::referenced_patterns(&effects) {
+    for (name, id) in localraster_io::asl_map::referenced_patterns(&effects) {
         if let Some(pat) = crate::pattern_cmds::resolve(s, if id.is_empty() { &name } else { &id }).filter(|_| !(id.is_empty() && name.is_empty())) {
             pats.push(pat);
         }
@@ -353,7 +353,7 @@ pub fn thumbnail(s: &Session, style: &StylePreset, size: u32) -> Vec<u8> {
         l.fill_opacity = f;
     }
     doc.layers.push(l);
-    localpaint_compose::render(&doc, doc.bounds()).to_rgba8().pixels
+    localraster_compose::render(&doc, doc.bounds()).to_rgba8().pixels
 }
 
 pub fn specs() -> Vec<CommandSpec> {

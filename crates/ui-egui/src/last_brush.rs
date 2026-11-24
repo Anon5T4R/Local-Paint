@@ -5,17 +5,17 @@
 //! and change-driven: `remember_brush` watches `ToolState::brush_rev`, so an unchanged brush
 //! costs a counter compare per frame, not a clone and a JSON serialisation of the whole brush.
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
 /// Remember the current brush once the pointer is up.
-pub fn persist(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub fn persist(app: &mut LocalRasterApp, ctx: &egui::Context) {
     if !ctx.input(|i| i.pointer.any_down()) {
-        localpaint_engine::brush_cmds::remember_brush(&mut app.session);
+        localraster_engine::brush_cmds::remember_brush(&mut app.session);
     }
 }
 
 /// Restore the remembered brush at launch; stored tips load when the preset store attaches
 /// (`Session::attach_preset_store`).
-pub fn restore(app: &mut LocalPaintApp) {
-    localpaint_engine::brush_cmds::restore_brush(&mut app.session);
+pub fn restore(app: &mut LocalRasterApp) {
+    localraster_engine::brush_cmds::restore_brush(&mut app.session);
 }

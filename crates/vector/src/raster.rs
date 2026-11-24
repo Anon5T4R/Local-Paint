@@ -12,8 +12,8 @@
 //! from first principles here; it needs no sub-sampling and handles overlapping components
 //! exactly.
 
-use localpaint_doc::{FillRule, PathOp};
-use localpaint_geom::Rect;
+use localraster_doc::{FillRule, PathOp};
+use localraster_geom::Rect;
 
 /// Coverage below this is f32 round-off in the cell prefix sum, not area: it is well under half
 /// a 16-bit step (7.6e-6), so 8- and 16-bit output is unchanged by dropping it.
@@ -448,7 +448,7 @@ fn draw(acc: &mut [f32], x0: i32, xa: f64, ya: f64, xb: f64, yb: f64, w: f64) {
 mod tests {
     use super::*;
     use crate::coverage_surface;
-    use localpaint_color::PixelFormat;
+    use localraster_color::PixelFormat;
 
     fn square(x: f64, y: f64, s: f64) -> Vec<(f64, f64)> {
         vec![(x, y), (x + s, y), (x + s, y + s), (x, y + s)]

@@ -1,15 +1,15 @@
 # Building
 
-Local Paint uses the Rust workspace at the repository root. Install the stable Rust toolchain, clone the repository, and run commands from that root.
+Local Raster uses the Rust workspace at the repository root. Install the stable Rust toolchain, clone the repository, and run commands from that root.
 
 On Linux, install the windowing, GL and GTK development packages first. The development guide's
-[Prerequisites](https://github.com/Anon5T4R/Local-Paint/blob/main/docs/development.md#prerequisites)
+[Prerequisites](https://github.com/Anon5T4R/Local-Raster/blob/main/docs/development.md#prerequisites)
 list them for Debian/Ubuntu, Fedora, Arch and openSUSE.
 
 ```sh
 cargo build --workspace
-cargo run --release -p localpaint -- image.psd
-cargo run -p localpaint-cli -- --help
+cargo run --release -p localraster -- image.psd
+cargo run -p localraster-cli -- --help
 ```
 
 The standard repository gates are:
@@ -21,7 +21,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo xtask layers
 ```
 
-UI work should also be checked using the offscreen snapshot example described in the [development guide](https://github.com/Anon5T4R/Local-Paint/blob/main/docs/development.md).
+UI work should also be checked using the offscreen snapshot example described in the [development guide](https://github.com/Anon5T4R/Local-Raster/blob/main/docs/development.md).
 
 ## Build the documentation
 

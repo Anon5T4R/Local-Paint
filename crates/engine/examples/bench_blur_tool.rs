@@ -2,8 +2,8 @@
 //! Setup, Undo and the output fingerprint are excluded from the timing.
 use std::time::Instant;
 
-use localpaint_engine::{EngineError, Session};
-use localpaint_geom::Rect;
+use localraster_engine::{EngineError, Session};
+use localraster_geom::Rect;
 use serde_json::json;
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {

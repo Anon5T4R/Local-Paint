@@ -3,37 +3,37 @@ use super::commit::{cancel, commit, start_steps};
 use super::draw::texture_quad;
 use super::preview::{Above, preview_image};
 use super::{
-    Arc, BezierMesh, CAS_ONLY_SCALES, Color32, DocId, Document, Follow, Homography, LOCKED, LayerContent, LayerId, LocalPaintApp, MadeLayer, Several, Steps,
+    Arc, BezierMesh, CAS_ONLY_SCALES, Color32, DocId, Document, Follow, Homography, LOCKED, LayerContent, LayerId, LocalRasterApp, MadeLayer, Several, Steps,
     TransformPreview, TransformSession, Warp, WarpStyle, corners, default_interpolation, json,
 };
 
 /// Start Free Transform on the active layer (or its selected pixels), or on the targeted unlinked
 /// layer mask, alpha channel or Quick Mask.
-pub fn begin(app: &mut LocalPaintApp, ctx: &egui::Context) -> Result<(), String> {
+pub fn begin(app: &mut LocalRasterApp, ctx: &egui::Context) -> Result<(), String> {
     if let Some((params, path)) = crate::vector_ui::free_transform_path(app) {
         return begin_path(app, ctx, params, path);
     }
     if crate::canvas::multiple_color_target(app) {
         return Err("Move and transforms on several colour channels are not implemented yet".into());
     }
-    if app.session.active().is_some_and(|st| localpaint_engine::float_cmds::floating(st).is_some()) {
+    if app.session.active().is_some_and(|st| localraster_engine::float_cmds::floating(st).is_some()) {
         app.run("select.drop", json!({}))?;
     }
     let target = crate::canvas::paint_target(app);
     let st = app.session.active().ok_or("no document")?;
     let (doc, revision) = (st.doc.clone(), st.revision);
-    let lone = localpaint_engine::transform_cmds::lone_target(&doc, st.active_layer, &json!({ "target": target })).map_err(|e| e.to_string())?.cloned();
+    let lone = localraster_engine::transform_cmds::lone_target(&doc, st.active_layer, &json!({ "target": target })).map_err(|e| e.to_string())?.cloned();
     if let Some(surf) = lone {
         return begin_lone(app, ctx, doc, surf, target);
     }
     let id = st.active_layer.ok_or("no active layer")?;
     // Several layers selected: one box moves them all, as in Photoshop (#6501).
-    let targets = localpaint_engine::transform_cmds::selection_targets(st);
+    let targets = localraster_engine::transform_cmds::selection_targets(st);
     if targets != [id] {
         return begin_several(app, ctx, doc, revision, id, targets);
     }
     let layer = doc.layer(id).ok_or("no layer")?;
-    if localpaint_engine::transform_cmds::locked_for_transform(&doc, id) {
+    if localraster_engine::transform_cmds::locked_for_transform(&doc, id) {
         // Photoshop refuses before the box opens rather than when it is committed (#2585).
         app.ui.open_dialog(crate::state::DialogKind::Error, json!({"message": tl!(LOCKED)}).as_object().cloned().unwrap_or_default());
         return Err(LOCKED.into());
@@ -42,7 +42,7 @@ pub fn begin(app: &mut LocalPaintApp, ctx: &egui::Context) -> Result<(), String>
         return Err("Adjustment layers have nothing to transform".into());
     }
     // With a selection the box is the selection's (#5297).
-    let b = localpaint_engine::transform_cmds::transform_frame(&doc, layer);
+    let b = localraster_engine::transform_cmds::transform_frame(&doc, layer);
     if b.is_empty() {
         return Err("Could not transform: the layer is empty".into());
     }
@@ -53,9 +53,9 @@ pub fn begin(app: &mut LocalPaintApp, ctx: &egui::Context) -> Result<(), String>
     let mut pd = (*doc).clone();
     let mut lifted = None;
     // Type, shapes and smart objects move whole, selection or not (#2630): only pixels are lifted.
-    if let Some(sel) = doc.selection.clone().filter(|_| !localpaint_engine::transform_cmds::moves_whole(layer) && layer.surface().is_some()) {
+    if let Some(sel) = doc.selection.clone().filter(|_| !localraster_engine::transform_cmds::moves_whole(layer) && layer.surface().is_some()) {
         if let Some(surf) = pd.layer_mut(id).and_then(|l| l.surface_mut()) {
-            let (l, rest) = localpaint_engine::transform_cmds::split_selected(surf, &sel).map_err(|e| e.to_string())?;
+            let (l, rest) = localraster_engine::transform_cmds::split_selected(surf, &sel).map_err(|e| e.to_string())?;
             *surf = rest;
             lifted = Some(l);
         }
@@ -69,7 +69,7 @@ pub fn begin(app: &mut LocalPaintApp, ctx: &egui::Context) -> Result<(), String>
     above.hide_in(&mut pd.layers);
     // A style is drawn again from the pixels as the box moves them, so they are read without it.
     // Not for the selected part of a layer: its style belongs to that part and the rest together.
-    let styled = lifted.is_none() && localpaint_compose::effects::has_effects(layer);
+    let styled = lifted.is_none() && localraster_compose::effects::has_effects(layer);
     let (image, uv) = preview_image(&doc, id, lifted.as_ref(), b, max_side, styled);
     let texture = crate::transform_tex::PreviewTextures::new(ctx, format!("transform-{session}"), image, uv);
     app.transform_preview = Some(TransformPreview {
@@ -114,8 +114,8 @@ pub fn begin(app: &mut LocalPaintApp, ctx: &egui::Context) -> Result<(), String>
     Ok(())
 }
 
-pub(super) fn interpolation_preference(interpolation: &str) -> Option<localpaint_engine::prefs::Interpolation> {
-    use localpaint_engine::prefs::Interpolation;
+pub(super) fn interpolation_preference(interpolation: &str) -> Option<localraster_engine::prefs::Interpolation> {
+    use localraster_engine::prefs::Interpolation;
     match interpolation {
         "nearest" => Some(Interpolation::Nearest),
         "bilinear" => Some(Interpolation::Bilinear),
@@ -128,8 +128,8 @@ pub(super) fn interpolation_preference(interpolation: &str) -> Option<localpaint
 /// preview moves their composite, drawn over the layers they cover. `active` stays the session's
 /// `layer`, so picking another layer still applies the box. The selected pixels of each pixel
 /// layer move when there is a selection; type, shapes, smart objects and groups move whole.
-fn begin_several(app: &mut LocalPaintApp, ctx: &egui::Context, doc: Arc<Document>, revision: u64, active: LayerId, ids: Vec<LayerId>) -> Result<(), String> {
-    use localpaint_engine::transform_cmds as tc;
+fn begin_several(app: &mut LocalRasterApp, ctx: &egui::Context, doc: Arc<Document>, revision: u64, active: LayerId, ids: Vec<LayerId>) -> Result<(), String> {
+    use localraster_engine::transform_cmds as tc;
     if ids.iter().any(|id| tc::locked_for_transform(&doc, *id)) {
         app.ui.open_dialog(crate::state::DialogKind::Error, json!({"message": tl!(LOCKED)}).as_object().cloned().unwrap_or_default());
         return Err(LOCKED.into());
@@ -224,9 +224,9 @@ fn begin_several(app: &mut LocalPaintApp, ctx: &egui::Context, doc: Arc<Document
 /// The moving texture's texel at document point `p` as the box opened (full resolution), and
 /// where the texture's corners are drawn now: what a test of a box over several layers sees.
 #[cfg(test)]
-pub(crate) fn moving_texel(app: &LocalPaintApp, p: [i32; 2]) -> (Option<Color32>, [[f64; 2]; 4]) {
+pub(crate) fn moving_texel(app: &LocalRasterApp, p: [i32; 2]) -> (Option<Color32>, [[f64; 2]; 4]) {
     let (Some(t), Some(pv)) = (&app.ui.transform, &app.transform_preview) else { return (None, [[0.0; 2]; 4]) };
-    let r = pv.several.as_ref().map_or(localpaint_geom::Rect::new(t.rect[0] as i32, t.rect[1] as i32, t.rect[2] as i32, t.rect[3] as i32), |sv| sv.rect);
+    let r = pv.several.as_ref().map_or(localraster_geom::Rect::new(t.rect[0] as i32, t.rect[1] as i32, t.rect[2] as i32, t.rect[3] as i32), |sv| sv.rect);
     let texel = pv.texture.level_image(0).and_then(|(image, _)| {
         let (x, y) = (usize::try_from(p[0] - r.x0).ok()?, usize::try_from(p[1] - r.y0).ok()?);
         (x < image.size[0] && y < image.size[1]).then(|| image.pixels[y * image.size[0] + x])
@@ -240,7 +240,7 @@ pub(crate) fn moving_layers(t: &TransformSession) -> Vec<LayerId> {
 }
 
 /// Is any of the layers the box moves of this kind?
-pub(super) fn moves_kind(app: &LocalPaintApp, t: &TransformSession, kind: fn(&LayerContent) -> bool) -> bool {
+pub(super) fn moves_kind(app: &LocalRasterApp, t: &TransformSession, kind: fn(&LayerContent) -> bool) -> bool {
     app.session.active().is_some_and(|st| moving_layers(t).iter().any(|id| st.doc.layer(*id).is_some_and(|l| kind(&l.content))))
 }
 
@@ -249,7 +249,7 @@ pub const WARP_ONE_LAYER: &str = "Warp works on one layer at a time: select a si
 
 /// Free Transform on a copy (⌥⌘T, no menu item): duplicates the active layer (with a selection,
 /// its selected pixels, as Layer via Copy) and transforms the copy (#352).
-pub fn begin_copy(app: &mut LocalPaintApp, ctx: &egui::Context) -> Result<(), String> {
+pub fn begin_copy(app: &mut LocalRasterApp, ctx: &egui::Context) -> Result<(), String> {
     let selection = app.session.active().is_some_and(|d| d.doc.selection.is_some());
     let params = if selection { json!({}) } else { json!({"inPlace": true}) };
     app.run(if selection { "layer.new.layerViaCopy" } else { "layer.duplicate" }, params)?;
@@ -268,7 +268,7 @@ pub fn begin_copy(app: &mut LocalPaintApp, ctx: &egui::Context) -> Result<(), St
 
 /// Free Transform on the layer a file dropped on the canvas just placed, like the reference app's
 /// Place: Esc takes the place back, ↩ makes the place and the transform one Place Embedded step.
-pub fn begin_placed(app: &mut LocalPaintApp, ctx: &egui::Context) -> Result<(), String> {
+pub fn begin_placed(app: &mut LocalRasterApp, ctx: &egui::Context) -> Result<(), String> {
     begin(app, ctx)?;
     if let Some(t) = app.ui.transform.as_mut() {
         t.made = Some(MadeLayer::Place);
@@ -280,9 +280,9 @@ pub fn begin_placed(app: &mut LocalPaintApp, ctx: &egui::Context) -> Result<(), 
 /// (the selection's bounds, else the layer's content), cleared under the box as the command
 /// clears it. OK runs `edit.contentAwareScale` (cas_transform.rs) instead of `edit.transform`.
 pub(crate) fn begin_content_aware(
-    app: &mut LocalPaintApp,
+    app: &mut LocalRasterApp,
     ctx: &egui::Context,
-    region: localpaint_geom::Rect,
+    region: localraster_geom::Rect,
     live: crate::cas_transform::Live,
 ) -> Result<(), String> {
     let st = app.session.active().ok_or("no document")?;
@@ -352,7 +352,7 @@ pub(crate) fn begin_content_aware(
 
 /// Undoes the layer a cancelled or failed session made (⌥⌘T's copy, a placed file), leaving
 /// nothing to redo.
-pub(super) fn take_back_made(app: &mut LocalPaintApp, document: DocId, layer: LayerId) {
+pub(super) fn take_back_made(app: &mut LocalRasterApp, document: DocId, layer: LayerId) {
     // Tabs can move or close while transforming. Only undo the creation in its own document,
     // and only while it is still the latest step (it may already have been undone).
     let Some(index) = app.session.documents().iter().position(|st| {
@@ -378,7 +378,7 @@ pub(super) fn take_back_made(app: &mut LocalPaintApp, document: DocId, layer: La
 
 /// After the transform: the step that made the layer and the transform become one history step,
 /// the transform's for a copy and Place Embedded for a placed file.
-pub(super) fn fold_made(app: &mut LocalPaintApp, document: DocId, layer: LayerId, made: MadeLayer) {
+pub(super) fn fold_made(app: &mut LocalRasterApp, document: DocId, layer: LayerId, made: MadeLayer) {
     // A background commit lands in its own document, which need not be the active one by then.
     let Some(index) = app.session.documents().iter().position(|st| st.doc.id == document) else { return };
     let active = app.session.active_index();
@@ -390,7 +390,7 @@ pub(super) fn fold_made(app: &mut LocalPaintApp, document: DocId, layer: LayerId
     {
         st.history.purge_last();
         if made == MadeLayer::Place {
-            st.history.set_current_label(localpaint_engine::file_cmds::PLACE_EMBEDDED);
+            st.history.set_current_label(localraster_engine::file_cmds::PLACE_EMBEDDED);
         }
     }
     if let Some(active) = active {
@@ -402,13 +402,13 @@ pub(super) fn fold_made(app: &mut LocalPaintApp, document: DocId, layer: LayerId
 /// box frames its content (or the selection) and previews the moving values in grey over the
 /// document with them vacated.
 fn begin_lone(
-    app: &mut LocalPaintApp,
+    app: &mut LocalRasterApp,
     ctx: &egui::Context,
     doc: Arc<Document>,
-    surf: localpaint_raster::Surface,
+    surf: localraster_raster::Surface,
     target: serde_json::Value,
 ) -> Result<(), String> {
-    use localpaint_engine::transform_cmds as tc;
+    use localraster_engine::transform_cmds as tc;
     let b = tc::target_frame(&doc, &surf);
     if b.is_empty() {
         return Err("Could not transform: nothing is selected".into());
@@ -417,7 +417,7 @@ fn begin_lone(
     let sel = match &doc.selection {
         Some(s) => s,
         None => {
-            let mut s = localpaint_raster::Surface::new(localpaint_color::PixelFormat::GRAY8);
+            let mut s = localraster_raster::Surface::new(localraster_color::PixelFormat::GRAY8);
             s.fill_rect(b, &[1.0]);
             whole = s;
             &whole
@@ -480,7 +480,7 @@ fn begin_lone(
 
 /// Edit › Free Transform Path: the box frames the path's anchors and handles and draws the
 /// path through it; OK commits one `path.transform` step.
-fn begin_path(app: &mut LocalPaintApp, ctx: &egui::Context, params: serde_json::Value, path: localpaint_doc::vector::Path) -> Result<(), String> {
+fn begin_path(app: &mut LocalRasterApp, ctx: &egui::Context, params: serde_json::Value, path: localraster_doc::vector::Path) -> Result<(), String> {
     let (x0, y0, x1, y1) = path.control_bounds().ok_or("the path has no points to transform")?;
     let st = app.session.active().ok_or("no document")?;
     let doc = st.doc.clone();
@@ -535,7 +535,7 @@ fn begin_path(app: &mut LocalPaintApp, ctx: &egui::Context, params: serde_json::
 
 /// The affine map taking `rect`'s corners to `quad`'s; `None` when the box was distorted out of a
 /// parallelogram (Distort, Perspective): the path then goes as a `quad`.
-pub(super) fn rect_to_quad_affine(r: [f64; 4], q: [[f64; 2]; 4]) -> Option<localpaint_geom::Affine> {
+pub(super) fn rect_to_quad_affine(r: [f64; 4], q: [[f64; 2]; 4]) -> Option<localraster_geom::Affine> {
     let (w, h) = (r[2] - r[0], r[3] - r[1]);
     if w <= 0.0 || h <= 0.0 {
         return None;
@@ -547,12 +547,12 @@ pub(super) fn rect_to_quad_affine(r: [f64; 4], q: [[f64; 2]; 4]) -> Option<local
     let (a, b) = ((q[1][0] - q[0][0]) / w, (q[1][1] - q[0][1]) / w);
     let (c, d) = ((q[3][0] - q[0][0]) / h, (q[3][1] - q[0][1]) / h);
     let m = [a, b, c, d, q[0][0] - a * r[0] - c * r[1], q[0][1] - b * r[0] - d * r[1]];
-    m.iter().all(|v| v.is_finite()).then_some(localpaint_geom::Affine { m })
+    m.iter().all(|v| v.is_finite()).then_some(localraster_geom::Affine { m })
 }
 
 /// Start Select › Transform Selection: the same box over the selection's bounds, previewing the
 /// selection mask (the marching ants are hidden meanwhile); commits `select.transformSelection`.
-pub fn begin_selection(app: &mut LocalPaintApp, ctx: &egui::Context) -> Result<(), String> {
+pub fn begin_selection(app: &mut LocalRasterApp, ctx: &egui::Context) -> Result<(), String> {
     let st = app.session.active().ok_or("no document")?;
     let doc = st.doc.clone();
     let sel = doc.selection.clone().ok_or("no selection")?;
@@ -621,7 +621,7 @@ pub fn begin_selection(app: &mut LocalPaintApp, ctx: &egui::Context) -> Result<(
 }
 
 /// Start (or switch an active Free Transform into) Warp mode.
-pub fn begin_warp(app: &mut LocalPaintApp, ctx: &egui::Context) -> Result<(), String> {
+pub fn begin_warp(app: &mut LocalRasterApp, ctx: &egui::Context) -> Result<(), String> {
     if app.ui.transform.as_ref().is_some_and(|t| t.content_aware.is_some()) {
         return Err(CAS_ONLY_SCALES.into());
     }
@@ -647,7 +647,7 @@ pub fn begin_warp(app: &mut LocalPaintApp, ctx: &egui::Context) -> Result<(), St
 /// Switch to Warp mode: a smart object's existing warp (when the box is untouched), else a
 /// custom mesh following the current box (so a transform made first carries over). Editable type
 /// gets its own Warp Text style instead ([`enter_type_warp`]).
-pub fn enter_warp(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub fn enter_warp(app: &mut LocalRasterApp, ctx: &egui::Context) {
     // Several layers keep the box (#6501), even when the active one is type.
     if app.ui.transform.as_ref().is_some_and(|t| !t.layers.is_empty()) {
         return;
@@ -656,7 +656,7 @@ pub fn enter_warp(app: &mut LocalPaintApp, ctx: &egui::Context) {
         return enter_type_warp(app, ctx);
     }
     let existing =
-        app.session.active().and_then(|d| d.doc.layer(LayerId(app.ui.transform.as_ref()?.layer)).and_then(localpaint_engine::warp_cmds::smart_warp_doc_space));
+        app.session.active().and_then(|d| d.doc.layer(LayerId(app.ui.transform.as_ref()?.layer)).and_then(localraster_engine::warp_cmds::smart_warp_doc_space));
     let Some(t) = app.ui.transform.as_mut() else { return };
     // Warp moves layers and paths (#3027): a lone mask or channel keeps the box, and so do
     // several layers (#6501).
@@ -683,7 +683,7 @@ pub fn enter_warp(app: &mut LocalPaintApp, ctx: &egui::Context) {
 
 /// The open transform moves an editable type layer as a whole (not a lone mask, channel, path or
 /// the selection). Its Warp is Warp Text: only the styles, and the type stays editable (#3004).
-pub fn warps_type(app: &LocalPaintApp) -> bool {
+pub fn warps_type(app: &LocalRasterApp) -> bool {
     let Some(t) = &app.ui.transform else { return false };
     if t.selection || t.target.is_some() || t.path.is_some() {
         return false;
@@ -694,7 +694,7 @@ pub fn warps_type(app: &LocalPaintApp) -> bool {
 /// Warp on editable type, as in Photoshop: no rasterizing, no mesh to drag, just the warp styles
 /// of the options bar (Warp Text's). A box scaled or rotated first is applied first (that keeps
 /// type editable). The preview shows the type without its current Warp Text, under that style.
-fn enter_type_warp(app: &mut LocalPaintApp, ctx: &egui::Context) {
+fn enter_type_warp(app: &mut LocalRasterApp, ctx: &egui::Context) {
     if app.ui.transform.as_ref().is_some_and(|t| t.quad != corners(t.rect)) {
         commit(app);
         if app.ui.transform.is_some() {
@@ -715,9 +715,9 @@ fn enter_type_warp(app: &mut LocalPaintApp, ctx: &egui::Context) {
         && current.is_some()
     {
         tt.warp = None;
-        localpaint_engine::type_cmds::refresh(&doc, tt);
+        localraster_engine::type_cmds::refresh(&doc, tt);
     }
-    let Some(b) = plain.layer(id).map(|l| localpaint_engine::transform_cmds::transform_bounds(&plain, l)).filter(|b| !b.is_empty()) else { return };
+    let Some(b) = plain.layer(id).map(|l| localraster_engine::transform_cmds::transform_bounds(&plain, l)).filter(|b| !b.is_empty()) else { return };
     let rect = [b.x0 as f64, b.y0 as f64, b.x1 as f64, b.y1 as f64];
     if current.is_some()
         && let Some(pv) = app.transform_preview.as_mut()
@@ -746,7 +746,7 @@ fn enter_type_warp(app: &mut LocalPaintApp, ctx: &egui::Context) {
 
 /// Leave Warp mode (back to the box; warp edits are dropped, like Photoshop's mode toggle on an
 /// untouched warp).
-pub fn leave_warp(app: &mut LocalPaintApp) {
+pub fn leave_warp(app: &mut LocalRasterApp) {
     if let Some(t) = app.ui.transform.as_mut() {
         t.warp = None;
     }

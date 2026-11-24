@@ -1,9 +1,9 @@
 //! A Photoshop Frame's stroke (`Group::frame_stroke`) survives a `.pcraft` round trip; older
 //! manifests, written before it existed, load without one (#4381).
 
-use localpaint_color::{Color, ColorMode, SampleType};
-use localpaint_doc::{Document, Fill, Layer, LayerContent, ShapeStroke, Size, StrokeAlign};
-use localpaint_format::*;
+use localraster_color::{Color, ColorMode, SampleType};
+use localraster_doc::{Document, Fill, Layer, LayerContent, ShapeStroke, Size, StrokeAlign};
+use localraster_format::*;
 
 fn stroke_of(d: &Document) -> Option<ShapeStroke> {
     match &d.layers.first()?.content {
@@ -31,7 +31,7 @@ fn frame_stroke_roundtrips_and_defaults_when_absent() {
     let content = &mut v["layers"][0]["content"];
     assert!(content.get("frame_stroke").is_some());
     content.as_object_mut().unwrap().remove("frame_stroke");
-    let old: localpaint_format::manifest::DocM = serde_json::from_value(v).unwrap();
-    let localpaint_format::manifest::ContentM::Group { frame_stroke, .. } = &old.layers[0].content else { panic!("not a group") };
+    let old: localraster_format::manifest::DocM = serde_json::from_value(v).unwrap();
+    let localraster_format::manifest::ContentM::Group { frame_stroke, .. } = &old.layers[0].content else { panic!("not a group") };
     assert!(frame_stroke.is_none());
 }

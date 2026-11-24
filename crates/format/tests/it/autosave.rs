@@ -4,9 +4,9 @@ use crate::common;
 use std::sync::Arc;
 
 use common::*;
-use localpaint_color::{ColorMode, SampleType};
-use localpaint_doc::{DocId, Document};
-use localpaint_format::*;
+use localraster_color::{ColorMode, SampleType};
+use localraster_doc::{DocId, Document};
+use localraster_format::*;
 
 #[test]
 fn autosave_then_recover() {
@@ -320,7 +320,7 @@ fn failed_cleanup_after_commit_does_not_fail_the_save() {
 #[test]
 fn a_listing_during_an_autosave_sees_the_entry_exactly_once() {
     let dir = temp_dir("listing-during-autosave");
-    let doc = Document::new("Busy", localpaint_doc::Size { width: 4, height: 4 }, ColorMode::Rgb, SampleType::U8);
+    let doc = Document::new("Busy", localraster_doc::Size { width: 4, height: 4 }, ColorMode::Rgb, SampleType::U8);
     save_once(&dir, "busy", doc.clone());
     let done = Arc::new(std::sync::atomic::AtomicBool::new(false));
     let writer = {

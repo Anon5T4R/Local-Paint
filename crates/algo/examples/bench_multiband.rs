@@ -1,13 +1,13 @@
 //! Time and peak memory of Photomerge's multi-band blend on overlapping RGB sources.
-//! Backwards compatible: `cargo run --release -p localpaint-algo --example bench_multiband [n] [mp]`.
+//! Backwards compatible: `cargo run --release -p localraster-algo --example bench_multiband [n] [mp]`.
 //! `cargo xtask perf --bench bench_multiband --quick` also collects repeatable JSON timings.
 //! The peak is the entire process's resident-set high-water mark, not an estimate of allocations
-//! by the blend alone (`localpaint_testkit::perf`: the kernel's mark on Linux, sampled elsewhere).
+//! by the blend alone (`localraster_testkit::perf`: the kernel's mark on Linux, sampled elsewhere).
 use std::path::PathBuf;
 use std::time::Instant;
 
-use localpaint_algo::panorama::{self, RoiImage};
-use localpaint_testkit::perf::{self, RssSampler, Summary};
+use localraster_algo::panorama::{self, RoiImage};
+use localraster_testkit::perf::{self, RssSampler, Summary};
 use serde_json::json;
 
 const ROW: &str = "Photomerge multiband blend";

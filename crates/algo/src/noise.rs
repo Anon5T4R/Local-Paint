@@ -1,6 +1,6 @@
 //! Add Noise, Median, Dust & Scratches.
 
-use localpaint_geom::Rect;
+use localraster_geom::Rect;
 
 use crate::image::Image;
 use crate::{Ctx, Distribution};

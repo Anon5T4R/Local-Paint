@@ -1,4 +1,4 @@
-# Local Paint roadmap
+# Local Raster roadmap
 
 **Stage: alpha** · os seis fluxos centrais do Photoshop (retocar, compor, recortar, desenhar,
 pintar, trocar PSD) funcionam ponta a ponta e salvam/reencontram o arquivo; quatro são parciais

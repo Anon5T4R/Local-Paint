@@ -1,18 +1,18 @@
 //! Opt-in benchmark of the adaptive production path against the frozen original.
 use super::tests::{apply_reference, source};
 use crate::FilterParams;
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 use std::time::Instant;
 #[test]
 #[ignore = "adaptive large-radius full-operation quality and performance; run alone"]
 fn unsharp_fft_performance() {
     let number = |name: &str, default| std::env::var(name).ok().and_then(|v| v.parse::<i32>().ok()).unwrap_or(default);
-    let (w, h) = (number("LOCALPAINT_UNSHARP_WIDTH", 1920), number("LOCALPAINT_UNSHARP_HEIGHT", 1080));
-    let reps = number("LOCALPAINT_UNSHARP_REPS", 3);
+    let (w, h) = (number("LOCALRASTER_UNSHARP_WIDTH", 1920), number("LOCALRASTER_UNSHARP_HEIGHT", 1080));
+    let reps = number("LOCALRASTER_UNSHARP_REPS", 3);
     assert!((1..=8192).contains(&w) && (1..=8192).contains(&h) && (1..=5).contains(&reps));
-    let depth = match number("LOCALPAINT_UNSHARP_DEPTH", 8) {
+    let depth = match number("LOCALRASTER_UNSHARP_DEPTH", 8) {
         8 => SampleType::U8,
         16 => SampleType::U16,
         32 => SampleType::F32,
@@ -20,7 +20,7 @@ fn unsharp_fft_performance() {
     };
     let area = Rect::new(0, 0, w, h);
     let surface = source(area, PixelFormat::new(ColorMode::Rgb, depth, true));
-    let cases = std::env::var("LOCALPAINT_UNSHARP_CASES").unwrap_or_else(|_| "100:150:0,300:150:0,500:150:8".into());
+    let cases = std::env::var("LOCALRASTER_UNSHARP_CASES").unwrap_or_else(|_| "100:150:0,300:150:0,500:150:8".into());
     for case in cases.split(',') {
         let v: Vec<f32> = case.split(':').map(|v| v.parse().unwrap()).collect();
         let (radius, amount, threshold) = (v[0], v[1], v[2]);
@@ -72,7 +72,7 @@ fn unsharp_fft_performance() {
         };
         println!(
             "{}",
-            serde_json::json!({"experiment":"adaptive FFT same Gaussian, changed summation","width":w,"height":h,"depth":number("LOCALPAINT_UNSHARP_DEPTH",8),"radius":radius,"amount":amount,"threshold":threshold,"before_ms":before,"after_ms":after,"before_median_ms":median(&before),"after_median_ms":median(&after),"speedup":median(&before)/median(&after),"max_error":max_error,"mean_error":sum_error/(w as f64*h as f64*4.0),"changed_samples":changed})
+            serde_json::json!({"experiment":"adaptive FFT same Gaussian, changed summation","width":w,"height":h,"depth":number("LOCALRASTER_UNSHARP_DEPTH",8),"radius":radius,"amount":amount,"threshold":threshold,"before_ms":before,"after_ms":after,"before_median_ms":median(&before),"after_median_ms":median(&after),"speedup":median(&before)/median(&after),"max_error":max_error,"mean_error":sum_error/(w as f64*h as f64*4.0),"changed_samples":changed})
         );
     }
 }
@@ -97,7 +97,7 @@ fn unsharp_fft_cancel_latency() {
                 flag.store(true, Ordering::Release);
             });
             let cancel = || flag.load(Ordering::Acquire);
-            let result = crate::apply_in_with(&surface, &p, area, area, None, area, &localpaint_raster::Interrupt::cancel_only(&cancel));
+            let result = crate::apply_in_with(&surface, &p, area, area, None, area, &localraster_raster::Interrupt::cancel_only(&cancel));
             let elapsed = started.elapsed().as_micros() as u64;
             timer.join().unwrap();
             assert!(result.is_none());

@@ -2,29 +2,29 @@ use super::*;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
 
-fn app_with_image() -> LocalPaintApp {
-    let mut s = localpaint_engine::Session::new();
+fn app_with_image() -> LocalRasterApp {
+    let mut s = localraster_engine::Session::new();
     s.execute("file.new", json!({"width": 64, "height": 48})).unwrap();
     s.execute("select.rect", json!({"x": 0, "y": 0, "width": 32, "height": 48})).unwrap();
     s.execute("edit.fill", json!({"color": "#b04020"})).unwrap();
     s.execute("select.deselect", json!({})).unwrap();
-    LocalPaintApp::new(s, crate::Services::default())
+    LocalRasterApp::new(s, crate::Services::default())
 }
 
-fn app_in_mode(mode: &str) -> LocalPaintApp {
-    let mut session = localpaint_engine::Session::new();
+fn app_in_mode(mode: &str) -> LocalRasterApp {
+    let mut session = localraster_engine::Session::new();
     session.execute("file.new", json!({"width": 32, "height": 24, "mode": mode})).unwrap();
-    LocalPaintApp::new(session, crate::Services::default())
+    LocalRasterApp::new(session, crate::Services::default())
 }
 
-fn arm(app: &mut LocalPaintApp, id: u64, picker: &str) {
+fn arm(app: &mut LocalRasterApp, id: u64, picker: &str) {
     let base = app.ui.dialog_mut(id).map(|dialog| crate::filter_dialog::params_of(&dialog.fields)).unwrap();
     let dialog = app.ui.dialog_mut(id).unwrap();
     dialog.fields.insert(CURVE_PICKER.into(), json!(picker));
     dialog.fields.insert(CURVE_PICKER_BASE.into(), base);
 }
 
-fn channel_points(app: &LocalPaintApp, key: &str) -> Vec<[f64; 2]> {
+fn channel_points(app: &LocalRasterApp, key: &str) -> Vec<[f64; 2]> {
     app.ui
         .dialogs
         .last()
@@ -60,14 +60,14 @@ fn dialogs_preview_cancel_and_commit() {
         let cmd = format!("image.adjustments.{kind}");
         let mut harness =
             Harness::builder().with_size(egui::vec2(1200.0, 900.0)).build_ui_state(|ui, app| crate::dialogs::show(app, ui.ctx()), app_with_image());
-        LocalPaintApp::setup_context(&harness.ctx, crate::theme::ThemeKind::ALL[0]);
+        LocalRasterApp::setup_context(&harness.ctx, crate::theme::ThemeKind::ALL[0]);
         let id = open(harness.state_mut(), &cmd).unwrap();
         harness.run_steps(3);
         let before = harness.state().session.active().unwrap().revision;
         let steps = harness.state().session.active().unwrap().history.past_len();
         // Change the settings the way automation does.
-        let sample = localpaint_engine::adjust_params::to_params(
-            &localpaint_engine::adjust_params::from_params(kind, &sample_params(kind), None, localpaint_doc::ColorMode::Rgb).unwrap(),
+        let sample = localraster_engine::adjust_params::to_params(
+            &localraster_engine::adjust_params::from_params(kind, &sample_params(kind), None, localraster_doc::ColorMode::Rgb).unwrap(),
         );
         let d = harness.state_mut().ui.dialog_mut(id).unwrap();
         if let Value::Object(p) = sample {
@@ -92,13 +92,13 @@ fn dialogs_preview_cancel_and_commit() {
     }
 }
 
-fn color_balance_dialog() -> (Harness<'static, LocalPaintApp>, u64) {
+fn color_balance_dialog() -> (Harness<'static, LocalRasterApp>, u64) {
     // Real frame times: a double-click's two clicks must land within the double-click time.
     let mut h = Harness::builder()
         .with_size(egui::vec2(1200.0, 900.0))
         .with_step_dt(1.0 / 60.0)
         .build_ui_state(|ui, app| crate::dialogs::show(app, ui.ctx()), app_with_image());
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
     let id = open(h.state_mut(), "image.adjustments.colorBalance").unwrap();
     let d = h.state_mut().ui.dialog_mut(id).unwrap();
     for (k, v) in [("shadows", json!([10, 0, 0])), ("midtones", json!([40, -30, 20])), ("highlights", json!([0, 0, -15])), ("preserveLuminosity", json!(false))]
@@ -109,11 +109,11 @@ fn color_balance_dialog() -> (Harness<'static, LocalPaintApp>, u64) {
     (h, id)
 }
 
-fn field(h: &Harness<'static, LocalPaintApp>, id: u64, key: &str) -> Value {
+fn field(h: &Harness<'static, LocalRasterApp>, id: u64, key: &str) -> Value {
     h.state().ui.dialogs.iter().find(|d| d.id == id).map(|d| d.fields.get(key).cloned().unwrap_or(Value::Null)).unwrap_or(Value::Null)
 }
 
-fn input(h: &mut Harness<'static, LocalPaintApp>, mods: egui::Modifiers, events: &[egui::Event]) {
+fn input(h: &mut Harness<'static, LocalRasterApp>, mods: egui::Modifiers, events: &[egui::Event]) {
     h.event(egui::Event::ModifiersChanged(mods));
     h.run_steps(1);
     for e in events {
@@ -185,7 +185,7 @@ fn color_balance_dialog_gestures_match_photoshop() {
 fn levels_alt_reset_restores_defaults() {
     use egui_kittest::kittest::Queryable;
     let mut h = Harness::builder().with_size(egui::vec2(1200.0, 900.0)).build_ui_state(|ui, app| crate::dialogs::show(app, ui.ctx()), app_with_image());
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
     let id = open(h.state_mut(), "image.adjustments.levels").unwrap();
     h.state_mut().ui.dialog_mut(id).unwrap().fields.insert("inBlack".into(), json!(30));
     h.state_mut().ui.dialog_mut(id).unwrap().fields.insert("gamma".into(), json!(1.3));
@@ -199,7 +199,7 @@ fn levels_alt_reset_restores_defaults() {
     input(&mut h, egui::Modifiers::ALT, &[egui::Event::PointerMoved(reset.center()), click(true), click(false)]);
     assert!(h.state().ui.dialogs.iter().any(|d| d.id == id), "Reset keeps the dialog open");
     let defaults =
-        localpaint_engine::adjust_params::to_params(&localpaint_engine::adjust_params::default_for("levels", localpaint_doc::ColorMode::Rgb).unwrap());
+        localraster_engine::adjust_params::to_params(&localraster_engine::adjust_params::default_for("levels", localraster_doc::ColorMode::Rgb).unwrap());
     assert_eq!(field(&h, id, "inBlack"), defaults["inBlack"]);
     assert_eq!(field(&h, id, "gamma"), defaults["gamma"]);
 }
@@ -231,7 +231,7 @@ fn curves_dialog_fits_its_graph_and_controls() {
         for theme in crate::theme::ThemeKind::ALL {
             for size in [egui::vec2(1280.0, 900.0), egui::vec2(900.0, 720.0)] {
                 let mut h = Harness::builder().with_size(size).build_ui_state(|ui, app| crate::dialogs::show(app, ui.ctx()), app_with_image());
-                LocalPaintApp::setup_context(&h.ctx, theme);
+                LocalRasterApp::setup_context(&h.ctx, theme);
                 let id = open(h.state_mut(), "image.adjustments.curves").unwrap();
                 h.run_steps(4);
                 let window = h.ctx.memory(|m| m.area_rect(egui::Id::unique(("dialog", id)))).unwrap();
@@ -254,9 +254,9 @@ fn curves_dialog_fits_its_graph_and_controls() {
 #[test]
 fn curves_dialog_resizes_with_its_graph_and_reopens_at_that_size() {
     let mut h = Harness::builder().with_size(egui::vec2(1600.0, 1100.0)).build_ui_state(|ui, app| crate::dialogs::show(app, ui.ctx()), app_with_image());
-    LocalPaintApp::setup_context(&h.ctx, Default::default());
-    let graph = |h: &Harness<'_, LocalPaintApp>| h.ctx.data(|d| d.get_temp::<egui::Rect>(dialog_mem("curves").with("curves-graph"))).unwrap();
-    let window = |h: &Harness<'_, LocalPaintApp>, id: u64| h.ctx.memory(|m| m.area_rect(egui::Id::unique(("dialog", id)))).unwrap();
+    LocalRasterApp::setup_context(&h.ctx, Default::default());
+    let graph = |h: &Harness<'_, LocalRasterApp>| h.ctx.data(|d| d.get_temp::<egui::Rect>(dialog_mem("curves").with("curves-graph"))).unwrap();
+    let window = |h: &Harness<'_, LocalRasterApp>, id: u64| h.ctx.memory(|m| m.area_rect(egui::Id::unique(("dialog", id)))).unwrap();
     let id = open(h.state_mut(), "image.adjustments.curves").unwrap();
     h.run_steps(4);
     let (opened, small) = (window(&h, id), graph(&h));
@@ -297,7 +297,7 @@ fn curves_dialog_resizes_with_its_graph_and_reopens_at_that_size() {
 #[test]
 fn curves_graph_never_pushes_the_dialog_off_a_short_window() {
     let mut h = Harness::builder().with_size(egui::vec2(1600.0, 700.0)).build_ui_state(|ui, app| crate::dialogs::show(app, ui.ctx()), app_with_image());
-    LocalPaintApp::setup_context(&h.ctx, Default::default());
+    LocalRasterApp::setup_context(&h.ctx, Default::default());
     h.ctx.data_mut(|m| m.insert_persisted(egui::Id::unique(("dialog-place", "image.adjustments.curves")).with("size"), egui::vec2(1200.0, 1200.0)));
     let id = open(h.state_mut(), "image.adjustments.curves").unwrap();
     h.run_steps(5);
@@ -332,7 +332,7 @@ fn curves_graph_never_pushes_the_dialog_off_a_short_window() {
 #[test]
 fn cancel_leaves_the_document_untouched() {
     let mut harness = Harness::builder().with_size(egui::vec2(1200.0, 900.0)).build_ui_state(|ui, app| crate::dialogs::show(app, ui.ctx()), app_with_image());
-    LocalPaintApp::setup_context(&harness.ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&harness.ctx, crate::theme::ThemeKind::ALL[0]);
     let id = open(harness.state_mut(), "image.adjustments.curves").unwrap();
     harness.run_steps(2);
     harness.state_mut().ui.dialog_mut(id).unwrap().fields.insert("points".into(), json!([[0, 255], [255, 0]]));
@@ -349,7 +349,7 @@ fn cancel_leaves_the_document_untouched() {
 fn gradient_map_dialog_handles_preview_without_committing_until_ok() {
     use egui_kittest::kittest::Queryable;
     let mut h = Harness::builder().with_size(egui::vec2(1200.0, 900.0)).build_ui_state(|ui, app| crate::dialogs::show(app, ui.ctx()), app_with_image());
-    LocalPaintApp::setup_context(&h.ctx, Default::default());
+    LocalRasterApp::setup_context(&h.ctx, Default::default());
     let id = open(h.state_mut(), "image.adjustments.gradientMap").unwrap();
     h.run_steps(4);
     let doc = h.state().session.active().unwrap().doc.clone();
@@ -378,7 +378,7 @@ fn gradient_map_dialog_handles_preview_without_committing_until_ok() {
 #[test]
 fn curves_pencil_drag_draws_the_map_and_confirm_applies_it() {
     let mut h = Harness::builder().with_size(egui::vec2(1200.0, 900.0)).build_ui_state(|ui, app| crate::dialogs::show(app, ui.ctx()), app_with_image());
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
     let steps = h.state().session.active().unwrap().history.past_len();
     let id = open(h.state_mut(), "image.adjustments.curves").unwrap();
     let fields = &mut h.state_mut().ui.dialog_mut(id).unwrap().fields;
@@ -409,7 +409,7 @@ fn curves_pencil_drag_draws_the_map_and_confirm_applies_it() {
 fn curves_pointer_drag_previews_until_confirm_and_cancel_preserves_document() {
     for confirm in [false, true] {
         let mut h = Harness::builder().with_size(egui::vec2(1200.0, 900.0)).build_ui_state(|ui, app| crate::dialogs::show(app, ui.ctx()), app_with_image());
-        LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
+        LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
         let original = h.state().session.active().unwrap().doc.clone();
         let steps = h.state().session.active().unwrap().history.past_len();
         let id = open(h.state_mut(), "image.adjustments.curves").unwrap();
@@ -486,7 +486,7 @@ fn levels_white_point_eyedropper_sets_the_channel_input_whites() {
 fn curves_picker_controls_arm_and_disable_by_document_mode() {
     let harness = |app| {
         let mut h = Harness::builder().with_size(egui::vec2(1200.0, 900.0)).build_ui_state(|ui, app| crate::dialogs::show(app, ui.ctx()), app);
-        LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
+        LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
         open(h.state_mut(), "image.adjustments.curves").unwrap();
         h.run_steps(3);
         h
@@ -515,9 +515,9 @@ fn curves_picker_controls_arm_and_disable_by_document_mode() {
 
 #[test]
 fn curves_picker_rejects_outside_and_transparent_samples() {
-    let mut s = localpaint_engine::Session::new();
+    let mut s = localraster_engine::Session::new();
     s.execute("file.new", json!({"width": 32, "height": 24, "background": "transparent"})).unwrap();
-    let mut app = LocalPaintApp::new(s, crate::Services::default());
+    let mut app = LocalRasterApp::new(s, crate::Services::default());
     let id = open(&mut app, "image.adjustments.curves").unwrap();
     arm(&mut app, id, "white");
     let before = crate::filter_dialog::params_of(&app.ui.dialog_mut(id).unwrap().fields);
@@ -558,19 +558,19 @@ fn curves_picker_cancel_and_confirm_keep_one_transaction() {
 
 #[test]
 fn curves_picker_modes_and_depths_are_explicit() {
-    use localpaint_engine::adjust_params::CurvesEyedropper;
-    assert!(picker_supported(localpaint_doc::ColorMode::Rgb, CurvesEyedropper::NeutralGray));
-    assert!(picker_supported(localpaint_doc::ColorMode::Grayscale, CurvesEyedropper::Black));
-    assert!(picker_supported(localpaint_doc::ColorMode::Grayscale, CurvesEyedropper::White));
-    assert!(!picker_supported(localpaint_doc::ColorMode::Grayscale, CurvesEyedropper::NeutralGray));
-    assert!(!picker_supported(localpaint_doc::ColorMode::Cmyk, CurvesEyedropper::Black));
-    assert!(!picker_supported(localpaint_doc::ColorMode::Lab, CurvesEyedropper::White));
+    use localraster_engine::adjust_params::CurvesEyedropper;
+    assert!(picker_supported(localraster_doc::ColorMode::Rgb, CurvesEyedropper::NeutralGray));
+    assert!(picker_supported(localraster_doc::ColorMode::Grayscale, CurvesEyedropper::Black));
+    assert!(picker_supported(localraster_doc::ColorMode::Grayscale, CurvesEyedropper::White));
+    assert!(!picker_supported(localraster_doc::ColorMode::Grayscale, CurvesEyedropper::NeutralGray));
+    assert!(!picker_supported(localraster_doc::ColorMode::Cmyk, CurvesEyedropper::Black));
+    assert!(!picker_supported(localraster_doc::ColorMode::Lab, CurvesEyedropper::White));
 
     for depth in [8, 16, 32] {
-        let mut s = localpaint_engine::Session::new();
+        let mut s = localraster_engine::Session::new();
         s.execute("file.new", json!({"width": 16, "height": 16, "depth": depth})).unwrap();
         s.execute("edit.fill", json!({"color": [0.3142, 0.4821, 0.7137]})).unwrap();
-        let mut app = LocalPaintApp::new(s, crate::Services::default());
+        let mut app = LocalRasterApp::new(s, crate::Services::default());
         let sampled = crate::canvas::composite_color(&mut app, 4.0, 4.0).unwrap();
         let id = open(&mut app, "image.adjustments.curves").unwrap();
         arm(&mut app, id, "gray");
@@ -589,15 +589,15 @@ fn curves_picker_modes_and_depths_are_explicit() {
     }
 }
 
-fn pointer_down(app: &mut LocalPaintApp, ctx: &egui::Context, x: f64, y: f64, modifiers: Value) {
+fn pointer_down(app: &mut LocalRasterApp, ctx: &egui::Context, x: f64, y: f64, modifiers: Value) {
     let (request, _receiver) = crate::control::ControlRequest::new("ui.pointer", json!({"events": [{"kind": "down", "x": x, "y": y}], "modifiers": modifiers}));
     let _ = crate::control::handle(app, ctx, &request);
 }
 
 /// The Curves curve `pts` (0-255 levels) as a 256-entry 0-255 map.
 fn curve_levels(pts: &[[f64; 2]]) -> Vec<f32> {
-    let cp: Vec<_> = pts.iter().map(|q| localpaint_doc::adjust::CurvePoint { input: q[0] as f32 / 255.0, output: q[1] as f32 / 255.0 }).collect();
-    let lut = localpaint_compose::adjust::curve_lut(&cp);
+    let cp: Vec<_> = pts.iter().map(|q| localraster_doc::adjust::CurvePoint { input: q[0] as f32 / 255.0, output: q[1] as f32 / 255.0 }).collect();
+    let lut = localraster_compose::adjust::curve_lut(&cp);
     (0..256).map(|k| lut[(k as f32 / 255.0 * (lut.len() - 1) as f32).round() as usize] * 255.0).collect()
 }
 
@@ -830,16 +830,16 @@ fn curves_channel_popup_keeps_custom_names_verbatim_in_italian() {
 }
 
 /// Curves open in a harness over `app`.
-fn curves_harness(app: LocalPaintApp) -> Harness<'static, LocalPaintApp> {
+fn curves_harness(app: LocalRasterApp) -> Harness<'static, LocalRasterApp> {
     let mut h = Harness::builder().with_size(egui::vec2(1200.0, 900.0)).build_ui_state(|ui, app| crate::dialogs::show(app, ui.ctx()), app);
-    LocalPaintApp::setup_context(&h.ctx, Default::default());
+    LocalRasterApp::setup_context(&h.ctx, Default::default());
     open(h.state_mut(), "image.adjustments.curves").unwrap();
     h.run_steps(4);
     h
 }
 
 /// The Channel popup's selected value (its option labels are what it shows).
-fn popup_channels(h: &mut Harness<'static, LocalPaintApp>) -> Vec<String> {
+fn popup_channels(h: &mut Harness<'static, LocalRasterApp>) -> Vec<String> {
     h.query_all_by_role(egui::accesskit::Role::ComboBox).filter_map(|n| n.value().map(|s| s.to_string())).collect()
 }
 #[test]
@@ -918,7 +918,7 @@ fn curves_reset_keeps_the_captured_mask_or_native_space_after_retargeting() {
 /// filter mask's, not the smart object's colours.
 #[test]
 fn curves_on_a_targeted_filter_mask_is_a_gray_plane() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 32, "height": 32})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     app.run("edit.fill", json!({"contents": "color", "color": "#ff0000"})).unwrap();
@@ -928,14 +928,14 @@ fn curves_on_a_targeted_filter_mask_is_a_gray_plane() {
     app.select_filter_mask_target(Some(id.0));
     assert!(app.filter_mask_targeted());
     let c = isolated(&app).expect("a gray target");
-    assert_eq!(c.gray, Some(localpaint_engine::channel_cmds::GraySurface::FilterMask));
+    assert_eq!(c.gray, Some(localraster_engine::channel_cmds::GraySurface::FilterMask));
     // Its histogram counts the filter mask's levels: half black after a stroke.
     app.run("paint.stroke", json!({"points": [[8, 0], [8, 31]], "size": 16, "hardness": 1, "color": "#000000", "target": "filterMask"})).unwrap();
-    let surface = localpaint_engine::channel_cmds::GraySurface::FilterMask;
+    let surface = localraster_engine::channel_cmds::GraySurface::FilterMask;
     let st = app.session.active().unwrap();
-    let h = tone::compute_histograms(&st.doc, HistSource::Channel { layer: id, surface }, localpaint_doc::adjust::ToneSpace::Rgb);
+    let h = tone::compute_histograms(&st.doc, HistSource::Channel { layer: id, surface }, localraster_doc::adjust::ToneSpace::Rgb);
     assert!(h.ch[0][0] > 0 && h.ch[0][255] > 0, "black and white levels");
-    assert_eq!(curve_mode(&app, "curves"), localpaint_doc::ColorMode::Grayscale);
+    assert_eq!(curve_mode(&app, "curves"), localraster_doc::ColorMode::Grayscale);
 }
 
 #[test]
@@ -959,7 +959,7 @@ fn captured_filter_mask_curves_stay_gray_after_selecting_native_channels() {
     let mut fields = app.ui.dialog_mut(id).unwrap().fields.clone();
     assert_eq!(fields["target"], json!("filterMask"));
     app.run("channel.target", json!({"colors":[0,2]})).unwrap();
-    assert_eq!(curve_mode_for_fields(&app, "curves", &fields), localpaint_doc::ColorMode::Grayscale);
+    assert_eq!(curve_mode_for_fields(&app, "curves", &fields), localraster_doc::ColorMode::Grayscale);
     reset(&app, &egui::Context::default(), &mut fields);
     assert_eq!(fields["target"], json!("filterMask"));
     assert!(!fields.contains_key("a"));

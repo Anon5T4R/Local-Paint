@@ -1,7 +1,7 @@
 //! Filter › Other: Custom (5×5 convolution) and HSB/HSL.
 
-use localpaint_color::ColorMode;
-use localpaint_geom::Rect;
+use localraster_color::ColorMode;
+use localraster_geom::Rect;
 
 use crate::fxutil::{ncol, rgba, set_rgba, xy};
 use crate::image::Image;
@@ -124,8 +124,8 @@ pub(crate) fn hsb_hsl(src: &Image, out: Rect, ctx: &Ctx, input: HsbModel, output
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_color::{PixelFormat, SampleType};
-    use localpaint_raster::Surface;
+    use localraster_color::{PixelFormat, SampleType};
+    use localraster_raster::Surface;
 
     const DEPTHS: [SampleType; 3] = [SampleType::U8, SampleType::U16, SampleType::F32];
 

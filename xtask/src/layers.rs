@@ -30,7 +30,7 @@ impl Class {
     }
 }
 
-/// The layering table. Names are package names without the `localpaint-`
+/// The layering table. Names are package names without the `localraster-`
 /// prefix.
 pub const TABLE: &[(&str, Class)] = &[
     ("geom", Class::Layer(0)),
@@ -68,7 +68,7 @@ pub const TABLE: &[(&str, Class)] = &[
     ("platform", Class::Layer(6)),
     ("testkit", Class::Testkit),
     // L7 apps and tooling
-    ("localpaint", Class::Exempt),
+    ("localraster", Class::Exempt),
     ("cli", Class::Exempt),
     ("xtask", Class::Exempt),
 ];
@@ -94,7 +94,7 @@ pub const STANDALONE_EXCEPTIONS: &[(&str, &str)] = &[("codecs", "heif")];
 
 /// Vendored libs (`libs/craft-libs`) a standalone crate may depend on: (from, to). They are path
 /// dependencies, so the metadata counts them as workspace crates, but they are leaf libraries outside
-/// the layering (no `localpaint-*` dependency): `codecs` decodes 12-bit/arithmetic JPEG with `craft-jpeg`
+/// the layering (no `localraster-*` dependency): `codecs` decodes 12-bit/arithmetic JPEG with `craft-jpeg`
 /// (its only dependency is `thiserror`), and standalone only forbids reaching into the layered crates.
 pub const STANDALONE_VENDORED: &[(&str, &str)] = &[("codecs", "craft-jpeg")];
 
@@ -114,7 +114,7 @@ pub const UI_CRATES: &[&str] = &["egui", "eframe", "winit", "egui_kittest", "cra
 pub const UI_MIN_LAYER: u8 = 6;
 
 pub fn short_name(pkg: &str) -> &str {
-    pkg.strip_prefix("localpaint-").unwrap_or(pkg)
+    pkg.strip_prefix("localraster-").unwrap_or(pkg)
 }
 
 pub fn classify(pkg: &str) -> Option<Class> {
@@ -172,7 +172,7 @@ impl std::fmt::Display for Violation {
                 write!(f, "{krate}: standalone crate must not depend on workspace crate {dep}")
             }
             Violation::TestkitAsNormalDep { krate } => {
-                write!(f, "{krate}: localpaint-testkit may only be a dev-dependency")
+                write!(f, "{krate}: localraster-testkit may only be a dev-dependency")
             }
             Violation::UiBelowL6 { krate, dep, layer } => {
                 write!(f, "{krate} (L{layer}) depends on UI crate `{dep}`; UI toolkits are only allowed in L6+")
@@ -280,50 +280,50 @@ mod tests {
     #[test]
     fn clean_downward_graph_passes() {
         let g = [
-            c("localpaint-geom", &[("kurbo", Normal, false)]),
-            c("localpaint-doc", &[("localpaint-geom", Normal, true)]),
-            c("localpaint-engine", &[("localpaint-doc", Normal, true), ("localpaint-testkit", Dev, true)]),
-            c("localpaint-ui-egui", &[("localpaint-engine", Normal, true), ("egui", Normal, false)]),
-            c("localpaint-cli", &[("localpaint-ui-egui", Normal, true)]),
+            c("localraster-geom", &[("kurbo", Normal, false)]),
+            c("localraster-doc", &[("localraster-geom", Normal, true)]),
+            c("localraster-engine", &[("localraster-doc", Normal, true), ("localraster-testkit", Dev, true)]),
+            c("localraster-ui-egui", &[("localraster-engine", Normal, true), ("egui", Normal, false)]),
+            c("localraster-cli", &[("localraster-ui-egui", Normal, true)]),
         ];
         assert!(check(&g).is_empty(), "{:?}", check(&g));
     }
 
     #[test]
     fn upward_dependency_flagged() {
-        let v = check(&[c("localpaint-doc", &[("localpaint-engine", Normal, true)])]);
+        let v = check(&[c("localraster-doc", &[("localraster-engine", Normal, true)])]);
         assert!(matches!(v[..], [Violation::Upward { from: 1, to: 5, .. }]));
     }
 
     #[test]
     fn sideways_dependency_flagged() {
-        let v = check(&[c("localpaint-ops", &[("localpaint-algo", Normal, true)])]);
+        let v = check(&[c("localraster-ops", &[("localraster-algo", Normal, true)])]);
         assert!(matches!(v[..], [Violation::Upward { from: 2, to: 2, .. }]));
     }
 
     #[test]
     fn l0_foundation_chain_allowed_one_way() {
-        assert!(check(&[c("localpaint-raster", &[("localpaint-color", Normal, true), ("localpaint-geom", Normal, true)])]).is_empty());
-        assert!(check(&[c("localpaint-color", &[("localpaint-geom", Normal, true)])]).is_empty());
-        let v = check(&[c("localpaint-geom", &[("localpaint-raster", Normal, true)])]);
+        assert!(check(&[c("localraster-raster", &[("localraster-color", Normal, true), ("localraster-geom", Normal, true)])]).is_empty());
+        assert!(check(&[c("localraster-color", &[("localraster-geom", Normal, true)])]).is_empty());
+        let v = check(&[c("localraster-geom", &[("localraster-raster", Normal, true)])]);
         assert!(matches!(v[..], [Violation::Upward { from: 0, to: 0, .. }]));
     }
 
     #[test]
     fn self_dev_dependency_ignored() {
-        assert!(check(&[c("localpaint-psd", &[("localpaint-psd", Dev, true)])]).is_empty());
+        assert!(check(&[c("localraster-psd", &[("localraster-psd", Dev, true)])]).is_empty());
     }
 
     #[test]
     fn upward_dev_dependency_flagged() {
-        let v = check(&[c("localpaint-geom", &[("localpaint-doc", Dev, true)])]);
+        let v = check(&[c("localraster-geom", &[("localraster-doc", Dev, true)])]);
         assert!(matches!(v[..], [Violation::Upward { kind: Dev, .. }]));
     }
 
     #[test]
     fn standalone_crates_have_no_workspace_deps() {
-        for s in ["localpaint-psd", "localpaint-codecs", "localpaint-adobe-assets"] {
-            let v = check(&[c(s, &[("localpaint-geom", Normal, true)])]);
+        for s in ["localraster-psd", "localraster-codecs", "localraster-adobe-assets"] {
+            let v = check(&[c(s, &[("localraster-geom", Normal, true)])]);
             assert!(matches!(v[..], [Violation::StandaloneHasWorkspaceDep { .. }]), "{s}");
             assert!(check(&[c(s, &[("image", Normal, false)])]).is_empty());
         }
@@ -331,63 +331,63 @@ mod tests {
 
     #[test]
     fn standalone_may_use_the_vendored_craft_jpeg_only_from_codecs() {
-        assert!(check(&[c("localpaint-codecs", &[("craft-jpeg", Normal, true)])]).is_empty());
-        assert!(!check(&[c("localpaint-psd", &[("craft-jpeg", Normal, true)])]).is_empty());
+        assert!(check(&[c("localraster-codecs", &[("craft-jpeg", Normal, true)])]).is_empty());
+        assert!(!check(&[c("localraster-psd", &[("craft-jpeg", Normal, true)])]).is_empty());
     }
 
     #[test]
     fn standalone_exception_is_exactly_codecs_to_heif() {
-        assert!(check(&[c("localpaint-codecs", &[("localpaint-heif", Normal, true)])]).is_empty());
-        assert!(check(&[c("localpaint-codecs", &[("localpaint-heif", Dev, true)])]).is_empty());
+        assert!(check(&[c("localraster-codecs", &[("localraster-heif", Normal, true)])]).is_empty());
+        assert!(check(&[c("localraster-codecs", &[("localraster-heif", Dev, true)])]).is_empty());
         // Not the other way round, not for other standalone crates, and heif stays dependency-free.
-        for (from, to) in [("localpaint-heif", "localpaint-codecs"), ("localpaint-psd", "localpaint-heif"), ("localpaint-heif", "localpaint-geom")] {
+        for (from, to) in [("localraster-heif", "localraster-codecs"), ("localraster-psd", "localraster-heif"), ("localraster-heif", "localraster-geom")] {
             let v = check(&[c(from, &[(to, Normal, true)])]);
             assert!(matches!(v[..], [Violation::StandaloneHasWorkspaceDep { .. }]), "{from} -> {to}");
         }
         // The exception does not open codecs up to layered crates.
-        let v = check(&[c("localpaint-codecs", &[("localpaint-geom", Normal, true)])]);
+        let v = check(&[c("localraster-codecs", &[("localraster-geom", Normal, true)])]);
         assert!(matches!(v[..], [Violation::StandaloneHasWorkspaceDep { .. }]));
     }
 
     #[test]
     fn standalone_is_usable_from_higher_layers() {
-        assert!(check(&[c("localpaint-io", &[("localpaint-psd", Normal, true)])]).is_empty());
-        let v = check(&[c("localpaint-geom", &[("localpaint-codecs", Normal, true)])]);
+        assert!(check(&[c("localraster-io", &[("localraster-psd", Normal, true)])]).is_empty());
+        let v = check(&[c("localraster-geom", &[("localraster-codecs", Normal, true)])]);
         assert!(matches!(v[..], [Violation::Upward { from: 0, to: 0, .. }]));
     }
 
     #[test]
     fn ui_crates_below_l6_flagged() {
         for dep in ["egui", "eframe", "winit", "egui_kittest", "craft-ui", "rfd", "bevy_ecs", "bevy"] {
-            let v = check(&[c("localpaint-engine", &[(dep, Normal, false)])]);
+            let v = check(&[c("localraster-engine", &[(dep, Normal, false)])]);
             assert!(matches!(v[..], [Violation::UiBelowL6 { layer: 5, .. }]), "{dep}");
         }
-        assert!(check(&[c("localpaint-engine", &[("egui_extras_not", Normal, false)])]).is_empty());
-        assert!(check(&[c("localpaint-ui-egui", &[("craft-ui", Normal, false)])]).is_empty());
-        assert!(check(&[c("localpaint-platform", &[("winit", Normal, false)])]).is_empty());
+        assert!(check(&[c("localraster-engine", &[("egui_extras_not", Normal, false)])]).is_empty());
+        assert!(check(&[c("localraster-ui-egui", &[("craft-ui", Normal, false)])]).is_empty());
+        assert!(check(&[c("localraster-platform", &[("winit", Normal, false)])]).is_empty());
     }
 
     #[test]
     fn unregistered_crate_is_error() {
-        let v = check(&[c("localpaint-mystery", &[])]);
-        assert!(matches!(&v[..], [Violation::Unregistered { krate }] if krate == "localpaint-mystery"));
+        let v = check(&[c("localraster-mystery", &[])]);
+        assert!(matches!(&v[..], [Violation::Unregistered { krate }] if krate == "localraster-mystery"));
         assert!(v[0].to_string().contains("register"));
     }
 
     #[test]
     fn testkit_only_as_dev_dependency() {
-        let v = check(&[c("localpaint-raster", &[("localpaint-testkit", Normal, true)])]);
+        let v = check(&[c("localraster-raster", &[("localraster-testkit", Normal, true)])]);
         assert!(matches!(v[..], [Violation::TestkitAsNormalDep { .. }]));
-        assert!(check(&[c("localpaint-raster", &[("localpaint-testkit", Dev, true)])]).is_empty());
+        assert!(check(&[c("localraster-raster", &[("localraster-testkit", Dev, true)])]).is_empty());
         // testkit itself may use anything up to L5 but not L6 crates.
-        assert!(check(&[c("localpaint-testkit", &[("localpaint-engine", Normal, true)])]).is_empty());
-        assert!(!check(&[c("localpaint-testkit", &[("localpaint-ui-egui", Normal, true)])]).is_empty());
+        assert!(check(&[c("localraster-testkit", &[("localraster-engine", Normal, true)])]).is_empty());
+        assert!(!check(&[c("localraster-testkit", &[("localraster-ui-egui", Normal, true)])]).is_empty());
     }
 
     #[test]
     fn apps_and_xtask_exempt() {
-        for app in ["localpaint", "localpaint-cli", "xtask"] {
-            assert!(check(&[c(app, &[("egui", Normal, false), ("localpaint-ui-egui", Normal, true)])]).is_empty());
+        for app in ["localraster", "localraster-cli", "xtask"] {
+            assert!(check(&[c(app, &[("egui", Normal, false), ("localraster-ui-egui", Normal, true)])]).is_empty());
         }
     }
 
@@ -395,17 +395,17 @@ mod tests {
     fn metadata_parsing() {
         let meta: Value = serde_json::from_str(
             r#"{"packages":[
-                {"name":"localpaint-doc","dependencies":[
-                    {"name":"localpaint-geom","kind":null,"path":"/x/crates/geom"},
+                {"name":"localraster-doc","dependencies":[
+                    {"name":"localraster-geom","kind":null,"path":"/x/crates/geom"},
                     {"name":"serde","kind":null},
                     {"name":"proptest","kind":"dev"}]},
-                {"name":"localpaint-geom","dependencies":[]}
+                {"name":"localraster-geom","dependencies":[]}
             ]}"#,
         )
         .unwrap();
         let g = from_metadata(&meta).unwrap();
         assert_eq!(g.len(), 2);
-        let doc = g.iter().find(|c| c.name == "localpaint-doc").unwrap();
+        let doc = g.iter().find(|c| c.name == "localraster-doc").unwrap();
         assert!(doc.deps[0].workspace && !doc.deps[1].workspace);
         assert_eq!(doc.deps[2].kind, Dev);
         assert!(check(&g).is_empty());

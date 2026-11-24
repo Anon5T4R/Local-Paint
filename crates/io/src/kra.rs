@@ -20,11 +20,11 @@
 mod tests;
 mod tiles;
 
-use localpaint_color::{BlendMode, PixelFormat};
-use localpaint_doc::{Document, Layer, LayerContent, LayerMask};
-use localpaint_format::zip::ZipReader;
-use localpaint_geom::Size;
-use localpaint_raster::{Interrupt, Surface};
+use localraster_color::{BlendMode, PixelFormat};
+use localraster_doc::{Document, Layer, LayerContent, LayerMask};
+use localraster_format::zip::ZipReader;
+use localraster_geom::Size;
+use localraster_raster::{Interrupt, Surface};
 
 use crate::ora::{MAX_NODES, MAX_PIXEL_BYTES, MAX_SIDE, Warnings, krita_blend};
 use crate::{ImportResult, IoError};
@@ -193,8 +193,8 @@ impl Reader<'_, '_> {
 
     /// The `<layers>` of `node`, bottom-to-top (maindoc.xml lists the topmost first).
     fn layers(&mut self, node: roxmltree::Node<'_, '_>, depth: usize, dx: i32, dy: i32) -> Result<Vec<Layer>> {
-        if depth > localpaint_doc::MAX_GROUP_DEPTH {
-            return Err(IoError::Unsupported(format!("layer groups nested deeper than {}", localpaint_doc::MAX_GROUP_DEPTH)));
+        if depth > localraster_doc::MAX_GROUP_DEPTH {
+            return Err(IoError::Unsupported(format!("layer groups nested deeper than {}", localraster_doc::MAX_GROUP_DEPTH)));
         }
         let mut out = Vec::new();
         for child in children(node, "layers", "layer") {

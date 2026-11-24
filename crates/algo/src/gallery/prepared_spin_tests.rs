@@ -1,5 +1,5 @@
 use super::*;
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
+use localraster_color::{ColorMode, PixelFormat, SampleType};
 
 #[test]
 fn all_rotation_tables_keep_the_direct_bits() {

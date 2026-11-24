@@ -31,8 +31,8 @@
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 
-use localpaint_geom::Rect;
-use localpaint_raster::{Cancelled, Interrupt};
+use localraster_geom::Rect;
+use localraster_raster::{Cancelled, Interrupt};
 
 use super::gmm::Gmm;
 use super::grabcut::{self, BG, PR_BG, PR_FG};

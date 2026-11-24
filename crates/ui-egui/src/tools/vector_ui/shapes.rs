@@ -1,6 +1,6 @@
 use super::options::solid_paint;
 use super::overlay::path_lines;
-use super::{Affine, Color32, LocalPaintApp, Tokens, Tool, ToolOptions, Value, ViewXform, json, paint_param};
+use super::{Affine, Color32, LocalRasterApp, Tokens, Tool, ToolOptions, Value, ViewXform, json, paint_param};
 
 pub fn is_shape_tool(t: Tool) -> bool {
     matches!(t, Tool::Rectangle | Tool::EllipseShape | Tool::Triangle | Tool::Polygon | Tool::Line | Tool::CustomShape)
@@ -16,7 +16,7 @@ pub(super) fn hex(c: [f32; 4]) -> String {
     format!("#{:02x}{:02x}{:02x}", c.r(), c.g(), c.b())
 }
 
-pub(super) fn stroke_param(app: &LocalPaintApp) -> Value {
+pub(super) fn stroke_param(app: &LocalRasterApp) -> Value {
     let o = &app.ui.tool_options;
     if o.stroke_width <= 0.0 {
         return Value::Null;
@@ -29,18 +29,18 @@ pub(super) fn stroke_param(app: &LocalPaintApp) -> Value {
 
 /// The paint the next shape's fill (`stroke` false) or stroke takes: the options bar's gradient,
 /// else the foreground / background colour.
-fn tool_paint(app: &LocalPaintApp, stroke: bool) -> localpaint_doc::Fill {
+fn tool_paint(app: &LocalRasterApp, stroke: bool) -> localraster_doc::Fill {
     let (gradient, color) = tool_paint_source(app, stroke);
     gradient.clone().unwrap_or_else(|| solid_paint(color))
 }
 
 /// [`tool_paint`] as `shape.create` takes it.
-fn tool_paint_param(app: &LocalPaintApp, stroke: bool) -> Value {
+fn tool_paint_param(app: &LocalRasterApp, stroke: bool) -> Value {
     let (gradient, color) = tool_paint_source(app, stroke);
     gradient.as_ref().map_or_else(|| json!(color), paint_param)
 }
 
-fn tool_paint_source(app: &LocalPaintApp, stroke: bool) -> (&Option<localpaint_doc::Fill>, [f32; 4]) {
+fn tool_paint_source(app: &LocalRasterApp, stroke: bool) -> (&Option<localraster_doc::Fill>, [f32; 4]) {
     let o = &app.ui.tool_options;
     if stroke { (&o.shape_stroke_gradient, app.session.tools.background) } else { (&o.shape_fill_gradient, app.session.tools.foreground) }
 }
@@ -99,7 +99,7 @@ pub fn shape_bounds(o: &ToolOptions, tool: Tool, start: [f64; 2], end: [f64; 2],
 }
 
 /// Finish a Shape-tool drag: ⇧ constrains proportions, ⌥ draws from the centre.
-pub fn finish_shape(app: &mut LocalPaintApp, tool: Tool, start: [f64; 2], end: [f64; 2], mods: egui::Modifiers) {
+pub fn finish_shape(app: &mut LocalRasterApp, tool: Tool, start: [f64; 2], end: [f64; 2], mods: egui::Modifiers) {
     let Some(mut p) = shape_geometry(&app.ui.tool_options, tool, start, end, mods) else { return };
     if tool == Tool::CustomShape {
         // ⇧ keeps the shape's proportions (the rect is already squared).
@@ -115,31 +115,31 @@ pub fn finish_shape(app: &mut LocalPaintApp, tool: Tool, start: [f64; 2], end: [
     }
 }
 
-pub(super) fn fill_param(app: &LocalPaintApp) -> Value {
+pub(super) fn fill_param(app: &LocalRasterApp) -> Value {
     if app.ui.tool_options.shape_fill { tool_paint_param(app, false) } else { Value::Null }
 }
 
 /// Create a shape layer from `shape.create` geometry with the options bar's fill and stroke: the
 /// end of a drag, and the Create Rectangle / Ellipse / … dialogs (`shape_dialog`).
-pub fn create_shape(app: &mut LocalPaintApp, mut geometry: Value) -> Result<Value, String> {
+pub fn create_shape(app: &mut LocalRasterApp, mut geometry: Value) -> Result<Value, String> {
     geometry["fill"] = fill_param(app);
     geometry["stroke"] = stroke_param(app);
     app.run("shape.create", geometry)
 }
 
 /// The preview and command both use the full float tool colours, including transparent paint.
-pub(super) fn shape_preview(app: &LocalPaintApp, tool: Tool, start: [f64; 2], end: [f64; 2], mods: egui::Modifiers) -> Option<localpaint_doc::ShapeLayer> {
+pub(super) fn shape_preview(app: &LocalRasterApp, tool: Tool, start: [f64; 2], end: [f64; 2], mods: egui::Modifiers) -> Option<localraster_doc::ShapeLayer> {
     let o = &app.ui.tool_options;
     let geometry = shape_geometry(o, tool, start, end, mods)?;
     let path = if tool == Tool::CustomShape {
         let rect = geometry.get("rect").and_then(|r| serde_json::from_value::<[f64; 4]>(r.clone()).ok())?;
-        let groups = localpaint_engine::presets::shapes::all_groups(&app.session);
+        let groups = localraster_engine::presets::shapes::all_groups(&app.session);
         let shape = groups.iter().flat_map(|g| &g.items).find(|s| s.name == app.ui.presets_ui.shape())?;
-        localpaint_engine::presets::shapes::fit(&shape.path, rect, mods.shift)
+        localraster_engine::presets::shapes::fit(&shape.path, rect, mods.shift)
     } else {
-        localpaint_engine::vector_cmds::shape_path(&geometry).ok()?
+        localraster_engine::vector_cmds::shape_path(&geometry).ok()?
     };
-    Some(localpaint_doc::ShapeLayer {
+    Some(localraster_doc::ShapeLayer {
         path,
         fill: o.shape_fill.then(|| tool_paint(app, false)),
         stroke: (o.stroke_width > 0.0).then(|| o.shape_stroke.stroke(o.stroke_width, tool_paint(app, true))),
@@ -148,7 +148,7 @@ pub(super) fn shape_preview(app: &LocalPaintApp, tool: Tool, start: [f64; 2], en
 }
 
 /// Shape-tool drag preview using the same path and vector stroke geometry as the commit.
-pub fn draw_shape_preview(app: &LocalPaintApp, painter: &egui::Painter, xf: &ViewXform, tool: Tool, start: [f64; 2], end: [f64; 2], mods: egui::Modifiers) {
+pub fn draw_shape_preview(app: &LocalRasterApp, painter: &egui::Painter, xf: &ViewXform, tool: Tool, start: [f64; 2], end: [f64; 2], mods: egui::Modifiers) {
     let Some(mut shape) = shape_preview(app, tool, start, end, mods) else { return };
     let path = shape.path.clone();
     let origin = xf.to_screen(0.0, 0.0);

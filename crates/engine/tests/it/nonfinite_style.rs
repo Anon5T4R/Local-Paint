@@ -1,6 +1,6 @@
 //! Character style numbers that overflow `f32` are refused, so the document stays saveable.
 
-use localpaint_engine::{EngineError, Session};
+use localraster_engine::{EngineError, Session};
 use serde_json::json;
 
 fn fixture() -> (Session, u64) {

@@ -4,9 +4,9 @@
 //! Works in the surface's own channels at any depth and in any colour model: only the alpha
 //! channel changes (or, under a transparency lock, the colour channels move toward `lock_color`).
 
-use localpaint_color::{read_sample, write_sample};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_color::{read_sample, write_sample};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 
 use crate::selection::Region;
 
@@ -97,8 +97,8 @@ pub fn magic_erase(target: &mut Surface, region: &Region, amount: f32, selection
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_color::{ColorMode, PixelFormat, SampleType};
-    use localpaint_raster::from_rgba;
+    use localraster_color::{ColorMode, PixelFormat, SampleType};
+    use localraster_raster::from_rgba;
 
     fn region(bbox: Rect, v: u8) -> Region {
         Region { bbox, mask: vec![v; bbox.width() as usize * bbox.height() as usize] }

@@ -1,6 +1,6 @@
 # Security Policy
 
-Local Paint processes complex document and image formats and exposes CLI, JSON control, and MCP automation. Treat files, paths, metadata, automation requests, and command parameters as potentially malicious.
+Local Raster processes complex document and image formats and exposes CLI, JSON control, and MCP automation. Treat files, paths, metadata, automation requests, and command parameters as potentially malicious.
 
 ## Reporting a vulnerability
 
@@ -14,7 +14,7 @@ If no private channel can be established, withhold weaponized material and repor
 
 A useful report includes:
 
-- affected Local Paint version, commit, or release artifact;
+- affected Local Raster version, commit, or release artifact;
 - operating system, architecture, build profile, and relevant feature flags;
 - the affected component or path;
 - security impact and required attacker access;

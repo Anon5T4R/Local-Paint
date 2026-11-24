@@ -11,11 +11,11 @@
 //! Stacks with such adjustment layers render for display this way ([`render_lab`]); flattening
 //! ([`flatten_lab`]) keeps the stored values for any plain stack.
 
-use localpaint_color::blend::BlendMode;
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_doc::{Document, Layer, LayerContent, LayerMask};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_color::blend::BlendMode;
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_doc::{Document, Layer, LayerContent, LayerMask};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 
 use crate::Buffer;
 use crate::adjust::{self, LabOp};
@@ -241,7 +241,7 @@ pub fn render_lab(doc: &Document, rect: Rect, tile: i32) -> Option<Buffer> {
         stack.composite(r, &mut acc, &mut src, &mut mv);
         for (o, p) in px.iter_mut().zip(&acc) {
             if p[LAB] > 0.0 {
-                let [r, g, b] = localpaint_color::convert::lab_to_srgb([p[0] * 100.0, p[1] * 255.0 - 128.0, p[2] * 255.0 - 128.0]);
+                let [r, g, b] = localraster_color::convert::lab_to_srgb([p[0] * 100.0, p[1] * 255.0 - 128.0, p[2] * 255.0 - 128.0]);
                 *o = [r, g, b, p[LAB]];
             }
         }

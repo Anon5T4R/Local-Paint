@@ -1,5 +1,5 @@
-use localpaint_doc::SliceOrigin;
-use localpaint_engine::Session;
+use localraster_doc::SliceOrigin;
+use localraster_engine::Session;
 use serde_json::{Value, json};
 
 fn sliced() -> Session {

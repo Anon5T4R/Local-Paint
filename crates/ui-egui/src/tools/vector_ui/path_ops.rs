@@ -1,12 +1,12 @@
 use super::overlay::selected_saved_path_index;
 use super::paths_panel::{PathEntry, PathRow, path_rows};
 use super::pen::pen_commit;
-use super::{Affine, Document, LayerContent, LocalPaintApp, Path, Tool, Value, json};
+use super::{Affine, Document, LayerContent, LocalRasterApp, Path, Tool, Value, json};
 
 /// The path that path commands act on without a name: the one selected in the Paths panel, else
 /// the work path while it is shown (not after Make Selection hid it, #6079), else the selected
 /// layer's shape path or vector mask; `None` when there's none.
-pub fn active_path_name(app: &LocalPaintApp) -> Option<String> {
+pub fn active_path_name(app: &LocalRasterApp) -> Option<String> {
     let st = app.session.active()?;
     let rows = path_rows(&st.doc, st.active_layer);
     let key = |r: &PathEntry| match r.kind {
@@ -25,7 +25,7 @@ pub fn takes_path_mask(id: &str) -> bool {
 }
 
 /// The work or saved path explicitly selected in the Paths panel (not a layer's own path).
-pub fn selected_document_path(app: &LocalPaintApp) -> Option<String> {
+pub fn selected_document_path(app: &LocalRasterApp) -> Option<String> {
     let st = app.session.active()?;
     let sel = app.ui.selected_path.as_deref()?;
     let listed = path_rows(&st.doc, st.active_layer).iter().any(|r| match r.kind {
@@ -40,7 +40,7 @@ pub fn selected_document_path(app: &LocalPaintApp) -> Option<String> {
 /// as in Photoshop (#1419): the command gets it as `"path"` unless the caller set one (`null`
 /// opts out). Only an explicitly selected work or saved path counts; deselect it by clicking the
 /// panel's empty area.
-pub fn with_active_path(app: &LocalPaintApp, id: &str, params: Value) -> Value {
+pub fn with_active_path(app: &LocalRasterApp, id: &str, params: Value) -> Value {
     if !takes_path_mask(id) || params.get("path").is_some() {
         return params;
     }
@@ -57,7 +57,7 @@ pub fn with_active_path(app: &LocalPaintApp, id: &str, params: Value) -> Value {
 /// ⌘↩ / Ctrl+Enter (#306): load a path as a selection, like Photoshop with a Pen or Path
 /// Selection tool or a path selected in the Paths panel. A path being drawn with the Pen is
 /// finished first and loads; otherwise [`active_path_name`]. `params` may set feather, mode…
-pub fn path_to_selection(app: &mut LocalPaintApp, params: Value) -> Result<Value, String> {
+pub fn path_to_selection(app: &mut LocalRasterApp, params: Value) -> Result<Value, String> {
     if app.ui.pen.as_ref().is_some_and(|p| p.knots.len() >= 2) {
         // The finished path becomes the work path, or a shape layer's path or a vector mask.
         if !pen_commit(app, false) {
@@ -78,7 +78,7 @@ pub fn path_to_selection(app: &mut LocalPaintApp, params: Value) -> Result<Value
 /// path itself stays (#6079). The Work Path is hidden too when a saved path was loaded, so no
 /// path is the target path afterwards. A shape layer's path or vector mask (`"layer"`) stays the active
 /// path, so layer targeting is unchanged.
-pub(crate) fn deselect_loaded_path(app: &mut LocalPaintApp, name: &str) {
+pub(crate) fn deselect_loaded_path(app: &mut LocalRasterApp, name: &str) {
     if name == "layer" {
         return;
     }
@@ -92,14 +92,14 @@ pub(crate) fn deselect_loaded_path(app: &mut LocalPaintApp, name: &str) {
 /// [`deselect_loaded_path`] hid it, until the Work Path is selected again in the Paths panel (which
 /// ends the hide; a saved path or a layer's path doesn't show it) or it changes (a new one drawn, Make Work Path,
 /// `path.set`…) (#6079).
-pub(crate) fn work_path_shown(app: &LocalPaintApp) -> bool {
+pub(crate) fn work_path_shown(app: &LocalRasterApp) -> bool {
     app.session.active().is_none_or(|st| work_path_shown_in(app, &st.doc))
 }
 
 /// [`work_path_shown`] for `doc`, which the canvas may draw while another document is already
 /// active (the frame a click into another arranged tile activates it). The Paths panel's
 /// selection belongs to the active document only.
-pub(crate) fn work_path_shown_in(app: &LocalPaintApp, doc: &Document) -> bool {
+pub(crate) fn work_path_shown_in(app: &LocalRasterApp, doc: &Document) -> bool {
     let active = app.session.active().is_some_and(|st| st.doc.id == doc.id);
     if active && app.ui.selected_path.as_deref() == Some("work") {
         return true;
@@ -123,7 +123,7 @@ pub(super) enum PathTarget {
 
 /// The work or saved path explicitly selected in the Paths panel, by name, and its geometry. Only
 /// such a selection overrides the active layer's path.
-pub(super) fn selected_document_geometry(app: &LocalPaintApp) -> Option<(String, &Path)> {
+pub(super) fn selected_document_geometry(app: &LocalRasterApp) -> Option<(String, &Path)> {
     let st = app.session.active()?;
     match app.ui.selected_path.as_deref()? {
         "work" => st.doc.work_path.as_ref().map(|p| ("work".into(), p)),
@@ -133,32 +133,32 @@ pub(super) fn selected_document_geometry(app: &LocalPaintApp) -> Option<(String,
 }
 
 /// The targeted vector mask of the active layer, if the Layers panel targets it.
-pub(crate) fn targeted_vector_mask(app: &LocalPaintApp) -> Option<(u64, Path)> {
+pub(crate) fn targeted_vector_mask(app: &LocalRasterApp) -> Option<(u64, Path)> {
     let id = targeted_vector_mask_id(app)?;
-    let mask = app.session.active()?.doc.layer(localpaint_doc::LayerId(id))?.vector_mask.as_ref()?;
+    let mask = app.session.active()?.doc.layer(localraster_doc::LayerId(id))?.vector_mask.as_ref()?;
     Some((id, mask.path.clone()))
 }
 
-pub(super) fn targeted_vector_mask_id(app: &LocalPaintApp) -> Option<u64> {
+pub(super) fn targeted_vector_mask_id(app: &LocalRasterApp) -> Option<u64> {
     let st = app.session.active()?;
     let l = st.active_layer.and_then(|id| st.doc.layer(id))?;
-    let targeted = app.ui.vector_mask_target || st.channel_view.target == localpaint_engine::channel_cmds::ChannelTarget::VectorMask;
+    let targeted = app.ui.vector_mask_target || st.channel_view.target == localraster_engine::channel_cmds::ChannelTarget::VectorMask;
     (targeted && !matches!(l.content, LayerContent::Shape(_))).then_some(())?;
     l.vector_mask.as_ref().map(|_| l.id.0)
 }
 
 /// The active type layer's path in document space, if it is type on a path (#9114).
-pub(crate) fn active_type_path(app: &LocalPaintApp) -> Option<(u64, Path)> {
+pub(crate) fn active_type_path(app: &LocalRasterApp) -> Option<(u64, Path)> {
     let st = app.session.active()?;
     let l = st.active_layer.and_then(|id| st.doc.layer(id))?;
     match &l.content {
-        LayerContent::Text(t) => localpaint_engine::type_extra_cmds::type_path(t).map(|p| (l.id.0, p)),
+        LayerContent::Text(t) => localraster_engine::type_extra_cmds::type_path(t).map(|p| (l.id.0, p)),
         _ => None,
     }
 }
 
 /// The active shape layer's path, if the active layer is a shape layer.
-pub(crate) fn active_shape_path(app: &LocalPaintApp) -> Option<(u64, Path)> {
+pub(crate) fn active_shape_path(app: &LocalRasterApp) -> Option<(u64, Path)> {
     let st = app.session.active()?;
     let l = st.active_layer.and_then(|id| st.doc.layer(id))?;
     match &l.content {
@@ -172,7 +172,7 @@ pub(crate) fn active_shape_path(app: &LocalPaintApp) -> Option<(u64, Path)> {
 /// targeted vector mask in front of it), as in Photoshop (#5702). It was drawn whenever one of
 /// these tools was active, but the key reached Edit › Clear, so it looked impossible to delete.
 /// Direct Selection and the Curvature Pen delete selected anchors in Photoshop, not the path.
-pub(crate) fn delete_key_deletes_work_path(app: &LocalPaintApp) -> bool {
+pub(crate) fn delete_key_deletes_work_path(app: &LocalRasterApp) -> bool {
     matches!(app.ui.tool, Tool::Pen | Tool::FreeformPen | Tool::PathSelection)
         && app.ui.pen.is_none()
         && app.ui.transform.is_none()
@@ -182,7 +182,7 @@ pub(crate) fn delete_key_deletes_work_path(app: &LocalPaintApp) -> bool {
 
 /// The path Path Selection edits: the targeted vector mask, the active shape layer's path, the
 /// saved path selected in the Paths panel (#8478), else the work path.
-pub(super) fn target_path(app: &LocalPaintApp) -> Option<(PathTarget, Path)> {
+pub(super) fn target_path(app: &LocalRasterApp) -> Option<(PathTarget, Path)> {
     if let Some((name, p)) = selected_document_geometry(app) {
         return Some((if name == "work" { PathTarget::Work } else { PathTarget::Saved(name) }, p.clone()));
     }
@@ -205,7 +205,7 @@ pub(super) fn target_path(app: &LocalPaintApp) -> Option<(PathTarget, Path)> {
 
 /// Edit › Free Transform Path (⌘T with Path Selection or Direct Selection): the path the
 /// box transforms (the one Path Selection edits) and `path.transform`'s params that name it.
-pub(crate) fn free_transform_path(app: &LocalPaintApp) -> Option<(Value, Path)> {
+pub(crate) fn free_transform_path(app: &LocalRasterApp) -> Option<(Value, Path)> {
     if !matches!(app.ui.tool, Tool::PathSelection | Tool::DirectSelection) {
         return None;
     }
@@ -219,7 +219,7 @@ pub(crate) fn free_transform_path(app: &LocalPaintApp) -> Option<(Value, Path)> 
     Some((params, path))
 }
 
-fn point_in_subpath(sp: &localpaint_doc::vector::Subpath, pt: [f64; 2]) -> bool {
+fn point_in_subpath(sp: &localraster_doc::vector::Subpath, pt: [f64; 2]) -> bool {
     if !sp.closed || sp.knots.len() < 3 {
         return false;
     }
@@ -242,7 +242,7 @@ fn point_in_subpath(sp: &localpaint_doc::vector::Subpath, pt: [f64; 2]) -> bool 
 /// The topmost visible shape layer under `at` (document coordinates):
 /// hits the shape path or anchor within `tol`, or any non-transparent pixel of the shape's raster surface,
 /// or point inside the shape's filled geometry.
-pub fn pick_shape_at(doc: &Document, at: [f64; 2], tol: f64) -> Option<localpaint_doc::LayerId> {
+pub fn pick_shape_at(doc: &Document, at: [f64; 2], tol: f64) -> Option<localraster_doc::LayerId> {
     let (x, y) = (at[0].floor() as i32, at[1].floor() as i32);
     for (path, _, l) in doc.walk().iter().rev() {
         if !l.visible || !(1..=path.len()).all(|n| doc.layer_at(&path[..n]).is_some_and(|a| a.visible)) {
@@ -253,18 +253,18 @@ pub fn pick_shape_at(doc: &Document, at: [f64; 2], tol: f64) -> Option<localpain
             continue;
         }
         if let LayerContent::Shape(sh) = &l.content {
-            if localpaint_vector::edit::hit(&sh.path, localpaint_geom::Point::new(at[0], at[1]), tol, &[]).is_some() {
+            if localraster_vector::edit::hit(&sh.path, localraster_geom::Point::new(at[0], at[1]), tol, &[]).is_some() {
                 return Some(l.id);
             }
             if sh.fill.is_some() {
                 if let Some(surf) = l.surface() {
                     let mut px = [[0.0f32; 4]; 1];
-                    surf.read_rgba_into(localpaint_doc::Rect::from_xywh(x, y, 1, 1), &mut px);
+                    surf.read_rgba_into(localraster_doc::Rect::from_xywh(x, y, 1, 1), &mut px);
                     if px[0][3] > 0.0 {
                         return Some(l.id);
                     }
                 }
-                if let Some(localpaint_doc::LiveShape::Rect { rect, .. }) = &sh.live {
+                if let Some(localraster_doc::LiveShape::Rect { rect, .. }) = &sh.live {
                     let x0 = rect[0].min(rect[0] + rect[2]);
                     let x1 = rect[0].max(rect[0] + rect[2]);
                     let y0 = rect[1].min(rect[1] + rect[3]);
@@ -273,7 +273,7 @@ pub fn pick_shape_at(doc: &Document, at: [f64; 2], tol: f64) -> Option<localpain
                         return Some(l.id);
                     }
                 }
-                if let Some(localpaint_doc::LiveShape::Ellipse { rect }) = &sh.live {
+                if let Some(localraster_doc::LiveShape::Ellipse { rect }) = &sh.live {
                     let rx = rect[2].abs() / 2.0;
                     let ry = rect[3].abs() / 2.0;
                     if rx > 1e-6 && ry > 1e-6 {
@@ -295,7 +295,7 @@ pub fn pick_shape_at(doc: &Document, at: [f64; 2], tol: f64) -> Option<localpain
     None
 }
 
-pub fn path_selection_finish(app: &mut LocalPaintApp, start: [f64; 2], end: [f64; 2]) {
+pub fn path_selection_finish(app: &mut LocalRasterApp, start: [f64; 2], end: [f64; 2]) {
     let (dx, dy) = (end[0] - start[0], end[1] - start[1]);
     let tol = 6.0 / f64::from(app.point_zoom().max(0.01));
     if dx.abs() + dy.abs() < 0.5 {
@@ -324,15 +324,15 @@ pub fn path_selection_finish(app: &mut LocalPaintApp, start: [f64; 2], end: [f64
         PathTarget::Shape(id) => app.run("shape.edit", json!({"layer": id, "move": [dx.round(), dy.round()]})),
         PathTarget::VectorMask(id) => {
             let moved = path.transform(&Affine::translate(dx.round(), dy.round()));
-            app.run("layer.vectorMask.edit", json!({"layer": id, "path": localpaint_engine::vector_cmds::path_json(&moved)}))
+            app.run("layer.vectorMask.edit", json!({"layer": id, "path": localraster_engine::vector_cmds::path_json(&moved)}))
         }
         PathTarget::Work => {
             let moved = path.transform(&Affine::translate(dx.round(), dy.round()));
-            app.run("path.set", json!({"name": "work", "path": localpaint_engine::vector_cmds::path_json(&moved)}))
+            app.run("path.set", json!({"name": "work", "path": localraster_engine::vector_cmds::path_json(&moved)}))
         }
         PathTarget::Saved(name) => {
             let moved = path.transform(&Affine::translate(dx.round(), dy.round()));
-            app.run("path.set", json!({"name": name, "path": localpaint_engine::vector_cmds::path_json(&moved)}))
+            app.run("path.set", json!({"name": name, "path": localraster_engine::vector_cmds::path_json(&moved)}))
         }
     };
 }

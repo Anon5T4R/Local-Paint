@@ -1,6 +1,6 @@
 use super::convert::{apply_raw_conversions, open_pixels, output_sharpening, raw_conversions};
 use super::sidecar::{read_sidecar, write_sidecar};
-use super::{CameraRaw, LayerId, LocalPaintApp, Rect, Value, json};
+use super::{CameraRaw, LayerId, LocalRasterApp, Rect, Value, json};
 
 /// Opens the dialog on the active layer.
 /// Where OK writes: a new filter on the layer, or an existing smart filter (by index).
@@ -17,39 +17,39 @@ pub(super) enum Target {
 /// raws in Adobe Camera Raw first). The document is already developed with the defaults; Open
 /// re-develops it when Temperature, Tint, Exposure, Shadows, Highlights, Clarity, Texture,
 /// Dehaze or the demosaic method changed (those act on the sensor data, see
-/// [`localpaint_io::raw::import_raw_tuned`]) and applies the other settings as one Camera Raw
+/// [`localraster_io::raw::import_raw_tuned`]) and applies the other settings as one Camera Raw
 /// step, then marks the document unmodified. Cancel closes it.
 #[derive(Clone, Debug)]
 pub struct RawOpen {
-    pub document: localpaint_doc::DocId,
+    pub document: localraster_doc::DocId,
     pub name: String,
     pub path: Option<String>,
     /// The file, when it was opened from bytes (no path to read it again from).
     pub bytes: Option<std::sync::Arc<Vec<u8>>>,
     /// The demosaic method the open developed it with.
-    pub developed_with: localpaint_io::raw::Demosaic,
+    pub developed_with: localraster_io::raw::Demosaic,
     /// The method chosen in the dialog: Open re-develops when it differs from `developed_with`.
-    pub demosaic: localpaint_io::raw::Demosaic,
+    pub demosaic: localraster_io::raw::Demosaic,
 }
 
 /// Should an interactive open of `name` show the open-time Camera Raw dialog? `warnings` are
 /// the import's: only a raw developed from its sensor data qualifies (not a preview fallback).
-pub fn wants_open_dialog(app: &LocalPaintApp, warnings: &[String]) -> bool {
-    app.session.prefs().raw_defaults.open_in_camera_raw && warnings.iter().any(|w| w.contains(localpaint_io::raw::DEVELOPED_NOTE))
+pub fn wants_open_dialog(app: &LocalRasterApp, warnings: &[String]) -> bool {
+    app.session.prefs().raw_defaults.open_in_camera_raw && warnings.iter().any(|w| w.contains(localraster_io::raw::DEVELOPED_NOTE))
 }
 
 /// `warnings` without the "developed with default settings" note: the open-time dialog shows
 /// how the raw is developed.
 pub fn without_develop_note(warnings: &[String]) -> Vec<String> {
-    warnings.iter().filter(|w| !w.contains(localpaint_io::raw::DEVELOPED_NOTE)).cloned().collect()
+    warnings.iter().filter(|w| !w.contains(localraster_io::raw::DEVELOPED_NOTE)).cloned().collect()
 }
 
 /// Queues the open-time dialog for the document whose import completed, independent of the
 /// active tab. A delayed completion for a closed document must not review another photograph.
 /// `warnings` are the import's: its note says which demosaic method the open developed with.
 pub fn queue_open_dialog(
-    app: &mut LocalPaintApp,
-    document: localpaint_doc::DocId,
+    app: &mut LocalRasterApp,
+    document: localraster_doc::DocId,
     name: &str,
     path: Option<&str>,
     bytes: Option<&[u8]>,
@@ -60,7 +60,7 @@ pub fn queue_open_dialog(
     }
     // The method the open actually used (`jobs::import_options` at the job's start), from its
     // note: the preference may have changed while a background open ran.
-    let method = localpaint_io::raw::developed_demosaic(warnings).unwrap_or_else(|| app.session.prefs().raw_defaults.demosaic.method());
+    let method = localraster_io::raw::developed_demosaic(warnings).unwrap_or_else(|| app.session.prefs().raw_defaults.demosaic.method());
     app.pending_raw_open = Some(RawOpen {
         document,
         name: name.to_string(),
@@ -73,7 +73,7 @@ pub fn queue_open_dialog(
 }
 
 /// Opens the queued open-time dialog on its document's (only) layer.
-pub(super) fn open_raw(app: &mut LocalPaintApp, ctx: &egui::Context, raw: RawOpen) -> Result<(), String> {
+pub(super) fn open_raw(app: &mut LocalRasterApp, ctx: &egui::Context, raw: RawOpen) -> Result<(), String> {
     let index = document_index(app, raw.document).ok_or("the raw document was closed")?;
     app.session.set_active(index);
     let (layer, surf, _) = crate::distort_ui::active_pixels(app)?;
@@ -100,12 +100,12 @@ pub(super) fn open_raw(app: &mut LocalPaintApp, ctx: &egui::Context, raw: RawOpe
         && app.session.prefs().raw_defaults.apply_auto_tone
         && let Some(d) = app.camera_raw.as_mut()
     {
-        localpaint_algo::camera_raw::auto_tone(&d.proxy, &mut d.params);
+        localraster_algo::camera_raw::auto_tone(&d.proxy, &mut d.params);
         d.dirty = true;
     }
     let curve = match (&raw.bytes, &raw.path) {
-        (Some(b), _) => Some(localpaint_io::raw::tone_curve(b)),
-        (None, Some(p)) => std::fs::read(p).ok().map(|b| localpaint_io::raw::tone_curve(&b)),
+        (Some(b), _) => Some(localraster_io::raw::tone_curve(b)),
+        (None, Some(p)) => std::fs::read(p).ok().map(|b| localraster_io::raw::tone_curve(&b)),
         _ => None,
     };
     if let Some(d) = app.camera_raw.as_mut() {
@@ -119,7 +119,7 @@ pub(super) fn open_raw(app: &mut LocalPaintApp, ctx: &egui::Context, raw: RawOpe
     Ok(())
 }
 
-pub(super) fn document_index(app: &LocalPaintApp, id: localpaint_doc::DocId) -> Option<usize> {
+pub(super) fn document_index(app: &LocalRasterApp, id: localraster_doc::DocId) -> Option<usize> {
     app.session.documents().iter().position(|st| st.doc.id == id)
 }
 
@@ -144,19 +144,19 @@ pub const REDEVELOP_JOB: &str = "cameraRaw.redevelop";
 /// An open-time re-develop running in the background: what to finish with when it lands.
 #[derive(Clone, Debug)]
 pub struct Redevelop {
-    pub job: localpaint_engine::jobs::JobId,
+    pub job: localraster_engine::jobs::JobId,
     params: CameraRaw,
     raw: RawOpen,
     /// The job is the final Camera Raw step (`filter.cameraRaw`), not the re-develop: when it
     /// lands the Camera Raw Defaults' conversions follow and the document is marked unmodified.
     filter_step: bool,
     /// The Camera Raw Defaults the open started with, for the conversions after the filter step.
-    defaults: localpaint_engine::prefs::RawDefaults,
+    defaults: localraster_engine::prefs::RawDefaults,
 }
 
 /// The sliders a raw open applies while developing, before the tone curve (as Camera Raw does).
-pub(super) fn raw_stage(p: &CameraRaw) -> localpaint_io::raw::Tone {
-    localpaint_io::raw::Tone { shadows: p.shadows, highlights: p.highlights, clarity: p.clarity, texture: p.texture, dehaze: p.dehaze }
+pub(super) fn raw_stage(p: &CameraRaw) -> localraster_io::raw::Tone {
+    localraster_io::raw::Tone { shadows: p.shadows, highlights: p.highlights, clarity: p.clarity, texture: p.texture, dehaze: p.dehaze }
 }
 
 /// Open: re-develop for raw-stage settings, apply the rest, keep the document unmodified.
@@ -165,10 +165,10 @@ pub(super) fn raw_stage(p: &CameraRaw) -> localpaint_io::raw::Tone {
 /// on) it runs as a job like the open itself: the reply is `{"job", "pending": true}`, the
 /// document is locked meanwhile, and [`on_redevelop_event`] finishes when it lands. Elsewhere
 /// (tests, the web) it runs inline.
-pub(super) fn commit_open_raw(app: &mut LocalPaintApp, params: &CameraRaw, raw: &RawOpen, loaded: Option<&CameraRaw>) -> Result<Value, String> {
+pub(super) fn commit_open_raw(app: &mut LocalRasterApp, params: &CameraRaw, raw: &RawOpen, loaded: Option<&CameraRaw>) -> Result<Value, String> {
     let index = document_index(app, raw.document).ok_or("the raw document was closed")?;
     write_sidecar(app, raw, params, loaded);
-    let tuning = localpaint_io::raw::RawTuning {
+    let tuning = localraster_io::raw::RawTuning {
         temperature: params.temperature,
         tint: params.tint,
         exposure: params.exposure,
@@ -180,11 +180,11 @@ pub(super) fn commit_open_raw(app: &mut LocalPaintApp, params: &CameraRaw, raw: 
         dehaze: params.dehaze,
     };
     // The open itself: the default settings, developed with the method it was opened with.
-    let as_opened = localpaint_io::raw::RawTuning { demosaic: raw.developed_with, ..Default::default() };
+    let as_opened = localraster_io::raw::RawTuning { demosaic: raw.developed_with, ..Default::default() };
     // Without the file the raw-stage settings stay RGB adjustments, like the filter's.
     let source = match (&raw.bytes, &raw.path) {
-        (Some(b), _) => Some(localpaint_engine::jobs::OpenSource::Bytes(b.clone())),
-        (None, Some(p)) => Some(localpaint_engine::jobs::OpenSource::Path(p.clone())),
+        (Some(b), _) => Some(localraster_engine::jobs::OpenSource::Bytes(b.clone())),
+        (None, Some(p)) => Some(localraster_engine::jobs::OpenSource::Path(p.clone())),
         _ => None,
     };
     let Some(source) = source.filter(|_| tuning != as_opened) else {
@@ -193,32 +193,32 @@ pub(super) fn commit_open_raw(app: &mut LocalPaintApp, params: &CameraRaw, raw: 
     };
     app.session.set_active(index);
     let (name, doc_id) = (raw.name.clone(), raw.document);
-    let work = move |ctx: &localpaint_engine::jobs::JobCtx| -> localpaint_engine::Result<(localpaint_io::ImportResult, bool)> {
+    let work = move |ctx: &localraster_engine::jobs::JobCtx| -> localraster_engine::Result<(localraster_io::ImportResult, bool)> {
         ctx.progress(0.0, "Reading");
         let bytes = match source {
-            localpaint_engine::jobs::OpenSource::Bytes(b) => b,
-            localpaint_engine::jobs::OpenSource::Path(p) => {
-                std::sync::Arc::new(std::fs::read(&p).map_err(|e| localpaint_engine::EngineError::Other(format!("{p}: {e}")))?)
+            localraster_engine::jobs::OpenSource::Bytes(b) => b,
+            localraster_engine::jobs::OpenSource::Path(p) => {
+                std::sync::Arc::new(std::fs::read(&p).map_err(|e| localraster_engine::EngineError::Other(format!("{p}: {e}")))?)
             }
         };
         ctx.check()?;
         ctx.progress(0.05, "Developing");
-        localpaint_io::raw::import_raw_tuned(&name, &bytes, &tuning).map_err(|e| localpaint_engine::EngineError::Other(e.to_string()))
+        localraster_io::raw::import_raw_tuned(&name, &bytes, &tuning).map_err(|e| localraster_engine::EngineError::Other(e.to_string()))
     };
-    let apply = move |s: &mut localpaint_engine::Session, (r, wb): (localpaint_io::ImportResult, bool)| replace_raw_document(s, doc_id, r, wb);
+    let apply = move |s: &mut localraster_engine::Session, (r, wb): (localraster_io::ImportResult, bool)| replace_raw_document(s, doc_id, r, wb);
     let label = crate::i18n::fmt(tl!("Developing {name}"), &[("name", &raw.name)]);
     let started = if app.background_jobs {
         app.session.start_job(REDEVELOP_JOB, json!({"name": raw.name}), &label, true, work, apply).map_err(|e| e.to_string())?
     } else {
-        let v = work(&localpaint_engine::jobs::JobCtx::new()).and_then(|t| apply(&mut app.session, t)).map_err(|e| e.to_string())?;
-        localpaint_engine::jobs::Started::Done(v)
+        let v = work(&localraster_engine::jobs::JobCtx::new()).and_then(|t| apply(&mut app.session, t)).map_err(|e| e.to_string())?;
+        localraster_engine::jobs::Started::Done(v)
     };
     match started {
-        localpaint_engine::jobs::Started::Done(v) => {
+        localraster_engine::jobs::Started::Done(v) => {
             let defaults = app.session.prefs().raw_defaults.clone();
             finish_redevelop(app, params, raw, &v, &defaults)
         }
-        localpaint_engine::jobs::Started::Job(job) => {
+        localraster_engine::jobs::Started::Job(job) => {
             let defaults = app.session.prefs().raw_defaults.clone();
             app.raw_redevelop.push(Redevelop { job, params: params.clone(), raw: raw.clone(), filter_step: false, defaults });
             app.ui.status = label;
@@ -232,13 +232,13 @@ pub(super) fn commit_open_raw(app: &mut LocalPaintApp, params: &CameraRaw, raw: 
 /// position and with the same path. Returns `{document, docId, previous, warnings, wb}`:
 /// `document` is the tab index at apply time, `docId` is the replacement's stable identity.
 pub(super) fn replace_raw_document(
-    s: &mut localpaint_engine::Session,
-    doc_id: localpaint_doc::DocId,
-    mut r: localpaint_io::ImportResult,
+    s: &mut localraster_engine::Session,
+    doc_id: localraster_doc::DocId,
+    mut r: localraster_io::ImportResult,
     wb: bool,
-) -> localpaint_engine::Result<Value> {
+) -> localraster_engine::Result<Value> {
     let index =
-        s.documents().iter().position(|st| st.doc.id == doc_id).ok_or_else(|| localpaint_engine::EngineError::Other("the raw document was closed".into()))?;
+        s.documents().iter().position(|st| st.doc.id == doc_id).ok_or_else(|| localraster_engine::EngineError::Other("the raw document was closed".into()))?;
     let path = s.documents().get(index).and_then(|st| st.path.clone());
     // The resolution it opened with (Preferences › Raw Defaults), which re-developing keeps.
     if let Some(st) = s.documents().get(index) {
@@ -246,7 +246,7 @@ pub(super) fn replace_raw_document(
     }
     s.close(index);
     let (opened, _) = s.open_document(r.document, path);
-    let replacement = s.documents().get(opened).ok_or(localpaint_engine::EngineError::NoDocument)?.doc.id;
+    let replacement = s.documents().get(opened).ok_or(localraster_engine::EngineError::NoDocument)?.doc.id;
     let index = match s.execute("document.move", json!({"document": opened, "to": index})) {
         Ok(moved) => moved.get("document").and_then(Value::as_u64).map_or(opened, |i| i as usize),
         Err(_) => opened,
@@ -258,15 +258,15 @@ pub(super) fn replace_raw_document(
 /// After the re-develop: keep the old document's view (zoom, scroll) on the new one, report
 /// the import's notes, then apply the remaining settings.
 pub(super) fn finish_redevelop(
-    app: &mut LocalPaintApp,
+    app: &mut LocalRasterApp,
     params: &CameraRaw,
     raw: &RawOpen,
     v: &Value,
-    defaults: &localpaint_engine::prefs::RawDefaults,
+    defaults: &localraster_engine::prefs::RawDefaults,
 ) -> Result<Value, String> {
     // A preceding completion (for example Save and Close) may have shifted the tab indices.
     // Validate identity before remapping views, filtering or marking any document unmodified.
-    let replacement = v.get("docId").and_then(Value::as_u64).map(localpaint_doc::DocId).ok_or("the re-develop returned no document identity")?;
+    let replacement = v.get("docId").and_then(Value::as_u64).map(localraster_doc::DocId).ok_or("the re-develop returned no document identity")?;
     let index = document_index(app, replacement).ok_or("the re-developed document was closed")?;
     for id in app.view_docs.iter_mut().filter(|id| **id == raw.document) {
         *id = replacement;
@@ -295,12 +295,12 @@ pub(super) fn finish_redevelop(
 /// pixels the dialog previewed, and the conversion to the workflow space comes last, as in
 /// Camera Raw.
 fn finish_open_raw(
-    app: &mut LocalPaintApp,
+    app: &mut LocalRasterApp,
     index: usize,
     mut rest: CameraRaw,
     redeveloped: Option<bool>,
     raw: &RawOpen,
-    d: &localpaint_engine::prefs::RawDefaults,
+    d: &localraster_engine::prefs::RawDefaults,
 ) -> Result<Value, String> {
     app.session.set_active(index);
     app.sync_views();
@@ -318,7 +318,7 @@ fn finish_open_raw(
         if r.get("pending").and_then(Value::as_bool) == Some(true)
             && let Some(job) = r.get("job").and_then(Value::as_u64)
         {
-            let job = localpaint_engine::jobs::JobId(job);
+            let job = localraster_engine::jobs::JobId(job);
             app.raw_redevelop.push(Redevelop { job, params: rest.clone(), raw: raw.clone(), filter_step: true, defaults: d.clone() });
             result["filter"] = r;
             mark_unmodified(app, index);
@@ -338,12 +338,12 @@ fn finish_open_raw(
 /// A raw that opened without the dialog (Camera Raw Defaults › Open in Camera Raw off): its
 /// sidecar's settings develop it as the dialog's Open would, and the Camera Raw Defaults apply.
 /// `warnings` are the import's; only a developed raw qualifies.
-pub fn opened_without_dialog(app: &mut LocalPaintApp, index: usize, name: &str, path: Option<&str>, warnings: &[String]) {
-    if !warnings.iter().any(|w| w.contains(localpaint_io::raw::DEVELOPED_NOTE)) {
+pub fn opened_without_dialog(app: &mut LocalRasterApp, index: usize, name: &str, path: Option<&str>, warnings: &[String]) {
+    if !warnings.iter().any(|w| w.contains(localraster_io::raw::DEVELOPED_NOTE)) {
         return;
     }
     let Some(document) = app.session.documents().get(index).map(|st| st.doc.id) else { return };
-    let method = localpaint_io::raw::developed_demosaic(warnings).unwrap_or_else(|| app.session.prefs().raw_defaults.demosaic.method());
+    let method = localraster_io::raw::developed_demosaic(warnings).unwrap_or_else(|| app.session.prefs().raw_defaults.demosaic.method());
     let raw = RawOpen { document, name: name.to_string(), path: path.map(str::to_string), bytes: None, developed_with: method, demosaic: method };
     let mut params = CameraRaw::default();
     let sidecar = path.and_then(read_sidecar).map(|(loaded, _, _)| loaded);
@@ -352,7 +352,7 @@ pub fn opened_without_dialog(app: &mut LocalPaintApp, index: usize, name: &str, 
     } else if app.session.prefs().raw_defaults.apply_auto_tone
         && let Some(px) = app.session.active().and_then(|st| st.doc.layer(st.active_layer?)).and_then(|l| l.surface()).map(|s| sample_pixels(s, 512))
     {
-        localpaint_algo::camera_raw::auto_tone(&px, &mut params);
+        localraster_algo::camera_raw::auto_tone(&px, &mut params);
     }
     let r = if params.is_identity() {
         let defaults = app.session.prefs().raw_defaults.clone();
@@ -368,7 +368,7 @@ pub fn opened_without_dialog(app: &mut LocalPaintApp, index: usize, name: &str, 
 
 /// Every k-th pixel of a surface's content, k chosen so the longer side has about `max_side`
 /// samples: enough for a histogram (Auto tone) without reading a whole raw.
-fn sample_pixels(surf: &localpaint_raster::Surface, max_side: usize) -> Vec<[f32; 4]> {
+fn sample_pixels(surf: &localraster_raster::Surface, max_side: usize) -> Vec<[f32; 4]> {
     let area = surf.content_bounds();
     let (w, h) = (area.x1.saturating_sub(area.x0).max(0) as usize, area.y1.saturating_sub(area.y0).max(0) as usize);
     if w == 0 || h == 0 {
@@ -385,7 +385,7 @@ fn sample_pixels(surf: &localpaint_raster::Surface, max_side: usize) -> Vec<[f32
     out
 }
 
-fn mark_unmodified(app: &mut LocalPaintApp, index: usize) {
+fn mark_unmodified(app: &mut LocalRasterApp, index: usize) {
     let active = app.session.active_index();
     app.session.set_active(index);
     if let Some(st) = app.session.active_mut() {
@@ -399,7 +399,7 @@ fn mark_unmodified(app: &mut LocalPaintApp, index: usize) {
 
 /// A finished background re-develop ([`REDEVELOP_JOB`]) or open-time Camera Raw step. `true`
 /// when the event was one of those (handled here).
-pub fn on_redevelop_event(app: &mut LocalPaintApp, e: &localpaint_engine::jobs::JobEvent) -> bool {
+pub fn on_redevelop_event(app: &mut LocalRasterApp, e: &localraster_engine::jobs::JobEvent) -> bool {
     let Some(at) = app.raw_redevelop.iter().position(|r| r.job == e.id) else { return false };
     let pending = app.raw_redevelop.remove(at);
     if pending.filter_step {
@@ -413,7 +413,7 @@ pub fn on_redevelop_event(app: &mut LocalPaintApp, e: &localpaint_engine::jobs::
             if let Some(i) = active {
                 app.session.set_active(i);
             }
-            if matches!(e.outcome, localpaint_engine::jobs::JobOutcome::Done(_)) {
+            if matches!(e.outcome, localraster_engine::jobs::JobOutcome::Done(_)) {
                 mark_unmodified(app, index);
             }
             app.sync_views();
@@ -422,19 +422,19 @@ pub fn on_redevelop_event(app: &mut LocalPaintApp, e: &localpaint_engine::jobs::
         return false;
     }
     match &e.outcome {
-        localpaint_engine::jobs::JobOutcome::Done(v) => match finish_redevelop(app, &pending.params, &pending.raw, v, &pending.defaults) {
+        localraster_engine::jobs::JobOutcome::Done(v) => match finish_redevelop(app, &pending.params, &pending.raw, v, &pending.defaults) {
             Ok(_) => {
                 app.ui.status = crate::i18n::fmt(tl!("Opened {name}"), &[("name", &pending.raw.name)]);
                 app.ui.status_error = false;
             }
             Err(err) => crate::notices::error(app, format!("{}: {err}", e.label)),
         },
-        localpaint_engine::jobs::JobOutcome::Failed(err) => {
+        localraster_engine::jobs::JobOutcome::Failed(err) => {
             // The document stays open, developed with the defaults.
             app.sync_views();
             crate::notices::error(app, format!("{}: {err}", e.label));
         }
-        localpaint_engine::jobs::JobOutcome::Cancelled => {
+        localraster_engine::jobs::JobOutcome::Cancelled => {
             app.ui.status = crate::i18n::fmt(tl!("Cancelled {label}"), &[("label", &e.label)]);
             app.ui.status_error = false;
         }
@@ -443,7 +443,7 @@ pub fn on_redevelop_event(app: &mut LocalPaintApp, e: &localpaint_engine::jobs::
 }
 
 /// Cancel: closes the dialog; for the open-time dialog also the document it was opening.
-pub(super) fn cancel(app: &mut LocalPaintApp) {
+pub(super) fn cancel(app: &mut LocalRasterApp) {
     let Some(d) = app.camera_raw.take() else { return };
     if let (Target::OpenRaw, Some(raw)) = (d.target, &d.raw_open)
         && let Some(index) = document_index(app, raw.document)
@@ -459,15 +459,15 @@ pub(super) fn cancel(app: &mut LocalPaintApp) {
 /// engine does), a smart object's filter mask, or nothing.
 pub(super) enum Coverage {
     Selection,
-    Mask(localpaint_doc::LayerMask),
+    Mask(localraster_doc::LayerMask),
     None,
 }
 
-pub fn open(app: &mut LocalPaintApp, ctx: &egui::Context) -> Result<(), String> {
-    if localpaint_engine::color_channels::selected(&app.session).is_some_and(|c| c.len() > 1) {
+pub fn open(app: &mut LocalRasterApp, ctx: &egui::Context) -> Result<(), String> {
+    if localraster_engine::color_channels::selected(&app.session).is_some_and(|c| c.len() > 1) {
         return Err("Camera Raw requires the composite or one colour channel".into());
     }
-    localpaint_engine::commands::find("filter.cameraRaw").map(|c| (c.enabled)(&app.session)).unwrap_or(Err("unknown command".into()))?;
+    localraster_engine::commands::find("filter.cameraRaw").map(|c| (c.enabled)(&app.session)).unwrap_or(Err("unknown command".into()))?;
     let (layer, surf, _) = crate::distort_ui::active_pixels(app)?;
     open_pixels(app, ctx, layer, surf, CameraRaw::default(), Coverage::Selection, Target::NewFilter)
 }
@@ -475,10 +475,10 @@ pub fn open(app: &mut LocalPaintApp, ctx: &egui::Context) -> Result<(), String> 
 /// Opens Camera Raw on smart filter `index` of smart layer `layer`, with its stored settings and
 /// the pixels below it; OK updates that filter (`layer.smartFilter.setParams`), as double-clicking
 /// a Camera Raw smart filter does in Photoshop.
-pub fn open_smart_filter(app: &mut LocalPaintApp, ctx: &egui::Context, layer: LayerId, index: usize) -> Result<(), String> {
-    use localpaint_engine::lens_cmds::{RAW, raw_params};
+pub fn open_smart_filter(app: &mut LocalRasterApp, ctx: &egui::Context, layer: LayerId, index: usize) -> Result<(), String> {
+    use localraster_engine::lens_cmds::{RAW, raw_params};
     let st = app.session.active().ok_or("no document")?;
-    let Some(localpaint_doc::LayerContent::Smart(sm)) = st.doc.layer(layer).map(|l| &l.content) else {
+    let Some(localraster_doc::LayerContent::Smart(sm)) = st.doc.layer(layer).map(|l| &l.content) else {
         return Err("the layer is not a smart object".into());
     };
     let filter = sm.smart_filters.get(index).ok_or("no such smart filter")?;
@@ -486,7 +486,7 @@ pub fn open_smart_filter(app: &mut LocalPaintApp, ctx: &egui::Context, layer: La
         return Err("the smart filter is not a Camera Raw filter".into());
     }
     let params = raw_params(RAW, &filter.params).map_err(|e| e.to_string())?;
-    let surf = localpaint_engine::smart_cmds::render_below_filter(&st.doc, sm, index)
+    let surf = localraster_engine::smart_cmds::render_below_filter(&st.doc, sm, index)
         .map_err(|e| e.to_string())?
         .ok_or("the smart object's contents are unavailable (missing linked file?)")?;
     let coverage = sm.filter_mask.clone().filter(|m| m.enabled).map_or(Coverage::None, Coverage::Mask);

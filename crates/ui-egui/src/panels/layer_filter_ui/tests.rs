@@ -3,17 +3,17 @@
 use egui::vec2;
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
-use localpaint_color::BlendMode;
-use localpaint_doc::Document;
+use localraster_color::BlendMode;
+use localraster_doc::Document;
 use serde_json::json;
 
 use super::{Filter, FilterBy};
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::state::UiState;
 
 /// Background, "Ink" (Multiply) and "Paper" in a group "Sheets", and "ink notes" (type) on top.
-fn session() -> localpaint_engine::Session {
-    let mut s = localpaint_engine::Session::new();
+fn session() -> localraster_engine::Session {
+    let mut s = localraster_engine::Session::new();
     s.execute("file.new", json!({"width": 64, "height": 48})).unwrap();
     s.execute("layer.new.layer", json!({"name": "Paper"})).unwrap();
     s.execute("layer.groupLayers", json!({"name": "Sheets"})).unwrap();
@@ -90,18 +90,18 @@ fn saved_settings_without_the_new_fields_still_load() {
     assert_eq!(round["layer_filter_by"], "mode");
 }
 
-fn harness() -> Harness<'static, LocalPaintApp> {
+fn harness() -> Harness<'static, LocalRasterApp> {
     let session = session();
     let mut h = Harness::builder().with_size(vec2(1440.0, 900.0)).with_max_steps(64).build_eframe(move |cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        LocalPaintApp::new(session, crate::Services::default())
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        LocalRasterApp::new(session, crate::Services::default())
     });
     h.run_steps(8);
     h
 }
 
 /// The names of the rows the Layers panel drew, top to bottom.
-fn drawn(h: &Harness<'_, LocalPaintApp>) -> Vec<String> {
+fn drawn(h: &Harness<'_, LocalRasterApp>) -> Vec<String> {
     let doc = &h.state().session.active().unwrap().doc;
     let mut rows = crate::layer_row_ui::recorded(&h.ctx);
     rows.sort_by(|a, b| a.row.top().total_cmp(&b.row.top()));

@@ -1,6 +1,6 @@
 //! CR3 preview extraction never mistakes encoded sensor data for a JPEG.
-use localpaint_raw::testgen::cr3_preview;
-use localpaint_raw::{RawFormat, embedded_preview, embedded_previews, identify, orientation};
+use localraster_raw::testgen::cr3_preview;
+use localraster_raw::{RawFormat, embedded_preview, embedded_previews, identify, orientation};
 
 fn jpeg() -> Vec<u8> {
     vec![0xff, 0xd8, 0xff, 0xc0, 0, 11, 8, 0, 20, 0, 32, 1, 1, 0x11, 0, 0xff, 0xd9]

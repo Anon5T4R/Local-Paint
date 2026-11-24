@@ -1,5 +1,5 @@
-use localpaint_doc::{LayerContent, LayerId, SmartFilter};
-use localpaint_engine::{Session, smart_cmds};
+use localraster_doc::{LayerContent, LayerId, SmartFilter};
+use localraster_engine::{Session, smart_cmds};
 use serde_json::json;
 
 const STORED: [f32; 4] = [0.0, 0.0, 1.0, 1.0];
@@ -16,7 +16,7 @@ fn mockup() -> (Session, LayerId) {
         sm.smart_filters.push(SmartFilter {
             command: "psd.unsupportedFilter".into(),
             params: json!({"name": "Sharpen", "filterID": 1399353968, "psd": ""}),
-            blend: localpaint_color::BlendMode::Normal,
+            blend: localraster_color::BlendMode::Normal,
             opacity: 1.0,
             visible: true,
         });
@@ -29,14 +29,14 @@ fn mockup() -> (Session, LayerId) {
     (s, id)
 }
 
-fn cache(s: &Session, id: LayerId) -> localpaint_raster::Surface {
+fn cache(s: &Session, id: LayerId) -> localraster_raster::Surface {
     let LayerContent::Smart(sm) = &s.active().unwrap().doc.layer(id).unwrap().content else { panic!("not a smart object") };
     sm.cache.clone().unwrap()
 }
 
 fn png() -> Vec<u8> {
-    let image = localpaint_codecs::Image::from_u8(8, 8, localpaint_codecs::ChannelLayout::Rgb, vec![0; 8 * 8 * 3]).unwrap();
-    localpaint_codecs::encode(&image, localpaint_codecs::Format::Png, &Default::default()).unwrap()
+    let image = localraster_codecs::Image::from_u8(8, 8, localraster_codecs::ChannelLayout::Rgb, vec![0; 8 * 8 * 3]).unwrap();
+    localraster_codecs::encode(&image, localraster_codecs::Format::Png, &Default::default()).unwrap()
 }
 
 #[test]

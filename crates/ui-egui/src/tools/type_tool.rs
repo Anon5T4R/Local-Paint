@@ -10,12 +10,12 @@ use std::sync::{Arc, PoisonError};
 
 use egui::ime_context::{CommittedText, ImeContextTracker, ImeMutationStamp, ImeObservation, ImeTarget};
 use egui::{Color32, Pos2, Stroke};
-use localpaint_doc::{Document, LayerContent, LayerId, TextLayer};
-use localpaint_geom::{Affine, Point};
-use localpaint_text::TextLayout;
+use localraster_doc::{Document, LayerContent, LayerId, TextLayer};
+use localraster_geom::{Affine, Point};
+use localraster_text::TextLayout;
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::canvas::ViewXform;
 use crate::state::{BoxResize, TextEdit};
 
@@ -91,7 +91,7 @@ fn text_layer(doc: &Document, id: LayerId) -> Option<&TextLayer> {
 }
 
 fn byte_of(text: &str, ci: usize) -> usize {
-    localpaint_text::byte_index(text, ci)
+    localraster_text::byte_index(text, ci)
 }
 
 fn hex(c: [f32; 4]) -> String {
@@ -99,25 +99,25 @@ fn hex(c: [f32; 4]) -> String {
     format!("#{:02x}{:02x}{:02x}", b(c[0]), b(c[1]), b(c[2]))
 }
 
-fn session_key(app: &mut LocalPaintApp) -> String {
+fn session_key(app: &mut LocalRasterApp) -> String {
     format!("type-{}", app.ui.alloc_id())
 }
 
-fn active_doc_id(app: &LocalPaintApp) -> Option<u64> {
+fn active_doc_id(app: &LocalRasterApp) -> Option<u64> {
     app.session.active().map(|st| st.doc.id.0)
 }
 
-fn current_text(app: &LocalPaintApp, id: LayerId) -> Option<String> {
+fn current_text(app: &LocalRasterApp, id: LayerId) -> Option<String> {
     Some(text_layer(&app.session.active()?.doc, id)?.text.clone())
 }
 
 /// Character count without cloning the layer's text.
-fn text_char_count(app: &LocalPaintApp, id: LayerId) -> Option<usize> {
+fn text_char_count(app: &LocalRasterApp, id: LayerId) -> Option<usize> {
     Some(text_layer(&app.session.active()?.doc, id)?.text.chars().count())
 }
 
 /// The selected characters, clamped after undo/redo may have shortened the text.
-pub(crate) fn selected_range(app: &LocalPaintApp) -> Option<[usize; 2]> {
+pub(crate) fn selected_range(app: &LocalRasterApp) -> Option<[usize; 2]> {
     let ed = app.ui.text_edit.as_ref()?;
     let n = text_layer(&app.session.active()?.doc, LayerId(ed.layer))?.text.chars().count();
     let (a, b) = (ed.caret.min(ed.anchor).min(n), ed.caret.max(ed.anchor).min(n));

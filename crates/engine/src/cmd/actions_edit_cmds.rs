@@ -194,8 +194,8 @@ pub const CONDITIONS: &[&str] = &[
 /// Whether `condition` holds for the active document and layer. Layer conditions are false
 /// without a document or an active layer; `isOpen` is whether a document is open.
 pub fn evaluate(s: &Session, condition: &str) -> Result<bool> {
-    use localpaint_color::ColorMode;
-    use localpaint_doc::LayerContent;
+    use localraster_color::ColorMode;
+    use localraster_doc::LayerContent;
     if !CONDITIONS.contains(&condition) {
         return Err(bad("actions.conditional", format!("unknown condition `{condition}` ({})", CONDITIONS.join("|"))));
     }
@@ -217,9 +217,9 @@ pub fn evaluate(s: &Session, condition: &str) -> Result<bool> {
         "modeIsIndexed" => doc.mode == ColorMode::Indexed,
         "modeIsDuotone" => doc.mode == ColorMode::Duotone,
         "modeIsMultichannel" => doc.mode == ColorMode::Multichannel,
-        "depth8" => doc.depth == localpaint_color::SampleType::U8,
-        "depth16" => doc.depth == localpaint_color::SampleType::U16,
-        "depth32" => doc.depth == localpaint_color::SampleType::F32,
+        "depth8" => doc.depth == localraster_color::SampleType::U8,
+        "depth16" => doc.depth == localraster_color::SampleType::U16,
+        "depth32" => doc.depth == localraster_color::SampleType::F32,
         "unsaved" => d.is_dirty(),
         "hasSelection" => doc.selection.is_some(),
         // More than a lone Background: any layer that isn't the background.

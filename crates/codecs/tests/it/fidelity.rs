@@ -3,7 +3,7 @@
 use crate::common;
 use FidelityWarning as W;
 use common::*;
-use localpaint_codecs::*;
+use localraster_codecs::*;
 
 fn warns(img: &Image, f: Format) -> Vec<FidelityWarning> {
     fidelity_warnings(img, f)

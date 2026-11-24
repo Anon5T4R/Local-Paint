@@ -1,5 +1,5 @@
 use super::*;
-use localpaint_doc::StrokeFx;
+use localraster_doc::StrokeFx;
 
 /// #5701: with a shadow page selected, a drag on the image moves the shadow: its offset
 /// follows the pointer, as whole degrees and pixels, the global light angle with it.
@@ -33,14 +33,14 @@ fn dragging_on_the_image_moves_the_selected_shadow() {
     assert_eq!(params(&f, "fx1"), (120.0, 0.0));
 }
 
-fn session() -> localpaint_engine::Session {
-    let mut s = localpaint_engine::Session::new();
+fn session() -> localraster_engine::Session {
+    let mut s = localraster_engine::Session::new();
     s.execute("file.new", json!({"width": 64, "height": 64})).unwrap();
     s.execute("layer.new.layer", json!({})).unwrap();
     s
 }
 
-fn strokes_of(s: &localpaint_engine::Session) -> Vec<StrokeFx> {
+fn strokes_of(s: &localraster_engine::Session) -> Vec<StrokeFx> {
     let d = s.active().unwrap();
     let id = d.active_layer.unwrap();
     d.doc
@@ -60,12 +60,12 @@ fn strokes_of(s: &localpaint_engine::Session) -> Vec<StrokeFx> {
 /// layer yet (an empty box), not only after one was turned on and off again.
 #[test]
 fn every_effect_row_shows_a_checkbox() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 32, "height": 32})).unwrap();
-    let l = Layer::raster("x", localpaint_doc::PixelFormat::RGBA8);
+    let l = Layer::raster("x", localraster_doc::PixelFormat::RGBA8);
     let fields = initial_fields(&l, Some(BLENDING), 120.0);
     let mut h = egui_kittest::Harness::builder().with_size(vec2(900.0, 700.0)).build_ui_state(
-        move |ui, app: &mut LocalPaintApp| {
+        move |ui, app: &mut LocalRasterApp| {
             if !ui.ctx().fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                 return;
             }
@@ -74,7 +74,7 @@ fn every_effect_row_shows_a_checkbox() {
         },
         app,
     );
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ProMedium);
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ProMedium);
     h.run_steps(3);
     let boxes: Vec<egui::Rect> = h
         .output()
@@ -99,12 +99,12 @@ fn default_buttons_wrap_inside_the_page_column_with_long_labels() {
     use egui_kittest::kittest::Queryable;
     let ru = crate::i18n::Lang::from_code("ru").unwrap();
     crate::i18n::with_language(ru, || {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 32, "height": 32})).unwrap();
-        let l = Layer::raster("x", localpaint_doc::PixelFormat::RGBA8);
+        let l = Layer::raster("x", localraster_doc::PixelFormat::RGBA8);
         let fields = initial_fields(&l, Some("dropShadow"), 120.0);
         let mut h = egui_kittest::Harness::builder().with_size(vec2(660.0, 700.0)).build_ui_state(
-            move |ui, app: &mut LocalPaintApp| {
+            move |ui, app: &mut LocalRasterApp| {
                 if !ui.ctx().fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                     return;
                 }
@@ -113,7 +113,7 @@ fn default_buttons_wrap_inside_the_page_column_with_long_labels() {
             },
             app,
         );
-        LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ProMedium);
+        LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ProMedium);
         h.run_steps(3);
         let reset = h.get_by_role_and_label(egui::accesskit::Role::Button, crate::i18n::tr(ru, "Reset to Default")).rect();
         let make = h.get_by_role_and_label(egui::accesskit::Role::Button, crate::i18n::tr(ru, "Make Default")).rect();
@@ -128,7 +128,7 @@ fn default_buttons_wrap_inside_the_page_column_with_long_labels() {
 /// the dialog holds its effects (and OK edits it), not the active layer's.
 #[test]
 fn effect_row_of_another_layer_opens_that_layers_style() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 32, "height": 32})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     let with_fx = app.session.active().unwrap().active_layer.unwrap();
@@ -152,7 +152,7 @@ fn effect_row_of_another_layer_opens_that_layers_style() {
 /// list's checkbox or +, starts from the saved values; other kinds keep the factory ones.
 #[test]
 fn new_effects_start_from_the_made_default() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 32, "height": 32})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     app.run("layer.layerStyle.makeDefault", json!({"kind": "stroke", "params": {"size": 7, "position": "outside"}})).unwrap();
@@ -186,7 +186,7 @@ fn every_kind_has_spec_and_defaults() {
 #[test]
 fn adding_an_effect_after_maximum_instance_id_uses_an_unused_id() {
     // Imported and scripted effects can provide arbitrary instance IDs.
-    let layer = Layer::raster("x", localpaint_doc::PixelFormat::RGBA8);
+    let layer = Layer::raster("x", localraster_doc::PixelFormat::RGBA8);
     let mut fields = initial_fields(&layer, None, 120.0);
     fields.insert(
         "effects".into(),
@@ -204,7 +204,7 @@ fn adding_an_effect_after_maximum_instance_id_uses_an_unused_id() {
 
 #[test]
 fn initial_fields_lists_every_instance_and_selects() {
-    let l = Layer::raster("x", localpaint_doc::PixelFormat::RGBA8);
+    let l = Layer::raster("x", localraster_doc::PixelFormat::RGBA8);
     let f = initial_fields(&l, Some("stroke"), 120.0);
     assert_eq!(f["globalLight"], json!(120.0));
     // The kind isn't on the layer yet: selecting it creates the instance.
@@ -233,8 +233,8 @@ fn open_and_confirm_preserves_two_strokes() {
     let strokes = strokes_of(&s);
     assert_eq!(strokes.len(), 2);
     assert_eq!((strokes[0].size, strokes[1].size), (3.0, 7.0));
-    assert_eq!(strokes[0].paint, FxPaint::Color(localpaint_color::Color::BLACK));
-    assert_eq!(strokes[1].paint, FxPaint::Color(localpaint_color::Color::WHITE));
+    assert_eq!(strokes[0].paint, FxPaint::Color(localraster_color::Color::BLACK));
+    assert_eq!(strokes[1].paint, FxPaint::Color(localraster_color::Color::WHITE));
 }
 
 #[test]
@@ -251,7 +251,7 @@ fn editing_one_instance_leaves_its_sibling_alone() {
     assert_eq!(strokes.len(), 2);
     assert_eq!(strokes[0].size, 5.0);
     assert_eq!(strokes[1].size, 7.0, "the second stroke is untouched");
-    assert_eq!(strokes[1].paint, FxPaint::Color(localpaint_color::Color::WHITE));
+    assert_eq!(strokes[1].paint, FxPaint::Color(localraster_color::Color::WHITE));
 }
 
 #[test]
@@ -322,7 +322,7 @@ fn disabled_instances_are_kept() {
 /// The preview swatch shows the dialog's pending style, built away from the document.
 #[test]
 fn pending_style_is_the_dialogs_and_leaves_the_document_alone() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 16, "height": 16})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     let id = app.session.active().unwrap().active_layer.unwrap();
@@ -339,7 +339,7 @@ fn pending_style_is_the_dialogs_and_leaves_the_document_alone() {
         .collect();
     assert_eq!(sizes, [9.0]);
     assert!(app.session.active().unwrap().doc.layer(id).unwrap().effects.items.is_empty(), "the document is untouched");
-    let rgba = localpaint_engine::presets::styles::thumbnail(&app.session, &style, 32);
+    let rgba = localraster_engine::presets::styles::thumbnail(&app.session, &style, 32);
     assert_eq!(rgba.len(), 32 * 32 * 4);
 }
 
@@ -374,13 +374,13 @@ fn baked_gradient_overlay_keeps_endpoint_colours_on_reopen() {
     let f = initial_fields(layer, Some("gradientOverlay"), st.doc.global_light.angle);
     let params = &effects_of(&f)[0]["params"];
     let source_stops = gradient_field::stops_of(params.get("stops")).expect("complete gradient stops");
-    assert_eq!(source_stops.first().unwrap().1, localpaint_color::Color::rgb(1.0, 0.0, 0.0));
-    assert_eq!(source_stops.last().unwrap().1, localpaint_color::Color::rgb(0.0, 0.0, 1.0));
+    assert_eq!(source_stops.first().unwrap().1, localraster_color::Color::rgb(1.0, 0.0, 0.0));
+    assert_eq!(source_stops.last().unwrap().1, localraster_color::Color::rgb(0.0, 0.0, 1.0));
     apply(&f, |cmd, p| s.execute(cmd, p).map_err(|e| e.to_string())).unwrap();
     let Effect::GradientOverlay { gradient, .. } = &s.active().unwrap().doc.layer(id).unwrap().effects.items[0] else { panic!() };
     assert!(gradient.stops.len() > 2);
-    assert_eq!(gradient.stops.first().unwrap().1, localpaint_color::Color::rgb(1.0, 0.0, 0.0));
-    assert_eq!(gradient.stops.last().unwrap().1, localpaint_color::Color::rgb(0.0, 0.0, 1.0));
+    assert_eq!(gradient.stops.first().unwrap().1, localraster_color::Color::rgb(1.0, 0.0, 0.0));
+    assert_eq!(gradient.stops.last().unwrap().1, localraster_color::Color::rgb(0.0, 0.0, 1.0));
 }
 
 #[test]
@@ -397,8 +397,8 @@ fn gradient_strokes_survive_the_dialog() {
     assert_eq!(strokes.len(), 1);
     assert!(
         matches!(&strokes[0].paint, FxPaint::Gradient(g) if g.stops.len() == 2
-            && g.stops[0].1 == localpaint_color::Color::rgb(1.0, 0.0, 0.0)
-            && g.stops[1].1 == localpaint_color::Color::rgb(0.0, 0.0, 1.0)),
+            && g.stops[0].1 == localraster_color::Color::rgb(1.0, 0.0, 0.0)
+            && g.stops[1].1 == localraster_color::Color::rgb(0.0, 0.0, 1.0)),
         "the gradient is carried, not reset",
     );
 }
@@ -416,7 +416,7 @@ fn bevel_gloss_anti_alias_survives_the_dialog() {
     apply(&f, |cmd, p| s.execute(cmd, p).map_err(|e| e.to_string())).unwrap();
     let st = s.active().unwrap();
     let items = &st.doc.layer(id).unwrap().effects.items;
-    let Some(localpaint_doc::Effect::BevelEmboss(b)) = items.first() else { panic!("{items:?}") };
+    let Some(localraster_doc::Effect::BevelEmboss(b)) = items.first() else { panic!("{items:?}") };
     assert_eq!(b.size, 12.0);
     assert!(b.gloss_anti_alias);
 }
@@ -450,13 +450,13 @@ fn preview_applies_the_style_without_touching_the_document() {
     set_param(&mut f, "fx2", "size", json!(5));
     assert_ne!(preview_hash(&f), h);
     let shown = preview_document(&st.doc, &s.patterns, &f).unwrap();
-    let fx = |doc: &localpaint_doc::Document| doc.layer(id).unwrap().effects.items.len();
+    let fx = |doc: &localraster_doc::Document| doc.layer(id).unwrap().effects.items.len();
     assert_eq!((fx(&shown), fx(&st.doc)), (2, 0));
 }
 
 #[test]
 fn preview_rejects_non_object_effect_params() {
-    let mut s = localpaint_engine::Session::new();
+    let mut s = localraster_engine::Session::new();
     s.execute("file.new", json!({"width": 16, "height": 16})).unwrap();
     s.execute("layer.new.layer", json!({})).unwrap();
     let st = s.active().unwrap();
@@ -485,8 +485,8 @@ fn apply_rejects_non_object_params_before_running_commands() {
 #[test]
 fn body_keeps_invalid_params_and_renders_without_panicking() {
     let ctx = egui::Context::default();
-    LocalPaintApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    LocalRasterApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     for bad in [json!(7), json!(null), json!("x")] {
         let mut fields = Map::new();
         fields.insert("selected".into(), json!("fx1"));
@@ -525,11 +525,12 @@ fn disabled_effect_row_uses_muted_text_even_when_selected() {
 #[test]
 fn blending_page_renders_for_every_mode_and_odd_fields() {
     let ctx = egui::Context::default();
-    LocalPaintApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
-    let mut layer = localpaint_doc::Layer::new("L", localpaint_doc::LayerContent::Adjustment(localpaint_doc::Adjustment::Invert));
-    layer.advanced.knockout = localpaint_doc::Knockout::Deep;
-    for mode in [localpaint_color::ColorMode::Rgb, localpaint_color::ColorMode::Cmyk, localpaint_color::ColorMode::Lab, localpaint_color::ColorMode::Grayscale]
+    LocalRasterApp::setup_context(&ctx, crate::theme::ThemeKind::ALL[0]);
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
+    let mut layer = localraster_doc::Layer::new("L", localraster_doc::LayerContent::Adjustment(localraster_doc::Adjustment::Invert));
+    layer.advanced.knockout = localraster_doc::Knockout::Deep;
+    for mode in
+        [localraster_color::ColorMode::Rgb, localraster_color::ColorMode::Cmyk, localraster_color::ColorMode::Lab, localraster_color::ColorMode::Grayscale]
     {
         let mut f = initial_fields(&layer, Some(BLENDING), 120.0);
         set_blending_fields(&mut f, &layer, mode);
@@ -553,7 +554,7 @@ fn blending_page_renders_for_every_mode_and_odd_fields() {
 
 #[test]
 fn confirm_rejects_invalid_params_and_applies_valid_effects() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 16, "height": 16})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     let layer = app.session.active().unwrap().doc.layer(app.session.active().unwrap().active_layer.unwrap()).unwrap().clone();
@@ -570,9 +571,9 @@ fn confirm_rejects_invalid_params_and_applies_valid_effects() {
 
 #[test]
 fn blending_page_round_trips_advanced_blending_and_blend_if() {
-    use localpaint_doc::{BlendRange, Knockout};
+    use localraster_doc::{BlendRange, Knockout};
     for mode in ["rgb", "cmyk", "grayscale"] {
-        let mut s = localpaint_engine::Session::new();
+        let mut s = localraster_engine::Session::new();
         s.execute("file.new", json!({"width": 16, "height": 16, "mode": mode})).unwrap();
         s.execute("layer.new.layer", json!({})).unwrap();
         let st = s.active().unwrap();
@@ -654,7 +655,7 @@ fn blend_if_alt_split_and_drag_behavior() {
 fn contour_picker_and_editor_edit_the_effect_curve() {
     let mut s = session();
     s.execute("layer.layerStyle.dropShadow", json!({})).unwrap();
-    let shadow = |s: &localpaint_engine::Session| {
+    let shadow = |s: &localraster_engine::Session| {
         let d = s.active().unwrap();
         match &d.doc.layer(d.active_layer.unwrap()).unwrap().effects.items[0] {
             Effect::DropShadow(sh) => sh.contour.clone(),
@@ -666,7 +667,7 @@ fn contour_picker_and_editor_edit_the_effect_curve() {
     // The picker: Cone.
     contour::pick(&mut f, "fx1", "contour", "Cone");
     apply(&f, |cmd, p| s.execute(cmd, p).map_err(|e| e.to_string())).unwrap();
-    assert_eq!(shadow(&s), localpaint_engine::layer_style::builtin_contour("Cone").unwrap());
+    assert_eq!(shadow(&s), localraster_engine::layer_style::builtin_contour("Cone").unwrap());
 
     // The Contour Editor: drag the second point to 10 % / 30 % (between its neighbours on
     // the measured Cone), make the first point a corner.
@@ -676,7 +677,7 @@ fn contour_picker_and_editor_edit_the_effect_curve() {
     assert!(!contour::set_point(&mut f, 99, 10.0, 10.0), "no such point");
     contour::close_editor(&mut f, true);
     apply(&f, |cmd, p| s.execute(cmd, p).map_err(|e| e.to_string())).unwrap();
-    let localpaint_doc::Contour::Custom { name, points, corners } = shadow(&s) else { panic!() };
+    let localraster_doc::Contour::Custom { name, points, corners } = shadow(&s) else { panic!() };
     assert_eq!(name, "Custom", "an edited preset is no longer called Cone");
     assert!((points[1].input - 0.1).abs() < 3e-3 && (points[1].output - 0.3).abs() < 3e-3, "{points:?}");
     assert_eq!(corners.len(), points.len());
@@ -711,7 +712,7 @@ fn percent_fields_round_trip_through_the_engine() {
 fn inner_glow_center_source_survives_ok() {
     let mut s = session();
     s.execute("layer.layerStyle.innerGlow", json!({"source": "center"})).unwrap();
-    let source = |s: &localpaint_engine::Session| {
+    let source = |s: &localraster_engine::Session| {
         let d = s.active().unwrap();
         let id = d.active_layer.unwrap();
         d.doc.layer(id).unwrap().effects.items.iter().find_map(|e| match e {
@@ -739,7 +740,7 @@ fn glows_show_and_keep_technique_and_range() {
     let mut s = session();
     s.execute("layer.layerStyle.innerGlow", json!({"technique": "precise", "range": 30})).unwrap();
     s.execute("layer.layerStyle.outerGlow", json!({"technique": "precise"})).unwrap();
-    let glows = |s: &localpaint_engine::Session| {
+    let glows = |s: &localraster_engine::Session| {
         let d = s.active().unwrap();
         let id = d.active_layer.unwrap();
         d.doc
@@ -776,7 +777,7 @@ fn drop_shadow_angle_reaches_the_effect() {
     // #350: the Angle slider was dead — the dialog never sent `useGlobalLight`, so the engine
     // defaulted it to true and the compositor used the fixed global light angle, ignoring the slider.
     let mut s = session();
-    let shadow = |s: &localpaint_engine::Session| {
+    let shadow = |s: &localraster_engine::Session| {
         let d = s.active().unwrap();
         let id = d.active_layer.unwrap();
         d.doc.layer(id).unwrap().effects.items.iter().find_map(|e| match e {
@@ -846,12 +847,12 @@ fn bevel_technique_is_selectable_and_round_trips() {
     set_param(&mut f, "fx1", "technique", json!("chiselHard"));
     apply(&f, |cmd, p| s.execute(cmd, p).map_err(|e| e.to_string())).unwrap();
     let Effect::BevelEmboss(b) = &s.active().unwrap().doc.layer(id).unwrap().effects.items[0] else { panic!("expected bevel") };
-    assert_eq!(b.technique, localpaint_doc::effects::BevelTechnique::ChiselHard);
+    assert_eq!(b.technique, localraster_doc::effects::BevelTechnique::ChiselHard);
 }
 
 #[test]
 fn unchanged_global_light_angle_is_not_applied() {
-    let layer = Layer::raster("x", localpaint_doc::PixelFormat::RGBA8);
+    let layer = Layer::raster("x", localraster_doc::PixelFormat::RGBA8);
     let mut f = initial_fields(&layer, None, 47.5);
     add_instance(&mut f, "bevelEmboss");
     assert_eq!(effects_of(&f)[0]["params"]["angle"].as_f64(), Some(47.5), "a fresh effect starts from the shared light",);
@@ -896,7 +897,7 @@ fn last_angle_edit_wins_across_global_light_instances_and_preview() {
 
 #[test]
 fn local_angles_stay_independent_and_enabling_global_light_uses_shared_angle() {
-    let layer = Layer::raster("x", localpaint_doc::PixelFormat::RGBA8);
+    let layer = Layer::raster("x", localraster_doc::PixelFormat::RGBA8);
     let mut f = initial_fields(&layer, Some("dropShadow"), 120.0);
     add_instance(&mut f, "innerShadow");
     set_param(&mut f, "fx2", "useGlobalLight", json!(false));
@@ -920,7 +921,7 @@ fn preview_moves_shadow_pixels_when_shared_angle_changes() {
     set_param(&mut f, "fx1", "opacity", json!(100.0));
     let pixel = |f: &Map<String, Value>, x, y| {
         let preview = preview_document(&st.doc, &s.patterns, f).unwrap();
-        localpaint_compose::flatten(&preview).get(x, y)
+        localraster_compose::flatten(&preview).get(x, y)
     };
     set_param(&mut f, "fx1", "angle", json!(0.0));
     assert!(pixel(&f, 14, 28)[0] < 0.01, "light from right casts shadow left");
@@ -959,8 +960,8 @@ fn unedited_bevel_shading_keeps_imported_precision() {
         s.execute("layer.layerStyle.bevelEmboss", json!({})).unwrap();
         s.edit("imported shading", |doc, active| {
             let Effect::BevelEmboss(b) = &mut doc.layer_mut(active.unwrap()).unwrap().effects.items[0] else { panic!("bevel") };
-            b.highlight_color = localpaint_color::Color::rgb(0.12345, 0.45678, 0.78901);
-            b.shadow_color = localpaint_color::Color::rgb(0.98765, 0.54321, 0.13579);
+            b.highlight_color = localraster_color::Color::rgb(0.12345, 0.45678, 0.78901);
+            b.shadow_color = localraster_color::Color::rgb(0.98765, 0.54321, 0.13579);
             b.highlight.opacity = 0.3525;
             b.shadow.opacity = 0.6175;
             Ok(())
@@ -1013,7 +1014,7 @@ fn bevel_shading_round_trips_through_dialog_preview_and_confirm() {
     apply(&fields, |cmd, p| s.execute(cmd, p).map_err(|e| e.to_string())).unwrap();
     let effect = &s.active().unwrap().doc.layer(id).unwrap().effects.items[0];
     let Effect::BevelEmboss(bevel) = effect else { panic!("expected bevel") };
-    assert_eq!(bevel.highlight.blend, localpaint_doc::BlendMode::Screen);
+    assert_eq!(bevel.highlight.blend, localraster_doc::BlendMode::Screen);
     assert!((bevel.highlight.opacity - 0.8).abs() < 0.001);
     assert_eq!(hex(&bevel.shadow_color), "#ff0000");
     assert_eq!(hex(&bevel.highlight_color), "#e08020");
@@ -1036,17 +1037,17 @@ fn preview_off_shows_the_original_until_reenabled() {
     f.insert("preview".into(), json!(true));
     let shown = preview_document(&st.doc, &s.patterns, &f).unwrap();
     let d = s.active().unwrap();
-    let color = |doc: &localpaint_doc::Document| match &doc.layer(id).unwrap().effects.items[0] {
+    let color = |doc: &localraster_doc::Document| match &doc.layer(id).unwrap().effects.items[0] {
         Effect::ColorOverlay { color, .. } => *color,
         other => panic!("{other:?}"),
     };
-    assert_eq!(color(&shown), localpaint_color::Color::rgb(0.0, 1.0, 0.0));
+    assert_eq!(color(&shown), localraster_color::Color::rgb(0.0, 1.0, 0.0));
     assert_ne!(color(&d.doc), color(&shown), "the document itself is untouched until OK");
     // OK commits regardless of the checkbox.
     f.insert("preview".into(), json!(false));
     apply(&f, |cmd, p| s.execute(cmd, p).map_err(|e| e.to_string())).unwrap();
     let d = s.active().unwrap();
-    assert_eq!(color(&d.doc), localpaint_color::Color::rgb(0.0, 1.0, 0.0), "OK commits with Preview off");
+    assert_eq!(color(&d.doc), localraster_color::Color::rgb(0.0, 1.0, 0.0), "OK commits with Preview off");
 }
 
 /// #3648's steps in one dialog session: disable the stroke row, add a Color Overlay,
@@ -1101,7 +1102,7 @@ fn issue_steps_disable_stroke_add_overlay_untick_preview() {
 
 #[test]
 fn new_style_saves_pending_state_and_a_swatch_apply_restores_it() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 16, "height": 16})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     let id = app.session.active().unwrap().active_layer.unwrap();
@@ -1141,7 +1142,7 @@ fn new_style_saves_pending_state_and_a_swatch_apply_restores_it() {
 
 #[test]
 fn style_click_does_not_mutate_document_until_confirm() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 16, "height": 16})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     let id = app.session.active().unwrap().active_layer.unwrap();

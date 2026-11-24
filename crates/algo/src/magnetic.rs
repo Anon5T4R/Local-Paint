@@ -19,7 +19,7 @@ use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap};
 use std::f32::consts::{PI, SQRT_2};
 
-use localpaint_geom::Rect;
+use localraster_geom::Rect;
 
 /// Side of the cached pixel blocks (px).
 const BLOCK: i32 = 128;

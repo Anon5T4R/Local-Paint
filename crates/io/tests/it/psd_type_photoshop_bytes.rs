@@ -9,9 +9,9 @@
 
 use std::path::{Path, PathBuf};
 
-use localpaint_psd::PsdFile;
-use localpaint_psd::descriptor::Value as D;
-use localpaint_text::engine_data::Value as E;
+use localraster_psd::PsdFile;
+use localraster_psd::descriptor::Value as D;
+use localraster_text::engine_data::Value as E;
 
 fn corpus(rel: &str) -> PsdFile {
     let path: PathBuf = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../corpus/photoshop").join(rel);
@@ -24,11 +24,11 @@ fn first_tysh(f: &PsdFile) -> Vec<u8> {
 }
 
 fn engine_antialias(tysh: &[u8]) -> Option<f64> {
-    let t = localpaint_text::psd::parse_tysh(tysh)?;
-    localpaint_text::psd::engine_data(&t.text)?.path(&["EngineDict", "AntiAlias"]).and_then(E::as_f64)
+    let t = localraster_text::psd::parse_tysh(tysh)?;
+    localraster_text::psd::engine_data(&t.text)?.path(&["EngineDict", "AntiAlias"]).and_then(E::as_f64)
 }
 
-fn rect(t: &localpaint_text::psd::TySh, key: &str) -> [f32; 4] {
+fn rect(t: &localraster_text::psd::TySh, key: &str) -> [f32; 4] {
     let Some(D::Descriptor(d)) = t.text.get(key) else { panic!("no {key}") };
     ["Left", "Top ", "Rght", "Btom"].map(|k| match d.get(k) {
         Some(D::UnitFloat { value, .. }) => *value as f32,
@@ -40,9 +40,9 @@ fn rect(t: &localpaint_text::psd::TySh, key: &str) -> [f32; 4] {
 fn engine_data_antialias_matches_photoshop() {
     for name in ["none", "crisp", "strong", "smooth", "sharp"] {
         let raw = first_tysh(&corpus(&format!("text/antialias-{name}.psd")));
-        let mut layer = localpaint_text::psd::text_layer_from_tysh(&raw, 72.0).unwrap();
+        let mut layer = localraster_text::psd::text_layer_from_tysh(&raw, 72.0).unwrap();
         layer.psd_raw = None;
-        let ours = localpaint_text::psd::build_tysh(&layer, 72.0, None);
+        let ours = localraster_text::psd::build_tysh(&layer, 72.0, None);
         assert_eq!(engine_antialias(&ours), engine_antialias(&raw), "{name}");
     }
 }
@@ -51,11 +51,11 @@ fn engine_data_antialias_matches_photoshop() {
 fn tysh_trailing_bounds_match_photoshop() {
     for (file, warped) in [("text/warp-arc-50.psd", true), ("text/antialias-smooth.psd", false)] {
         let raw = first_tysh(&corpus(file));
-        let theirs = localpaint_text::psd::parse_tysh(&raw).unwrap();
-        let mut layer = localpaint_text::psd::text_layer_from_tysh(&raw, 72.0).unwrap();
+        let theirs = localraster_text::psd::parse_tysh(&raw).unwrap();
+        let mut layer = localraster_text::psd::text_layer_from_tysh(&raw, 72.0).unwrap();
         assert_eq!(layer.warp.is_some(), warped, "{file}");
         layer.psd_raw = None;
-        let ours = localpaint_text::psd::parse_tysh(&localpaint_text::psd::build_tysh(&layer, 72.0, Some(rect(&theirs, "bounds")))).unwrap();
+        let ours = localraster_text::psd::parse_tysh(&localraster_text::psd::build_tysh(&layer, 72.0, Some(rect(&theirs, "bounds")))).unwrap();
         assert_eq!(ours.bounds, theirs.bounds, "{file}");
         if warped {
             assert_eq!(theirs.bounds, rect(&theirs, "bounds"), "{file}");
@@ -69,6 +69,6 @@ fn tysh_trailing_bounds_match_photoshop() {
 fn version_info_matches_photoshop() {
     for file in ["text/antialias-smooth.psd", "text/warp-arc-50.psd"] {
         let theirs = corpus(file);
-        assert_eq!(localpaint_psd::resources::version_info_resource(true).data, theirs.resource(1057).unwrap().data, "{file}");
+        assert_eq!(localraster_psd::resources::version_info_resource(true).data, theirs.resource(1057).unwrap().data, "{file}");
     }
 }

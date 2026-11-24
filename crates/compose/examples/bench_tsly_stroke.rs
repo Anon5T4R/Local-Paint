@@ -1,13 +1,13 @@
 //! Reproduce tall-document TSL-off stroke-effect compositing from issue #2102.
-//! Run in release mode: `cargo run --release -p localpaint-compose --example bench_tsly_stroke`.
+//! Run in release mode: `cargo run --release -p localraster-compose --example bench_tsly_stroke`.
 
 use std::error::Error;
 use std::time::Instant;
 
-use localpaint_color::{BlendMode, Color, ColorMode, PixelFormat, SampleType};
-use localpaint_compose::render_bands;
-use localpaint_doc::{Document, Effect, FxCommon, FxPaint, Layer, Size, StrokeFx, StrokePosition};
-use localpaint_geom::Rect;
+use localraster_color::{BlendMode, Color, ColorMode, PixelFormat, SampleType};
+use localraster_compose::render_bands;
+use localraster_doc::{Document, Effect, FxCommon, FxPaint, Layer, Size, StrokeFx, StrokePosition};
+use localraster_geom::Rect;
 
 const WIDTH: u32 = 1920;
 const HEIGHT: u32 = 103_675;

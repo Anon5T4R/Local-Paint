@@ -2,7 +2,7 @@
 
 use crate::common;
 use common::*;
-use localpaint_codecs::*;
+use localraster_codecs::*;
 
 fn opts(l: Limits) -> DecodeOptions {
     DecodeOptions { limits: l, ..Default::default() }

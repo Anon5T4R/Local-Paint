@@ -1,8 +1,8 @@
 //! #1120: workspace selection/reset must apply useful layouts, including saved layouts.
 
-use localpaint_engine::Session;
-use localpaint_ui_egui::dock::{self, Group};
-use localpaint_ui_egui::{LocalPaintApp, menus};
+use localraster_engine::Session;
+use localraster_ui_egui::dock::{self, Group};
+use localraster_ui_egui::{LocalRasterApp, menus};
 use serde_json::{Value, json};
 
 const PRESETS: [(&str, &str, &[Group], bool); 6] = [
@@ -14,23 +14,23 @@ const PRESETS: [(&str, &str, &[Group], bool); 6] = [
     ("motion", "Motion", &[Group::Properties, Group::Layers], true),
 ];
 
-fn app() -> LocalPaintApp {
-    LocalPaintApp::new(Session::new(), Default::default())
+fn app() -> LocalRasterApp {
+    LocalRasterApp::new(Session::new(), Default::default())
 }
 
-fn invoke(app: &mut LocalPaintApp, id: &str, params: Value) {
+fn invoke(app: &mut LocalRasterApp, id: &str, params: Value) {
     menus::invoke(app, &egui::Context::default(), id, params).unwrap();
 }
 
-fn select(app: &mut LocalPaintApp, suffix: &str) {
+fn select(app: &mut LocalRasterApp, suffix: &str) {
     invoke(app, &format!("window.workspace.{suffix}"), json!({}));
 }
 
-fn layout(app: &LocalPaintApp) -> Value {
+fn layout(app: &LocalRasterApp) -> Value {
     json!({"panels": app.ui.panels, "dockTabs": app.ui.dock_tabs, "dock": app.ui.dock, "timelineOpen": app.ui.timeline.open})
 }
 
-fn shown(app: &LocalPaintApp) -> Vec<Group> {
+fn shown(app: &LocalRasterApp) -> Vec<Group> {
     app.ui.dock.order().into_iter().filter(|g| g.shown(&app.ui.panels)).collect()
 }
 
@@ -98,7 +98,7 @@ fn preset_layouts_round_trip_through_remembered_preferences() {
         dock::persist(&mut app, &egui::Context::default());
         let mut session = Session::new();
         session.load_prefs_json(&app.session.prefs_to_json()).unwrap();
-        let mut restored = LocalPaintApp::new(session, Default::default());
+        let mut restored = LocalRasterApp::new(session, Default::default());
         dock::restore(&mut restored);
         assert_eq!(restored.ui.workspace, name);
         assert_eq!(layout(&restored), expected, "restore {name}");
@@ -116,7 +116,7 @@ fn open_timeline_is_saved_without_saving_playback() {
     let prefs = app.session.prefs_to_json();
     let mut session = Session::new();
     session.load_prefs_json(&prefs).unwrap();
-    let mut restored = LocalPaintApp::new(session, Default::default());
+    let mut restored = LocalRasterApp::new(session, Default::default());
     dock::restore(&mut restored);
     assert!(restored.ui.timeline.open);
     assert!(!restored.ui.timeline.playing);
@@ -138,7 +138,7 @@ fn custom_workspaces_restore_timeline_visibility_and_dock_after_presets() {
         invoke(&mut app, "window.workspace.newWorkspace", json!({"name": name}));
         let mut session = Session::new();
         session.load_prefs_json(&app.session.prefs_to_json()).unwrap();
-        let mut restored = LocalPaintApp::new(session, Default::default());
+        let mut restored = LocalRasterApp::new(session, Default::default());
         select(&mut restored, if suffix == "motion" { "essentials" } else { "motion" });
         invoke(&mut restored, "window.workspace.select", json!({"name": name}));
         assert_eq!(layout(&restored), expected, "custom select {name}");
@@ -195,11 +195,11 @@ fn titlebar_picker_displays_every_selected_preset() {
         let mut app = app();
         select(&mut app, suffix);
         let ctx = egui::Context::default();
-        LocalPaintApp::setup_context(&ctx, Default::default());
+        LocalRasterApp::setup_context(&ctx, Default::default());
         let mut texts = Vec::new();
         for _ in 0..3 {
             let input = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1280.0, 900.0))), ..Default::default() };
-            let mut output = ctx.run_ui(input, |ui| localpaint_ui_egui::panels::title_bar(&mut app, ui));
+            let mut output = ctx.run_ui(input, |ui| localraster_ui_egui::panels::title_bar(&mut app, ui));
             output.textures_delta.clear();
             texts.clear();
             for shape in output.shapes {

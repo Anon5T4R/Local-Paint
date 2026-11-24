@@ -4,10 +4,10 @@
 
 use std::sync::Arc;
 
-use localpaint_color::{Color, ColorMode, SampleType};
-use localpaint_doc::Document;
-use localpaint_geom::Size;
-use localpaint_gpu::{Compositor, render_to_vec};
+use localraster_color::{Color, ColorMode, SampleType};
+use localraster_doc::Document;
+use localraster_geom::Size;
+use localraster_gpu::{Compositor, render_to_vec};
 
 use crate::GPU_LOCK;
 

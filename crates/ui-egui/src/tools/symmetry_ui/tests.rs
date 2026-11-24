@@ -4,10 +4,10 @@ use egui_kittest::{
     Harness,
     kittest::{NodeT, Queryable},
 };
-use localpaint_engine::Session;
+use localraster_engine::Session;
 
-fn app() -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(Session::new(), crate::Services::default());
+fn app() -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(Session::new(), crate::Services::default());
     app.run("file.new", json!({"width":100,"height":80})).unwrap();
     app.sync_views();
     app.ui.tool = Tool::Brush;
@@ -16,16 +16,16 @@ fn app() -> LocalPaintApp {
     app.last_canvas_rect = Rect::from_min_size(Pos2::ZERO, vec2(500.0, 400.0));
     app
 }
-fn down(app: &mut LocalPaintApp, p: [f64; 2]) {
+fn down(app: &mut LocalRasterApp, p: [f64; 2]) {
     crate::canvas::tool_event(app, ToolEvent::Down { x: p[0], y: p[1], pressure: 1.0 }, Modifiers::NONE);
 }
-fn move_to(app: &mut LocalPaintApp, p: [f64; 2], mods: Modifiers) {
+fn move_to(app: &mut LocalRasterApp, p: [f64; 2], mods: Modifiers) {
     crate::canvas::tool_event(app, ToolEvent::Move { x: p[0], y: p[1], pressure: 1.0 }, mods);
 }
-fn up(app: &mut LocalPaintApp, p: [f64; 2]) {
+fn up(app: &mut LocalRasterApp, p: [f64; 2]) {
     crate::canvas::tool_event(app, ToolEvent::Up { x: p[0], y: p[1] }, Modifiers::NONE);
 }
-fn key(app: &mut LocalPaintApp, key: Key) {
+fn key(app: &mut LocalRasterApp, key: Key) {
     let ctx = Context::default();
     let input = RawInput {
         focused: true,
@@ -190,15 +190,15 @@ fn overlays_follow_document_view_transforms_in_every_theme() {
 #[test]
 fn transform_has_commit_and_cancel_buttons_and_its_own_cursors() {
     let mut h = Harness::builder().with_size(vec2(1280.0, 800.0)).with_max_steps(64).build_eframe(|cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        LocalPaintApp::new(Session::new(), crate::Services::default())
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        LocalRasterApp::new(Session::new(), crate::Services::default())
     });
     h.state_mut().run("file.new", json!({"width":400,"height":300})).unwrap();
     h.state_mut().ui.tool = Tool::Brush;
     h.state_mut().run("paint.setSymmetry", json!({"mode":"dual"})).unwrap();
     h.run_steps(4);
-    let cursor = |h: &Harness<'_, LocalPaintApp>| h.output().platform_output.cursor_icon;
-    let begin_transform = |h: &mut Harness<'_, LocalPaintApp>| {
+    let cursor = |h: &Harness<'_, LocalRasterApp>| h.output().platform_output.cursor_icon;
+    let begin_transform = |h: &mut Harness<'_, LocalRasterApp>| {
         let ctx = h.ctx.clone();
         crate::menus::invoke(h.state_mut(), &ctx, "ui.symmetryTransform", json!({})).unwrap();
         h.run_steps(3);

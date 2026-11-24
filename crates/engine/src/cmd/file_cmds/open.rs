@@ -22,9 +22,9 @@ pub(super) fn import_at_raw_ppi(raw_ppi: f64, name: &str, bytes: &[u8]) -> Resul
     Ok(doc)
 }
 
-fn import_result(name: &str, bytes: &[u8]) -> Result<localpaint_io::ImportResult> {
+fn import_result(name: &str, bytes: &[u8]) -> Result<localraster_io::ImportResult> {
     crate::allocation::checkpoint("importing document")?;
-    let r = localpaint_io::import(name, bytes).map_err(|e| EngineError::Other(format!("{name}: {e}")))?;
+    let r = localraster_io::import(name, bytes).map_err(|e| EngineError::Other(format!("{name}: {e}")))?;
     // Auxiliary imports return only a document and cannot surface the preview's fidelity warning.
     // Open has its own warning-preserving path; never silently place or process a thumbnail.
     if r.preview_only {
@@ -89,9 +89,9 @@ pub(crate) fn tag_exr_colorspace(s: &Session, name: &str, doc: &mut Document) {
     if !name.to_ascii_lowercase().ends_with(".exr") || !s.prefs.get().file_handling.exr_aces_cg {
         return;
     }
-    let linear = localpaint_cms::Builtin::LinearSrgb.profile().to_bytes();
+    let linear = localraster_cms::Builtin::LinearSrgb.profile().to_bytes();
     if doc.icc_profile.as_ref().map(|v| v.as_slice()) == Some(linear.as_slice()) {
-        doc.icc_profile = Some(localpaint_cms::Builtin::AcesCg.profile().to_bytes());
+        doc.icc_profile = Some(localraster_cms::Builtin::AcesCg.profile().to_bytes());
     }
 }
 
@@ -103,7 +103,7 @@ pub fn raw_defaults(s: &Session, warnings: &[String], doc: &mut Document) {
 }
 
 fn raw_resolution(ppi: f64, warnings: &[String], doc: &mut Document) {
-    if ppi.is_finite() && warnings.iter().any(|w| w.contains(localpaint_io::raw::DEVELOPED_NOTE)) {
+    if ppi.is_finite() && warnings.iter().any(|w| w.contains(localraster_io::raw::DEVELOPED_NOTE)) {
         doc.resolution_dpi = ppi.clamp(1.0, 10_000.0) as f32;
     }
 }
@@ -114,7 +114,7 @@ pub fn open_bytes_as(s: &mut Session, name: &str, bytes: &[u8], as_ext: Option<&
         Some(ext) => format!("{}.{}", stem(name), ext.trim_start_matches('.')),
         None => name.to_string(),
     };
-    let r = localpaint_io::import(&decode_name, bytes).map_err(|e| EngineError::Other(format!("{decode_name}: {e}")))?;
+    let r = localraster_io::import(&decode_name, bytes).map_err(|e| EngineError::Other(format!("{decode_name}: {e}")))?;
     let mut doc = r.document;
     tag_exr_colorspace(s, &decode_name, &mut doc);
     raw_defaults(s, &r.warnings, &mut doc);
@@ -158,9 +158,9 @@ pub fn place_bytes(s: &mut Session, name: &str, bytes: Vec<u8>, linked: Option<S
     let d = s.active().ok_or(EngineError::NoDocument)?;
     let (cw, ch) = (d.doc.size.width as f64, d.doc.size.height as f64);
     let fmt = d.doc.pixel_format();
-    let vector = localpaint_io::svg::is_svg(&bytes);
+    let vector = localraster_io::svg::is_svg(&bytes);
     let opts = crate::jobs::import_options(s.prefs());
-    let imported = localpaint_io::import_with_options(name, &bytes, &opts).map_err(|e| EngineError::Other(format!("{name}: {e}")))?;
+    let imported = localraster_io::import_with_options(name, &bytes, &opts).map_err(|e| EngineError::Other(format!("{name}: {e}")))?;
     if imported.preview_only {
         return Err(EngineError::Other(format!(
             "{name}: only this Affinity file's embedded preview could be read; open it with File › Open to see the warning, or export PSD or PNG from Affinity before using it here"

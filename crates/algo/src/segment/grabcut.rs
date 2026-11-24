@@ -6,8 +6,8 @@
 //! "assign components → learn GMMs → min cut" steps with the contrast-sensitive smoothness term
 //! `γ e^{−β‖z_m − z_n‖²} / dist(m, n)` (γ = 50, β from the mean squared neighbour difference).
 
-use localpaint_geom::Rect;
-use localpaint_raster::{Cancelled, Interrupt};
+use localraster_geom::Rect;
+use localraster_raster::{Cancelled, Interrupt};
 
 use super::gmm::{DEFAULT_REG, Gmm};
 use super::{FREE, HARD_BG, HARD_FG, Region, RgbImage, Sampler, contrast_beta, data_costs, grid_cut_bk_cancellable, subsample};

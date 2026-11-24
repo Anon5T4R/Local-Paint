@@ -1,5 +1,5 @@
 //! The kittest size guard: with a document on screen, every dialog and window of the app fits the
-//! main window's minimum size (`with_min_inner_size` in `apps/localpaint/src/main.rs`), and so do
+//! main window's minimum size (`with_min_inner_size` in `apps/localraster/src/main.rs`), and so do
 //! the top bar, the command palette and the update card.
 
 use egui::accesskit::Role;
@@ -7,7 +7,7 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::NodeT;
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
 /// The main window's minimum width and height.
 const MIN_WIDTH: f32 = 760.0;
@@ -17,8 +17,8 @@ const CAMERA_RAW_MIN_WIDTH: f32 = 900.0;
 const CAMERA_RAW_MIN_HEIGHT: f32 = 600.0;
 
 /// An app with a document with real content: a layer filled grey over a blue background.
-fn app_with_content() -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn app_with_content() -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 64, "height": 64, "background": "#3366cc"})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     app.run("edit.fill", json!({"color": "#808080"})).unwrap();
@@ -28,14 +28,14 @@ fn app_with_content() -> LocalPaintApp {
 
 /// A harness at `width`×[`MIN_HEIGHT`] running the real eframe app, with the dialog `open`ed inside
 /// the creator (after `setup_context`, so the dialog's first frame already has the app's fonts).
-fn harness_at(width: f32, open: impl FnOnce(&mut LocalPaintApp, &egui::Context)) -> Harness<'static, LocalPaintApp> {
+fn harness_at(width: f32, open: impl FnOnce(&mut LocalRasterApp, &egui::Context)) -> Harness<'static, LocalRasterApp> {
     harness_sized(width, MIN_HEIGHT, open)
 }
 
 /// [`harness_at`] at any size, for the window that declares a minimum of its own.
-fn harness_sized(width: f32, height: f32, open: impl FnOnce(&mut LocalPaintApp, &egui::Context)) -> Harness<'static, LocalPaintApp> {
+fn harness_sized(width: f32, height: f32, open: impl FnOnce(&mut LocalRasterApp, &egui::Context)) -> Harness<'static, LocalRasterApp> {
     let mut h = Harness::builder().with_size(egui::vec2(width, height)).with_max_steps(64).build_eframe(|cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, crate::theme::ThemeKind::ProMedium);
+        LocalRasterApp::setup_context(&cc.egui_ctx, crate::theme::ThemeKind::ProMedium);
         let mut app = app_with_content();
         open(&mut app, &cc.egui_ctx);
         app
@@ -49,7 +49,7 @@ fn harness_sized(width: f32, height: f32, open: impl FnOnce(&mut LocalPaintApp, 
 /// the scrolled content unclipped, so what hangs below is accepted only when it comes before a
 /// vertical scroll bar inside the window and in its column; the bar is drawn after the content and
 /// the buttons after it.
-fn below_is_scrolled(harness: &Harness<'_, LocalPaintApp>, width: f32, height: f32) -> impl Fn(usize, egui::accesskit::Rect) -> bool {
+fn below_is_scrolled(harness: &Harness<'_, LocalRasterApp>, width: f32, height: f32) -> impl Fn(usize, egui::accesskit::Rect) -> bool {
     const TOL: f64 = 0.5;
     let (w, h) = (f64::from(width), f64::from(height));
     let nodes: Vec<_> = harness.root().children_recursive().collect();
@@ -69,7 +69,7 @@ fn below_is_scrolled(harness: &Harness<'_, LocalPaintApp>, width: f32, height: f
 /// Every node, in accesskit coordinates, inside the window of `width`×`height` points, in both axes.
 /// A text run may report the galley's full width before the clip egui paints; the field's node is
 /// the guard.
-fn assert_inside(harness: &Harness<'_, LocalPaintApp>, what: &str, width: f32, height: f32) {
+fn assert_inside(harness: &Harness<'_, LocalRasterApp>, what: &str, width: f32, height: f32) {
     let scrolled = below_is_scrolled(harness, width, height);
     let (w, h) = (f64::from(width), f64::from(height));
     for (i, node) in harness.root().children_recursive().enumerate() {
@@ -93,7 +93,7 @@ fn assert_inside(harness: &Harness<'_, LocalPaintApp>, what: &str, width: f32, h
 /// adjustment editors, the filter/schema dialogs, the sizing dialogs and the modules with a
 /// custom dialog behind a command id.
 fn dialog_commands() -> Vec<(&'static str, &'static str)> {
-    localpaint_engine::commands::command_specs()
+    localraster_engine::commands::command_specs()
         .iter()
         .filter(|spec| {
             let id = spec.id;
@@ -137,7 +137,7 @@ fn every_dialog_fits_the_narrow_window() {
             problems.push(format!("{id}: {message}"));
         }
     }
-    type Open = fn(&mut LocalPaintApp, &egui::Context);
+    type Open = fn(&mut LocalRasterApp, &egui::Context);
     let windows: [(&str, Open); 11] = [
         ("new-document", |app, _| {
             let fields = app.new_document_fields();
@@ -244,9 +244,9 @@ fn the_top_bar_and_the_update_card_fit_the_narrow_window() {
     assert_inside(&h, "top-bar", MIN_WIDTH, MIN_HEIGHT);
 
     let release =
-        localpaint_engine::updates_cmds::Release { version: "99.0.0".into(), url: "https://github.com/Anon5T4R/Local-Paint/releases/tag/v99.0.0".into() };
+        localraster_engine::updates_cmds::Release { version: "99.0.0".into(), url: "https://github.com/Anon5T4R/Local-Raster/releases/tag/v99.0.0".into() };
     let mut h = harness_at(MIN_WIDTH, |app, _| {
-        app.session.updates.status = localpaint_engine::updates_cmds::Status::Available { release };
+        app.session.updates.status = localraster_engine::updates_cmds::Status::Available { release };
         crate::updates_ui::tick(app, &egui::Context::default());
         assert!(app.ui.updates_open, "the available release opened the update card");
     });

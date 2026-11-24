@@ -1,5 +1,5 @@
 [package]
-name = "localpaint-algo"
+name = "localraster-algo"
 description = "Depth-agnostic, tile-aware CPU image filters (blur, sharpen, noise, distort, stylize)"
 version.workspace = true
 edition.workspace = true
@@ -11,9 +11,9 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
-localpaint-geom = { workspace = true }
-localpaint-color = { workspace = true }
-localpaint-raster = { workspace = true }
+localraster-geom = { workspace = true }
+localraster-color = { workspace = true }
+localraster-raster = { workspace = true }
 serde = { workspace = true }
 rustfft = "6.4.1"
 
@@ -22,7 +22,7 @@ rustfft = "6.4.1"
 rayon = { workspace = true }
 
 [dev-dependencies]
-localpaint-testkit = { workspace = true }
+localraster-testkit = { workspace = true }
 serde_json = { workspace = true }
 criterion = { workspace = true }
 

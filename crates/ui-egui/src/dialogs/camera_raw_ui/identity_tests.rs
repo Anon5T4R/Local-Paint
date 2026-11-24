@@ -4,16 +4,16 @@ use std::sync::Arc;
 
 use serde_json::{Value, json};
 
-use super::{CameraRaw, LocalPaintApp, RawOpen, commit_open_raw, finish_redevelop, queue_open_dialog, replace_raw_document};
+use super::{CameraRaw, LocalRasterApp, RawOpen, commit_open_raw, finish_redevelop, queue_open_dialog, replace_raw_document};
 
 fn synthetic_raw() -> Vec<u8> {
-    use localpaint_raw::testgen::{DngSpec, mosaic, scene};
+    use localraster_raw::testgen::{DngSpec, mosaic, scene};
     let (width, height) = (48, 32);
     DngSpec::cfa(width, height, mosaic(&scene(width, height), width, [0, 1, 1, 2], 0, 30000)).build()
 }
 
 struct Control {
-    doc: Arc<localpaint_doc::Document>,
+    doc: Arc<localraster_doc::Document>,
     path: Option<String>,
     revision: u64,
     saved_revision: u64,
@@ -21,7 +21,7 @@ struct Control {
 }
 
 impl Control {
-    fn assert_untouched(&self, app: &LocalPaintApp) {
+    fn assert_untouched(&self, app: &LocalRasterApp) {
         let state = app.session.documents().iter().find(|state| state.doc.id == self.doc.id).expect("the accepted control remains open");
         assert!(Arc::ptr_eq(&state.doc, &self.doc), "the RAW completion must not filter another document");
         assert_eq!(state.path, self.path);
@@ -30,8 +30,8 @@ impl Control {
     }
 }
 
-fn identity_app() -> (LocalPaintApp, RawOpen, Control) {
-    let mut session = localpaint_engine::Session::new();
+fn identity_app() -> (LocalRasterApp, RawOpen, Control) {
+    let mut session = localraster_engine::Session::new();
     session.execute("file.new", json!({"width": 8, "height": 6})).unwrap();
     session.execute("layer.new.layer", json!({})).unwrap();
     session.execute("edit.fill", json!({"color": "#336699"})).unwrap();
@@ -45,7 +45,7 @@ fn identity_app() -> (LocalPaintApp, RawOpen, Control) {
         history: state.history.past_len(),
     };
     let bytes = Arc::new(synthetic_raw());
-    let imported = localpaint_io::import("synthetic.dng", &bytes).unwrap();
+    let imported = localraster_io::import("synthetic.dng", &bytes).unwrap();
     let (index, _) = session.open_document(imported.document, None);
     let raw = RawOpen {
         document: session.documents()[index].doc.id,
@@ -55,18 +55,18 @@ fn identity_app() -> (LocalPaintApp, RawOpen, Control) {
         developed_with: Default::default(),
         demosaic: Default::default(),
     };
-    let mut app = LocalPaintApp::new(session, crate::Services::default());
+    let mut app = LocalRasterApp::new(session, crate::Services::default());
     app.sync_views();
     (app, raw, control)
 }
 
 /// Run the real DNG worker and apply its replacement, holding the UI completion until after
 /// another event changes the tab list. No sleeps, timing races or fake decoder are needed.
-fn completed_redevelop(app: &mut LocalPaintApp, raw: &RawOpen) -> (CameraRaw, Value, localpaint_doc::DocId) {
+fn completed_redevelop(app: &mut LocalRasterApp, raw: &RawOpen) -> (CameraRaw, Value, localraster_doc::DocId) {
     app.background_jobs = true;
     let params = CameraRaw { exposure: 1.0, contrast: 20.0, ..Default::default() };
     let started = commit_open_raw(app, &params, raw, None).unwrap();
-    let job = localpaint_engine::jobs::JobId(started["job"].as_u64().expect("the sensor re-develop runs as a real job"));
+    let job = localraster_engine::jobs::JobId(started["job"].as_u64().expect("the sensor re-develop runs as a real job"));
     let mut result = app.session.wait_job(job).unwrap();
     let replacement = app.session.documents()[result["document"].as_u64().unwrap() as usize].doc.id;
     // The producer has a separate contract test. Supply the observed identity here to isolate
@@ -80,7 +80,7 @@ fn completed_redevelop(app: &mut LocalPaintApp, raw: &RawOpen) -> (CameraRaw, Va
 #[test]
 fn completion_identity_reports_the_live_replacement_after_id_collision() {
     let (mut app, raw, control) = identity_app();
-    let mut imported = localpaint_io::import("synthetic.dng", &synthetic_raw()).unwrap();
+    let mut imported = localraster_io::import("synthetic.dng", &synthetic_raw()).unwrap();
     // Exercise the same collision protection as a persisted native document: the result must
     // name the admitted replacement, even when the incoming ID already belongs to a tab.
     imported.document.id = control.doc.id;
@@ -162,7 +162,7 @@ fn queue_identity_rejects_a_missing_document_without_replacing_the_pending_revie
     queue_open_dialog(&mut app, raw.document, &raw.name, raw.path.as_deref(), raw.bytes.as_deref().map(Vec::as_slice), &[]).unwrap();
     let pending = app.pending_raw_open.as_ref().unwrap().clone();
     app.session.set_active(0);
-    let missing = localpaint_doc::DocId::fresh();
+    let missing = localraster_doc::DocId::fresh();
     assert!(!app.session.documents().iter().any(|state| state.doc.id == missing));
     assert!(queue_open_dialog(&mut app, missing, "missing.dng", Some("missing.dng"), Some(&[1, 2, 3]), &[]).is_err());
     let queued = app.pending_raw_open.as_ref().expect("the existing review is preserved");

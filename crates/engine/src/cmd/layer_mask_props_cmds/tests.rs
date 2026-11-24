@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_doc::{Adjustment, Document, Layer, LayerContent, LayerMask, Path, VectorMask};
-use localpaint_geom::{Rect, Size};
-use localpaint_raster::Surface;
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_doc::{Adjustment, Document, Layer, LayerContent, LayerMask, Path, VectorMask};
+use localraster_geom::{Rect, Size};
+use localraster_raster::Surface;
 
 use super::*;
 
@@ -84,7 +84,7 @@ fn property_commands_update_rendered_edges_without_rewriting_the_mask() {
             doc.layers.push(layer);
             let mut s = Session::new();
             s.add_document(doc, None);
-            let render = |s: &Session| localpaint_compose::flatten(&s.active().unwrap().doc);
+            let render = |s: &Session| localraster_compose::flatten(&s.active().unwrap().doc);
             let original = render(&s);
             assert!(original.get(31, 4)[0] < 0.01 && original.get(32, 4)[0] > 0.99);
 

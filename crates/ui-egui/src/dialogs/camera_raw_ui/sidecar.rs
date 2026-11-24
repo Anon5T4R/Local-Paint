@@ -1,6 +1,6 @@
 use super::controls::remember_edit;
 use super::open::RawOpen;
-use super::{CameraRaw, LocalPaintApp, Value, json};
+use super::{CameraRaw, LocalRasterApp, Value, json};
 
 /// The sidecar beside a raw file: `IMG_0001.xmp` for `IMG_0001.CR2`, as Camera Raw names it.
 pub fn sidecar_path(path: &str) -> String {
@@ -19,14 +19,14 @@ fn is_dng(path: &str) -> bool {
 /// The settings of the sidecar beside `path`, when there is one that parses: the settings, what
 /// the loader skipped, and the sidecar's file name. A sidecar that doesn't parse is ignored (the
 /// raw still opens) and reported in the log.
-pub(super) fn read_sidecar(path: &str) -> Option<(CameraRaw, localpaint_io::camera_raw_xmp::LoadReport, String)> {
+pub(super) fn read_sidecar(path: &str) -> Option<(CameraRaw, localraster_io::camera_raw_xmp::LoadReport, String)> {
     let sidecar = sidecar_path(path);
     let Some(bytes) = read_bounded(&sidecar) else {
-        log::warn!("{sidecar}: not a readable sidecar of at most {} bytes, ignored", localpaint_io::camera_raw_xmp::MAX_XMP_BYTES);
+        log::warn!("{sidecar}: not a readable sidecar of at most {} bytes, ignored", localraster_io::camera_raw_xmp::MAX_XMP_BYTES);
         return None;
     };
     let mut params = CameraRaw::default();
-    match localpaint_io::camera_raw_xmp::load(&mut params, &bytes) {
+    match localraster_io::camera_raw_xmp::load(&mut params, &bytes) {
         Ok(report) => Some((params, report, crate::file_open::display_name(&sidecar))),
         Err(e) => {
             log::warn!("{sidecar}: sidecar ignored: {e}");
@@ -36,13 +36,13 @@ pub(super) fn read_sidecar(path: &str) -> Option<(CameraRaw, localpaint_io::came
 }
 
 /// Keep the develop settings beside the raw file (Camera Raw Defaults › Write xmp sidecars):
-/// written when the settings aren't the defaults or Local Paint's own sidecar is there, so a
+/// written when the settings aren't the defaults or Local Raster's own sidecar is there, so a
 /// file reopens as it was developed. `loaded` are the settings the open started from: nothing
 /// is written when they didn't change. Not for DNGs, never over a sidecar another application
-/// wrote (Lightroom's and Bridge's hold crops, masks, ratings and keywords Local Paint can't keep),
+/// wrote (Lightroom's and Bridge's hold crops, masks, ratings and keywords Local Raster can't keep),
 /// never for a control or MCP request (it has no authority to write beside the user's files), and
 /// never fatal: a folder that can't be written to is reported in a notice.
-pub(super) fn write_sidecar(app: &mut LocalPaintApp, raw: &RawOpen, params: &CameraRaw, loaded: Option<&CameraRaw>) {
+pub(super) fn write_sidecar(app: &mut LocalRasterApp, raw: &RawOpen, params: &CameraRaw, loaded: Option<&CameraRaw>) {
     if !app.session.prefs().raw_defaults.write_xmp_sidecars || loaded == Some(params) {
         return;
     }
@@ -62,26 +62,26 @@ pub(super) fn write_sidecar(app: &mut LocalPaintApp, raw: &RawOpen, params: &Cam
         None if params.is_identity() => return,
         _ => {}
     }
-    let bytes = localpaint_io::camera_raw_xmp::save(params).into_bytes();
+    let bytes = localraster_io::camera_raw_xmp::save(params).into_bytes();
     let Some(write) = app.services.write.as_mut() else { return };
     if let Err(e) = write(&sidecar, &bytes) {
         crate::notices::error(app, crate::i18n::fmt(tl!("Could not write {name}: {error}"), &[("name", &name), ("error", &e)]));
     }
 }
 
-/// `None` when there is no sidecar at `sidecar`, else whether Local Paint wrote it. One that
+/// `None` when there is no sidecar at `sidecar`, else whether Local Raster wrote it. One that
 /// can't be read or is too large to be ours counts as another application's.
 pub(super) fn existing_sidecar_is_ours(sidecar: &str) -> Option<bool> {
     std::fs::symlink_metadata(sidecar).ok()?;
-    Some(read_bounded(sidecar).is_some_and(|b| localpaint_io::camera_raw_xmp::is_localpaint_xmp(&b)))
+    Some(read_bounded(sidecar).is_some_and(|b| localraster_io::camera_raw_xmp::is_localraster_xmp(&b)))
 }
 
 /// The bytes of the regular file at `path` when it holds at most
-/// [`localpaint_io::camera_raw_xmp::MAX_XMP_BYTES`]; `None` for anything else (missing, a folder,
+/// [`localraster_io::camera_raw_xmp::MAX_XMP_BYTES`]; `None` for anything else (missing, a folder,
 /// a pipe or device that might never end, larger). Never reads more than the cap plus one byte.
 pub(super) fn read_bounded(path: &str) -> Option<Vec<u8>> {
     use std::io::Read;
-    let cap = localpaint_io::camera_raw_xmp::MAX_XMP_BYTES;
+    let cap = localraster_io::camera_raw_xmp::MAX_XMP_BYTES;
     // Checked before opening: opening a pipe for reading waits for a writer.
     if !std::fs::metadata(path).ok()?.is_file() {
         return None;
@@ -93,9 +93,9 @@ pub(super) fn read_bounded(path: &str) -> Option<Vec<u8>> {
 }
 
 /// Save Settings…: the dialog's settings as a Camera Raw `.xmp` settings file.
-pub(super) fn save_settings(app: &mut LocalPaintApp) -> Result<Value, String> {
+pub(super) fn save_settings(app: &mut LocalRasterApp) -> Result<Value, String> {
     let d = app.camera_raw.as_ref().ok_or(tl!("Camera Raw isn't open"))?;
-    let bytes = localpaint_io::camera_raw_xmp::save(&d.params).into_bytes();
+    let bytes = localraster_io::camera_raw_xmp::save(&d.params).into_bytes();
     app.pick_save("Camera Raw Settings.xmp", move |app, path| {
         let write = app.services.write.as_mut().ok_or("no writer configured")?;
         write(&path, &bytes)?;
@@ -105,13 +105,13 @@ pub(super) fn save_settings(app: &mut LocalPaintApp) -> Result<Value, String> {
 
 /// Load Settings…: applies a Camera Raw `.xmp` settings file's supported settings over the
 /// dialog's; the status bar names how many were not supported.
-pub(super) fn load_settings(app: &mut LocalPaintApp) -> Result<Value, String> {
+pub(super) fn load_settings(app: &mut LocalRasterApp) -> Result<Value, String> {
     app.camera_raw.as_ref().ok_or(tl!("Camera Raw isn't open"))?;
     app.pick_file_bytes_filtered(&["xmp"], |app, name, bytes| {
         let file = crate::file_open::display_name(&name);
         let d = app.camera_raw.as_mut().ok_or(tl!("Camera Raw isn't open"))?;
         let mut next = d.params.clone();
-        let report = localpaint_io::camera_raw_xmp::load(&mut next, &bytes).map_err(|e| format!("{file}: {e}"))?;
+        let report = localraster_io::camera_raw_xmp::load(&mut next, &bytes).map_err(|e| format!("{file}: {e}"))?;
         next.validate_changes(&d.original).map_err(|e| format!("{file}: {e}"))?;
         if d.params.point_curve != next.point_curve {
             d.curve_state = Default::default();
@@ -132,7 +132,7 @@ pub(super) fn load_settings(app: &mut LocalPaintApp) -> Result<Value, String> {
     })
 }
 
-pub(super) fn report_file_error(app: &mut LocalPaintApp, r: Result<Value, String>) {
+pub(super) fn report_file_error(app: &mut LocalRasterApp, r: Result<Value, String>) {
     if let Err(e) = r
         && e != crate::file_dialog::CANCELLED
     {

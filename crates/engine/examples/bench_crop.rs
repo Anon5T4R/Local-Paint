@@ -1,9 +1,9 @@
 //! End-to-end timing of `image.crop`, upright and turned, on a two-layer document.
-//! `cargo run --release -p localpaint-engine --example bench_crop -- [image] [reps]`
+//! `cargo run --release -p localraster-engine --example bench_crop -- [image] [reps]`
 //! Without an image a 3859×2594 noise photo stands in (the size of the Great Wave scan).
 use std::time::{Duration, Instant};
 
-use localpaint_engine::Session;
+use localraster_engine::Session;
 use serde_json::{Value, json};
 
 fn main() {
@@ -13,7 +13,7 @@ fn main() {
     match args.get(1) {
         Some(path) => {
             let bytes = std::fs::read(path).expect("read the image");
-            let doc = localpaint_io::import(path, &bytes).expect("decode the image").document;
+            let doc = localraster_io::import(path, &bytes).expect("decode the image").document;
             s.add_document(doc, None);
         }
         None => {

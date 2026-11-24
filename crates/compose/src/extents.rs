@@ -53,7 +53,7 @@ pub fn layer_bounds(layer: &Layer, canvas: Rect) -> Rect {
 /// has no pixels of its own that would cover it.
 fn frame_stroke_bounds(layer: &Layer, canvas: Rect) -> Rect {
     shape_split::frame_shape(layer)
-        .and_then(|sh| localpaint_vector::CompiledShape::new(&sh, localpaint_vector::DEFAULT_TOLERANCE, canvas).bounds())
+        .and_then(|sh| localraster_vector::CompiledShape::new(&sh, localraster_vector::DEFAULT_TOLERANCE, canvas).bounds())
         .map_or(Rect::EMPTY, |r| r.intersect(&canvas))
 }
 
@@ -87,9 +87,9 @@ pub fn effect_source_bounds(layer: &Layer, canvas: Rect) -> Rect {
 /// layers, shapes without fill, empty and inverted paths, and shapes whose vector stroke reaches
 /// past the path (their pixels give the outline: psd-tools double-stroke-effects), and shapes
 /// with a density or feather.
-pub fn effect_outline(layer: &Layer) -> Option<&localpaint_doc::vector::Path> {
+pub fn effect_outline(layer: &Layer) -> Option<&localraster_doc::vector::Path> {
     let LayerContent::Shape(sh) = &layer.content else { return None };
-    let stroke_inside = sh.stroke.as_ref().is_none_or(|s| s.width <= 0.0 || s.align == localpaint_doc::vector::StrokeAlign::Inside);
+    let stroke_inside = sh.stroke.as_ref().is_none_or(|s| s.width <= 0.0 || s.align == localraster_doc::vector::StrokeAlign::Inside);
     // A soft (feathered or less dense) fill's own alpha is its outline.
     (sh.fill.is_some() && stroke_inside && !sh.path.is_empty() && !sh.path.inverted && !sh.has_soft_mask()).then_some(&sh.path)
 }
@@ -112,7 +112,7 @@ pub(crate) fn effect_shape(layer: &Layer, rect: Rect, cx: &Ctx) -> Vec<f32> {
     };
     // Unmasked: the masks scale the shape, they aren't the fill's transparency.
     let a: Vec<f32> = layer.surface().map(|s| surface_to_buffer(s, rect).px.iter().map(|p| p[3]).collect()).unwrap_or_else(|| vec![0.0; n]);
-    let cov = localpaint_vector::path_coverage(path, rect);
+    let cov = localraster_vector::path_coverage(path, rect);
     let mv = mask_vals(layer, rect, cx);
     let (w, h) = (rect.width() as usize, rect.height() as usize);
     let mut out = vec![0.0; n];
@@ -183,7 +183,7 @@ pub fn relayout_damage(a: &Document, b: &Document) -> Rect {
 
 /// The bounding box of a shape layer's path and stroke, ignoring its Density and Feather: its
 /// path control bounds plus stroke width (a conservative reach for any alignment, cap and join).
-pub fn hard_shape_bounds(sh: &localpaint_doc::ShapeLayer) -> Option<Rect> {
+pub fn hard_shape_bounds(sh: &localraster_doc::ShapeLayer) -> Option<Rect> {
     if sh.fill.is_none() && sh.stroke.as_ref().is_none_or(|s| s.width <= 0.0 || s.opacity <= 0.0) {
         return None;
     }
@@ -200,11 +200,11 @@ pub fn hard_shape_bounds(sh: &localpaint_doc::ShapeLayer) -> Option<Rect> {
 /// Photoshop a shape's transform frame follows its path and stroke whatever its mask Density and
 /// Feather, #5846). An inverted path's frame is its own outline, not the whole canvas. Renders
 /// only the strips along the edges of the rasterizers' (1 px conservative) bounds.
-pub fn soft_shape_frame(sh: &localpaint_doc::ShapeLayer, format: localpaint_color::PixelFormat, canvas: Rect) -> Option<Rect> {
+pub fn soft_shape_frame(sh: &localraster_doc::ShapeLayer, format: localraster_color::PixelFormat, canvas: Rect) -> Option<Rect> {
     let mut path = sh.path.clone();
     path.inverted = false;
-    let hard = localpaint_doc::ShapeLayer { density: 1.0, feather: 0.0, path, fill: sh.fill.clone(), stroke: sh.stroke.clone(), ..Default::default() };
-    let shape = localpaint_vector::CompiledShape::new(&hard, localpaint_vector::DEFAULT_TOLERANCE, canvas);
+    let hard = localraster_doc::ShapeLayer { density: 1.0, feather: 0.0, path, fill: sh.fill.clone(), stroke: sh.stroke.clone(), ..Default::default() };
+    let shape = localraster_vector::CompiledShape::new(&hard, localraster_vector::DEFAULT_TOLERANCE, canvas);
     let r = shape.bounds()?.intersect(&canvas);
     trim_to_painted(r, |strip| shape.render(format, strip).content_bounds())
 }
@@ -264,14 +264,14 @@ pub(crate) fn trim_to_painted(mut r: Rect, mut painted: impl FnMut(Rect) -> Rect
 
 /// The bounding box of a shape layer's vector content: its path control bounds plus stroke width
 /// (and the reach of a soft fill).
-pub fn shape_bounds(sh: &localpaint_doc::ShapeLayer) -> Option<Rect> {
+pub fn shape_bounds(sh: &localraster_doc::ShapeLayer) -> Option<Rect> {
     let r = hard_shape_bounds(sh)?;
     // A soft fill reaches past the path: by its feather, or everywhere below 100 % density.
     if sh.fill.is_some() && sh.has_soft_mask() {
         if sh.density.is_finite() && sh.density < 1.0 {
             return Some(Rect::new(i32::MIN / 4, i32::MIN / 4, i32::MAX / 4, i32::MAX / 4));
         }
-        return Some(r.union(&localpaint_vector::feather::path_area(&sh.path, masks::feather_sigma(sh.feather))));
+        return Some(r.union(&localraster_vector::feather::path_area(&sh.path, masks::feather_sigma(sh.feather))));
     }
     Some(r)
 }
@@ -308,7 +308,7 @@ pub(crate) fn mask_k(m: &Option<Vec<f32>>, i: usize) -> f32 {
 /// contribute outside the stroke reach from the layer's pixels. Other `tsly=0` effects can cover
 /// the full layer, and advanced blending can change the backdrop independently of those pixels.
 pub(crate) fn shapeless_stroke_bounds(layer: &Layer) -> Option<Rect> {
-    use localpaint_doc::Knockout;
+    use localraster_doc::Knockout;
 
     if layer.advanced.transparency_shapes
         || layer.advanced.knockout != Knockout::None
@@ -325,7 +325,7 @@ pub(crate) fn shapeless_stroke_bounds(layer: &Layer) -> Option<Rect> {
 
     if !layer.effects.enabled
         || !layer.effects.items.iter().any(|e| e.enabled())
-        || layer.effects.items.iter().any(|e| e.enabled() && !matches!(e, localpaint_doc::Effect::Stroke(_)))
+        || layer.effects.items.iter().any(|e| e.enabled() && !matches!(e, localraster_doc::Effect::Stroke(_)))
     {
         return None;
     }

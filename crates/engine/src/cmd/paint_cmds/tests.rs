@@ -1,5 +1,5 @@
 use super::*;
-use localpaint_geom::Rect;
+use localraster_geom::Rect;
 
 fn session() -> Session {
     let mut s = Session::new();
@@ -13,7 +13,7 @@ fn px(s: &Session, x: i32, y: i32) -> Vec<f32> {
 }
 
 /// A visible wall on the Background with an empty, active layer above it.
-fn bucket_layers(depth: u32) -> (Session, localpaint_doc::LayerId) {
+fn bucket_layers(depth: u32) -> (Session, localraster_doc::LayerId) {
     let mut s = Session::new();
     s.execute("file.new", json!({"width": 20, "height": 10, "depth": depth, "background": "white"})).unwrap();
     let bottom = s.active().unwrap().active_layer.unwrap();
@@ -206,7 +206,7 @@ fn bucket_and_stroke_write_a_cmyk_pick_as_its_inks() {
     let cyan = [1.0f32, 0.0, 0.0, 0.0];
     let mut s = session();
     s.execute("image.mode.cmyk", json!({})).unwrap();
-    let rgb = localpaint_color::convert::cmyk_to_rgb(cyan).map(|c| c.clamp(0.0, 1.0));
+    let rgb = localraster_color::convert::cmyk_to_rgb(cyan).map(|c| c.clamp(0.0, 1.0));
     s.execute("tools.setColors", json!({"foreground": rgb, "foregroundCmyk": cyan})).unwrap();
     let inks_at = |s: &Session, x: i32, y: i32| -> Vec<f32> {
         let st = s.active().unwrap();

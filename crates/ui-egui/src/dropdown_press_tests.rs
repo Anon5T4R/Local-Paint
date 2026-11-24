@@ -4,16 +4,16 @@
 use egui::accesskit::Role;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
-use localpaint_doc::BlendMode;
+use localraster_doc::BlendMode;
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::state::Tool;
 
-fn app_with_a_layer() -> Harness<'static, LocalPaintApp> {
+fn app_with_a_layer() -> Harness<'static, LocalRasterApp> {
     let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).with_max_steps(64).build_eframe(|cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 64, "height": 64})).unwrap();
         app.run("layer.new.layer", json!({})).unwrap();
         // No tool options bar Mode dropdown showing "Normal" too.
@@ -24,13 +24,13 @@ fn app_with_a_layer() -> Harness<'static, LocalPaintApp> {
     h
 }
 
-fn blend(h: &Harness<'_, LocalPaintApp>) -> BlendMode {
+fn blend(h: &Harness<'_, LocalRasterApp>) -> BlendMode {
     let st = h.state().session.active().unwrap();
     st.doc.layer(st.active_layer.unwrap()).unwrap().blend
 }
 
 /// The Layers panel's Blend Mode dropdown (showing `value`).
-fn blend_box(h: &Harness<'_, LocalPaintApp>, value: &str) -> egui::Rect {
+fn blend_box(h: &Harness<'_, LocalRasterApp>, value: &str) -> egui::Rect {
     let named = |n: &egui_kittest::Node<'_>| {
         let a = n.accesskit_node();
         a.value().as_deref() == Some(value) || a.label().as_deref() == Some(value)
@@ -83,7 +83,7 @@ fn a_click_still_opens_the_list_for_a_second_click() {
 #[test]
 fn single_frame_trackpad_tap_keeps_dialog_dropdown_above_modal_and_selects_option() {
     let mut h = app_with_a_layer();
-    let tap = |h: &mut Harness<'_, LocalPaintApp>, at: egui::Pos2| {
+    let tap = |h: &mut Harness<'_, LocalRasterApp>, at: egui::Pos2| {
         h.input_mut().events.push(egui::Event::PointerMoved(at));
         for pressed in [true, false] {
             h.input_mut().events.push(egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: egui::Modifiers::NONE });

@@ -1,4 +1,4 @@
-# Releasing Local Paint
+# Releasing Local Raster
 
 Every tag `vX.Y.Z` runs `.github/workflows/release.yml`. The workflow builds the Windows
 installers and the Linux packages in a matrix-free pair of jobs, then publishes all of them in the
@@ -8,7 +8,7 @@ it calls no shared workflow of another organisation and needs no secret to run.
 The other packagers - macOS, FreeBSD and Flatpak - stay in `packaging/` and are run
 by hand when needed; the tag workflow doesn't touch them.
 
-User-facing names say **Local Paint**. Files, binaries and ids stay lowercase (`localpaint-<version>-<platform>-<arch>.<ext>`, `com.localpaint.app`).
+User-facing names say **Local Raster**. Files, binaries and ids stay lowercase (`localraster-<version>-<platform>-<arch>.<ext>`, `com.localraster.app`).
 
 ## In-app update checks
 
@@ -62,17 +62,17 @@ UI if it shouldn't be offered as "latest".
 
 | Platform | Artifacts | Built on |
 |---|---|---|
-| Windows 10+ x64 | `localpaint-<v>-windows-x64.msi`, `localpaint-<v>-windows-x64-portable.zip`, `localpaint-<v>-windows-x64-symbols.zip` | `windows-latest` |
-| Linux x86_64 | `localpaint-<v>-linux-x86_64.{AppImage,AppImage.zsync,deb,rpm,tar.gz}`, `localpaint-cli-<v>-linux-x86_64.tar.gz` | `ubuntu-22.04` |
+| Windows 10+ x64 | `localraster-<v>-windows-x64.msi`, `localraster-<v>-windows-x64-portable.zip`, `localraster-<v>-windows-x64-symbols.zip` | `windows-latest` |
+| Linux x86_64 | `localraster-<v>-linux-x86_64.{AppImage,AppImage.zsync,deb,rpm,tar.gz}`, `localraster-cli-<v>-linux-x86_64.tar.gz` | `ubuntu-22.04` |
 
 The Windows job runs `packaging/windows/package.ps1` (x64) and the Linux job
 `packaging/linux/package.sh --formats "appimage deb rpm tar cli"`. The same scripts take `-Arch
 x86|arm64` and `CROSS_ARCH`/`CROSS_TARGET` respectively, and the other packagers in `packaging/`
 cover macOS, FreeBSD and Flatpak; none of those run for a tag.
 
-Every binary reports its version, the commit and the build date: `localpaint --version`,
-`localpaint-cli --version`, and *Help › About Local Paint*. The packaging scripts fill
-`LOCALPAINT_BUILD_SHA` and `LOCALPAINT_BUILD_DATE` when the CI or the caller leaves them empty
+Every binary reports its version, the commit and the build date: `localraster --version`,
+`localraster-cli --version`, and *Help › About Local Raster*. The packaging scripts fill
+`LOCALRASTER_BUILD_SHA` and `LOCALRASTER_BUILD_DATE` when the CI or the caller leaves them empty
 (`packaging/env.sh` for local builds), and `crates/engine/src/build_info.rs` reads them at compile
 time. A plain `cargo build` doesn't set them and reports the workspace version as a dev build.
 
@@ -85,12 +85,12 @@ compiles and falls back to the system's fonts. Build option: `docs/development.m
 ### macOS
 
 `packaging/macos/package.sh` builds `aarch64-apple-darwin` and `x86_64-apple-darwin` with
-`MACOSX_DEPLOYMENT_TARGET=11.0`, joins them with `lipo`, and assembles `LocalPaint.app`:
+`MACOSX_DEPLOYMENT_TARGET=11.0`, joins them with `lipo`, and assembles `LocalRaster.app`:
 
-- `Info.plist` is generated from `Info.plist.in`. The bundle id is `com.localpaint.app`.
+- `Info.plist` is generated from `Info.plist.in`. The bundle id is `com.localraster.app`.
   The plist sets `LSMinimumSystemVersion` 11.0, `NSHighResolutionCapable`, and document types:
-  `.pcraft` (Owner), plus PSD/PSB and the image formats Local Paint reads (Alternate, so it never
-  takes over Preview's defaults). The icon is `assets/app-icon/localpaint.icns`.
+  `.pcraft` (Owner), plus PSD/PSB and the image formats Local Raster reads (Alternate, so it never
+  takes over Preview's defaults). The icon is `assets/app-icon/localraster.icns`.
 - **Signing** goes inside-out with the hardened runtime and a secure timestamp. The executable
   is signed first, then the bundle. There's no `--deep` on the final signature. The
   entitlements (`entitlements.plist`) are deliberately empty.
@@ -99,14 +99,14 @@ compiles and falls back to the system's fonts. Build option: `docs/development.m
   to drag onto). The DMG is signed, notarized and stapled too. The script checks the results
   with `codesign --verify --strict`, `stapler validate` and `spctl -a -vvv`.
   Its Finder window (background, icon size and positions) comes from
-  [`packaging/macos/dmg/`](../packaging/macos/dmg/README.md), and its volume is named `Local Paint`
+  [`packaging/macos/dmg/`](../packaging/macos/dmg/README.md), and its volume is named `Local Raster`
   without the version, which the window's background needs; the DMG file name keeps the version.
-- **CLI:** `LocalPaint.app/Contents/MacOS/localpaint-cli` is bundled and signed so generated
+- **CLI:** `LocalRaster.app/Contents/MacOS/localraster-cli` is bundled and signed so generated
   droplet scripts can run without installing the separate CLI download. The scripts prefer
-  `LOCALPAINT_CLI` when set, then the bundled CLI in `/Applications` or `~/Applications`, then
-  `localpaint-cli` on `PATH`. Finder drag-and-drop onto droplets still requires an app wrapper.
-  The universal standalone `localpaint-cli` is signed with the same Developer ID, the hardened
-  runtime and a secure timestamp (identifier `com.localpaint.app-cli`), zipped, and the zip
+  `LOCALRASTER_CLI` when set, then the bundled CLI in `/Applications` or `~/Applications`, then
+  `localraster-cli` on `PATH`. Finder drag-and-drop onto droplets still requires an app wrapper.
+  The universal standalone `localraster-cli` is signed with the same Developer ID, the hardened
+  runtime and a secure timestamp (identifier `com.localraster.app-cli`), zipped, and the zip
   is sent to `notarytool`. Only `.app`, `.dmg` and `.pkg` can hold a stapled ticket, not a bare
   Mach-O, so Gatekeeper looks the CLI's ticket up online the first time a downloaded
   (quarantined) copy runs. Offline, that first run can be refused until the Mac is online again.
@@ -126,7 +126,7 @@ That's enough to check the bundle and the DMG on your own Mac:
 ```sh
 packaging/macos/package.sh                    # universal; needs both rustup targets
 packaging/macos/package.sh --arch aarch64     # quicker, host-only
-open dist/release/localpaint-*-macos-*.dmg
+open dist/release/localraster-*-macos-*.dmg
 ```
 
 ### Windows
@@ -136,37 +136,37 @@ The static C runtime means neither the MSI nor the portable zip needs the Visual
 redistributable, which matters for a standalone installer and costs only about 100 KB. The flag
 goes in `CARGO_TARGET_<TRIPLE>_RUSTFLAGS`, so host build scripts aren't affected.
 
-- `apps/localpaint/build.rs` and `apps/localpaint-cli/build.rs` embed the icon
-  (`assets/app-icon/localpaint.ico`) and VERSIONINFO with the `winresource` crate
+- `apps/localraster/build.rs` and `apps/localraster-cli/build.rs` embed the icon
+  (`assets/app-icon/localraster.ico`) and VERSIONINFO with the `winresource` crate
   (build dependency `0.1`). They only do this when targeting Windows. Elsewhere each
-  script is a no-op, even if `LOCALPAINT_REQUIRE_WINRES` is set. Both set ProductName to Local Paint, CompanyName to
+  script is a no-op, even if `LOCALRASTER_REQUIRE_WINRES` is set. Both set ProductName to Local Raster, CompanyName to
   Learning Machines LLC and the same copyright line. The GUI description is
-  "Local Paint image editor" (`localpaint.exe`). The CLI description is
-  "Local Paint command-line interface", with OriginalFilename `localpaint-cli.exe`
-  and InternalName `localpaint-cli`. Version strings are the Cargo package version,
+  "Local Raster image editor" (`localraster.exe`). The CLI description is
+  "Local Raster command-line interface", with OriginalFilename `localraster-cli.exe`
+  and InternalName `localraster-cli`. Version strings are the Cargo package version,
   so a pre-release tag is kept; the numeric file and product versions are
   winresource's `major.minor.patch.0`. A missing resource compiler warns, so an
-  optional cross-compile still links. `package.ps1` sets `LOCALPAINT_REQUIRE_WINRES=1`.
+  optional cross-compile still links. `package.ps1` sets `LOCALRASTER_REQUIRE_WINRES=1`.
   The CLI build script then returns an error naming `rc.exe` or `windres` and does
   not panic.
 - Release builds use the GUI subsystem, so Start Menu launches don't open a console window.
   The CLI stays console subsystem 3 so its output reaches the terminal.
-- `localpaint.wxs` (WiX v5) is a **per-machine** package (`Scope="perMachine"`): it installs into
-  `Program Files\Local Paint` (`Program Files (x86)\Local Paint` for the 32-bit build), needs an
+- `localraster.wxs` (WiX v5) is a **per-machine** package (`Scope="perMachine"`): it installs into
+  `Program Files\Local Raster` (`Program Files (x86)\Local Raster` for the 32-bit build), needs an
   elevated setup, and refuses a per-user install (`<Launch Condition="ALLUSERS = 1 OR (Installed
   AND REMOVE = "ALL")">`, so an older per-user copy can still be uninstalled). It creates a plain
   Start Menu shortcut and a desktop shortcut — not advertised MSI shortcuts, whose descriptor
   Windows can't use as a file handler — each in its own component with an HKLM key path, so
-  Windows Installer removes them on uninstall. Local Paint becomes the default app for `.pcraft` and
+  Windows Installer removes them on uninstall. Local Raster becomes the default app for `.pcraft` and
   is listed under "Open with" for PSD/PSB and image files, it registers App Paths (Win+R
-  `localpaint`), and it writes `HKLM\Software\Anon5T4R\LocalPaint\InstallDir` so the updater knows
+  `localraster`), and it writes `HKLM\Software\Anon5T4R\LocalRaster\InstallDir` so the updater knows
   this is an MSI install and updates with the next MSI rather than the portable zip. The MSI
   version is the numeric `X.Y.Z`, because MSI has no pre-release field. Same-version upgrades are
   allowed so that release candidates replace each other; a downgrade is refused.
 - Double-clicking the MSI opens the `WixUI_Minimal` wizard: welcome with the licence (the project's
   `LICENSE-MIT`/`LICENSE-APACHE` text), a progress page, and a Finish page that says where to find
-  the app, with a ticked "Launch Local Paint" box. The pages name the full version
-  (`localpaint.en-us.wxl`). `package.ps1` draws the wizard's banner and side bitmaps from the app
+  the app, with a ticked "Launch Local Raster" box. The pages name the full version
+  (`localraster.en-us.wxl`). `package.ps1` draws the wizard's banner and side bitmaps from the app
   icon, so no WiX stock art ships. `msiexec /qn` installs silently per-machine, as the launch
   condition requires. Building needs the WiX UI
   and Util extensions: `wix extension add -g WixToolset.UI.wixext/5.0.2 WixToolset.Util.wixext/5.0.2`.
@@ -174,13 +174,13 @@ goes in `CARGO_TARGET_<TRIPLE>_RUSTFLAGS`, so host build scripts aren't affected
   as the cached icon filename, and an extensionless filename can render as a blank document
   icon. `packaging/windows/check-icons.ps1` checks the references and extensions; run it on a
   packaging change. `package.ps1` also validates the built MSI with ICE50 before signing it.
-- **Portable zip:** it ships `packaging/windows/portable.txt` beside `localpaint.exe`. That
-  marker (or a `LocalPaint.portable` file) switches on portable mode: preferences, presets,
-  recovery autosaves and the GPU startup marker go to `LocalPaintData\` next to the exe instead
-  of `%APPDATA%\LocalPaint`. If that folder isn't writable the app warns and uses `%APPDATA%`.
-  The MSI has no marker. The logic is in `apps/localpaint/src/app_dirs.rs` and works the same
+- **Portable zip:** it ships `packaging/windows/portable.txt` beside `localraster.exe`. That
+  marker (or a `LocalRaster.portable` file) switches on portable mode: preferences, presets,
+  recovery autosaves and the GPU startup marker go to `LocalRasterData\` next to the exe instead
+  of `%APPDATA%\LocalRaster`. If that folder isn't writable the app warns and uses `%APPDATA%`.
+  The MSI has no marker. The logic is in `apps/localraster/src/app_dirs.rs` and works the same
   on macOS and Linux.
-- **Symbols zip:** `localpaint.pdb` and `localpaint_cli.pdb` from the same release build, plus
+- **Symbols zip:** `localraster.pdb` and `localraster_cli.pdb` from the same release build, plus
   `packaging/windows/symbols.txt` (how to load them in a profiler). An optional download, so the
   MSI and portable zip stay their size; it lets anyone profile the released exes with function
   names (#688). Only that build's PDBs match its exes, so they can't be rebuilt later; the
@@ -203,9 +203,9 @@ Locally on Windows: `dotnet tool install -g wix --version 5.0.2`,
 ### Linux
 
 `packaging/linux/package.sh` stages one FHS tree and makes every format from it. The tree
-holds both binaries, `com.localpaint.app.desktop`, hicolor icons from 16 px to 512 px
+holds both binaries, `com.localraster.app.desktop`, hicolor icons from 16 px to 512 px
 plus a scalable SVG, AppStream metainfo, a shared-mime-info file for `.pcraft`, `.psb` and
-`.qoi`, and `localpaint-cli`'s man pages and bash, zsh and fish completions. The
+`.qoi`, and `localraster-cli`'s man pages and bash, zsh and fish completions. The
 `man-and-completions` example, built with the binaries, writes those; a cross build runs it
 through `EMULATOR` and leaves them out without one. The zsh completion is in
 `/usr/share/zsh/site-functions`, which Fedora's and openSUSE's zsh read; the `.deb` also links it
@@ -230,16 +230,16 @@ Why these formats:
   Wayland the dock icon comes from the compositor resolving the window's app_id against an
   *installed* `.desktop` file, which an AppImage alone never provides — without this every
   AppImage run shows the generic Wayland logo (#593). Best effort: it installs
-  `~/.local/share/applications/com.localpaint.app.desktop` with `Exec` rewritten to
+  `~/.local/share/applications/com.localraster.app.desktop` with `Exec` rewritten to
   the AppImage's path (`TryExec` dropped, the binary isn't on the host PATH) and the
   hicolor icons beside it, rewriting only when the content changed, and any failure leaves
-  the launch untouched. `LOCALPAINT_NO_DESKTOP_INTEGRATION=1` opts out; to uninstall, `rm
-  ~/.local/share/applications/com.localpaint.app.desktop` and `find
-  ~/.local/share/icons/hicolor -name 'com.localpaint.app*' -delete`. The script is
+  the launch untouched. `LOCALRASTER_NO_DESKTOP_INTEGRATION=1` opts out; to uninstall, `rm
+  ~/.local/share/applications/com.localraster.app.desktop` and `find
+  ~/.local/share/icons/hicolor -name 'com.localraster.app*' -delete`. The script is
   covered by `packaging/linux/apprun-test.sh`.
-  A leading `--cli` launches the bundled `usr/bin/localpaint-cli`, without desktop
-  integration: `./localpaint-<version>-linux-x86_64.AppImage --cli mcp` serves MCP on
-  stdio. A symlink named `localpaint-cli` also selects that binary via the runtime's
+  A leading `--cli` launches the bundled `usr/bin/localraster-cli`, without desktop
+  integration: `./localraster-<version>-linux-x86_64.AppImage --cli mcp` serves MCP on
+  stdio. A symlink named `localraster-cli` also selects that binary via the runtime's
   `ARGV0`. Arguments and process streams pass through unchanged; the entry point
   uses `exec` so signals and exit status reach the caller directly. CLI routing is
   covered by `packaging/linux/apprun-cli-test.sh`.
@@ -253,17 +253,17 @@ Why these formats:
 - **Flatpak bundle** (`.flatpak`) is a single file that installs into Flatpak, sandboxed and
   updatable by installing a newer bundle, for people who prefer Flatpak to AppImage.
   `packaging/linux/flatpak-bundle.sh` repackages a `.tar.gz` with
-  `packaging/linux/flatpak/com.localpaint.app.bundle.yml` on the freedesktop 26.08
+  `packaging/linux/flatpak/com.localraster.app.bundle.yml` on the freedesktop 26.08
   runtime. It does no Rust build and needs no network inside `flatpak-builder`, so the bundle
   holds the same binaries as the other formats. It takes the tarball as its input, so run
   `packaging/linux/package.sh --formats tar` first; install the bundle and run
-  `localpaint-cli --version` inside the sandbox as a smoke test. The bundle names Flathub as its
+  `localraster-cli --version` inside the sandbox as a smoke test. The bundle names Flathub as its
   runtime repo, so users install
   it with:
 
   ```sh
-  flatpak install --user localpaint-<v>-linux-x86_64.flatpak   # pulls org.freedesktop.Platform//26.08 from Flathub if missing
-  flatpak run com.localpaint.app
+  flatpak install --user localraster-<v>-linux-x86_64.flatpak   # pulls org.freedesktop.Platform//26.08 from Flathub if missing
+  flatpak run com.localraster.app
   ```
 
   Sandbox permissions (justified in the manifest): Wayland with X11 fallback, IPC (X11
@@ -273,7 +273,7 @@ Why these formats:
   checks and makes the optional loopback `--control` server reachable from the host. Host fonts
   are read from `/run/host/fonts` and `/run/host/user-fonts`. Locally (on Linux, with `flatpak` and
   `flatpak-builder`): `packaging/linux/package.sh --formats tar && packaging/linux/flatpak-bundle.sh`.
-- **Flathub**: `packaging/linux/flatpak/com.localpaint.app.yml` builds from source and
+- **Flathub**: `packaging/linux/flatpak/com.localraster.app.yml` builds from source and
   is ready for a Flathub submission (it keeps the same runtime and `finish-args` as the bundle
   manifest). CI doesn't build it. A real build needs vendored crate
   sources (`cargo-sources.json` from `flatpak-cargo-generator.py`) and adds 20+ minutes per
@@ -285,10 +285,10 @@ Wayland, xkbcommon, Vulkan and EGL are loaded at runtime from the system, which 
 the GPU driver has to come from. That's why the .deb and .rpm declare them as dependencies
 (the full list, and why each is there, is in `packaging/linux/nfpm.yaml`) and the AppImage
 doesn't bundle them. The Flatpak gets them from the freedesktop runtime. Because the AppImage
-and the tarball can't declare dependencies, `localpaint` checks for the libraries its session
-(X11 or Wayland) needs before it opens a window (`apps/localpaint/src/linux_libs.rs`) and, if
+and the tarball can't declare dependencies, `localraster` checks for the libraries its session
+(X11 or Wayland) needs before it opens a window (`apps/localraster/src/linux_libs.rs`) and, if
 one is missing, prints the package to install and exits with status 1 instead of crashing.
-`LOCALPAINT_SKIP_LIB_CHECK=1` skips the check.
+`LOCALRASTER_SKIP_LIB_CHECK=1` skips the check.
 
 Locally (on Linux): install [nfpm](https://nfpm.goreleaser.com/install/), then
 `packaging/linux/package.sh` (or `--formats "deb tar"`).
@@ -298,21 +298,21 @@ Locally (on Linux): install [nfpm](https://nfpm.goreleaser.com/install/), then
 GitHub has no FreeBSD runners and this repository's workflow doesn't build FreeBSD, so
 `packaging/freebsd/package.sh` runs on a FreeBSD 14.3 machine or VM with `bash`. The script builds both
 binaries with `CARGO_BUILD_JOBS=4` (more runs a small VM out of memory) and writes
-`localpaint-<v>-freebsd-x86_64.tar.gz`. FreeBSD's `uname -m` says `amd64`; the file name uses
-`x86_64` like the other artifacts. The tarball is a `/usr/local`-style tree: `bin/localpaint`,
-`bin/localpaint-cli`, and under `share/` the same desktop entry, MIME type, AppStream metainfo
+`localraster-<v>-freebsd-x86_64.tar.gz`. FreeBSD's `uname -m` says `amd64`; the file name uses
+`x86_64` like the other artifacts. The tarball is a `/usr/local`-style tree: `bin/localraster`,
+`bin/localraster-cli`, and under `share/` the same desktop entry, MIME type, AppStream metainfo
 and hicolor icons as Linux, plus the licences, `NOTICE` and `ATTRIBUTION.md` in
-`share/doc/localpaint/`, and `localpaint-cli`'s man pages (`man/man1/`) and bash, zsh and fish
+`share/doc/localraster/`, and `localraster-cli`'s man pages (`man/man1/`) and bash, zsh and fish
 completions (`share/bash-completion`, `share/zsh/site-functions`, `share/fish`), written by the
 `man-and-completions` example built with the binaries. Users install it with:
 
 ```sh
 pkg install libxkbcommon wayland libX11 libXcursor libXrandr libXi libxcb mesa-libs vulkan-loader gtk3 fontconfig freetype2 alsa-lib
-tar -xzf localpaint-<v>-freebsd-x86_64.tar.gz --strip-components 1 -C /usr/local
+tar -xzf localraster-<v>-freebsd-x86_64.tar.gz --strip-components 1 -C /usr/local
 ```
 
 The script signs nothing and reads no secrets. The version, build date and commit come from the
-environment (`LOCALPAINT_VERSION`, `LOCALPAINT_BUILD_SHA`, `LOCALPAINT_BUILD_DATE`, filled from
+environment (`LOCALRASTER_VERSION`, `LOCALRASTER_BUILD_SHA`, `LOCALRASTER_BUILD_DATE`, filled from
 `git` when unset). The binaries aren't signed: FreeBSD has no code-signing scheme for loose
 binaries.
 
@@ -350,7 +350,7 @@ The keychain is deleted at the end.
 
 ## Icons
 
-`assets/app-icon/localpaint.svg` is the canonical icon: the suite owner's drawing of a painter's
+`assets/app-icon/localraster.svg` is the canonical icon: the suite owner's drawing of a painter's
 palette crossed by a brush, on an amber gradient tile, vectorised (MIT OR Apache-2.0, see
 `LICENSE.txt` there; palette and geometry in `README.md`). `packaging/icons.sh` regenerates the
 1024 px PNG, the `.icns`, the `.ico` (packed by

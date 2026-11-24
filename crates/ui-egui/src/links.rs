@@ -3,11 +3,11 @@
 
 use serde_json::{Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
-pub const APP_PAGE: &str = "https://github.com/Anon5T4R/Local-Paint";
-pub const GITHUB: &str = "https://github.com/Anon5T4R/Local-Paint";
-pub const ISSUES: &str = "https://github.com/Anon5T4R/Local-Paint/issues";
+pub const APP_PAGE: &str = "https://github.com/Anon5T4R/Local-Raster";
+pub const GITHUB: &str = "https://github.com/Anon5T4R/Local-Raster";
+pub const ISSUES: &str = "https://github.com/Anon5T4R/Local-Raster/issues";
 
 /// Help-menu link commands: (id, url). Labels live in `menus::UI_COMMANDS`.
 pub const COMMANDS: &[(&str, &str)] = &[("help.website", APP_PAGE), ("help.github", GITHUB), ("help.reportIssue", ISSUES)];
@@ -18,7 +18,7 @@ pub fn url_for(id: &str) -> Option<&'static str> {
 
 /// Open `url` in the system browser (a new tab on the web) and note it in the status bar. Prefers
 /// the platform `open_url` service (reliable on Windows/macOS/Linux); falls back to `ctx.open_url`.
-pub fn open(app: &mut LocalPaintApp, ctx: &egui::Context, url: &str) -> Value {
+pub fn open(app: &mut LocalRasterApp, ctx: &egui::Context, url: &str) -> Value {
     let opened = app.services.open_url.as_ref().map(|f| f(url).is_ok()).unwrap_or(false);
     if !opened {
         ctx.open_url(egui::OpenUrl::new_tab(url));
@@ -28,11 +28,11 @@ pub fn open(app: &mut LocalPaintApp, ctx: &egui::Context, url: &str) -> Value {
     json!({"url": url})
 }
 
-/// "Local Paint website · GitHub" as links, centred. Clicks route through [`open`] (the
+/// "Local Raster website · GitHub" as links, centred. Clicks route through [`open`] (the
 /// platform browser service) rather than `ui.hyperlink_to`, which uses the unreliable `ctx.open_url`.
-pub fn link_row(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+pub fn link_row(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     let t = crate::theme::Tokens::get(ui.ctx());
-    let links = [(tl!("Local Paint website"), APP_PAGE), (tl!("GitHub"), GITHUB)];
+    let links = [(tl!("Local Raster website"), APP_PAGE), (tl!("GitHub"), GITHUB)];
     let font = egui::FontId::proportional(12.5);
     let sep = "  ·  ";
     let width: f32 = links.iter().map(|(l, _)| ui.painter().layout_no_wrap((*l).into(), font.clone(), t.text).size().x).sum::<f32>()
@@ -73,7 +73,7 @@ mod tests {
             })),
             ..Default::default()
         };
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), services);
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), services);
         let ctx = egui::Context::default();
         // Every Help-menu link id reaches the service with its URL.
         for (id, url) in COMMANDS {
@@ -87,7 +87,7 @@ mod tests {
 
     #[test]
     fn help_menu_lists_links_then_separator_then_system_info_and_about() {
-        let app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+        let app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
         let help: Vec<String> = crate::menus::menu_items(&app).into_iter().filter(|i| i.path == ["Help"]).map(|i| i.id).collect();
         assert_eq!(help, ["help.website", "help.github", "help.reportIssue", "help.checkForUpdates", "---", "help.systemInfo", "help.about"]);
         for (id, _) in COMMANDS {
@@ -97,9 +97,9 @@ mod tests {
 
     #[test]
     fn link_commands_open_their_urls() {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
         let ctx = egui::Context::default();
-        for (id, url) in [("help.website", "https://github.com/Anon5T4R/Local-Paint"), ("help.github", "https://github.com/Anon5T4R/Local-Paint")] {
+        for (id, url) in [("help.website", "https://github.com/Anon5T4R/Local-Raster"), ("help.github", "https://github.com/Anon5T4R/Local-Raster")] {
             let r = crate::menus::invoke(&mut app, &ctx, id, serde_json::json!({})).unwrap();
             assert_eq!(r["url"], url);
             assert_eq!(app.ui.status, format!("Opened {url}"));

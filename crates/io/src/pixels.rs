@@ -1,7 +1,7 @@
 //! Conversions between PSD planar big-endian channel data and interleaved
 //! native-endian surface bytes.
 
-use localpaint_color::SampleType;
+use localraster_color::SampleType;
 
 /// PSD depth (bits) for a sample type.
 pub fn psd_depth(s: SampleType) -> u16 {
@@ -54,11 +54,11 @@ pub fn interleave(planes: &[Option<&[u8]>], fill: &[Vec<u8>], n: usize, s: Sampl
 
 /// Fallible interleave for file imports. Validate sizes and missing-plane fills before
 /// workers write disjoint slices of one reserved output buffer.
-pub fn try_interleave(planes: &[Option<&[u8]>], fill: &[Vec<u8>], n: usize, s: SampleType, invert: &[bool]) -> localpaint_psd::Result<Vec<u8>> {
-    use localpaint_psd::PsdError;
+pub fn try_interleave(planes: &[Option<&[u8]>], fill: &[Vec<u8>], n: usize, s: SampleType, invert: &[bool]) -> localraster_psd::Result<Vec<u8>> {
+    use localraster_psd::PsdError;
     let plane_bytes = n.checked_mul(s.bytes()).ok_or(PsdError::LimitExceeded("interleave size overflow"))?;
     let len = plane_bytes.checked_mul(planes.len()).ok_or(PsdError::LimitExceeded("interleave size overflow"))?;
-    if len as u64 > localpaint_psd::compression::MAX_DECODED_BYTES {
+    if len as u64 > localraster_psd::compression::MAX_DECODED_BYTES {
         return Err(PsdError::LimitExceeded("interleave exceeds MAX_DECODED_BYTES"));
     }
     if n > 0 && planes.is_empty() {

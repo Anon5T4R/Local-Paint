@@ -4,7 +4,7 @@ description = """
 Pure Rust cryptography provider for the Rustls TLS library using algorithm implementations from the
 RustCrypto organization
 """
-# // local-paint: fork vendored (libs/rustls-rustcrypto) do crate do crates.io.
+# // local-raster: fork vendored (libs/rustls-rustcrypto) do crate do crates.io.
 # A versão tem que continuar 0.0.2-alpha para o [patch.crates-io] do app casar
 # com a exigência do craft-update (`rustls-rustcrypto = "0.0.2-alpha"`).
 version = "0.0.2-alpha"
@@ -18,7 +18,7 @@ edition = "2021"
 rust-version = "1.75"
 resolver = "1" # Hack to enable the `custom` feature of `getrandom`
 
-# // local-paint: o fork é workspace próprio — `libs/` está no `exclude` do
+# // local-raster: o fork é workspace próprio — `libs/` está no `exclude` do
 # workspace do app, então sem isto o cargo tentaria encaixar o crate nele.
 [workspace]
 
@@ -38,7 +38,7 @@ p256 = { version = "0.13.2", default-features = false, features = ["pem", "ecdsa
 p384 = { version = "0.13.0", default-features = false, features = ["pem", "ecdsa", "ecdh"] }
 paste = { version = "1.0.14", default-features = false }
 pkcs8 = { version = "0.10.2", default-features = false, features = ["pem", "pkcs5"] }
-# // local-paint: 1.14 é a primeira faixa que expõe `pki_types::alg_id` (as
+# // local-raster: 1.14 é a primeira faixa que expõe `pki_types::alg_id` (as
 # constantes DER que antes vinham do rustls-webpki 0.102 — ver src/verify/*.rs).
 pki-types = { package = "rustls-pki-types", version = "1.14", default-features = false }
 rand_core = { version = "0.6.4", default-features = false, features = ["getrandom"] }
@@ -48,7 +48,7 @@ sec1 = { version = "0.7.3", default-features = false, features = ["pkcs8", "pem"
 sha2 = { version = "0.10.7", default-features = false }
 signature = { version = "2.1.0", default-features = false }
 x25519-dalek = { version = "2", default-features = false }
-# // local-paint: rustls-webpki 0.102 saiu do fork (era só pelas constantes
+# // local-raster: rustls-webpki 0.102 saiu do fork (era só pelas constantes
 # `alg_id`); a verificação de cadeia é do rustls 0.23 com webpki 0.103 + SO.
 
 [dev-dependencies]
@@ -63,7 +63,7 @@ tls12 = ["rustls/tls12"]
 # zeroize is another typical that can be turned off
 
 # TODO: go through all of these that what gets exposed re: std error type
-# // local-paint: sem `webpki/std` (a dep saiu do fork).
+# // local-raster: sem `webpki/std` (a dep saiu do fork).
 std = ["alloc", "pki-types/std", "rustls/std", "ed25519-dalek/std"]
 # TODO: go through all of these to ensure to_vec etc. impls are exposed
 alloc = ["pki-types/alloc", "aead/alloc", "ed25519-dalek/alloc"]

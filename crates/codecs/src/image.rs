@@ -21,7 +21,7 @@ pub enum ChannelLayout {
     /// Ink amounts, `0 = no ink`, `max = full ink` (not Adobe-inverted).
     Cmyk,
     CmykA,
-    /// CIE L*a*b* (D50), as Local Paint's Lab documents hold it: L* 0..100 as 0..1, a* and b*
+    /// CIE L*a*b* (D50), as Local Raster's Lab documents hold it: L* 0..100 as 0..1, a* and b*
     /// −128..127 as `(v + 128) / 255` (Photoshop's unsigned encoding).
     Lab,
     LabA,
@@ -140,10 +140,10 @@ pub struct Metadata {
     /// Free-form key/value text (PNG tEXt/iTXt, TIFF ASCII tags).
     pub text: Vec<(String, String)>,
     /// Photoshop image resources (`8BIM` resource blocks): TIFF tag 34377. Kept opaque here;
-    /// `localpaint-io` reads and writes them through `localpaint-psd`.
+    /// `localraster-io` reads and writes them through `localraster-psd`.
     pub photoshop_resources: Option<Vec<u8>>,
     /// Photoshop layer data (TIFF tag 37724 `ImageSourceData`): a layered TIFF's layers. Kept
-    /// opaque here; `localpaint-io` reads and writes it through `localpaint-psd`.
+    /// opaque here; `localraster-io` reads and writes it through `localraster-psd`.
     pub photoshop_layers: Option<Vec<u8>>,
     /// Samples per pixel beyond the colour channels and the one alpha sample. TIFF extra
     /// samples (spot colours, extra alpha channels) the pixel layout does not hold. Each entry
@@ -831,7 +831,7 @@ fn rgb_to_cmyk(r: f32, g: f32, b: f32) -> [f32; 4] {
 
 /// Convert normalized interleaved samples between layouts. Naive
 /// (non-colour-managed) formulas; colour-managed conversion belongs in
-/// `localpaint-color`.
+/// `localraster-color`.
 pub(crate) fn convert_layout(src: &[f32], from: ChannelLayout, to: ChannelLayout) -> Vec<f32> {
     if from == to {
         return src.to_vec();

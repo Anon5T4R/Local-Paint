@@ -2,12 +2,12 @@
 //! release:
 //!
 //! ```sh
-//! cargo test --release -p localpaint-codecs --test it -- tiff_bench:: --ignored --nocapture
+//! cargo test --release -p localraster-codecs --test it -- tiff_bench:: --ignored --nocapture
 //! ```
 
 use crate::common;
 use common::tiffgen::*;
-use localpaint_codecs::*;
+use localraster_codecs::*;
 use std::time::Instant;
 
 const W: u32 = 6336;

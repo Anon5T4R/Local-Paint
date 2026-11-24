@@ -44,7 +44,7 @@ mod xattrs {
     #[cfg(target_os = "macos")]
     const TAG: &str = "com.apple.metadata:_kMDItemUserTags";
     #[cfg(not(target_os = "macos"))]
-    const TAG: &str = "user.localpaint.test";
+    const TAG: &str = "user.localraster.test";
 
     fn set(path: &Path, name: &str, value: &[u8]) -> bool {
         rustix::fs::setxattr(path, name, value, rustix::fs::XattrFlags::empty()).is_ok()
@@ -250,11 +250,11 @@ mod windows {
         let d = TempDir::new("ads");
         let p = d.join("doc.psd");
         atomic_write(&p, b"first").unwrap();
-        std::fs::write(stream(&p, "localpaint.test"), b"side data").unwrap();
+        std::fs::write(stream(&p, "localraster.test"), b"side data").unwrap();
 
         atomic_write(&p, b"second").unwrap();
 
-        assert_eq!(std::fs::read(stream(&p, "localpaint.test")).unwrap(), b"side data");
+        assert_eq!(std::fs::read(stream(&p, "localraster.test")).unwrap(), b"side data");
     }
 
     /// #7096: an explicit ACL entry survives, instead of the file falling back to whatever the

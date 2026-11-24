@@ -1,4 +1,4 @@
-//! # localpaint-format
+//! # localraster-format
 //!
 //! The native, lossless `.pcraft` document bundle (architecture §9).
 //!
@@ -21,7 +21,7 @@
 //! processes) saving one bundle take turns instead of removing each other's objects.
 //!
 //! This crate sits at L3 next to the compositor, so it does not render.
-//! Callers pass previews in [`SaveOptions`]; `localpaint-io` does that.
+//! Callers pass previews in [`SaveOptions`]; `localraster-io` does that.
 #![forbid(unsafe_code)]
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
@@ -37,8 +37,8 @@ pub mod zip;
 
 use std::path::Path;
 
-use localpaint_doc::Document;
-use localpaint_raster::Rgba8Image;
+use localraster_doc::Document;
+use localraster_raster::Rgba8Image;
 
 pub use atomic::{atomic_write, atomic_write_no_follow, atomic_write_progress};
 pub use autosave::RecoveryStore;

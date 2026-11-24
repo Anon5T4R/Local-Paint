@@ -12,7 +12,7 @@
 use egui::{Key, Modifiers};
 use serde::{Deserialize, Serialize};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::state::{Tool, ToolOptions};
 
 /// The guide drawn inside the crop box.
@@ -235,7 +235,7 @@ fn golden_spiral() -> Polyline {
 }
 
 /// The guides the pending crop box shows now: none when the options say not to.
-pub fn current_guides(app: &LocalPaintApp, w: f32, h: f32) -> Vec<Polyline> {
+pub fn current_guides(app: &LocalRasterApp, w: f32, h: f32) -> Vec<Polyline> {
     let o = &app.ui.tool_options;
     if app.ui.tool != Tool::Crop || !o.crop_overlay_show.shows(app.crop.drag.is_some()) {
         return Vec::new();
@@ -265,7 +265,7 @@ pub fn cycle_orientation(o: &mut ToolOptions) {
 
 /// O / ⇧O with the Crop tool showing a box and no drag in progress. Returns true when a key was
 /// used; otherwise O stays the Dodge/Burn/Sponge tool key.
-pub fn keys(app: &mut LocalPaintApp, ctx: &egui::Context) -> bool {
+pub fn keys(app: &mut LocalRasterApp, ctx: &egui::Context) -> bool {
     if app.ui.tool != Tool::Crop || app.ui.crop_rect.is_none() || app.crop.drag.is_some() {
         return false;
     }
@@ -480,7 +480,7 @@ mod tests {
     }
 
     /// One key press through the shortcut handler, as egui delivers it.
-    fn press(app: &mut LocalPaintApp, mods: Modifiers) {
+    fn press(app: &mut LocalRasterApp, mods: Modifiers) {
         let ctx = egui::Context::default();
         ctx.input_mut(|i| {
             i.modifiers = mods;
@@ -489,8 +489,8 @@ mod tests {
         crate::shortcuts::handle(app, &ctx);
     }
 
-    fn crop_app() -> LocalPaintApp {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    fn crop_app() -> LocalRasterApp {
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", serde_json::json!({"width": 200, "height": 120})).unwrap();
         app.ui.tool = Tool::Crop;
         crate::crop_ui::ensure_frame(&mut app);
@@ -517,7 +517,7 @@ mod tests {
     #[test]
     fn o_stays_the_dodge_key_without_a_crop_box() {
         // No document: the Crop tool shows no box, so O picks the Dodge tool.
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.ui.tool = Tool::Crop;
         press(&mut app, Modifiers::NONE);
         assert_eq!(app.ui.tool, Tool::Dodge);

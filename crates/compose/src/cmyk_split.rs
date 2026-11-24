@@ -12,13 +12,13 @@
 //! use their own float formula); so do pattern paints, bevel textures, effect blend modes that mix
 //! channels, Blend If and channel restrictions, which don't work channel by channel.
 
-use localpaint_color::blend::BlendMode;
-use localpaint_color::{Color, ColorMode, PixelFormat, SampleType};
-use localpaint_doc::adjust::ToneSpace;
-use localpaint_doc::effects::{Effect, FxPaint};
-use localpaint_doc::{Adjustment, Document, Fill, Layer, LayerContent};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_color::blend::BlendMode;
+use localraster_color::{Color, ColorMode, PixelFormat, SampleType};
+use localraster_doc::adjust::ToneSpace;
+use localraster_doc::effects::{Effect, FxPaint};
+use localraster_doc::{Adjustment, Document, Fill, Layer, LayerContent};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 
 use super::{CmykBuffer, MAX_DEPTH, clean, cmyk_pixels, ink_adjustment, separable};
 use crate::{Buffer, Ctx, advanced, pattern};
@@ -52,7 +52,7 @@ fn layer_supported(l: &Layer, depth: u32) -> bool {
     };
     // Effects and knockouts are laid out over the layer's bounds: they must be the same on the
     // stand-ins (see [`stand_in_surface`]).
-    let shaped = crate::effects::has_effects(l) || l.advanced.knockout != localpaint_doc::Knockout::None;
+    let shaped = crate::effects::has_effects(l) || l.advanced.knockout != localraster_doc::Knockout::None;
     plain && effects && content && (!shaped || transparent_outside(l))
 }
 
@@ -248,7 +248,7 @@ fn stand_in_layer(l: &mut Layer, planes: Planes, depth: SampleType, canvas: Rect
                 // colours would interpolate differently), given as the fill's rendered pixels.
                 let mut fill = f.clone();
                 stand_in_fill(&mut fill, planes, depth);
-                l.fill_cache = Some(localpaint_doc::FillCache { fill, surface: stand_in_surface(&s, planes) });
+                l.fill_cache = Some(localraster_doc::FillCache { fill, surface: stand_in_surface(&s, planes) });
             }
             stand_in_fill(f, planes, depth);
         }
@@ -266,7 +266,7 @@ pub(super) fn stand_in(doc: &Document, planes: Planes) -> Document {
     d.mode = ColorMode::Rgb;
     d.icc_profile = None;
     let space = crate::cmyk_space(doc);
-    localpaint_color::convert::with_cmyk_space(space.as_ref(), || {
+    localraster_color::convert::with_cmyk_space(space.as_ref(), || {
         d.layers.iter_mut().for_each(|l| stand_in_layer(l, planes, doc.depth, doc.bounds()));
     });
     d
@@ -348,7 +348,7 @@ mod batch_tests {
     fn stand_ins_convert_in_batches_and_skip_hidden_layers() {
         let fmt = PixelFormat::new(ColorMode::Cmyk, SampleType::U8, true);
         let mut s = Surface::with_default(fmt, &[0.0; 5]);
-        let size = localpaint_geom::TILE_SIZE * 3 + 7;
+        let size = localraster_geom::TILE_SIZE * 3 + 7;
         s.fill_rect(Rect::new(0, 0, size, size / 2), &[0.2, 0.4, 0.6, 0.1, 1.0]);
         s.fill_rect(Rect::new(5, size / 3, size, size), &[0.0, 0.9, 0.0, 0.5, 0.5]);
         assert!(s.tiles().count() > 4);
@@ -363,7 +363,7 @@ mod batch_tests {
             assert_eq!(read(&stand_in_surface_in(&s, planes, 1)), read(&whole));
             assert_eq!(read(&stand_in_surface(&s, planes)), read(&whole));
         }
-        let mut d = Document::new("d", localpaint_geom::Size::new(4, 4), ColorMode::Cmyk, SampleType::U8);
+        let mut d = Document::new("d", localraster_geom::Size::new(4, 4), ColorMode::Cmyk, SampleType::U8);
         let mut hidden = Layer::raster("hidden", fmt);
         hidden.visible = false;
         d.layers.extend([Layer::raster("shown", fmt), hidden]);

@@ -73,7 +73,7 @@ pub struct CafPlan {
     /// What may be copied from: the sampling option's area before the brush strokes, and after.
     pub base: Vec<bool>,
     pub source: Vec<bool>,
-    pub opts: localpaint_algo::content_aware::FillOptions,
+    pub opts: localraster_algo::content_aware::FillOptions,
     pub output: String,
 }
 
@@ -160,7 +160,7 @@ fn fill_edits(p: &Value, cmd: &str, budget: &mut usize) -> Result<Vec<FillEdit>>
         .collect()
 }
 
-fn sampling_strokes(p: &Value, cmd: &str, budget: &mut usize) -> Result<Vec<localpaint_algo::content_aware::SamplingStroke>> {
+fn sampling_strokes(p: &Value, cmd: &str, budget: &mut usize) -> Result<Vec<localraster_algo::content_aware::SamplingStroke>> {
     edits_param(p, "samplingStrokes", cmd)?
         .iter()
         .map(|e| {
@@ -174,7 +174,7 @@ fn sampling_strokes(p: &Value, cmd: &str, budget: &mut usize) -> Result<Vec<loca
                 .and_then(Value::as_f64)
                 .filter(|v| v.is_finite() && (1.0..=5000.0).contains(v))
                 .ok_or_else(|| bad(cmd, "a stroke's `size` must be 1..5000 px"))?;
-            Ok(localpaint_algo::content_aware::SamplingStroke { add, size, points: points_param(e, cmd, "a sampling stroke", budget)? })
+            Ok(localraster_algo::content_aware::SamplingStroke { add, size, points: points_param(e, cmd, "a sampling stroke", budget)? })
         })
         .collect()
 }
@@ -185,17 +185,17 @@ struct CafParams<'a> {
     /// The selection's bounds on the canvas.
     sb: Rect,
     edits: Vec<FillEdit>,
-    strokes: Vec<localpaint_algo::content_aware::SamplingStroke>,
+    strokes: Vec<localraster_algo::content_aware::SamplingStroke>,
     sampling: String,
     custom_mask: Option<&'a Surface>,
     custom_rect: Option<Rect>,
-    opts: localpaint_algo::content_aware::FillOptions,
+    opts: localraster_algo::content_aware::FillOptions,
     output: String,
     surf: &'a Surface,
 }
 
 fn caf_params<'a>(doc: &'a Document, id: LayerId, p: &Value, cmd: &str) -> Result<CafParams<'a>> {
-    use localpaint_algo::content_aware::{FillOptions, color_level, rotation_level};
+    use localraster_algo::content_aware::{FillOptions, color_level, rotation_level};
     let sel = doc.selection.as_ref().ok_or_else(|| bad(cmd, "no selection"))?;
     let sb = sel.content_bounds().intersect(&doc.bounds());
     if sb.is_empty() {
@@ -231,12 +231,12 @@ fn caf_params<'a>(doc: &'a Document, id: LayerId, p: &Value, cmd: &str) -> Resul
 
 /// Work out a Content-Aware Fill (see [`CafPlan`]) on layer `id` of `doc`.
 pub fn content_aware_plan(doc: &Document, id: LayerId, p: &Value, cmd: &str) -> Result<CafPlan> {
-    content_aware_plan_with(doc, id, p, cmd, &localpaint_raster::Interrupt::NONE)
+    content_aware_plan_with(doc, id, p, cmd, &localraster_raster::Interrupt::NONE)
 }
 
 /// [`content_aware_plan`], asking `ctl` row by row whether to stop ([`EngineError::Cancelled`]).
-pub fn content_aware_plan_with(doc: &Document, id: LayerId, p: &Value, cmd: &str, ctl: &localpaint_raster::Interrupt) -> Result<CafPlan> {
-    use localpaint_algo::content_aware::{auto_sampling_with, grow_mask, paint_strokes, polygon_mask};
+pub fn content_aware_plan_with(doc: &Document, id: LayerId, p: &Value, cmd: &str, ctl: &localraster_raster::Interrupt) -> Result<CafPlan> {
+    use localraster_algo::content_aware::{auto_sampling_with, grow_mask, paint_strokes, polygon_mask};
     use rayon::prelude::*;
 
     use crate::fill_cmds::{read_window, read_window_mask};
@@ -380,7 +380,7 @@ pub fn content_aware_plan_with(doc: &Document, id: LayerId, p: &Value, cmd: &str
 }
 
 fn content_aware_fill_as(s: &mut Session, p: &Value, cmd: &'static str, label: &'static str) -> Result<Value> {
-    use localpaint_algo::content_aware::fill_owned;
+    use localraster_algo::content_aware::fill_owned;
     // The workspace names the layer it opened on: after an Apply to a new layer that one is
     // active, but the fill still samples the original.
     let id = match p.get("layer").and_then(Value::as_u64) {
@@ -404,7 +404,7 @@ fn content_aware_fill_as(s: &mut Session, p: &Value, cmd: &'static str, label: &
             use rayon::prelude::*;
             ctx.progress(0.0, label);
             let cancel = || ctx.cancelled();
-            let plan = content_aware_plan_with(&doc, id, &p, cmd, &localpaint_raster::Interrupt::cancel_only(&cancel))?;
+            let plan = content_aware_plan_with(&doc, id, &p, cmd, &localraster_raster::Interrupt::cancel_only(&cancel))?;
             let CafPlan { layer, rect, fmt, img, layer_px, cover, hole, source, opts, output, .. } = plan;
             // Patches come only from the sampling area outside the fill area. With none (a
             // Rectangular `margin` of 0, a Custom area inside the selection or off the canvas)

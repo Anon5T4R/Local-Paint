@@ -1,6 +1,6 @@
 //! Filter › Other › Color to Alpha (`filter.other.colorToAlpha`, #1576): turns a chosen colour
 //! into transparency, unmixing it from partly covered pixels so antialiased edges keep their
-//! shape over any new background (the algorithm is `localpaint_algo::color_to_alpha`).
+//! shape over any new background (the algorithm is `localraster_algo::color_to_alpha`).
 //!
 //! Photoshop has no such filter (GIMP and Krita do), so the id is our own; the menu item sits in
 //! Filter › Other after Offset. It runs through [`crate::filters::run_filter`] like every other
@@ -9,8 +9,8 @@
 //! hold transparency. A layer whose transparency is locked is refused rather than silently
 //! getting its old alpha back.
 
-use localpaint_algo::FilterParams;
-use localpaint_color::ColorMode;
+use localraster_algo::FilterParams;
+use localraster_color::ColorMode;
 use serde_json::Value;
 
 use crate::commands::CommandSpec;
@@ -119,7 +119,7 @@ pub fn specs() -> Vec<CommandSpec> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_geom::Rect;
+    use localraster_geom::Rect;
     use serde_json::json;
 
     const W: i32 = 24;
@@ -137,7 +137,7 @@ mod tests {
             let surf = doc.layer_mut(active.unwrap()).unwrap().surface_mut().unwrap();
             for x in 0..W {
                 let v = x as f32 / (W - 1) as f32;
-                surf.fill_rect(Rect::new(x, 0, x + 1, H), &localpaint_raster::from_rgba(&surf.format(), [v, v, v, 1.0]));
+                surf.fill_rect(Rect::new(x, 0, x + 1, H), &localraster_raster::from_rgba(&surf.format(), [v, v, v, 1.0]));
             }
             Ok(())
         })
@@ -279,7 +279,7 @@ mod tests {
         s.execute("layer.smartObjects.convertToSmartObject", json!({})).unwrap();
         s.execute(ID, json!({"color": "#ffffff"})).unwrap();
         let d = s.active().unwrap();
-        let localpaint_doc::LayerContent::Smart(sm) = &d.doc.layer(d.active_layer.unwrap()).unwrap().content else { panic!("not a smart object") };
+        let localraster_doc::LayerContent::Smart(sm) = &d.doc.layer(d.active_layer.unwrap()).unwrap().content else { panic!("not a smart object") };
         assert_eq!(sm.smart_filters.len(), 1);
         assert_eq!(sm.smart_filters[0].command, ID);
         assert!(sm.cache.as_ref().unwrap().rgba(W - 1, 0)[3] < 0.02, "the cache was re-rendered");

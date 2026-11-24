@@ -12,13 +12,13 @@
 use std::sync::Arc;
 
 use egui::{Color32, CursorIcon, Pos2, Stroke, pos2, vec2};
-use localpaint_algo::transform::Homography;
-use localpaint_doc::{DocId, Document, LayerContent, LayerId};
-use localpaint_engine::jobs::{JobEvent, JobId, JobOutcome};
-use localpaint_geom::warp::{BezierMesh, Warp, WarpStyle};
+use localraster_algo::transform::Homography;
+use localraster_doc::{DocId, Document, LayerContent, LayerId};
+use localraster_engine::jobs::{JobEvent, JobId, JobOutcome};
+use localraster_geom::warp::{BezierMesh, Warp, WarpStyle};
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::canvas::{ToolEvent, ViewXform};
 use crate::state::{MadeLayer, Tool, TransformMode, TransformSession};
 
@@ -131,7 +131,7 @@ pub struct TransformPreview {
     /// The tool the session began with: picking another one applies the transform.
     tool: Tool,
     /// Free Transform Path: the path as it was, drawn through the box instead of pixels.
-    path: Option<localpaint_doc::vector::Path>,
+    path: Option<localraster_doc::vector::Path>,
     /// A layer's session keeps `doc` and `opacity` up to date with edits made while the box is
     /// open ([`follow_edits`]); `None` for a lone mask or channel and Transform Selection.
     follow: Option<Follow>,
@@ -155,20 +155,20 @@ struct Several {
     /// The pixels a selection lifted out of moving pixel layers, as the box opened. Every other
     /// moving layer (groups, type, shapes, smart objects, pixel layers without a selection) moves
     /// whole, so the live document holds what it moves, children and their looks included.
-    lifted: Vec<(LayerId, localpaint_raster::Surface)>,
+    lifted: Vec<(LayerId, localraster_raster::Surface)>,
     /// The document showing only the moving layers, as last composited.
     moving: Document,
     /// The box's frame.
-    frame: localpaint_geom::Rect,
+    frame: localraster_geom::Rect,
     /// The document area the texture covers: the frame grown by the reach of the moving layers'
     /// styles, so a shadow, glow or outside stroke past their content moves with the box.
-    rect: localpaint_geom::Rect,
+    rect: localraster_geom::Rect,
 }
 
 impl Several {
     /// `live` showing only the layers `ids`, with the `lifted` pixels in place of their layers'.
     /// Unclipped: a clipping base that isn't moving would clip them away (#5239).
-    fn shown(live: &Document, ids: &[LayerId], lifted: &[(LayerId, localpaint_raster::Surface)]) -> Document {
+    fn shown(live: &Document, ids: &[LayerId], lifted: &[(LayerId, localraster_raster::Surface)]) -> Document {
         let mut d = live.clone();
         show_only(&mut d.layers, ids);
         for id in ids {
@@ -204,12 +204,12 @@ impl Several {
 /// its children's composite and so adds to theirs.
 fn style_reach(doc: &Document, ids: &[LayerId]) -> i32 {
     let reach_of =
-        |l: &localpaint_doc::Layer| if l.visible && localpaint_compose::effects::has_effects(l) { localpaint_compose::effects::margin(l).max(0) } else { 0 };
+        |l: &localraster_doc::Layer| if l.visible && localraster_compose::effects::has_effects(l) { localraster_compose::effects::margin(l).max(0) } else { 0 };
     // The groups around each layer: everything on its path but itself.
     let around =
         |id: LayerId| doc.path_of(id).map_or(0, |p| (1..p.len()).filter_map(|n| doc.layer_at(p.get(..n)?)).fold(0i32, |r, g| r.saturating_add(reach_of(g))));
     // An explicit stack rather than recursion: documents can nest deeply.
-    let mut stack: Vec<(&localpaint_doc::Layer, i32)> = ids.iter().filter_map(|id| Some((doc.layer(*id)?, around(*id)))).collect();
+    let mut stack: Vec<(&localraster_doc::Layer, i32)> = ids.iter().filter_map(|id| Some((doc.layer(*id)?, around(*id)))).collect();
     let mut reach = 0;
     while let Some((l, outer)) = stack.pop() {
         let here = outer.saturating_add(reach_of(l));
@@ -242,7 +242,7 @@ pub const CAS_ONLY_SCALES: &str = "Content-Aware Scale only scales: commit or ca
 pub const HANDLE_PX: f64 = 12.0;
 
 /// [`HANDLE_PX`] in document pixels at the current zoom.
-pub fn handle_tolerance(app: &LocalPaintApp) -> f64 {
+pub fn handle_tolerance(app: &LocalRasterApp) -> f64 {
     HANDLE_PX / app.point_zoom().max(0.01) as f64
 }
 
@@ -316,8 +316,8 @@ pub(crate) fn corners(r: [f64; 4]) -> [[f64; 2]; 4] {
 }
 
 /// The transform choices supported by the options bar, using its remembered choice or the general default.
-pub(crate) fn default_interpolation(app: &LocalPaintApp) -> &'static str {
-    use localpaint_engine::prefs::Interpolation;
+pub(crate) fn default_interpolation(app: &LocalRasterApp) -> &'static str {
+    use localraster_engine::prefs::Interpolation;
     match app.ui.tool_options.transform_interpolation.unwrap_or(app.session.prefs().general.image_interpolation) {
         Interpolation::Nearest => "nearest",
         Interpolation::Bilinear => "bilinear",

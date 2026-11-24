@@ -1,6 +1,6 @@
-use super::{DocId, Document, LocalPaintApp, mask_thumbs_ui};
+use super::{DocId, Document, LocalRasterApp, mask_thumbs_ui};
 
-impl LocalPaintApp {
+impl LocalRasterApp {
     pub(super) fn prune_thumbs(&mut self) {
         let documents = self.session.documents();
         if self.thumb_documents.len() == documents.len()
@@ -21,7 +21,7 @@ impl LocalPaintApp {
                 if layer.vector_mask.is_some() {
                     live.insert((layer.id, mask_thumbs_ui::THUMB_VECTOR));
                 }
-                if matches!(&layer.content, localpaint_doc::LayerContent::Smart(sm) if sm.filter_mask.is_some()) {
+                if matches!(&layer.content, localraster_doc::LayerContent::Smart(sm) if sm.filter_mask.is_some()) {
                     live.insert((layer.id, mask_thumbs_ui::THUMB_SMART_MASK));
                 }
                 if let Some(children) = layer.children() {
@@ -38,7 +38,7 @@ impl LocalPaintApp {
 
     /// Cached 64px thumbnail of a pixel-ish layer, letterboxed in a square, and the document
     /// area it frames: the canvas, or with Clip Thumbnails to Layer Bounds the layer's pixels.
-    pub fn layer_thumb(&mut self, ctx: &egui::Context, doc: &Document, layer: &localpaint_doc::Layer) -> (egui::TextureId, localpaint_geom::Rect) {
+    pub fn layer_thumb(&mut self, ctx: &egui::Context, doc: &Document, layer: &localraster_doc::Layer) -> (egui::TextureId, localraster_geom::Rect) {
         let clip = self.session.prefs().interface.clip_thumbnails_to_layer_bounds;
         // Key by content, not document revision: COW tiles change pointer only when their pixels
         // change, so unrelated edits (e.g. painting another layer) don't rebuild this thumbnail.
@@ -57,7 +57,7 @@ impl LocalPaintApp {
             let Some(s) = layer.surface() else { return [0.0; 4] };
             let n = s.channels();
             s.read_pixel(x, y, &mut px[..n]);
-            localpaint_raster::to_rgba(&s.format(), &px[..n])
+            localraster_raster::to_rgba(&s.format(), &px[..n])
         });
         self.thumb_frames.insert(layer.id, frame);
         (self.store_thumb(ctx, key, rev, img), frame)
@@ -65,12 +65,12 @@ impl LocalPaintApp {
 
     /// The History panel thumbnail of snapshot `snap` of document `doc` (#2966): its composite,
     /// centred in a square. Thumbnails of `doc`'s snapshots not in `live` are dropped.
-    pub fn snapshot_thumb(&mut self, ctx: &egui::Context, doc: DocId, snap: &localpaint_engine::history_cmds::Snapshot, live: &[u64]) -> egui::TextureId {
+    pub fn snapshot_thumb(&mut self, ctx: &egui::Context, doc: DocId, snap: &localraster_engine::history_cmds::Snapshot, live: &[u64]) -> egui::TextureId {
         self.snapshot_thumbs.retain(|(d, id), _| *d != doc || live.contains(id));
         if let Some(tex) = self.snapshot_thumbs.get(&(doc, snap.id)) {
             return tex.id();
         }
-        let comp = localpaint_compose::thumbnail(&snap.doc, 56);
+        let comp = localraster_compose::thumbnail(&snap.doc, 56);
         let (w, h) = (comp.width as usize, comp.height as usize);
         let side = w.max(h);
         let (ox, oy) = ((side - w) / 2, (side - h) / 2);
@@ -87,7 +87,7 @@ impl LocalPaintApp {
     }
 
     /// The cached thumbnail of `mask`, the layer mask of layer `id`.
-    pub fn mask_thumb(&mut self, ctx: &egui::Context, doc: &Document, id: localpaint_doc::LayerId, mask: &localpaint_doc::LayerMask) -> egui::TextureId {
+    pub fn mask_thumb(&mut self, ctx: &egui::Context, doc: &Document, id: localraster_doc::LayerId, mask: &localraster_doc::LayerMask) -> egui::TextureId {
         self.mask_thumb_kind(ctx, doc, id, mask, mask_thumbs_ui::THUMB_MASK)
     }
 
@@ -96,8 +96,8 @@ impl LocalPaintApp {
         &mut self,
         ctx: &egui::Context,
         doc: &Document,
-        id: localpaint_doc::LayerId,
-        mask: &localpaint_doc::LayerMask,
+        id: localraster_doc::LayerId,
+        mask: &localraster_doc::LayerMask,
         kind: u8,
     ) -> egui::TextureId {
         let rev = surface_fingerprint(&mask.surface) ^ (doc.size.width as u64) << 40 ^ (doc.size.height as u64) << 16;
@@ -115,7 +115,7 @@ impl LocalPaintApp {
         self.store_thumb(ctx, key, rev, img)
     }
 
-    pub(crate) fn store_thumb(&mut self, ctx: &egui::Context, key: (localpaint_doc::LayerId, u8), rev: u64, img: egui::ColorImage) -> egui::TextureId {
+    pub(crate) fn store_thumb(&mut self, ctx: &egui::Context, key: (localraster_doc::LayerId, u8), rev: u64, img: egui::ColorImage) -> egui::TextureId {
         match self.thumbs.get_mut(&key) {
             Some((r, tex)) => {
                 tex.set(img, egui::TextureOptions::LINEAR);
@@ -135,7 +135,7 @@ impl LocalPaintApp {
 /// Cheap identity of a surface's pixels: its default (untouched) pixel, tile coordinates and
 /// `Arc` pointers. The default pixel matters: inverting or filling a tile-less mask only changes
 /// it (#2117).
-pub fn surface_fingerprint(s: &localpaint_raster::Surface) -> u64 {
+pub fn surface_fingerprint(s: &localraster_raster::Surface) -> u64 {
     let mut h: u64 = 0xcbf2_9ce4_8422_2325 ^ s.tile_count() as u64;
     for &b in s.default_bytes() {
         h = (h ^ u64::from(b)).wrapping_mul(0x100_0000_01b3);
@@ -149,17 +149,17 @@ pub fn surface_fingerprint(s: &localpaint_raster::Surface) -> u64 {
 
 /// The document area a layer thumbnail frames: the canvas, or with `clip` the layer's pixels on
 /// it (the canvas again when it has none there, so an empty layer still shows the page shape).
-pub(crate) fn layer_thumb_frame(layer: &localpaint_doc::Layer, canvas: localpaint_geom::Rect, clip: bool) -> localpaint_geom::Rect {
+pub(crate) fn layer_thumb_frame(layer: &localraster_doc::Layer, canvas: localraster_geom::Rect, clip: bool) -> localraster_geom::Rect {
     if !clip {
         return canvas;
     }
-    let bounds = layer.surface().map_or(localpaint_geom::Rect::EMPTY, localpaint_compose::bounds::content_bounds).intersect(&canvas);
+    let bounds = layer.surface().map_or(localraster_geom::Rect::EMPTY, localraster_compose::bounds::content_bounds).intersect(&canvas);
     if bounds.is_empty() { canvas } else { bounds }
 }
 
 /// Square thumbnail of the document area `frame`, letterboxed, sampling `f(x, y)` in document
 /// space.
-fn thumb_image(frame: localpaint_geom::Rect, side: usize, mut f: impl FnMut(i32, i32) -> [f32; 4]) -> egui::ColorImage {
+fn thumb_image(frame: localraster_geom::Rect, side: usize, mut f: impl FnMut(i32, i32) -> [f32; 4]) -> egui::ColorImage {
     let (w, h) = (frame.width().max(1) as f32, frame.height().max(1) as f32);
     let scale = w.max(h) / side as f32;
     let (ox, oy) = ((side as f32 - w / scale) / 2.0, (side as f32 - h / scale) / 2.0);
@@ -179,9 +179,9 @@ fn thumb_image(frame: localpaint_geom::Rect, side: usize, mut f: impl FnMut(i32,
     egui::ColorImage::new([side, side], px)
 }
 
-impl LocalPaintApp {
+impl LocalRasterApp {
     /// Cached `Surface::content_bounds` keyed by an id and the surface's tile identity.
-    pub fn cached_bounds(&mut self, key: u64, surface: &localpaint_raster::Surface) -> localpaint_geom::Rect {
+    pub fn cached_bounds(&mut self, key: u64, surface: &localraster_raster::Surface) -> localraster_geom::Rect {
         let rev = surface_fingerprint(surface);
         if let Some((r, b)) = self.bounds_cache.get(&key)
             && *r == rev
@@ -199,9 +199,9 @@ impl LocalPaintApp {
     /// The box Properties › Transform shows for `layer` (X, Y, W, H): its pixels' bounds, but a
     /// soft shape's path and stroke, whose Density and Feather render past them (#5846), as its
     /// transform frame does.
-    pub fn layer_frame_bounds(&mut self, layer: &localpaint_doc::Layer, surface: &localpaint_raster::Surface) -> localpaint_geom::Rect {
+    pub fn layer_frame_bounds(&mut self, layer: &localraster_doc::Layer, surface: &localraster_raster::Surface) -> localraster_geom::Rect {
         match &layer.content {
-            localpaint_doc::LayerContent::Shape(sh) if sh.has_soft_mask() => {
+            localraster_doc::LayerContent::Shape(sh) if sh.has_soft_mask() => {
                 // Cached per rendering, like the pixel bounds: the frame renders strips of the shape.
                 let (key, rev) = (layer.id.0 | 1 << 63, surface_fingerprint(surface));
                 if let Some((r, b)) = self.bounds_cache.get(&key)
@@ -210,7 +210,7 @@ impl LocalPaintApp {
                     return *b;
                 }
                 let canvas = self.session.active().map_or_else(|| surface.content_bounds(), |st| st.doc.bounds());
-                let b = localpaint_compose::soft_shape_frame(sh, surface.format(), canvas).unwrap_or(localpaint_geom::Rect::EMPTY);
+                let b = localraster_compose::soft_shape_frame(sh, surface.format(), canvas).unwrap_or(localraster_geom::Rect::EMPTY);
                 if self.bounds_cache.len() > 256 {
                     self.bounds_cache.clear();
                 }
@@ -222,7 +222,7 @@ impl LocalPaintApp {
     }
 }
 
-impl LocalPaintApp {
+impl LocalRasterApp {
     /// Channels panel thumbnails of the active document snapshot: the composite,
     /// each colour channel (when there is more than one), each alpha channel, then the Quick Mask.
     pub fn channel_thumbs(&mut self, ctx: &egui::Context) -> Vec<egui::TextureId> {
@@ -249,7 +249,7 @@ impl LocalPaintApp {
             _ => false,
         };
         if !current {
-            let comp = localpaint_compose::thumbnail(&doc, 56);
+            let comp = localraster_compose::thumbnail(&doc, 56);
             let (w, h) = (comp.width as usize, comp.height as usize);
             let side = w.max(h);
             let make = |f: &dyn Fn(&[u8]) -> egui::Color32, name: &str| {
@@ -268,11 +268,11 @@ impl LocalPaintApp {
             let mut texs = vec![make(&|p| egui::Color32::from_rgb(p[0], p[1], p[2]), "composite")];
             if colors > 1 {
                 for k in 0..colors {
-                    let cmyk = fmt.mode == localpaint_doc::ColorMode::Cmyk;
+                    let cmyk = fmt.mode == localraster_doc::ColorMode::Cmyk;
                     texs.push(make(
                         &|p| {
                             let rgba = [p[0], p[1], p[2], 255].map(|v| f32::from(v) / 255.0);
-                            let x = localpaint_raster::from_rgba(&fmt, rgba)[k];
+                            let x = localraster_raster::from_rgba(&fmt, rgba)[k];
                             let g = if cmyk { 1.0 - x } else { x };
                             let byte = (g.clamp(0.0, 1.0) * 255.0 + 0.5) as u8;
                             channel_tint(fmt.mode, k, byte, show_color)
@@ -328,8 +328,8 @@ fn same_but_selection(old: &Document, new: &Document) -> bool {
 /// A channel thumbnail pixel whose lightness is `byte` (255 = white: full light, no ink).
 /// Preferences ▸ Interface ▸ Show Channels in Color tints RGB channels from black to their
 /// primary and CMYK channels from white to their ink, as Photoshop does; otherwise grey.
-fn channel_tint(mode: localpaint_doc::ColorMode, k: usize, byte: u8, in_color: bool) -> egui::Color32 {
-    use localpaint_doc::ColorMode::{Cmyk, Rgb};
+fn channel_tint(mode: localraster_doc::ColorMode, k: usize, byte: u8, in_color: bool) -> egui::Color32 {
+    use localraster_doc::ColorMode::{Cmyk, Rgb};
     if !in_color {
         return egui::Color32::from_gray(byte);
     }
@@ -348,7 +348,7 @@ fn channel_tint(mode: localpaint_doc::ColorMode, k: usize, byte: u8, in_color: b
 mod channel_tint_tests {
     use super::channel_tint;
     use egui::Color32;
-    use localpaint_doc::ColorMode::{Cmyk, Grayscale, Rgb};
+    use localraster_doc::ColorMode::{Cmyk, Grayscale, Rgb};
 
     #[test]
     fn channels_in_color_tint_rgb_from_black_and_cmyk_inks_from_white() {

@@ -12,12 +12,12 @@
 #[cfg(test)]
 mod tests;
 
-use localpaint_codecs::{self as codecs, ChannelLayout, Format, Image, SampleType as CSample};
-use localpaint_color::{BlendMode, ColorMode, PixelFormat, SampleType};
-use localpaint_doc::{Document, Layer, LayerContent};
-use localpaint_format::zip::{ZipReader, ZipWriter};
-use localpaint_geom::{Rect, Size};
-use localpaint_raster::{Interrupt, Surface};
+use localraster_codecs::{self as codecs, ChannelLayout, Format, Image, SampleType as CSample};
+use localraster_color::{BlendMode, ColorMode, PixelFormat, SampleType};
+use localraster_doc::{Document, Layer, LayerContent};
+use localraster_format::zip::{ZipReader, ZipWriter};
+use localraster_geom::{Rect, Size};
+use localraster_raster::{Interrupt, Surface};
 
 use crate::{ExportResult, ImportResult, IoError};
 
@@ -308,8 +308,8 @@ impl Reader<'_, '_> {
     }
 
     fn stack(&mut self, stack: roxmltree::Node<'_, '_>, depth: usize) -> Result<Vec<Node>> {
-        if depth > localpaint_doc::MAX_GROUP_DEPTH {
-            return Err(IoError::Unsupported(format!("layer groups nested deeper than {}", localpaint_doc::MAX_GROUP_DEPTH)));
+        if depth > localraster_doc::MAX_GROUP_DEPTH {
+            return Err(IoError::Unsupported(format!("layer groups nested deeper than {}", localraster_doc::MAX_GROUP_DEPTH)));
         }
         let mut out = Vec::new();
         for child in stack.children().filter(roxmltree::Node::is_element) {
@@ -629,7 +629,7 @@ impl Writer<'_> {
             LayerContent::Raster(s) => {
                 let r = s.content_bounds();
                 admit_layer(r)?;
-                (r, localpaint_compose::surface_to_buffer(s, r).px)
+                (r, localraster_compose::surface_to_buffer(s, r).px)
             }
             _ => {
                 // Rendered as it shows on its own, before the layer's blending options.
@@ -641,9 +641,9 @@ impl Writer<'_> {
                 solo.clipped = false;
                 solo.mask = None;
                 solo.effects = Default::default();
-                let r = localpaint_compose::composite_bounds(&solo, canvas).unwrap_or(canvas).intersect(&canvas);
+                let r = localraster_compose::composite_bounds(&solo, canvas).unwrap_or(canvas).intersect(&canvas);
                 admit_layer(r)?;
-                (r, localpaint_compose::render_layer(&solo, r).px)
+                (r, localraster_compose::render_layer(&solo, r).px)
             }
         };
         if let Some(mask) = layer.mask.as_ref().filter(|m| m.enabled) {
@@ -662,8 +662,8 @@ impl Writer<'_> {
     }
 
     fn layers(&mut self, layers: &[Layer], depth: usize) -> Result<()> {
-        if depth > localpaint_doc::MAX_GROUP_DEPTH {
-            return Err(IoError::Unsupported(format!("layer groups nested deeper than {}", localpaint_doc::MAX_GROUP_DEPTH)));
+        if depth > localraster_doc::MAX_GROUP_DEPTH {
+            return Err(IoError::Unsupported(format!("layer groups nested deeper than {}", localraster_doc::MAX_GROUP_DEPTH)));
         }
         // stack.xml lists the topmost layer first.
         for layer in layers.iter().rev() {
@@ -725,9 +725,9 @@ pub(crate) fn export(doc: &Document) -> Result<ExportResult> {
     w.xml.push_str("</stack></image>\n");
     let Writer { mut zip, xml, warnings, .. } = w;
     zip.add("stack.xml", xml.as_bytes())?;
-    let merged = localpaint_compose::flatten(doc);
+    let merged = localraster_compose::flatten(doc);
     zip.add("mergedimage.png", &png(doc.size.width, doc.size.height, &merged.px, sample)?)?;
-    let thumb = localpaint_compose::thumbnail(doc, THUMBNAIL_SIDE);
+    let thumb = localraster_compose::thumbnail(doc, THUMBNAIL_SIDE);
     let thumb = Image::from_raw(thumb.width, thumb.height, ChannelLayout::Rgba, CSample::U8, thumb.pixels)?;
     zip.add("Thumbnails/thumbnail.png", &codecs::encode(&thumb, Format::Png, &codecs::EncodeOptions::default())?)?;
     Ok(ExportResult { bytes: zip.finish()?, warnings: warnings.finish() })
@@ -745,7 +745,7 @@ fn document_warnings(doc: &Document, warnings: &mut Warnings) {
         warnings.note("metadata (XMP, EXIF, text) is not saved to OpenRaster");
     }
     // Readers assume sRGB, so an sRGB document loses nothing by the missing tag.
-    let srgb = |bytes: &[u8]| localpaint_cms::Profile::parse(bytes).is_ok_and(|p| p.same_colors(localpaint_cms::Builtin::Srgb.profile()));
+    let srgb = |bytes: &[u8]| localraster_cms::Profile::parse(bytes).is_ok_and(|p| p.same_colors(localraster_cms::Builtin::Srgb.profile()));
     if doc.icc_profile.as_deref().is_some_and(|b| !srgb(b)) {
         warnings.note("the colour profile is not saved to OpenRaster; readers assume sRGB");
     }

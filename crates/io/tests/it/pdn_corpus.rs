@@ -1,5 +1,5 @@
 //! Local PDN oracles are not bundled. Set PDN_TEST_DIR to a directory containing PDNs and their
-//! exported PNGs, then run `cargo test -p localpaint-io --test it -- pdn_corpus:: --ignored --nocapture`.
+//! exported PNGs, then run `cargo test -p localraster-io --test it -- pdn_corpus:: --ignored --nocapture`.
 
 use std::path::{Path, PathBuf};
 
@@ -24,16 +24,16 @@ fn real_pdn_layers_and_native_saves() {
     assert!(!paths.is_empty(), "no PDN files found");
     let mut worst = 0.0f32;
     for path in &paths {
-        let doc = localpaint_io::import(&path.to_string_lossy(), &std::fs::read(path).unwrap()).unwrap_or_else(|e| panic!("{}: {e}", path.display())).document;
-        let flat = localpaint_compose::flatten(&doc);
-        let native = localpaint_io::export(&doc, "copy.pcraft", &Default::default()).unwrap();
-        let back = localpaint_io::import("copy.pcraft", &native.bytes).unwrap().document;
+        let doc = localraster_io::import(&path.to_string_lossy(), &std::fs::read(path).unwrap()).unwrap_or_else(|e| panic!("{}: {e}", path.display())).document;
+        let flat = localraster_compose::flatten(&doc);
+        let native = localraster_io::export(&doc, "copy.pcraft", &Default::default()).unwrap();
+        let back = localraster_io::import("copy.pcraft", &native.bytes).unwrap().document;
         assert_eq!(doc.layers, back.layers, "{}", path.display());
-        assert_eq!(flat.px, localpaint_compose::flatten(&back).px);
+        assert_eq!(flat.px, localraster_compose::flatten(&back).px);
         let png = path.with_extension("png");
-        let oracle = localpaint_io::import("oracle.png", &std::fs::read(&png).expect("matching PNG export")).unwrap().document;
+        let oracle = localraster_io::import("oracle.png", &std::fs::read(&png).expect("matching PNG export")).unwrap().document;
         assert_eq!(doc.size, oracle.size);
-        let expected = localpaint_compose::flatten(&oracle);
+        let expected = localraster_compose::flatten(&oracle);
         let error = flat
             .px
             .iter()

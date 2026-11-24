@@ -1,8 +1,8 @@
 //! Final-render coverage for #7989, extending the boundary fix in #8012.
-use localpaint_algo::liquify::{LiquifyField, LiquifyStroke, LiquifyTool, apply_liquify};
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_algo::liquify::{LiquifyField, LiquifyStroke, LiquifyTool, apply_liquify};
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 
 fn bounds() -> Rect {
     // Cross the tile boundary at x=256, with a nonzero origin on both axes.

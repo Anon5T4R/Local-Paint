@@ -7,7 +7,7 @@ fn history_bytes(s: &Session, all: bool) -> usize {
     // Purge keeps the snapshots, so the tiles they share with the states aren't freed.
     docs.iter()
         .map(|d| {
-            let snaps: Vec<&localpaint_doc::Document> = d.snapshots.iter().map(|s| &*s.doc).collect();
+            let snaps: Vec<&localraster_doc::Document> = d.snapshots.iter().map(|s| &*s.doc).collect();
             d.history.unique_bytes_besides(&d.doc, &snaps)
         })
         .sum()
@@ -46,12 +46,12 @@ pub(super) fn purge(s: &mut Session, what: &str) -> Result<Value> {
         }
     }
     if what == "all" {
-        let fx = localpaint_compose::purge_effect_cache();
+        let fx = localraster_compose::purge_effect_cache();
         if fx > 0 {
             freed += fx;
             items.push("effect cache");
         }
-        let masks = localpaint_compose::masks::purge_cache();
+        let masks = localraster_compose::masks::purge_cache();
         if masks > 0 {
             freed = freed.saturating_add(masks);
             items.push("mask cache");
@@ -66,7 +66,7 @@ pub(super) fn purge(s: &mut Session, what: &str) -> Result<Value> {
             freed = freed.saturating_add(sources);
             items.push("smart object source cache");
         }
-        let strokes = localpaint_compose::shape_split::purge_cache();
+        let strokes = localraster_compose::shape_split::purge_cache();
         if strokes > 0 {
             freed = freed.saturating_add(strokes);
             items.push("shape stroke cache");
@@ -91,8 +91,8 @@ pub(super) fn can_purge_histories(s: &Session) -> std::result::Result<(), String
 
 pub(super) fn can_purge_all(s: &Session) -> std::result::Result<(), String> {
     can_purge_histories(s).or_else(|_| can_purge_clipboard(s)).or_else(|_| {
-        if localpaint_compose::effect_cache_bytes() > 0
-            || localpaint_compose::masks::cache_bytes() > 0
+        if localraster_compose::effect_cache_bytes() > 0
+            || localraster_compose::masks::cache_bytes() > 0
             || crate::smart_cmds::stack_cache_bytes() > 0
             || crate::smart_cmds::source_cache_bytes() > 0
         {

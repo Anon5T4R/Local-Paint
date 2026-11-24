@@ -1,5 +1,5 @@
 [package]
-name = "localpaint-gpu"
+name = "localraster-gpu"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,13 +10,13 @@ workspace = true
 
 [dependencies]
 half = "2"
-localpaint-geom = { workspace = true }
-localpaint-color = { workspace = true }
-localpaint-raster = { workspace = true }
-localpaint-doc = { workspace = true }
-localpaint-compose = { workspace = true }
+localraster-geom = { workspace = true }
+localraster-color = { workspace = true }
+localraster-raster = { workspace = true }
+localraster-doc = { workspace = true }
+localraster-compose = { workspace = true }
 # Camera Raw's per-pixel stages (`camera_raw.rs`) take their constants from the CPU develop.
-localpaint-algo = { workspace = true }
+localraster-algo = { workspace = true }
 bytemuck = { workspace = true }
 # Same major version as eframe's wgpu so the app's device can be shared.
 wgpu = { version = "30", default-features = false, features = ["std", "wgsl"] }
@@ -30,6 +30,6 @@ rayon = { workspace = true }
 wgpu = { version = "30" }
 pollster = "1"
 # Shape layers in the effect parity tests.
-localpaint-vector = { workspace = true }
+localraster-vector = { workspace = true }
 # A document-tagged CMYK profile in the tile conversion test.
-localpaint-cms = { workspace = true }
+localraster-cms = { workspace = true }

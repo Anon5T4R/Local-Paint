@@ -1,6 +1,6 @@
 //! Non-destructive pixel-mask properties: density and feather leave the mask pixels intact.
 
-use localpaint_doc::LayerId;
+use localraster_doc::LayerId;
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;

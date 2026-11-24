@@ -1,13 +1,13 @@
 # Installation
 
-Local Paint is currently an early-alpha project. Release artifacts, when available, are published through the repository's GitHub Releases page. Verify the release notes and checksums before running downloaded artifacts.
+Local Raster is currently an early-alpha project. Release artifacts, when available, are published through the repository's GitHub Releases page. Verify the release notes and checksums before running downloaded artifacts.
 
 For source builds, continue to [Building](building.md). The desktop application and the headless CLI are separate workspace applications:
 
-- `apps/localpaint`: native desktop application
-- `apps/localpaint-cli`: headless CLI, JSON-lines server, and MCP server
+- `apps/localraster`: native desktop application
+- `apps/localraster-cli`: headless CLI, JSON-lines server, and MCP server
 
-Platform packaging and signing details are maintained in the existing [release documentation](https://github.com/Anon5T4R/Local-Paint/blob/main/docs/releasing.md). Signing is conditional on the configured release secrets; the existence of an artifact alone is not proof that it was signed.
+Platform packaging and signing details are maintained in the existing [release documentation](https://github.com/Anon5T4R/Local-Raster/blob/main/docs/releasing.md). Signing is conditional on the configured release secrets; the existence of an artifact alone is not proof that it was signed.
 
 ## Trusting input files
 

@@ -1,9 +1,9 @@
 //! Timing of the retouch kernels alone (no document plumbing): Poisson seamless clone and
 //! PatchMatch completion on a disc-shaped region, RGBA.
-//! `cargo run --release -p localpaint-algo --example bench_retouch`
+//! `cargo run --release -p localraster-algo --example bench_retouch`
 use std::time::Instant;
 
-use localpaint_algo::{inpaint, poisson};
+use localraster_algo::{inpaint, poisson};
 
 fn main() {
     for d in [50usize, 100, 200, 300] {

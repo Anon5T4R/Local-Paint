@@ -1,7 +1,7 @@
 //! Bounded tile scheduling for wide Motion Blur convolution.
 
-use localpaint_geom::Rect;
-use localpaint_raster::{Interrupt, Surface};
+use localraster_geom::Rect;
+use localraster_raster::{Interrupt, Surface};
 
 use super::motion_fft::{COORDINATE_LIMIT, Plan, ordinary_coordinates, worthwhile};
 use crate::{FilterParams, Image};
@@ -207,7 +207,7 @@ fn apply_inner(
 mod tests {
     use std::sync::atomic::{AtomicBool, Ordering};
 
-    use localpaint_color::PixelFormat;
+    use localraster_color::PixelFormat;
 
     use super::*;
 

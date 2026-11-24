@@ -1,15 +1,15 @@
-Local Paint debug symbols
+Local Raster debug symbols
 
-localpaint.pdb and localpaint_cli.pdb are the debug symbols of localpaint.exe and
-localpaint-cli.exe from the release with the same version and architecture as this zip. They
+localraster.pdb and localraster_cli.pdb are the debug symbols of localraster.exe and
+localraster-cli.exe from the release with the same version and architecture as this zip. They
 were written by the same build as those exes, so they match only them: a PDB from a local build
 of the same commit doesn't.
 
-They hold Local Paint's function names (release builds carry no source line tables), which is
-what a profiler needs to show where the time goes. Local Paint doesn't need them to run.
+They hold Local Raster's function names (release builds carry no source line tables), which is
+what a profiler needs to show where the time goes. Local Raster doesn't need them to run.
 
-To use them, either copy both files next to localpaint.exe (the installer's folder, by default
-C:\Program Files\Local Paint), or add this folder to the profiler's symbol path:
+To use them, either copy both files next to localraster.exe (the installer's folder, by default
+C:\Program Files\Local Raster), or add this folder to the profiler's symbol path:
 
   Windows Performance Analyzer: Trace > Configure Symbol Paths, add this folder, then
                                 Trace > Load Symbols.
@@ -17,5 +17,5 @@ C:\Program Files\Local Paint), or add this folder to the profiler's symbol path:
   Visual Studio:                Tools > Options > Debugging > Symbols, add this folder.
   Any tool reading _NT_SYMBOL_PATH: set _NT_SYMBOL_PATH to this folder.
 
-When you share a profile in a Local Paint issue, say which version and architecture you ran
+When you share a profile in a Local Raster issue, say which version and architecture you ran
 (Help > System Info).

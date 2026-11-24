@@ -1,7 +1,7 @@
 //! High-quality separable resampling of surfaces (Image Size).
 
-use localpaint_geom::{Rect, TILE_SIZE};
-use localpaint_raster::Surface;
+use localraster_geom::{Rect, TILE_SIZE};
+use localraster_raster::Surface;
 use serde::{Deserialize, Serialize};
 
 use crate::image::{premultiply, unpremultiply};

@@ -1,5 +1,5 @@
 [package]
-name = "localpaint-text"
+name = "localraster-text"
 description = "Font database, text shaping/layout (parley) and text-layer rasterization"
 version.workspace = true
 edition.workspace = true
@@ -11,11 +11,11 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
-localpaint-geom = { workspace = true }
-localpaint-color = { workspace = true }
-localpaint-raster = { workspace = true }
-localpaint-doc = { workspace = true }
-localpaint-psd = { workspace = true }
+localraster-geom = { workspace = true }
+localraster-color = { workspace = true }
+localraster-raster = { workspace = true }
+localraster-doc = { workspace = true }
+localraster-psd = { workspace = true }
 # No `system` feature: fontique's system backend links fontconfig on Linux. We scan font
 # directories ourselves (native) and always register the bundled fonts (native + web).
 parley = { version = "0.11", default-features = false, features = ["std"] }

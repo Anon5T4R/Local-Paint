@@ -3,10 +3,10 @@ use egui::{Key, Modifiers, vec2};
 use egui_kittest::{Harness, kittest::Queryable};
 use serde_json::json;
 
-use crate::{LocalPaintApp, state::Tool};
+use crate::{LocalRasterApp, state::Tool};
 
-fn app(tool: Tool) -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+fn app(tool: Tool) -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 80, "height": 60})).unwrap();
     app.ui.tool = tool;
     app.ui.tool_options.vector_mode = "shape".into();
@@ -15,14 +15,14 @@ fn app(tool: Tool) -> LocalPaintApp {
     app
 }
 
-fn harness(app: LocalPaintApp, properties: bool) -> Harness<'static, LocalPaintApp> {
+fn harness(app: LocalRasterApp, properties: bool) -> Harness<'static, LocalRasterApp> {
     let mut h = Harness::builder().with_size(vec2(1000.0, 750.0)).build_ui_state(
-        move |ui, app: &mut LocalPaintApp| {
+        move |ui, app: &mut LocalRasterApp| {
             let _language = crate::i18n::language_scope(crate::i18n::Lang::EN);
             if !ui.ctx().fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                 return;
             }
-            // Match LocalPaintApp::update: source validation and application shortcuts precede
+            // Match LocalRasterApp::update: source validation and application shortcuts precede
             // drawing the controls, so their popup handlers have not seen this frame's keys.
             super::sync_editor(app, ui.ctx());
             crate::shortcuts::handle(app, ui.ctx());
@@ -37,12 +37,12 @@ fn harness(app: LocalPaintApp, properties: bool) -> Harness<'static, LocalPaintA
         },
         app,
     );
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ProMedium);
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ProMedium);
     h.run_steps(4);
     h
 }
 
-fn open(h: &mut Harness<'_, LocalPaintApp>) {
+fn open(h: &mut Harness<'_, LocalRasterApp>) {
     h.get_by_role_and_label(egui::accesskit::Role::Button, "Stroke Options").click();
     h.run_steps(3);
     assert!(h.state().ui.stroke_editor.is_some());

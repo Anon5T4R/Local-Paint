@@ -169,7 +169,7 @@ pub fn layers_to_smart(doc: &Document, name: &str, layers: Vec<Layer>) -> Result
     let region = layers.iter().map(|l| subtree_bounds(l, canvas)).fold(canvas, |a, b| a.union(&b)).inflate(if has_fx { 256 } else { 0 });
     sub.layers = layers;
 
-    let buf = localpaint_compose::render(&sub, region);
+    let buf = localraster_compose::render(&sub, region);
     let w = region.width() as usize;
     let mut b = Rect::EMPTY;
     for (i, p) in buf.px.iter().enumerate() {
@@ -183,7 +183,7 @@ pub fn layers_to_smart(doc: &Document, name: &str, layers: Vec<Layer>) -> Result
     }
     let fmt = doc.pixel_format();
     let mut cache = buffer_to_surface(&buf, fmt);
-    cache = localpaint_algo::resample::crop_surface(&cache, b);
+    cache = localraster_algo::resample::crop_surface(&cache, b);
     cache.prune();
 
     sub.layers.iter_mut().for_each(|l| shift_layer(l, -b.x0, -b.y0));

@@ -1,13 +1,13 @@
 //! Print Photoshop menu parity and optionally write the Markdown report.
 //!
 //! ```sh
-//! cargo run -p localpaint-ui-egui --example parity -- [--write docs/parity-checklist.md] [--json]
+//! cargo run -p localraster-ui-egui --example parity -- [--write docs/parity-checklist.md] [--json]
 //! ```
 //! Usually run through `cargo xtask parity`.
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    let p = localpaint_ui_egui::parity::compute();
+    let p = localraster_ui_egui::parity::compute();
     if args.iter().any(|a| a == "--json") {
         println!("{}", serde_json::to_string_pretty(&p).expect("serialize parity"));
         return;

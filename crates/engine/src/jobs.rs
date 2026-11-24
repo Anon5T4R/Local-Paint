@@ -21,8 +21,8 @@ use std::any::Any;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, PoisonError, Weak};
 
-use localpaint_doc::{DocId, Document, LayerId};
-use localpaint_raster::Interrupt;
+use localraster_doc::{DocId, Document, LayerId};
+use localraster_raster::Interrupt;
 use serde::Serialize;
 use serde_json::{Value, json};
 
@@ -325,12 +325,12 @@ fn independent_of_document(id: &str) -> bool {
 fn import_path(
     name: &str,
     path: &str,
-    opts: &localpaint_io::ImportOptions,
-    ctl: &localpaint_raster::Interrupt,
-) -> std::result::Result<(localpaint_io::ImportResult, bool), localpaint_io::IoError> {
+    opts: &localraster_io::ImportOptions,
+    ctl: &localraster_raster::Interrupt,
+) -> std::result::Result<(localraster_io::ImportResult, bool), localraster_io::IoError> {
     // Bounded reads, and a clear error for a file larger than memory (#375); a PSD/PSB is
     // parsed from the open file instead of being read whole.
-    localpaint_io::import_file_for_open_with(name, std::path::Path::new(path), opts, ctl)
+    localraster_io::import_file_for_open_with(name, std::path::Path::new(path), opts, ctl)
 }
 
 /// Run a job-capable command's heavy part. `work` runs on a worker thread when the command was
@@ -381,7 +381,7 @@ pub fn run<T: Send + 'static>(
         let label_w = label.to_string();
         // The work closure is moved into the thread. If spawning fails (thread limits), there is
         // no way to get it back, so the error is reported instead.
-        let spawned = std::thread::Builder::new().name(format!("localpaint-job-{}", id.0)).spawn(move || {
+        let spawned = std::thread::Builder::new().name(format!("localraster-job-{}", id.0)).spawn(move || {
             let _authorization = AuthorizationScope::enter(authorization);
             let _document = crate::doc_path::scope(document.as_deref());
             let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| work(&wctx).map(|t| Box::new(t) as Payload)))
@@ -458,14 +458,14 @@ pub fn edit_job<R: Send + 'static>(
 /// asks each layer for its bounds, a multi-second scan on a multi-gigabyte PSB (#4024).
 /// `check` runs between layers (cancellation).
 pub fn warm_layer_bounds(doc: &Document, mut check: impl FnMut() -> Result<()>) -> Result<()> {
-    let mut pending: Vec<&localpaint_doc::Layer> = doc.layers.iter().collect();
+    let mut pending: Vec<&localraster_doc::Layer> = doc.layers.iter().collect();
     while let Some(layer) = pending.pop() {
         check()?;
         if let Some(children) = layer.children() {
             pending.extend(children);
         }
         if let Some(surface) = layer.surface() {
-            localpaint_compose::bounds::content_bounds(surface);
+            localraster_compose::bounds::content_bounds(surface);
         }
     }
     Ok(())
@@ -484,8 +484,8 @@ pub enum OpenSource {
 pub const OPEN_JOB: &str = "file.open";
 
 /// The import settings files are opened and placed with.
-pub fn import_options(prefs: &crate::prefs::Preferences) -> localpaint_io::ImportOptions {
-    localpaint_io::ImportOptions {
+pub fn import_options(prefs: &crate::prefs::Preferences) -> localraster_io::ImportOptions {
+    localraster_io::ImportOptions {
         max_group_depth: prefs.file_handling.rasterize_svg_groups_deeper_than as usize,
         demosaic: prefs.raw_defaults.demosaic.method(),
         ..Default::default()
@@ -545,13 +545,13 @@ impl Session {
                     OpenSource::Bytes(bytes) => {
                         ctx.check()?;
                         ctx.progress(0.02, "Decoding");
-                        ctx.stage(0.02, 0.95, "Decoding", |ctl| localpaint_io::import_for_open_with(&name_w, &bytes, &opts, ctl))
+                        ctx.stage(0.02, 0.95, "Decoding", |ctl| localraster_io::import_for_open_with(&name_w, &bytes, &opts, ctl))
                     }
                     // A PSD/PSB is decoded straight from the file, which is never read whole.
                     OpenSource::Path(p) => ctx.stage(0.0, 0.95, "Decoding", |ctl| import_path(&name_w, &p, &opts, ctl)),
                 }
                 .map_err(|e| match e {
-                    localpaint_io::IoError::Cancelled => EngineError::Cancelled,
+                    localraster_io::IoError::Cancelled => EngineError::Cancelled,
                     e => EngineError::Other(e.to_string()),
                 })?;
                 ctx.progress(0.95, "Preparing layers");
@@ -562,18 +562,18 @@ impl Session {
                 // freezing the window (#7332).
                 if crate::type_extra_cmds::has_type_layers(&imported.0.document) {
                     ctx.progress(0.97, "Loading fonts");
-                    let _ = localpaint_text::shared();
+                    let _ = localraster_text::shared();
                     ctx.check()?;
                 }
                 Ok(imported)
             },
-            move |s, (mut r, damaged): (localpaint_io::ImportResult, bool)| {
+            move |s, (mut r, damaged): (localraster_io::ImportResult, bool)| {
                 // File Handling's ACEScg option, before the colour prompt looks at the profile.
                 crate::file_cmds::tag_exr_colorspace(s, &name_a, &mut r.document);
                 crate::file_cmds::raw_defaults(s, &r.warnings, &mut r.document);
                 // Ask When Opening: held back until the prompt is answered (`take_held_open`). A
                 // developed raw has no embedded profile to ask about.
-                let raw = r.warnings.iter().any(|w| w.contains(localpaint_io::raw::DEVELOPED_NOTE));
+                let raw = r.warnings.iter().any(|w| w.contains(localraster_io::raw::DEVELOPED_NOTE));
                 let damaged = confirm_damage && damaged;
                 let question = s.color.open_question(&r.document).filter(|_| !raw);
                 if damaged || question.is_some() {
@@ -885,13 +885,13 @@ impl Session {
     }
 
     /// Grows the damage a command reported for the pixels it changed by what effects laid out
-    /// over a layer's frame repaint when it moved ([`localpaint_compose::relayout_damage`]): a
+    /// over a layer's frame repaint when it moved ([`localraster_compose::relayout_damage`]): a
     /// stroke on a layer with a Gradient Overlay reports the stroke, but the gradient is laid out
     /// again over the whole grown layer (#4053). `before` is the active document before.
     fn add_relayout_damage(&mut self, before: &Arc<Document>) {
         let Some(st) = self.active_mut().filter(|st| st.doc.id == before.id && !Arc::ptr_eq(&st.doc, before)) else { return };
         let Some(d) = st.last_damage.filter(|d| !d.is_empty()) else { return };
-        let extra = localpaint_compose::relayout_damage(before, &st.doc);
+        let extra = localraster_compose::relayout_damage(before, &st.doc);
         if !extra.is_empty() {
             st.last_damage = Some(d.union(&extra));
         }

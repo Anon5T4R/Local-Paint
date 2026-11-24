@@ -6,15 +6,15 @@
 //! (`{"scattering": {"enabled": true}}`). Strokes are deterministic: the jitter seed is the `seed`
 //! param or a hash of the points, so a journaled command replays to identical pixels.
 
-use localpaint_doc::LayerContent;
-use localpaint_geom::Rect;
-use localpaint_paint::mixer::{MixerSettings, MixerState};
-use localpaint_paint::replace::{Limits, ReplaceMode, ReplaceSettings, Sampling, apply_color_replacement, color_replacement_effect};
-use localpaint_paint::tile::PREVIEW_SIDE;
-use localpaint_paint::{
+use localraster_doc::LayerContent;
+use localraster_geom::Rect;
+use localraster_paint::mixer::{MixerSettings, MixerState};
+use localraster_paint::replace::{Limits, ReplaceMode, ReplaceSettings, Sampling, apply_color_replacement, color_replacement_effect};
+use localraster_paint::tile::PREVIEW_SIDE;
+use localraster_paint::{
     BrushPreset, BrushSettings, GrayTile, Pattern, PresetCaptures, StoredTile, Stroke, StrokePoint, StrokeRenderer, TipShape, render_stroke,
 };
-use localpaint_raster::Surface;
+use localraster_raster::Surface;
 use serde_json::{Value, json};
 
 use crate::commands::{CommandSpec, has_paintable, is_mask_target, paint_surface};
@@ -166,7 +166,7 @@ pub fn merge_brush(base: &BrushSettings, patch: &Value, cmd: &str) -> Result<Bru
 /// Rejects brush sizes and Scatter amounts outside their documented ranges, before a brush is
 /// stored or painted with.
 pub(crate) fn validate_brush(brush: &BrushSettings, cmd: &str) -> Result<()> {
-    let max = localpaint_paint::MAX_BRUSH_SIZE;
+    let max = localraster_paint::MAX_BRUSH_SIZE;
     if !brush.size.is_finite() || brush.size > max {
         return Err(bad(cmd, format!("brush size must be finite and at most {max} px")));
     }
@@ -175,7 +175,7 @@ pub(crate) fn validate_brush(brush: &BrushSettings, cmd: &str) -> Result<()> {
     }
     // Scatter may exceed 1 (100 %) but not the 1000 % maximum: a huge amount pushed dab centres to
     // infinity (#977). `{:?}` keeps 1e38 short and shows infinity as `inf`.
-    let scatter_max = localpaint_paint::MAX_SCATTER;
+    let scatter_max = localraster_paint::MAX_SCATTER;
     let in_range = |v: f32| (0.0..=scatter_max).contains(&v);
     let sc = brush.scattering.scatter.jitter;
     if brush.scattering.enabled && !in_range(sc) {
@@ -189,7 +189,7 @@ pub(crate) fn validate_brush(brush: &BrushSettings, cmd: &str) -> Result<()> {
 }
 
 fn find_preset<'a>(s: &'a Session, name: &str, cmd: &str) -> Result<&'a BrushPreset> {
-    localpaint_paint::presets::find(&s.tools.presets, name).ok_or_else(|| bad(cmd, format!("no brush preset named `{name}`")))
+    localraster_paint::presets::find(&s.tools.presets, name).ok_or_else(|| bad(cmd, format!("no brush preset named `{name}`")))
 }
 
 /// Resolve the brush for a stroke command: session brush ← `preset` ← `brush` ← legacy scalar
@@ -229,13 +229,13 @@ pub fn resolve_brush(s: &Session, p: &Value, cmd: &str) -> Result<BrushSettings>
     b.erase = flag(p, "erase", false);
     b.seed = match p.get("seed").and_then(Value::as_u64) {
         Some(v) => v,
-        None => localpaint_paint::rng::seed_from_bytes(p.get("points").map(|v| v.to_string()).unwrap_or_default().as_bytes()),
+        None => localraster_paint::rng::seed_from_bytes(p.get("points").map(|v| v.to_string()).unwrap_or_default().as_bytes()),
     };
     validate_brush(&b, cmd)?;
     Ok(b)
 }
 
-fn layer_id(s: &Session, p: &Value) -> Result<localpaint_doc::LayerId> {
+fn layer_id(s: &Session, p: &Value) -> Result<localraster_doc::LayerId> {
     crate::commands::layer_param(s, p)
 }
 
@@ -246,7 +246,7 @@ fn damage_json(s: &mut Session, dmg: Rect) -> Value {
 
 /// The target layer (`None` for a channel), brush and zoom of a stroke. On a mask or channel the
 /// eraser paints the background colour (Photoshop).
-fn stroke_target(s: &Session, p: &Value, brush: BrushSettings) -> Result<(Option<localpaint_doc::LayerId>, BrushSettings, f32)> {
+fn stroke_target(s: &Session, p: &Value, brush: BrushSettings) -> Result<(Option<localraster_doc::LayerId>, BrushSettings, f32)> {
     let gray = is_mask_target(p) || crate::channel_cmds::is_channel_target(p) || crate::color_channels::target(s, p)?.is_some();
     let id = if crate::channel_cmds::is_channel_target(p) { None } else { Some(layer_id(s, p)?) };
     let brush = if gray && brush.erase { BrushSettings { erase: false, color: s.tools.background, ..brush } } else { brush };
@@ -265,8 +265,8 @@ fn erase_locked(brush: &mut BrushSettings, lock: bool, bg: [f32; 4]) {
 /// The document's own CMYK profile (absent, built-in or not a CMYK document: `None`, the
 /// default conversions), which the stroke's colour conversions must honour — the compositors
 /// and composite exports enter the same scope.
-pub(crate) fn doc_cmyk_space(s: &Session) -> Option<std::sync::Arc<localpaint_color::convert::CmykSpace>> {
-    localpaint_color::convert::CmykSpace::for_profile(s.active().and_then(|d| d.doc.icc_profile.as_ref()))
+pub(crate) fn doc_cmyk_space(s: &Session) -> Option<std::sync::Arc<localraster_color::convert::CmykSpace>> {
+    localraster_color::convert::CmykSpace::for_profile(s.active().and_then(|d| d.doc.icc_profile.as_ref()))
 }
 
 /// Stroke with a resolved brush onto the target layer (pixels or mask).
@@ -280,7 +280,7 @@ fn stroke_with(s: &mut Session, cmd: &str, p: &Value, label: &str, brush: BrushS
     // instead of rendering the whole stroke again (the hitch at pen-up).
     let live = s.live_commit.take().filter(|l| l.matches(s, cmd, p, &pts));
     let from_live = live.is_some();
-    let dmg = localpaint_color::convert::with_cmyk_space(cmyk.as_ref(), || {
+    let dmg = localraster_color::convert::with_cmyk_space(cmyk.as_ref(), || {
         s.edit(label, |doc, _| {
             if let Some(l) = live {
                 let (surf, _) = crate::channel_cmds::target_surface(doc, id, p)?;
@@ -370,7 +370,7 @@ pub const BLOCK_SCREEN_PX: f64 = 16.0;
 /// pixels (a zoom that is not a positive number counts as 100 %).
 pub fn block_size(zoom: f64) -> f32 {
     let zoom = if zoom.is_finite() && zoom > 0.0 { zoom } else { 1.0 };
-    (BLOCK_SCREEN_PX / zoom).round().clamp(1.0, f64::from(localpaint_paint::brush::MAX_BRUSH_SIZE)) as f32
+    (BLOCK_SCREEN_PX / zoom).round().clamp(1.0, f64::from(localraster_paint::brush::MAX_BRUSH_SIZE)) as f32
 }
 
 /// The Eraser's Block mode (`"block": true`): a hard, aliased square of
@@ -401,7 +401,7 @@ fn block_brush(b: BrushSettings, p: &Value) -> Result<BrushSettings> {
 
 /// Is the stroke in Photoshop's Clear painting mode (`"mode": "clear"`, #3439)? It erases with the
 /// Brush's or Pencil's own brush; unlike a blend mode it is not a layer mode, so it is not a
-/// [`localpaint_color::BlendMode`].
+/// [`localraster_color::BlendMode`].
 fn clear_mode(p: &Value) -> bool {
     p.get("mode").and_then(Value::as_str).is_some_and(|m| m.eq_ignore_ascii_case("clear"))
 }
@@ -412,10 +412,10 @@ fn clear_mode(p: &Value) -> bool {
 fn with_blend_mode(mut b: BrushSettings, p: &Value) -> BrushSettings {
     b.erase |= clear_mode(p);
     if b.erase {
-        b.mode = localpaint_color::BlendMode::Normal;
+        b.mode = localraster_color::BlendMode::Normal;
         b.behind = false;
     } else if p.get("mode").and_then(Value::as_str).is_some_and(|m| m.eq_ignore_ascii_case("behind")) {
-        b.mode = localpaint_color::BlendMode::Normal;
+        b.mode = localraster_color::BlendMode::Normal;
         b.behind = true;
     } else if let Some(m) = p.get("mode").and_then(Value::as_str).and_then(crate::commands::blend_from_str) {
         b.mode = m;
@@ -460,7 +460,7 @@ fn fill_region(s: &mut Session, p: &Value, label: &str, brush: BrushSettings, pt
     // Edit › Fill does (blend_color_mask blends partial coverage through the colour's RGB).
     let picked = brush.color_cmyk.filter(|(rgb, _)| *rgb == [color[0], color[1], color[2]]).map(|(_, inks)| inks);
     let cmyk = doc_cmyk_space(s);
-    let dmg = localpaint_color::convert::with_cmyk_space(cmyk.as_ref(), || {
+    let dmg = localraster_color::convert::with_cmyk_space(cmyk.as_ref(), || {
         s.edit(label, |doc, _| {
             let sel = doc.selection.clone();
             let canvas = doc.bounds();
@@ -478,7 +478,7 @@ fn fill_region(s: &mut Session, p: &Value, label: &str, brush: BrushSettings, pt
                 by1 = by1.max(sp.y);
             }
             let ix = |v: f64| v.clamp(f64::from(i32::MIN), f64::from(i32::MAX)) as i32;
-            let reach = localpaint_algo::selection::feather_reach(feather_px);
+            let reach = localraster_algo::selection::feather_reach(feather_px);
             let pad = i32::try_from(reach).unwrap_or(i32::MAX).saturating_add(2);
             let bounds = Rect::new(
                 ix(bx0.floor()).saturating_sub(pad),
@@ -498,9 +498,9 @@ fn fill_region(s: &mut Session, p: &Value, label: &str, brush: BrushSettings, pt
             let peak = w.checked_mul(h).and_then(|n| n.checked_mul(5)).ok_or_else(|| crate::allocation::error(FILL, "requested size overflowed"))?;
             drop(crate::allocation::capacity::<f32>(peak, FILL)?);
             let xy: Vec<(f32, f32)> = pts.iter().map(|sp| (sp.x as f32, sp.y as f32)).collect();
-            let mut cov = localpaint_algo::selection::polygon(&xy, bounds, true);
+            let mut cov = localraster_algo::selection::polygon(&xy, bounds, true);
             if feather_px > 0.01 {
-                cov = localpaint_algo::selection::feather(&cov, w, h, feather_px);
+                cov = localraster_algo::selection::feather(&cov, w, h, feather_px);
             }
             if let Some(sel) = sel.as_ref() {
                 let sv = crate::allocation::read_region(sel, bounds, FILL)?;
@@ -508,7 +508,7 @@ fn fill_region(s: &mut Session, p: &Value, label: &str, brush: BrushSettings, pt
                     *c *= s.clamp(0.0, 1.0);
                 }
             }
-            let coverage = localpaint_algo::selection::mask_to_surface(&cov, bounds);
+            let coverage = localraster_algo::selection::mask_to_surface(&cov, bounds);
             crate::fill_cmds::blend_color_mask(surf, bounds, color, picked, &coverage, mode, opacity, lock)?;
             Ok(bounds)
         })
@@ -521,7 +521,7 @@ fn fill_region(s: &mut Session, p: &Value, label: &str, brush: BrushSettings, pt
 /// `"seed": live.seed` gives the same pixels.
 pub struct LiveStroke {
     /// The active document with the stroke so far.
-    pub doc: std::sync::Arc<localpaint_doc::Document>,
+    pub doc: std::sync::Arc<localraster_doc::Document>,
     /// Jitter seed to pass to `paint.stroke`.
     pub seed: u64,
     cmd: String,
@@ -531,22 +531,22 @@ pub struct LiveStroke {
     mirror_distinct: Vec<bool>,
     /// What the symmetric preview drew last, once a mirror differs from the stroke, and how many
     /// passes it merged (a mirror joining redraws every tile).
-    union_live: Option<(localpaint_paint::UnionLive, usize)>,
+    union_live: Option<(localraster_paint::UnionLive, usize)>,
     pre: Surface,
     colors: Option<crate::color_channels::ColorChannels>,
     sel: Option<Surface>,
     lock: bool,
-    layer: Option<localpaint_doc::LayerId>,
+    layer: Option<localraster_doc::LayerId>,
     params: Value,
     /// Where the doc shows the stroke's end as finishing it would draw it (see `push`).
     tail: Rect,
     /// The document's CMYK profile the commit enters (`stroke_with`), so the preview shows the
     /// pixels a `paint.stroke` with `seed` will write.
-    cmyk: Option<std::sync::Arc<localpaint_color::convert::CmykSpace>>,
+    cmyk: Option<std::sync::Arc<localraster_color::convert::CmykSpace>>,
     /// Every point rendered so far, in order.
     points: Vec<StrokePoint>,
     /// The document and revision the stroke started on.
-    base: (localpaint_doc::DocId, u64),
+    base: (localraster_doc::DocId, u64),
 }
 
 /// A finished live stroke offered to its own commit ([`Session::offer_live_stroke`],
@@ -557,7 +557,7 @@ pub struct LiveCommit {
     /// Mixer load before and after the stroke; transient, never serialized into the journal.
     pub(crate) mixer: Option<(MixerState, MixerState)>,
     pub(crate) cmd: String,
-    pub(crate) base: (localpaint_doc::DocId, u64),
+    pub(crate) base: (localraster_doc::DocId, u64),
     pub(crate) params: Value,
     /// The Brush's and Pencil's seed; the retouching tools have none.
     pub(crate) seed: Option<u64>,
@@ -677,7 +677,7 @@ impl LiveStroke {
     }
 
     /// Does the stroke change with time while the pointer is held still (airbrush Build-up, or
-    /// smoothing still catching up)? See `localpaint_paint::dynamics::DabGenerator::wants_time`.
+    /// smoothing still catching up)? See `localraster_paint::dynamics::DabGenerator::wants_time`.
     pub fn wants_time(&self) -> bool {
         self.renderer.wants_time()
     }
@@ -691,7 +691,7 @@ impl LiveStroke {
         check_coords(pts, &self.cmd)?;
         self.points.extend_from_slice(pts);
         let cmyk = self.cmyk.clone();
-        let dmg = localpaint_color::convert::with_cmyk_space(cmyk.as_ref(), || -> Result<Rect> {
+        let dmg = localraster_color::convert::with_cmyk_space(cmyk.as_ref(), || -> Result<Rect> {
             self.renderer.push(pts);
             if let Some(symmetry) = &self.symmetry {
                 for ((mirror, distinct), reflected) in self.mirrors.iter_mut().zip(&mut self.mirror_distinct).zip(symmetry.reflected_passes(pts)) {
@@ -712,7 +712,7 @@ impl LiveStroke {
                         if !old.is_empty() {
                             surf.write_region(old, &self.pre.read_region(old));
                         }
-                        (localpaint_paint::UnionLive::default(), true, old)
+                        (localraster_paint::UnionLive::default(), true, old)
                     }
                 };
                 let mut renderers: Vec<&mut StrokeRenderer> = std::iter::once(&mut self.renderer)
@@ -830,7 +830,7 @@ fn mixer_load_pixel(s: &mut Session, p: &Value) -> Result<Value> {
 /// `paint.colorReplacement`'s stroke and settings. The replacement colour is the brush colour
 /// (the foreground unless `color` says otherwise). It paints layer pixels only: a mask, alpha
 /// channel or Quick Mask `target` is refused rather than recolouring the layer instead.
-fn color_replacement_setup(s: &Session, p: &Value) -> Result<(Stroke, ReplaceSettings, localpaint_doc::LayerId)> {
+fn color_replacement_setup(s: &Session, p: &Value) -> Result<(Stroke, ReplaceSettings, localraster_doc::LayerId)> {
     let cmd = "paint.colorReplacement";
     if let Some(t) = p.get("target").filter(|t| t.as_str() != Some("pixels"))
         && crate::color_channels::explicit(p, s.active().map_or(0, |st| crate::channel_cmds::color_count(&st.doc)))?.is_none()
@@ -1030,7 +1030,7 @@ fn define_from_selection(s: &mut Session, p: &Value) -> Result<Value> {
     for y in 0..h {
         for x in 0..w {
             let c = surf.rgba(area.x0 + x as i32, area.y0 + y as i32);
-            let l = localpaint_color::blend::lum([c[0], c[1], c[2]]);
+            let l = localraster_color::blend::lum([c[0], c[1], c[2]]);
             v[y * w + x] = ((1.0 - l) * c[3] * sv[(y * w + x) * sc]).clamp(0.0, 1.0);
         }
     }
@@ -1179,7 +1179,7 @@ pub fn restored_settings(s: &Session, v: &Value) -> Option<BrushSettings> {
     }
     let mut b = merge_brush(&BrushSettings::default(), v, "brush.restore").ok()?;
     validate_brush(&b, "brush.restore").ok()?;
-    b.size = b.size.clamp(1.0, localpaint_paint::MAX_BRUSH_SIZE);
+    b.size = b.size.clamp(1.0, localraster_paint::MAX_BRUSH_SIZE);
     for f in [&mut b.hardness, &mut b.opacity, &mut b.flow, &mut b.smoothing.amount] {
         *f = if f.is_nan() { 1.0 } else { f.clamp(0.0, 1.0) };
     }
@@ -1227,7 +1227,7 @@ fn light_json(b: &BrushSettings, skip: (bool, bool, bool)) -> Value {
         c.dual_brush.tip = TipShape::Round;
     }
     if skip.2 {
-        c.texture.pattern = localpaint_paint::Pattern::default();
+        c.texture.pattern = localraster_paint::Pattern::default();
     }
     serde_json::to_value(&c).unwrap_or(Value::Null)
 }

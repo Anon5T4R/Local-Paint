@@ -267,9 +267,9 @@ fn fltr_for(k: &Known, p: &J) -> Result<Option<Descriptor>, String> {
                 Some(s) => Value::Integer(s as i32),
                 None => pi(p, "seed", 0.0),
             };
-            // The renderer draws at most MAX_WAVE_GENERATORS: write what Local Paint rendered, so
+            // The renderer draws at most MAX_WAVE_GENERATORS: write what Local Raster rendered, so
             // Photoshop doesn't draw more generators than the user saw.
-            let generators = pf(p, "generators", 5.0).round().clamp(1.0, f64::from(localpaint_algo::MAX_WAVE_GENERATORS)) as i32;
+            let generators = pf(p, "generators", 5.0).round().clamp(1.0, f64::from(localraster_algo::MAX_WAVE_GENERATORS)) as i32;
             d.with("Wvtp", enum_param(p, "type", "sine", "Wvtp", &WAVE_TYPE)?)
                 .with("NmbG", Value::Integer(generators))
                 .with("WLMn", pi(p, "wavelengthMin", 10.0))

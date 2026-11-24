@@ -1,6 +1,6 @@
 //! The commands the app's shell carries out itself (view, panels, windows: they change no
 //! document), and the tools, as data: what they're called and which keys they have by default.
-//! The shell implements them (`localpaint_ui_egui::menus::UI_COMMANDS`, its `Tool`); the engine
+//! The shell implements them (`localraster_ui_egui::menus::UI_COMMANDS`, its `Tool`); the engine
 //! knows them so a headless session sees every bindable command: Edit › Keyboard Shortcuts'
 //! list, conflicts, `.kys` import and export all work without the UI (the UI is a layer on
 //! top). The app's tests keep these tables equal to its own.
@@ -93,11 +93,11 @@ pub const SHELL_COMMANDS: &[(&str, &str, &[&str], Option<&str>)] = &[
     ("window.theme.light", "Light", &["Window", "Theme"], None),
     ("window.theme.dark", "Dark", &["Window", "Theme"], None),
     ("edit.search", "Search…", &["Edit"], Some("Cmd+F")),
-    ("help.website", "Local Paint Website", &["Help"], None),
-    ("help.github", "Local Paint on GitHub", &["Help"], None),
+    ("help.website", "Local Raster Website", &["Help"], None),
+    ("help.github", "Local Raster on GitHub", &["Help"], None),
     ("help.reportIssue", "Report an Issue…", &["Help"], None),
     ("help.systemInfo", "System Info…", &["Help"], None),
-    ("help.about", "About Local Paint", &["Help"], None),
+    ("help.about", "About Local Raster", &["Help"], None),
 ];
 
 /// The tools, in toolbar order: shortcut id (`tools.select.<tool>`), Photoshop's name for it

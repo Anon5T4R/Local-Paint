@@ -17,7 +17,7 @@ use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use localpaint_doc::Document;
+use localraster_doc::Document;
 use serde::{Deserialize, Serialize};
 
 use crate::{FormatError, PcraftWriter, Result, SaveOptions, SaveStats};
@@ -531,8 +531,12 @@ mod tests {
             std::process::id(),
             SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0)
         ));
-        let doc =
-            Arc::new(Document::new("Kept", localpaint_doc::Size { width: 4, height: 4 }, localpaint_color::ColorMode::Rgb, localpaint_color::SampleType::U8));
+        let doc = Arc::new(Document::new(
+            "Kept",
+            localraster_doc::Size { width: 4, height: 4 },
+            localraster_color::ColorMode::Rgb,
+            localraster_color::SampleType::U8,
+        ));
         let saver = Autosaver::new(&dir, "kept");
         saver.request(doc.clone(), 1, None, SaveOptions::default());
         assert!(saver.flush().is_some_and(|r| r.is_ok()));
@@ -572,8 +576,12 @@ mod tests {
             std::process::id(),
             SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0)
         ));
-        let doc =
-            Arc::new(Document::new("Lost", localpaint_doc::Size { width: 4, height: 4 }, localpaint_color::ColorMode::Rgb, localpaint_color::SampleType::U8));
+        let doc = Arc::new(Document::new(
+            "Lost",
+            localraster_doc::Size { width: 4, height: 4 },
+            localraster_color::ColorMode::Rgb,
+            localraster_color::SampleType::U8,
+        ));
         let saver = Autosaver::new(&dir, "first");
         saver.request(doc.clone(), 1, None, SaveOptions::default());
         assert!(saver.flush().is_some_and(|r| r.is_ok()));

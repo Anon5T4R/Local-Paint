@@ -6,17 +6,17 @@ use egui::accesskit::Role;
 use egui::{Pos2, Rect, vec2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
-use localpaint_doc::BlendMode;
+use localraster_doc::BlendMode;
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::state::Tool;
 
 /// The app with a new document and `tool` chosen.
-fn harness(tool: Tool) -> Harness<'static, LocalPaintApp> {
+fn harness(tool: Tool) -> Harness<'static, LocalRasterApp> {
     let mut h = Harness::builder().with_size(vec2(1440.0, 900.0)).with_max_steps(64).build_eframe(move |cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 64, "height": 48})).unwrap();
         app.ui.tool = tool;
         app
@@ -26,12 +26,12 @@ fn harness(tool: Tool) -> Harness<'static, LocalPaintApp> {
 }
 
 /// The options bar's Mode dropdown: the highest one showing `Normal` (the Layers panel's is lower).
-fn mode_dropdown(h: &Harness<'_, LocalPaintApp>) -> Rect {
+fn mode_dropdown(h: &Harness<'_, LocalRasterApp>) -> Rect {
     h.query_all_by_role(Role::ComboBox).filter(|n| n.value().as_deref() == Some("Normal")).map(|n| n.rect()).min_by(|a, b| a.top().total_cmp(&b.top())).unwrap()
 }
 
 /// `lines` wheel lines at `at` in one event: negative is down.
-fn wheel(h: &mut Harness<'_, LocalPaintApp>, at: Pos2, lines: f32) {
+fn wheel(h: &mut Harness<'_, LocalRasterApp>, at: Pos2, lines: f32) {
     h.hover_at(at);
     h.run_steps(1);
     h.event(egui::Event::MouseWheel {
@@ -44,7 +44,7 @@ fn wheel(h: &mut Harness<'_, LocalPaintApp>, at: Pos2, lines: f32) {
     h.run_steps(3);
 }
 
-fn brush_mode(h: &Harness<'_, LocalPaintApp>) -> BlendMode {
+fn brush_mode(h: &Harness<'_, LocalRasterApp>) -> BlendMode {
     h.state().session.tools.brush.mode
 }
 

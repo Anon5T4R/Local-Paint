@@ -1,8 +1,8 @@
 //! Variable definitions must continue targeting their layers after a copied document gets
 //! fresh ids (#4969), and a merged-only copy must not keep bindings to discarded layers.
 
-use localpaint_doc::{Document, Layer, LayerContent, LayerId, Size, TextLayer};
-use localpaint_engine::Session;
+use localraster_doc::{Document, Layer, LayerContent, LayerId, Size, TextLayer};
+use localraster_engine::Session;
 use serde_json::json;
 
 fn scene() -> (Session, LayerId, LayerId, LayerId) {
@@ -12,7 +12,7 @@ fn scene() -> (Session, LayerId, LayerId, LayerId) {
         .edit("setup", |doc, _| {
             let fmt = doc.pixel_format();
             let mut photo = Layer::raster("photo", fmt);
-            photo.surface_mut().unwrap().fill_rect(localpaint_geom::Rect::new(0, 0, 64, 48), &localpaint_raster::from_rgba(&fmt, [0.5, 0.5, 0.5, 1.0]));
+            photo.surface_mut().unwrap().fill_rect(localraster_geom::Rect::new(0, 0, 64, 48), &localraster_raster::from_rgba(&fmt, [0.5, 0.5, 0.5, 1.0]));
             let badge = Layer::raster("badge", fmt);
             let title = Layer::new("title", LayerContent::Text(TextLayer { text: "Old".into(), ..Default::default() }));
             let (p, b, t) = (photo.id, badge.id, title.id);
@@ -29,11 +29,11 @@ fn red_png(dir: &str) -> String {
     let doc = Document::with_background(
         "red",
         Size::new(4, 4),
-        localpaint_doc::ColorMode::Rgb,
-        localpaint_doc::SampleType::U8,
-        localpaint_doc::Color::rgb(1.0, 0.0, 0.0),
+        localraster_doc::ColorMode::Rgb,
+        localraster_doc::SampleType::U8,
+        localraster_doc::Color::rgb(1.0, 0.0, 0.0),
     );
-    let bytes = localpaint_io::export(&doc, "png", &localpaint_io::ExportOptions::default()).unwrap().bytes;
+    let bytes = localraster_io::export(&doc, "png", &localraster_io::ExportOptions::default()).unwrap().bytes;
     let path = format!("{dir}/replacement.png");
     std::fs::write(&path, bytes).unwrap();
     path

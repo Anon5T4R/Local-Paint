@@ -26,7 +26,8 @@ fn color_replacement_preserves_pixel_membership_and_transparency() {
             assert_eq!(before.indices, after.indices, "palette edits must not remap pixels");
             assert_eq!(after.transparent_index, Some(2));
             assert_eq!(after.color_table, vec![[255, 0, 0], [0, 0, 255]]);
-            let decoded = localpaint_codecs::decode(&after.bytes).unwrap().convert(localpaint_codecs::ChannelLayout::Rgba, localpaint_codecs::SampleType::U8);
+            let decoded =
+                localraster_codecs::decode(&after.bytes).unwrap().convert(localraster_codecs::ChannelLayout::Rgba, localraster_codecs::SampleType::U8);
             // Transparent RGB has no significance; opaque preview pixels must equal the file.
             for (file, preview) in decoded.data().as_chunks::<4>().0.iter().zip(after.preview.as_chunks::<4>().0) {
                 assert_eq!(file[3], preview[3]);
@@ -54,7 +55,7 @@ fn exported_palette_edits_work_at_every_document_depth() {
         let original_doc = s.active().unwrap().doc.clone();
         s.execute("file.export.saveForWebLegacy", p).unwrap();
         assert_eq!(s.active().unwrap().doc, original_doc, "export must not edit the document");
-        let img = decode(&path).convert(localpaint_codecs::ChannelLayout::Rgba, localpaint_codecs::SampleType::U8);
+        let img = decode(&path).convert(localraster_codecs::ChannelLayout::Rgba, localraster_codecs::SampleType::U8);
         assert_eq!(&img.data()[(16 * 64 + 16) * 4..(16 * 64 + 16) * 4 + 4], &[0, 255, 0, 255]);
         assert_eq!(img.data()[3], 0);
     }

@@ -6,34 +6,34 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
-fn harness() -> Harness<'static, LocalPaintApp> {
-    let mut s = localpaint_engine::Session::new();
+fn harness() -> Harness<'static, LocalRasterApp> {
+    let mut s = localraster_engine::Session::new();
     s.execute("file.new", json!({"width": 200, "height": 120})).unwrap();
     s.execute("layer.new.layer", json!({"name": "Paint"})).unwrap();
     let mut h = Harness::builder().with_size(vec2(1440.0, 1000.0)).with_max_steps(64).build_eframe(move |cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        LocalPaintApp::new(s, crate::Services::default())
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        LocalRasterApp::new(s, crate::Services::default())
     });
     h.run_steps(8);
     h
 }
 
-fn layer(h: &Harness<'_, LocalPaintApp>) -> localpaint_doc::Layer {
+fn layer(h: &Harness<'_, LocalRasterApp>) -> localraster_doc::Layer {
     let st = h.state().session.active().unwrap();
     st.doc.layer(st.active_layer.unwrap()).unwrap().clone()
 }
 
-fn steps(h: &Harness<'_, LocalPaintApp>) -> usize {
+fn steps(h: &Harness<'_, LocalRasterApp>) -> usize {
     h.state().session.active().unwrap().history.entries().len()
 }
 
-fn by_role(h: &Harness<'_, LocalPaintApp>, name: &str, role: Role) -> Option<Rect> {
+fn by_role(h: &Harness<'_, LocalRasterApp>, name: &str, role: Role) -> Option<Rect> {
     h.query_all_by_role(role).find(|n| n.accesskit_node().label().as_deref() == Some(name)).map(|n| n.rect())
 }
 
-fn click(h: &mut Harness<'_, LocalPaintApp>, at: Pos2) {
+fn click(h: &mut Harness<'_, LocalRasterApp>, at: Pos2) {
     h.hover_at(at);
     h.run_steps(1);
     h.drag_at(at);
@@ -42,7 +42,7 @@ fn click(h: &mut Harness<'_, LocalPaintApp>, at: Pos2) {
     h.run_steps(3);
 }
 
-fn drag(h: &mut Harness<'_, LocalPaintApp>, from: Pos2, to: Pos2) {
+fn drag(h: &mut Harness<'_, LocalRasterApp>, from: Pos2, to: Pos2) {
     h.hover_at(from);
     h.run_steps(1);
     h.drag_at(from);
@@ -57,7 +57,7 @@ fn drag(h: &mut Harness<'_, LocalPaintApp>, from: Pos2, to: Pos2) {
 
 #[test]
 fn opacity_and_fill_sliders_pop_up_and_drag_in_one_step() {
-    for (name, value) in [("Opacity", (|l: &localpaint_doc::Layer| l.opacity) as fn(&localpaint_doc::Layer) -> f32), ("Fill", |l| l.fill_opacity)] {
+    for (name, value) in [("Opacity", (|l: &localraster_doc::Layer| l.opacity) as fn(&localraster_doc::Layer) -> f32), ("Fill", |l| l.fill_opacity)] {
         let mut h = harness();
         assert!(by_role(&h, name, Role::Slider).is_none(), "{name}: closed until its ▾ is clicked");
         let arrow = by_role(&h, name, Role::Button).unwrap_or_else(|| panic!("{name}: no ▾"));
@@ -84,7 +84,7 @@ fn opacity_and_fill_sliders_pop_up_and_drag_in_one_step() {
 
 #[test]
 fn pressing_the_arrow_and_dragging_sets_the_value_and_closes_on_release() {
-    for (name, value) in [("Opacity", (|l: &localpaint_doc::Layer| l.opacity) as fn(&localpaint_doc::Layer) -> f32), ("Fill", |l| l.fill_opacity)] {
+    for (name, value) in [("Opacity", (|l: &localraster_doc::Layer| l.opacity) as fn(&localraster_doc::Layer) -> f32), ("Fill", |l| l.fill_opacity)] {
         let mut h = harness();
         let arrow = by_role(&h, name, Role::Button).unwrap().center();
         let before = steps(&h);
@@ -138,7 +138,7 @@ fn the_background_layer_has_no_pop_up_slider() {
 
 #[test]
 fn dragging_opacity_and_fill_labels_scrubs_percentages_in_one_history_step() {
-    for (name, value) in [("Opacity", (|l: &localpaint_doc::Layer| l.opacity) as fn(&localpaint_doc::Layer) -> f32), ("Fill", |l| l.fill_opacity)] {
+    for (name, value) in [("Opacity", (|l: &localraster_doc::Layer| l.opacity) as fn(&localraster_doc::Layer) -> f32), ("Fill", |l| l.fill_opacity)] {
         let mut h = harness();
         // The label, not the adjacent spin button or popup arrow, is the drag target.
         // The popup arrow is named after its field; the text label sits on the same row (egui
@@ -187,9 +187,9 @@ fn opacity_and_fill_stay_visible_but_disabled_with_no_layer_selected() {
 fn layer_rows_do_not_move_when_no_layer_is_selected() {
     for theme in [crate::theme::ThemeKind::Studio, crate::theme::ThemeKind::Classic, crate::theme::ThemeKind::ProMedium] {
         let mut h = harness();
-        LocalPaintApp::setup_context(&h.ctx, theme);
+        LocalRasterApp::setup_context(&h.ctx, theme);
         h.run_steps(4);
-        let row_top = |h: &Harness<'_, LocalPaintApp>| by_role(h, "Paint", Role::Button).map(|r| r.top());
+        let row_top = |h: &Harness<'_, LocalRasterApp>| by_role(h, "Paint", Role::Button).map(|r| r.top());
         let selected = row_top(&h);
         h.state_mut().session.execute("select.deselectLayers", json!({})).unwrap();
         h.run_steps(4);

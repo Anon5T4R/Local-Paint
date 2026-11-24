@@ -1,7 +1,7 @@
 //! Filter › Camera Raw Filter…: a large dialog like Adobe Camera Raw's (preview on the left,
 //! edit panels on the right: Light, Color, Effects, Curve, Color Mixer, Color Grading, Detail).
 //!
-//! The preview runs [`localpaint_algo::camera_raw::develop`] on a CPU proxy of the layer
+//! The preview runs [`localraster_algo::camera_raw::develop`] on a CPU proxy of the layer
 //! (≤ 900 px, `pixel_scale` keeps pixel radii true to the full image), recomputed when a
 //! control changes: on a worker for the dialog's own controls, so a drag never waits for it, and
 //! on the UI thread for the control channel, so a reply describes its own settings. Settings
@@ -12,19 +12,19 @@
 //! Control channel: `ui.menu.invoke {"id":"filter.cameraRaw","params":{"ui":{"set":{…},
 //! "commit":true | "cancel":true}}}`; the reply describes the dialog. `{"ui":{"saveSettings":true}}`
 //! and `{"ui":{"loadSettings":true}}` run Save Settings… / Load Settings… (Camera Raw `.xmp`
-//! settings files, see [`localpaint_io::camera_raw_xmp`]) through the file dialog.
+//! settings files, see [`localraster_io::camera_raw_xmp`]) through the file dialog.
 
 use egui::{Align2, Color32, FontId, Pos2, Rect as ERect, Sense, Stroke, TextureHandle, pos2, vec2};
-use localpaint_algo::camera_raw::{CameraRaw, Wheel, curve_lut};
-use localpaint_algo::histogram::RgbHistogram;
+use localraster_algo::camera_raw::{CameraRaw, Wheel, curve_lut};
+use localraster_algo::histogram::RgbHistogram;
 
 use crate::camera_raw_scope_ui::{MAX_SAMPLERS, ToneZone};
 
-use localpaint_doc::LayerId;
-use localpaint_geom::Rect;
+use localraster_doc::LayerId;
+use localraster_geom::Rect;
 use serde_json::{Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::theme::Tokens;
 use crate::widgets;
 
@@ -76,7 +76,7 @@ pub struct CameraRawDialog {
     full_h: usize,
     preview_ppp: f32,
     pub(crate) detail: crate::camera_raw_detail_ui::DetailPreview,
-    display: std::sync::Arc<localpaint_engine::display_color::CanvasDisplay>,
+    display: std::sync::Arc<localraster_engine::display_color::CanvasDisplay>,
     pub(crate) viewport: Option<ERect>,
     pub(crate) float: bool,
     tex: Option<TextureHandle>,
@@ -84,8 +84,8 @@ pub struct CameraRawDialog {
     before_display_key: Option<u64>,
     pub(crate) before_histogram: RgbHistogram,
     pub(crate) processed: Vec<[f32; 4]>,
-    pub(crate) lab_transform: std::sync::Arc<localpaint_cms::Transform>,
-    pub(crate) scope_transform: std::sync::Arc<localpaint_cms::Transform>,
+    pub(crate) lab_transform: std::sync::Arc<localraster_cms::Transform>,
+    pub(crate) scope_transform: std::sync::Arc<localraster_cms::Transform>,
     pub(crate) scope: crate::camera_raw_scope_ui::ScopeView,
     pub(crate) after_histogram: RgbHistogram,
     pub(crate) preview_revision: u64,
@@ -170,7 +170,7 @@ impl CameraRawDialog {
         non_defaults(&self.params)
     }
 
-    fn image(px: &[[f32; 4]], w: usize, h: usize, display: &localpaint_engine::display_color::CanvasDisplay) -> egui::ColorImage {
+    fn image(px: &[[f32; 4]], w: usize, h: usize, display: &localraster_engine::display_color::CanvasDisplay) -> egui::ColorImage {
         // Bands copied straight from `px`, converted in parallel (#4682), not a whole copy of the
         // proxy converted on one thread.
         crate::camera_raw_detail_ui::display_image(Rect::new(0, 0, w as i32, h as i32), display, |r, out| {
@@ -294,7 +294,7 @@ impl CameraRawDialog {
 }
 
 // The shared Curve editor must never produce a curve `CameraRaw::validate` rejects.
-const _: () = assert!(crate::point_curve::MAX_POINTS == localpaint_algo::camera_raw::MAX_CURVE_POINTS && crate::point_curve::MIN_GAP >= 1.0);
+const _: () = assert!(crate::point_curve::MAX_POINTS == localraster_algo::camera_raw::MAX_CURVE_POINTS && crate::point_curve::MIN_GAP >= 1.0);
 
 #[cfg(test)]
 mod tests;

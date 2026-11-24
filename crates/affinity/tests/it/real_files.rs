@@ -5,7 +5,7 @@
 
 use std::path::{Path, PathBuf};
 
-use localpaint_affinity::{Archive, Limits, stream};
+use localraster_affinity::{Archive, Limits, stream};
 
 fn files(dir: &Path, out: &mut Vec<PathBuf>) {
     for e in std::fs::read_dir(dir).into_iter().flatten().flatten() {
@@ -13,7 +13,7 @@ fn files(dir: &Path, out: &mut Vec<PathBuf>) {
         if p.is_dir() {
             files(&p, out);
         } else if p.extension().and_then(|e| e.to_str()).is_some_and(|e| ["af", "afdesign", "afphoto", "afpub", "aftemplate"].contains(&e))
-            && std::fs::read(&p).is_ok_and(|b| b.starts_with(localpaint_affinity::MAGIC))
+            && std::fs::read(&p).is_ok_and(|b| b.starts_with(localraster_affinity::MAGIC))
         {
             out.push(p);
         }
@@ -55,15 +55,15 @@ fn public_documents_map_to_the_model() {
     let mut warnings = std::collections::BTreeMap::<String, usize>::new();
     let mut failures = Vec::new();
     let (mut nodes, mut docs) = (0usize, 0usize);
-    fn count(n: &[localpaint_affinity::model::Node]) -> usize {
+    fn count(n: &[localraster_affinity::model::Node]) -> usize {
         n.iter().map(|n| 1 + count(&n.children)).sum()
     }
     for p in &paths {
         let bytes = std::fs::read(p).unwrap();
-        if !bytes.starts_with(localpaint_affinity::MAGIC) {
+        if !bytes.starts_with(localraster_affinity::MAGIC) {
             continue;
         }
-        match localpaint_affinity::read(&bytes, Limits::default()) {
+        match localraster_affinity::read(&bytes, Limits::default()) {
             Ok(d) => {
                 docs += 1;
                 nodes += d.spreads.iter().map(|s| count(&s.nodes)).sum::<usize>();

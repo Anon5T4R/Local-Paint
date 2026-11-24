@@ -20,8 +20,8 @@
 //! bilinear source on a downsampled RGBA copy, re-rendered only where a dab changed things.
 
 use crate::par;
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 use serde::{Deserialize, Serialize};
 
 /// The Liquify tools (Photoshop's left tool strip, minus Hand/Zoom/Face).

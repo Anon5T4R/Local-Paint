@@ -1,10 +1,10 @@
 //! End-to-end Iris Blur timings; fixture construction and output drop are untimed.
-//! `cargo run --release -p localpaint-algo --example bench_iris -- 6000 4000 3`
+//! `cargo run --release -p localraster-algo --example bench_iris -- 6000 4000 3`
 //! An optional fourth argument models the UI's proxy factor (e.g. 1500 1000 5 4).
-use localpaint_algo::{FilterParams, IrisPin, apply_in};
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_algo::{FilterParams, IrisPin, apply_in};
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();

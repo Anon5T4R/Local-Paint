@@ -6,19 +6,19 @@
 //! `spacing`, `layer`), respects the active selection as a mask and the layer's transparency lock, and
 //! works at any depth (8/16/32f) and colour model. Like the Brush, each paints the targeted surface:
 //! the layer's pixels, its mask (`"target":"mask"`), an alpha channel or the Quick Mask (`"target"`,
-//! filled in from the Channels panel when absent). The pixel algorithms live in `localpaint-algo`
-//! (`poisson`, `inpaint`, `retouch`) and the dab machinery in `localpaint-paint::retouch`; this module
+//! filled in from the Channels panel when absent). The pixel algorithms live in `localraster-algo`
+//! (`poisson`, `inpaint`, `retouch`) and the dab machinery in `localraster-paint::retouch`; this module
 //! only parses parameters and wires them together.
 
-use localpaint_algo::inpaint::{self, CompleteParams};
-use localpaint_algo::poisson;
-use localpaint_algo::retouch::{ToneRange, dodge_burn, local_blur, local_sharpen, sponge};
-use localpaint_color::{BlendMode, PixelFormat, SampleType};
-use localpaint_doc::{Document, LayerContent, LayerId};
-use localpaint_geom::Rect;
-use localpaint_paint::retouch::{Footprint, Region, Smudge, alpha_index, apply_coverage, apply_dab_stroke};
-use localpaint_paint::{BrushSettings, Stroke, StrokePoint};
-use localpaint_raster::{Surface, from_rgba_into, to_rgba};
+use localraster_algo::inpaint::{self, CompleteParams};
+use localraster_algo::poisson;
+use localraster_algo::retouch::{ToneRange, dodge_burn, local_blur, local_sharpen, sponge};
+use localraster_color::{BlendMode, PixelFormat, SampleType};
+use localraster_doc::{Document, LayerContent, LayerId};
+use localraster_geom::Rect;
+use localraster_paint::retouch::{Footprint, Region, Smudge, alpha_index, apply_coverage, apply_dab_stroke};
+use localraster_paint::{BrushSettings, Stroke, StrokePoint};
+use localraster_raster::{Surface, from_rgba_into, to_rgba};
 use rayon::prelude::*;
 use serde_json::{Value, json};
 
@@ -89,7 +89,7 @@ fn reject_huge_stroke(cmd: &str, stroke: &Stroke) -> Result<()> {
 /// every dab is placed (tips, dynamics and scattering included) and checked against `max`, and
 /// only a stroke that fits is made dense. `max` is a parameter so tests can inject a small budget.
 fn coverage_within(cmd: &str, stroke: &Stroke, max: u64) -> Result<(Rect, Vec<f32>)> {
-    localpaint_paint::retouch::stroke_coverage_within(stroke, max).ok_or_else(|| bad(cmd, format!("stroke too large (at most {max} px)")))
+    localraster_paint::retouch::stroke_coverage_within(stroke, max).ok_or_else(|| bad(cmd, format!("stroke too large (at most {max} px)")))
 }
 
 /// [`coverage_within`] at the shared allowance.

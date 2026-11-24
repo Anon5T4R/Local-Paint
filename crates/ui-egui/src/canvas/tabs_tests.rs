@@ -7,16 +7,16 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::theme::ThemeKind;
 
 use super::{TabStrip, pro_tab_title};
 
 /// A real app window with `docs` documents named "ch1-pNN.png".
-fn harness(docs: usize, theme: ThemeKind) -> Harness<'static, LocalPaintApp> {
+fn harness(docs: usize, theme: ThemeKind) -> Harness<'static, LocalRasterApp> {
     let mut h = Harness::builder().with_size(vec2(1000.0, 700.0)).with_max_steps(64).build_eframe(move |cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, theme);
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        LocalRasterApp::setup_context(&cc.egui_ctx, theme);
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         // The theme is an interface preference, applied on the first frame: set the preference.
         app.run("prefs.set", json!({"values": {"interface.theme": theme.id()}})).unwrap();
         for n in 1..=docs {
@@ -28,11 +28,11 @@ fn harness(docs: usize, theme: ThemeKind) -> Harness<'static, LocalPaintApp> {
     h
 }
 
-fn strip(h: &Harness<'_, LocalPaintApp>) -> TabStrip {
+fn strip(h: &Harness<'_, LocalRasterApp>) -> TabStrip {
     h.state().tab_strip.clone().expect("the strip is drawn")
 }
 
-fn has_menu(h: &Harness<'_, LocalPaintApp>) -> bool {
+fn has_menu(h: &Harness<'_, LocalRasterApp>) -> bool {
     h.query_by_label("More documents").is_some()
 }
 
@@ -124,9 +124,9 @@ fn ctrl() -> egui::Modifiers {
 #[test]
 fn ctrl_tab_cycles_through_the_document_tabs() {
     let mut h = harness(3, ThemeKind::Pro);
-    let active = |h: &Harness<'_, LocalPaintApp>| h.state().session.active_index();
+    let active = |h: &Harness<'_, LocalRasterApp>| h.state().session.active_index();
     assert_eq!(active(&h), Some(2), "the last new document is active");
-    let press = |h: &mut Harness<'_, LocalPaintApp>, shift: bool| {
+    let press = |h: &mut Harness<'_, LocalRasterApp>, shift: bool| {
         h.key_press_modifiers(if shift { ctrl() | egui::Modifiers::SHIFT } else { ctrl() }, egui::Key::Tab);
         h.run_steps(2);
     };
@@ -180,7 +180,7 @@ fn quick_mask_mode_names_the_quick_mask_in_the_tab() {
 }
 
 /// Whether any title painted on the strip was cut with '…'.
-fn elided_on_strip(h: &Harness<'_, LocalPaintApp>) -> bool {
+fn elided_on_strip(h: &Harness<'_, LocalRasterApp>) -> bool {
     fn elided(shape: &egui::Shape, strip: egui::Rect) -> bool {
         match shape {
             egui::Shape::Text(text) => text.galley.elided && strip.intersects(text.visual_bounding_rect()),

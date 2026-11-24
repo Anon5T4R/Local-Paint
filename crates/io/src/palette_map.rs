@@ -5,10 +5,10 @@
 //! Data (768 bytes: 256 reds, 256 greens, 256 blues), its length in resource 1046 and the
 //! transparent entry in resource 1047; for Bitmap one plane of 1 bit per pixel, 1 = black.
 
-use localpaint_color::ColorMode;
-use localpaint_doc::{ColorTable, Document};
-use localpaint_psd::resources::{ImageResource, ResolutionInfo, ids};
-use localpaint_psd::{ColorMode as PsdMode, Compression, Header, ImageData, PsdFile};
+use localraster_color::ColorMode;
+use localraster_doc::{ColorTable, Document};
+use localraster_psd::resources::{ImageResource, ResolutionInfo, ids};
+use localraster_psd::{ColorMode as PsdMode, Compression, Header, ImageData, PsdFile};
 
 /// Indexed Color Table Count: the number of colours in the table (u16).
 pub(crate) const COLOR_TABLE_COUNT: u16 = 1046;
@@ -78,14 +78,14 @@ fn flattens_losslessly(doc: &Document) -> bool {
         [] => true,
         [l] => {
             l.visible
-                && matches!(l.content, localpaint_doc::LayerContent::Raster(_))
+                && matches!(l.content, localraster_doc::LayerContent::Raster(_))
                 && l.mask.is_none()
                 && l.vector_mask.is_none()
                 && !l.clipped
                 && l.opacity >= 1.0
                 && l.fill_opacity >= 1.0
-                && l.blend == localpaint_color::BlendMode::Normal
-                && !(l.effects.enabled && l.effects.items.iter().any(localpaint_doc::Effect::enabled))
+                && l.blend == localraster_color::BlendMode::Normal
+                && !(l.effects.enabled && l.effects.items.iter().any(localraster_doc::Effect::enabled))
         }
         _ => false,
     }
@@ -111,7 +111,7 @@ fn indices(doc: &Document, t: &ColorTable) -> Vec<u8> {
         t.colors.iter().copied().enumerate().filter(|(i, _)| Some(*i) != t.transparent.map(usize::from)).map(|(i, c)| (i as u8, c)).unzip();
     let opaque = ColorTable { colors, transparent: None };
     let mut idx = Vec::with_capacity(doc.size.area() as usize);
-    let _ = localpaint_compose::render_bands(doc, doc.bounds(), 0, |band| -> Result<(), ()> {
+    let _ = localraster_compose::render_bands(doc, doc.bounds(), 0, |band| -> Result<(), ()> {
         idx.extend(band.px.iter().map(|p| match t.transparent {
             Some(i) if p[3] < 0.5 => i,
             Some(_) => opaque_indices.get(opaque.nearest([p[0], p[1], p[2]])).copied().unwrap_or(0),
@@ -131,7 +131,7 @@ fn bits(doc: &Document) -> Vec<u8> {
     let w = doc.size.width as usize;
     let row = w.div_ceil(8);
     let mut out = Vec::with_capacity(row * doc.size.height as usize);
-    let _ = localpaint_compose::render_bands(doc, doc.bounds(), 0, |band| -> Result<(), ()> {
+    let _ = localraster_compose::render_bands(doc, doc.bounds(), 0, |band| -> Result<(), ()> {
         for line in band.px.chunks(w.max(1)) {
             let mut bytes = vec![0u8; row];
             for (x, p) in line.iter().enumerate() {
@@ -150,8 +150,8 @@ fn bits(doc: &Document) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_color::{Color, SampleType};
-    use localpaint_doc::Size;
+    use localraster_color::{Color, SampleType};
+    use localraster_doc::Size;
 
     fn document(width: u32, height: u32, depth: SampleType, mode: ColorMode, pixels: &[f32]) -> Document {
         let mut doc = Document::with_background("palette test", Size::new(width, height), ColorMode::Rgb, depth, Color::rgba(0.0, 0.0, 0.0, 1.0));

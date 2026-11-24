@@ -1,10 +1,10 @@
 //! Camera Raw's preview develop on the 858×572 proxy of a 6000×4000 image: the CPU develop
 //! against the GPU pass (upload, render, readback), for per-pixel settings.
-//! `cargo run --release -p localpaint-gpu --example bench_camera_raw [-- --quick]`
+//! `cargo run --release -p localraster-gpu --example bench_camera_raw [-- --quick]`
 use std::time::Instant;
 
-use localpaint_algo::camera_raw::{CameraRaw, Wheel, develop, per_pixel, white_black_points};
-use localpaint_gpu::CameraRawDevelop;
+use localraster_algo::camera_raw::{CameraRaw, Wheel, develop, per_pixel, white_black_points};
+use localraster_gpu::CameraRawDevelop;
 
 fn median(mut v: Vec<f64>) -> f64 {
     v.sort_by(f64::total_cmp);

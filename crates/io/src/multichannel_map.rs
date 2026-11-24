@@ -7,13 +7,13 @@
 //! alpha channels of every other mode (max = selected). Channel names come from resources 1006 /
 //! 1045 and ink colours from DisplayInfo (1077), exactly as for spot channels in the other modes.
 
-use localpaint_color::{Color, ColorMode, PixelFormat, SampleType};
-use localpaint_doc::{AlphaChannel, Document};
-use localpaint_geom::Rect;
-use localpaint_psd::file::{GlobalLayerMask, LayerInfoPlacement};
-use localpaint_psd::resources::{ImageResource, ResolutionInfo, ids, version_info_resource};
-use localpaint_psd::{ColorMode as PsdMode, Compression, Header, ImageData, PsdFile, TaggedBlock};
-use localpaint_raster::Surface;
+use localraster_color::{Color, ColorMode, PixelFormat, SampleType};
+use localraster_doc::{AlphaChannel, Document};
+use localraster_geom::Rect;
+use localraster_psd::file::{GlobalLayerMask, LayerInfoPlacement};
+use localraster_psd::resources::{ImageResource, ResolutionInfo, ids, version_info_resource};
+use localraster_psd::{ColorMode as PsdMode, Compression, Header, ImageData, PsdFile, TaggedBlock};
+use localraster_raster::Surface;
 
 use crate::pixels::{encode_be, psd_depth};
 
@@ -68,8 +68,8 @@ pub(crate) fn import(file: &PsdFile, all: &[u8], doc: &mut Document, names: &[St
         let p = all.get(start..start.checked_add(plane).ok_or_else(invalid)?).ok_or_else(invalid)?;
         // DisplayInfo is known before conversion: alpha channels need no inversion or
         // second full-plane readback. One tile row is the only conversion buffer.
-        for y in (0..hh).step_by(localpaint_geom::TILE_SIZE as usize) {
-            let bottom = (y + localpaint_geom::TILE_SIZE as usize).min(hh);
+        for y in (0..hh).step_by(localraster_geom::TILE_SIZE as usize) {
+            let bottom = (y + localraster_geom::TILE_SIZE as usize).min(hh);
             let samples = w.checked_mul(bottom - y).ok_or_else(invalid)?;
             let len = samples.checked_mul(depth.bytes()).ok_or_else(invalid)?;
             let mut bytes = Vec::new();
@@ -151,7 +151,7 @@ pub(crate) fn document_to_psd(doc: &Document, force_psb: bool, size_limit: Optio
     }
     // Alpha identifiers: one u32 per channel, only while they still match the channels.
     let keep = |id: u16, data: &[u8]| id != ALPHA_IDENTIFIERS || data.len() == channels.len().saturating_mul(4);
-    let color_mode_data = localpaint_psd::hdr::color_mode_data_for_depth(header.depth);
+    let color_mode_data = localraster_psd::hdr::color_mode_data_for_depth(header.depth);
     let file = layerless_file(doc, header, image_data, color_mode_data, resources, keep, size_limit, &mut warnings);
     (file, warnings)
 }
@@ -176,10 +176,10 @@ pub(crate) fn layerless_file(
     // The XMP and EXIF resolution follow the ResolutionInfo resource, so no copy contradicts it.
     let ppi = Some((doc.resolution_dpi, doc.resolution_dpi)).filter(|d| d.0 > 0.0);
     if let Some(x) = &doc.metadata.xmp {
-        resources.push(ImageResource::new(ids::XMP, localpaint_codecs::export_xmp(x, ppi).as_bytes().to_vec()));
+        resources.push(ImageResource::new(ids::XMP, localraster_codecs::export_xmp(x, ppi).as_bytes().to_vec()));
     }
     if let Some(e) = &doc.metadata.exif {
-        resources.push(ImageResource::new(ids::EXIF, localpaint_codecs::export_exif(e, ppi).into_owned()));
+        resources.push(ImageResource::new(ids::EXIF, localraster_codecs::export_exif(e, ppi).into_owned()));
     }
     // Every other imported resource (print settings, IPTC, the layer-id seed, ...), except the
     // ones that only describe layers and any already written above.
@@ -231,8 +231,8 @@ mod import_allocation_tests {
 
     #[test]
     fn missing_planes_remain_recoverable_without_reading_past_input() {
-        let file = localpaint_psd::testgen::merged_only(localpaint_psd::Version::Psd, PsdMode::Multichannel, 8, Compression::Raw, 3, 2);
-        let mut doc = Document::new("Partial", localpaint_geom::Size::new(3, 2), ColorMode::Multichannel, SampleType::U8);
+        let file = localraster_psd::testgen::merged_only(localraster_psd::Version::Psd, PsdMode::Multichannel, 8, Compression::Raw, 3, 2);
+        let mut doc = Document::new("Partial", localraster_geom::Size::new(3, 2), ColorMode::Multichannel, SampleType::U8);
         let mut warnings = Vec::new();
         import(&file, &[0; 6], &mut doc, &[], &mut warnings).unwrap();
         assert_eq!(doc.channels.len(), 1);

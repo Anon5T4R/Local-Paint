@@ -1,46 +1,46 @@
-//! Layer bounds exactly as `localpaint-compose` computes them (`layer_bounds`), with the per-tile
+//! Layer bounds exactly as `localraster-compose` computes them (`layer_bounds`), with the per-tile
 //! content scan cached by copy-on-write tile identity, so an effect layer's region costs a hash
 //! lookup per tile instead of a pixel scan per frame.
 
-use localpaint_doc::Layer;
-use localpaint_geom::Rect;
+use localraster_doc::Layer;
+use localraster_geom::Rect;
 #[cfg(test)]
-use localpaint_raster::Surface;
+use localraster_raster::Surface;
 
-pub use localpaint_compose::bounds::content_bounds;
+pub use localraster_compose::bounds::content_bounds;
 
-/// Bounds of a layer's own pixels: `localpaint_compose::layer_bounds`.
+/// Bounds of a layer's own pixels: `localraster_compose::layer_bounds`.
 pub fn layer_bounds(layer: &Layer, canvas: Rect) -> Rect {
-    localpaint_compose::layer_bounds(layer, canvas)
+    localraster_compose::layer_bounds(layer, canvas)
 }
 
 /// The region a layer's effect maps cover: its effect source bounds (for a group, its children
-/// with their effects: `localpaint_compose::effect_source_bounds`) grown by the effect reach, within the
-/// canvas grown likewise (`localpaint_compose::effect_maps`) when the layer reaches far beyond
+/// with their effects: `localraster_compose::effect_source_bounds`) grown by the effect reach, within the
+/// canvas grown likewise (`localraster_compose::effect_maps`) when the layer reaches far beyond
 /// it. A layer about the canvas's size keeps its whole region even where it overhangs the edge:
 /// then the region keeps its size while the layer moves (a Move tool drag), so its maps move with
 /// it instead of being rebuilt every frame (#761). The maps are exact either way.
 pub fn effect_region(layer: &Layer, canvas: Rect) -> Rect {
-    let m = localpaint_compose::effects::margin(layer);
-    let (whole, window) = (localpaint_compose::effect_source_bounds(layer, canvas).inflate(m), canvas.inflate(m));
+    let m = localraster_compose::effects::margin(layer);
+    let (whole, window) = (localraster_compose::effect_source_bounds(layer, canvas).inflate(m), canvas.inflate(m));
     let area = |r: Rect| u64::from(r.width()) * u64::from(r.height());
     if area(whole) <= area(window).saturating_add(area(window) / 4) { whole } else { whole.intersect(&window) }
 }
 
-/// `localpaint_compose::transparent_outside`.
+/// `localraster_compose::transparent_outside`.
 pub fn transparent_outside(layer: &Layer) -> bool {
-    localpaint_compose::transparent_outside(layer)
+    localraster_compose::transparent_outside(layer)
 }
 
-/// `localpaint_compose::composite_bounds`: where compositing the layer can change anything.
+/// `localraster_compose::composite_bounds`: where compositing the layer can change anything.
 pub fn composite_bounds(layer: &Layer, canvas: Rect) -> Option<Rect> {
-    localpaint_compose::composite_bounds(layer, canvas)
+    localraster_compose::composite_bounds(layer, canvas)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_color::PixelFormat;
+    use localraster_color::PixelFormat;
 
     #[test]
     fn matches_surface_content_bounds() {

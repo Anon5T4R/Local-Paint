@@ -9,7 +9,7 @@ use egui::{Align2, Color32, CornerRadius, Rect, RichText, Sense, Stroke, Texture
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::theme::Tokens;
 
 /// View state of the type panels.
@@ -64,7 +64,7 @@ pub fn handles(id: &str) -> bool {
     IDS.contains(&id)
 }
 
-pub fn checked(app: &LocalPaintApp, id: &str) -> Option<bool> {
+pub fn checked(app: &LocalRasterApp, id: &str) -> Option<bool> {
     let p = &app.ui.type_panels;
     Some(match id {
         "type.panels.characterStyles" | "window.panel.characterStyles" => p.styles && p.styles_tab == 0,
@@ -76,7 +76,7 @@ pub fn checked(app: &LocalPaintApp, id: &str) -> Option<bool> {
 
 /// Window/Type › panel toggles, and Edit › Check Spelling… (opens the dialog when run without an
 /// `action`). `params.show` forces a panel open or closed.
-pub fn menu(app: &mut LocalPaintApp, id: &str, params: &Value) -> Option<Result<Value, String>> {
+pub fn menu(app: &mut LocalRasterApp, id: &str, params: &Value) -> Option<Result<Value, String>> {
     if id == "edit.checkSpelling" && params.get("action").is_none() && params.get("ui").is_none_or(|u| u.as_bool() != Some(false)) {
         return Some(open_spelling(app, params.get("allLayers").and_then(Value::as_bool).unwrap_or(true)));
     }
@@ -108,7 +108,7 @@ pub fn menu(app: &mut LocalPaintApp, id: &str, params: &Value) -> Option<Result<
     Some(Ok(json!({ "visible": visible })))
 }
 
-fn run(app: &mut LocalPaintApp, id: &str, p: Value) -> Option<Value> {
+fn run(app: &mut LocalRasterApp, id: &str, p: Value) -> Option<Value> {
     match app.run(id, p) {
         Ok(v) => Some(v),
         Err(e) => {
@@ -121,7 +121,7 @@ fn run(app: &mut LocalPaintApp, id: &str, p: Value) -> Option<Value> {
 
 /// The type the panels act on: the layer being edited (with its selection), else the selected
 /// layers. Returns params with `layer` + `range`, or `{}` (selected layers).
-fn target(app: &LocalPaintApp) -> Value {
+fn target(app: &LocalRasterApp) -> Value {
     if let Some(ed) = &app.ui.text_edit {
         let (a, b) = (ed.caret.min(ed.anchor), ed.caret.max(ed.anchor));
         return json!({ "layer": ed.layer, "range": [a, b], "coalesce": ed.session });
@@ -139,7 +139,7 @@ fn float_frame(t: &Tokens) -> egui::Frame {
 }
 
 /// Draws the open type panels and the spelling dialog.
-pub fn windows(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub fn windows(app: &mut LocalRasterApp, ctx: &egui::Context) {
     let t = Tokens::get(ctx);
     let canvas = app.last_canvas_rect;
     if app.ui.type_panels.styles {
@@ -212,7 +212,7 @@ pub(crate) mod color_picker;
 
 // ------------------------------------------------------------------ styles
 
-pub fn styles_panel(app: &mut LocalPaintApp, ui: &mut egui::Ui, paragraph: bool) {
+pub fn styles_panel(app: &mut LocalRasterApp, ui: &mut egui::Ui, paragraph: bool) {
     let t = Tokens::get(ui.ctx());
     if app.session.active().is_none() {
         ui.label(RichText::new(tl!("No document")).color(t.text_faint).size(11.5));
@@ -338,7 +338,7 @@ pub fn styles_panel(app: &mut LocalPaintApp, ui: &mut egui::Ui, paragraph: bool)
 
 /// Style Options: name plus the common attributes; a checkbox marks an attribute as part of the
 /// style (unchecked = inherited).
-fn options_editor(app: &mut LocalPaintApp, ui: &mut egui::Ui, paragraph: bool, s: &Value) {
+fn options_editor(app: &mut LocalRasterApp, ui: &mut egui::Ui, paragraph: bool, s: &Value) {
     let t = Tokens::get(ui.ctx());
     let prefix = if paragraph { "type.paragraphStyle" } else { "type.characterStyle" };
     let id = s["id"].as_u64().unwrap_or(0);
@@ -422,7 +422,7 @@ fn options_editor(app: &mut LocalPaintApp, ui: &mut egui::Ui, paragraph: bool, s
                     }
                 }
                 "color" => {
-                    let c = serde_json::from_value::<localpaint_doc::Color>(v.clone()).map(|c| c.to_rgb()).unwrap_or([0.0; 3]);
+                    let c = serde_json::from_value::<localraster_doc::Color>(v.clone()).map(|c| c.to_rgb()).unwrap_or([0.0; 3]);
                     let [r, g, b] = c.map(|v| (v.clamp(0.0, 1.0) * 255.0).round() as u8);
                     open_color = crate::widgets::color_swatch(ui, Color32::from_rgb(r, g, b)).on_hover_text(tl!("Color Picker (Text Color)")).clicked();
                 }
@@ -534,13 +534,13 @@ fn family_picker(
     ui: &mut egui::Ui,
     salt: &str,
     current: &mut String,
-    preview: localpaint_engine::prefs::FontPreview,
+    preview: localraster_engine::prefs::FontPreview,
     library: &mut crate::type_tool::FontLibrary,
 ) -> bool {
     if !crate::type_tool::fonts_ready(ui, 140.0) {
         return false;
     }
-    let mut shown = if current.is_empty() { localpaint_text::fonts::DEFAULT_FAMILY.to_string() } else { current.clone() };
+    let mut shown = if current.is_empty() { localraster_text::fonts::DEFAULT_FAMILY.to_string() } else { current.clone() };
     let changed = crate::type_tool::family_picker_in(ui, salt, &mut shown, 140.0, &crate::type_tool::families(), preview, library);
     if changed {
         *current = shown;
@@ -551,27 +551,27 @@ fn family_picker(
 // ------------------------------------------------------------------ glyphs
 
 /// Font family/style the Glyphs panel shows: its own choice, else the type selection's font.
-fn glyph_font(app: &LocalPaintApp) -> (String, String) {
+fn glyph_font(app: &LocalRasterApp) -> (String, String) {
     let p = &app.ui.type_panels;
     if !p.glyph_family.is_empty() {
         return (p.glyph_family.clone(), if p.glyph_style.is_empty() { tl!("Regular").into() } else { p.glyph_style.clone() });
     }
-    let layer = app.ui.text_edit.as_ref().map(|e| localpaint_doc::LayerId(e.layer)).or_else(|| app.session.active().and_then(|s| s.active_layer));
+    let layer = app.ui.text_edit.as_ref().map(|e| localraster_doc::LayerId(e.layer)).or_else(|| app.session.active().and_then(|s| s.active_layer));
     if let Some(st) = app.session.active()
         && let Some(id) = layer
-        && let Some(localpaint_doc::LayerContent::Text(tl)) = st.doc.layer(id).map(|l| &l.content)
+        && let Some(localraster_doc::LayerContent::Text(tl)) = st.doc.layer(id).map(|l| &l.content)
         && let Some(r) = tl.char_runs().first()
     {
-        let fam = if r.style.font_family.is_empty() { localpaint_text::fonts::DEFAULT_FAMILY.to_string() } else { r.style.font_family.clone() };
+        let fam = if r.style.font_family.is_empty() { localraster_text::fonts::DEFAULT_FAMILY.to_string() } else { r.style.font_family.clone() };
         let style = crate::type_tool::selected_style(&r.style);
         return (fam, style);
     }
-    (localpaint_text::fonts::DEFAULT_FAMILY.into(), tl!("Regular").into())
+    (localraster_text::fonts::DEFAULT_FAMILY.into(), tl!("Regular").into())
 }
 
-fn char_style_for(family: &str, style: &str) -> localpaint_doc::text::CharStyle {
-    let mut st = localpaint_doc::text::CharStyle { font_family: family.into(), ..Default::default() };
-    localpaint_engine::type_cmds::apply_char_props(&mut st, &json!({ "fontStyle": style }));
+fn char_style_for(family: &str, style: &str) -> localraster_doc::text::CharStyle {
+    let mut st = localraster_doc::text::CharStyle { font_family: family.into(), ..Default::default() };
+    localraster_engine::type_cmds::apply_char_props(&mut st, &json!({ "fontStyle": style }));
     st
 }
 
@@ -582,8 +582,8 @@ fn glyph_texture(ctx: &egui::Context, family: &str, style: &str, c: char, px: u3
     }
     let st = char_style_for(family, style);
     let (n, alpha) = {
-        let mut eng = localpaint_text::shared().lock().unwrap_or_else(|e| e.into_inner());
-        localpaint_text::glyphs::preview(&mut eng, &st, c, px)
+        let mut eng = localraster_text::shared().lock().unwrap_or_else(|e| e.into_inner());
+        localraster_text::glyphs::preview(&mut eng, &st, c, px)
     };
     let img = egui::ColorImage::from_rgba_unmultiplied([n as usize, n as usize], &alpha.iter().flat_map(|a| [255, 255, 255, *a]).collect::<Vec<u8>>());
     let tex = ctx.load_texture(format!("glyph-{c}-{px}"), img, TextureOptions::LINEAR);
@@ -598,14 +598,14 @@ fn charmap(ctx: &egui::Context, family: &str, style: &str) -> std::sync::Arc<Vec
         return v;
     }
     let st = char_style_for(family, style);
-    let v = std::sync::Arc::new(localpaint_text::shared().lock().unwrap_or_else(|e| e.into_inner()).fonts.charmap_for_style(&st));
+    let v = std::sync::Arc::new(localraster_text::shared().lock().unwrap_or_else(|e| e.into_inner()).fonts.charmap_for_style(&st));
     ctx.data_mut(|d| d.insert_temp(id, v.clone()));
     v
 }
 
 /// Inserts `g` into the type being edited (replacing the selection), else at the end of the
 /// active type layer. Returns whether it was inserted.
-pub fn insert_glyph(app: &mut LocalPaintApp, g: &str) -> bool {
+pub fn insert_glyph(app: &mut LocalRasterApp, g: &str) -> bool {
     let p = if let Some(ed) = app.ui.text_edit.clone() {
         let (a, b) = (ed.caret.min(ed.anchor), ed.caret.max(ed.anchor));
         json!({ "layer": ed.layer, "text": g, "range": [a, b], "coalesce": ed.session })
@@ -624,7 +624,7 @@ pub fn insert_glyph(app: &mut LocalPaintApp, g: &str) -> bool {
     true
 }
 
-pub fn glyphs_panel(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+pub fn glyphs_panel(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     // Every glyph cell needs the font database: wait for the font scan without blocking.
     if !crate::type_tool::fonts_ready(ui, 260.0) {
         return;
@@ -656,7 +656,7 @@ pub fn glyphs_panel(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
     let mut cat = if app.ui.type_panels.glyph_category.is_empty() { tl!("Entire Font").to_string() } else { app.ui.type_panels.glyph_category.clone() };
     ui.horizontal(|ui| {
         ui.label(RichText::new(tl!("Show:")).color(t.text_dim).size(11.5));
-        let opts: Vec<(String, &str)> = localpaint_text::glyphs::CATEGORIES.iter().map(|c| (c.to_string(), *c)).collect();
+        let opts: Vec<(String, &str)> = localraster_text::glyphs::CATEGORIES.iter().map(|c| (c.to_string(), *c)).collect();
         if crate::widgets::dropdown(ui, "glyph-category", tl!("Category"), &mut cat, &opts, 160.0) {
             app.ui.type_panels.glyph_category = cat.clone();
         }
@@ -692,7 +692,7 @@ pub fn glyphs_panel(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
     ui.add_space(4.0);
     // Grid.
     let cmap = charmap(&ctx, &family, &style);
-    let chars: Vec<char> = cmap.iter().copied().filter(|c| localpaint_text::glyphs::in_category(*c, &cat)).collect();
+    let chars: Vec<char> = cmap.iter().copied().filter(|c| localraster_text::glyphs::in_category(*c, &cat)).collect();
     // Leave room for the scroll bar.
     let width = ui.available_width() - 12.0;
     let cols = ((width / size).floor() as usize).max(1);
@@ -756,7 +756,7 @@ pub fn glyphs_panel(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
 
 // ------------------------------------------------------------------ spelling
 
-fn refresh_spelling(app: &mut LocalPaintApp) {
+fn refresh_spelling(app: &mut LocalRasterApp) {
     let Some(d) = app.ui.type_panels.spell.clone() else { return };
     let p = json!({ "action": "list", "allLayers": d.all_layers, "ignore": d.ignore, "suggestions": 8 });
     let items = run(app, "edit.checkSpelling", p).and_then(|r| r["misspellings"].as_array().cloned()).unwrap_or_default();
@@ -767,7 +767,7 @@ fn refresh_spelling(app: &mut LocalPaintApp) {
 }
 
 /// Opens Edit › Check Spelling (returns the misspellings).
-pub fn open_spelling(app: &mut LocalPaintApp, all_layers: bool) -> Result<Value, String> {
+pub fn open_spelling(app: &mut LocalRasterApp, all_layers: bool) -> Result<Value, String> {
     app.session.execute("edit.checkSpelling", json!({ "action": "list", "allLayers": all_layers })).map_err(|e| e.to_string())?;
     app.ui.type_panels.spell = Some(SpellDialog { all_layers, ..Default::default() });
     refresh_spelling(app);
@@ -775,7 +775,7 @@ pub fn open_spelling(app: &mut LocalPaintApp, all_layers: bool) -> Result<Value,
     Ok(json!({ "dialog": "checkSpelling", "misspellings": d }))
 }
 
-fn spelling_window(app: &mut LocalPaintApp, ctx: &egui::Context) {
+fn spelling_window(app: &mut LocalRasterApp, ctx: &egui::Context) {
     let t = Tokens::get(ctx);
     let Some(d) = app.ui.type_panels.spell.clone() else { return };
     let item = d.items.get(d.index).cloned();
@@ -917,8 +917,8 @@ fn spelling_window(app: &mut LocalPaintApp, ctx: &egui::Context) {
 mod tests {
     use super::*;
 
-    fn app_with_text(text: &str) -> LocalPaintApp {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    fn app_with_text(text: &str) -> LocalRasterApp {
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 300, "height": 120, "background": "white"})).unwrap();
         app.run("type.create", json!({"x": 10, "y": 60, "text": text})).unwrap();
         app.sync_views();
@@ -949,7 +949,7 @@ mod tests {
         assert!(insert_glyph(&mut app, "→"));
         assert_eq!(app.ui.type_panels.glyph_recent, vec!["→".to_string(), "€".to_string()]);
         let st = app.session.active().unwrap();
-        let Some(localpaint_doc::LayerContent::Text(t)) = st.active_layer.and_then(|id| st.doc.layer(id)).map(|l| &l.content) else { panic!() };
+        let Some(localraster_doc::LayerContent::Text(t)) = st.active_layer.and_then(|id| st.doc.layer(id)).map(|l| &l.content) else { panic!() };
         assert_eq!(t.text, "ab→€→");
     }
 
@@ -975,7 +975,7 @@ mod tests {
         // The fonts are set up after the harness's first frame: the window appears after it.
         let spell = app.ui.type_panels.spell.take();
         let mut h = egui_kittest::Harness::builder().with_size(vec2(1000.0, 700.0)).build_ui_state(|ui, app| windows(app, ui.ctx()), app);
-        LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
+        LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
         h.state_mut().ui.type_panels.spell = spell;
         h.run_steps(3);
         if !crate::dialogs::CLOSE_BOX {
@@ -1009,7 +1009,7 @@ mod tests {
             },
             app,
         );
-        LocalPaintApp::setup_context(&h.ctx, Default::default());
+        LocalRasterApp::setup_context(&h.ctx, Default::default());
         h.run_steps(4);
         assert!(h.query_by_label("Hyphenate").is_none());
     }

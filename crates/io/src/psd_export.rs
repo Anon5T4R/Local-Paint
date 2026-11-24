@@ -1,14 +1,14 @@
 //! [`Document`] → PSD/PSB.
 
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_doc::{Document, Layer, LayerContent, LayerMask, SmartContentsId};
-use localpaint_psd::file::{GlobalLayerMask, LayerInfoPlacement};
-use localpaint_psd::layer::{BlendingRanges, ChannelData, LayerFlags, LayerInfo, LayerMask as PsdMask, MaskData, MaskParameters};
-use localpaint_psd::resources::{ImageResource, ResolutionInfo, ids, version_info_resource};
-use localpaint_psd::{
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_doc::{Document, Layer, LayerContent, LayerMask, SmartContentsId};
+use localraster_psd::file::{GlobalLayerMask, LayerInfoPlacement};
+use localraster_psd::layer::{BlendingRanges, ChannelData, LayerFlags, LayerInfo, LayerMask as PsdMask, MaskData, MaskParameters};
+use localraster_psd::resources::{ImageResource, ResolutionInfo, ids, version_info_resource};
+use localraster_psd::{
     BlendMode as PsdBlend, ColorMode as PsdMode, Compression, Header, ImageData, LayerRecord, PsdFile, Rect as PsdRect, SectionType, TaggedBlock, Version,
 };
-use localpaint_raster::{Interrupt, Surface};
+use localraster_raster::{Interrupt, Surface};
 
 use crate::adjust_map;
 use crate::blocks;
@@ -99,7 +99,7 @@ struct Ex {
     /// Whether linked files may be read and embedded ([`PsdExportOptions::read_linked_files`]).
     read_linked_files: bool,
     /// Character/paragraph styles written into every type layer's engine data.
-    text_styles: localpaint_doc::TextStyles,
+    text_styles: localraster_doc::TextStyles,
     mask_fmt: PixelFormat,
     cc: usize,
     cmyk: bool,
@@ -108,24 +108,24 @@ struct Ex {
     /// Reserved imported layer and generated divider IDs.
     used_ids: std::collections::HashSet<u32>,
     /// PSD ids assigned to document layers (kept from `psd_id` when unique).
-    layer_ids: std::collections::HashMap<localpaint_doc::LayerId, u32>,
+    layer_ids: std::collections::HashMap<localraster_doc::LayerId, u32>,
     /// The generated `Txt2` object number of each type layer (a preserved `TySh` keeps its own
-    /// `TextIndex`, others get the next free number; see `localpaint_text::psd::build_txt2`),
+    /// `TextIndex`, others get the next free number; see `localraster_text::psd::build_txt2`),
     /// written into the `TySh` data this export re-serializes.
-    text_index: std::collections::HashMap<localpaint_doc::LayerId, i32>,
-    canvas: localpaint_geom::Rect,
+    text_index: std::collections::HashMap<localraster_doc::LayerId, i32>,
+    canvas: localraster_geom::Rect,
     records: Vec<LayerRecord>,
     warnings: Vec<String>,
     /// Guides (artboard blocks list the guides inside each board).
-    guides: localpaint_doc::Guides,
+    guides: localraster_doc::Guides,
     /// Layer comps to regenerate into each layer's `cmls`; None = preserved data still matches.
-    comps: Option<(Vec<localpaint_doc::LayerComp>, Option<localpaint_doc::LayerComp>)>,
+    comps: Option<(Vec<localraster_doc::LayerComp>, Option<localraster_doc::LayerComp>)>,
     /// Smart objects: embedded files and filter caches for the global blocks.
     smart: SmartOut,
     /// The document's patterns, which Pattern Fill layers are rendered from.
-    patterns: Vec<localpaint_doc::Pattern>,
+    patterns: Vec<localraster_doc::Pattern>,
     /// The layer written as Photoshop's Background (see [`psd_background`]).
-    background: Option<localpaint_doc::LayerId>,
+    background: Option<localraster_doc::LayerId>,
 }
 
 /// The layer Photoshop should open as its Background: the bottom top-level layer when it is a
@@ -134,12 +134,12 @@ struct Ex {
 /// Background by the bottom layer having no transparency channel (measured on Photoshop 27.11:
 /// with the `-1` channel written, 317 of 427 re-exported corpus files reopened with the
 /// Background as an ordinary layer).
-fn psd_background(doc: &Document) -> Option<localpaint_doc::LayerId> {
+fn psd_background(doc: &Document) -> Option<localraster_doc::LayerId> {
     let l = doc.layers.first()?;
     let LayerContent::Raster(s) = &l.content else { return None };
     let locked = l.locks.transparency && l.locks.position;
     let plain = !l.clipped && l.mask.is_none() && l.vector_mask.is_none() && l.opacity >= 1.0 && l.fill_opacity >= 1.0;
-    let normal = l.blend == localpaint_doc::BlendMode::Normal;
+    let normal = l.blend == localraster_doc::BlendMode::Normal;
     if !(locked && plain && normal) {
         return None;
     }
@@ -154,7 +154,7 @@ fn psd_background(doc: &Document) -> Option<localpaint_doc::LayerId> {
 /// as pixels instead.
 const MAX_NESTING: u32 = 8;
 
-fn h_of(r: localpaint_geom::Rect) -> usize {
+fn h_of(r: localraster_geom::Rect) -> usize {
     r.height() as usize
 }
 
@@ -167,7 +167,7 @@ fn psd_mode(m: ColorMode) -> PsdMode {
     }
 }
 
-fn to_psd_rect(r: localpaint_geom::Rect) -> PsdRect {
+fn to_psd_rect(r: localraster_geom::Rect) -> PsdRect {
     PsdRect { top: r.y0, left: r.x0, bottom: r.y1, right: r.x1 }
 }
 
@@ -219,7 +219,7 @@ impl Ex {
         let row_len = r.width() as usize;
         let bands = crate::pixels::bands(h_of(r));
         let parts =
-            crate::pixels::par_map(bands, |rows| s.to_interleaved(localpaint_geom::Rect::new(r.x0, r.y0 + rows.start as i32, r.x1, r.y0 + rows.end as i32)));
+            crate::pixels::par_map(bands, |rows| s.to_interleaved(localraster_geom::Rect::new(r.x0, r.y0 + rows.start as i32, r.x1, r.y0 + rows.end as i32)));
         let mut bytes = Vec::with_capacity(row_len * h_of(r) * s.format().bytes_per_pixel());
         for part in parts {
             bytes.extend_from_slice(&part);
@@ -332,7 +332,7 @@ impl Ex {
         if lspf != 0 {
             blocks.push(TaggedBlock::protection(lspf));
         }
-        if l.label != localpaint_doc::LabelColor::None {
+        if l.label != localraster_doc::LabelColor::None {
             blocks.push(TaggedBlock::sheet_color(blocks::label_index(l.label)));
         }
         blocks.push(TaggedBlock::fill_opacity(q255(l.fill_opacity)));
@@ -340,7 +340,7 @@ impl Ex {
         // could not be decoded at all); otherwise regenerated.
         let fx = &l.effects;
         for effect in &fx.items {
-            use localpaint_doc::effects::Effect;
+            use localraster_doc::effects::Effect;
             let modes = match effect {
                 Effect::DropShadow(s) | Effect::InnerShadow(s) => [Some(s.common.blend), None],
                 Effect::OuterGlow(g) | Effect::InnerGlow(g) => [Some(g.common.blend), None],
@@ -426,7 +426,7 @@ impl Ex {
                 None => raw.push((*keys[0], d.to_vec())),
             }
         };
-        let fill_rule = |raw: &mut Vec<([u8; 4], Vec<u8>)>, regenerated: &mut Vec<([u8; 4], Vec<u8>)>, f: &localpaint_doc::Fill| {
+        let fill_rule = |raw: &mut Vec<([u8; 4], Vec<u8>)>, regenerated: &mut Vec<([u8; 4], Vec<u8>)>, f: &localraster_doc::Fill| {
             let keep = raw.iter().any(|(k, d)| matches!(k, b"SoCo" | b"GdFl" | b"PtFl") && blocks::parse_fill(k, d).as_ref() == Some(f));
             if !keep {
                 raw.retain(|(k, _)| !matches!(k, b"SoCo" | b"GdFl" | b"PtFl"));
@@ -449,31 +449,31 @@ impl Ex {
                 };
                 let cged = raw.iter().find(|(k, _)| k == b"CgEd").map(|(_, d)| d.clone());
                 let keep = raw.iter().any(|(k, d)| {
-                    // A previously saved Local Paint v2 Photo Filter block may be 18 bytes.
+                    // A previously saved Local Raster v2 Photo Filter block may be 18 bytes.
                     // It parses here, but Photoshop requires four-byte alignment, so repair
                     // that legacy record on re-save rather than preserving the broken bytes.
                     let legacy_phfl = k == b"phfl" && d.starts_with(&[0, 2]) && d.len() % 4 != 0;
-                    // Older Local Paint builds wrote `grdm` 2 bytes short of four-byte alignment,
+                    // Older Local Raster builds wrote `grdm` 2 bytes short of four-byte alignment,
                     // which makes Photoshop refuse the file (#8070): regenerate it too.
-                    let legacy_grdm = k == b"grdm" && adjust_map::is_unpadded_localpaint_gradient_map(d);
+                    let legacy_grdm = k == b"grdm" && adjust_map::is_unpadded_localraster_gradient_map(d);
                     !legacy_phfl && !legacy_grdm && adjust_map::ADJUSTMENT_KEYS.contains(&k) && adjust_map::parse(k, d, cged.as_deref(), channels) == *a
                 });
                 // A Gradient Map whose stops are unchanged keeps the file's own block (stops in
                 // the document's CMYK/Lab/Gray space, smoothness, method) with Reverse and Dither
                 // updated in place.
                 let keep = keep
-                    || (matches!(a, localpaint_doc::Adjustment::GradientMap { .. })
+                    || (matches!(a, localraster_doc::Adjustment::GradientMap { .. })
                         && raw.iter_mut().any(|(k, d)| {
-                            k == b"grdm" && !adjust_map::is_unpadded_localpaint_gradient_map(d) && adjust_map::retarget_gradient_map(d, a, channels)
+                            k == b"grdm" && !adjust_map::is_unpadded_localraster_gradient_map(d) && adjust_map::retarget_gradient_map(d, a, channels)
                         }));
                 // An adjustment type no mapper knows (#6575) is its block: kept verbatim, and
                 // never written a second time beside a stale copy.
                 let own = match a {
-                    localpaint_doc::Adjustment::Unsupported { psd_key, .. } => Some(psd_key.as_bytes()),
+                    localraster_doc::Adjustment::Unsupported { psd_key, .. } => Some(psd_key.as_bytes()),
                     _ => None,
                 };
                 let keep = keep
-                    || matches!(a, localpaint_doc::Adjustment::Unsupported { raw: r, .. } if raw.iter().any(|(k, d)| own == Some(&k[..]) && d[..] == r[..]));
+                    || matches!(a, localraster_doc::Adjustment::Unsupported { raw: r, .. } if raw.iter().any(|(k, d)| own == Some(&k[..]) && d[..] == r[..]));
                 if !keep {
                     raw.retain(|(k, _)| !adjust_map::ADJUSTMENT_KEYS.contains(&k) && k != b"CgEd" && own != Some(&k[..]));
                     let w = adjust_map::write(a);
@@ -482,7 +482,7 @@ impl Ex {
                     }
                     // Photoshop's `clrL` descriptor has no interpolation setting, so the
                     // reopened layer renders trilinear.
-                    if matches!(a, localpaint_doc::Adjustment::ColorLookup { tetrahedral: true, .. }) {
+                    if matches!(a, localraster_doc::Adjustment::ColorLookup { tetrahedral: true, .. }) {
                         self.warnings.push(format!(
                             "layer \"{}\": Color Lookup tetrahedral interpolation is saved as trilinear (PSD has no interpolation setting)",
                             l.name
@@ -500,12 +500,12 @@ impl Ex {
                 crate::vector_map::shape_blocks(sh, &mut raw, w, h, self.dpi);
             }
             LayerContent::Text(t) => {
-                if matches!(t.shape, localpaint_doc::text::TextShape::Area { .. }) {
+                if matches!(t.shape, localraster_doc::text::TextShape::Area { .. }) {
                     self.warnings
                         .push(format!("layer \"{}\": area type is saved as paragraph text over its path's bounds (PSD area type is not written yet)", l.name));
                 }
                 // Text layers without PSD data (created here) get a generated TySh.
-                let generated = t.psd_raw.is_none().then(|| std::sync::Arc::new(localpaint_text::psd::build_tysh(t, self.dpi, None)));
+                let generated = t.psd_raw.is_none().then(|| std::sync::Arc::new(localraster_text::psd::build_tysh(t, self.dpi, None)));
                 let src = t.psd_raw.as_ref().or(generated.as_ref());
                 // Character/paragraph style sheets from the document's styles.
                 let styled = src.and_then(|d| crate::text_styles_map::export_tysh(d, t, &self.text_styles, self.dpi)).map(std::sync::Arc::new);
@@ -516,8 +516,8 @@ impl Ex {
                 // however, even when no style sheet needed rebuilding: otherwise two
                 // layers may read the same Txt2 object and acquire the wrong kerning.
                 let idx = self.text_index.get(&l.id).copied().unwrap_or(0);
-                let rewrite = styled.as_ref().or(generated.as_ref()).or_else(|| src.filter(|d| localpaint_text::psd::text_index(d.as_slice()) != Some(idx)));
-                let fresh = rewrite.and_then(|d| localpaint_text::psd::set_text_index(d.as_slice(), idx)).map(std::sync::Arc::new);
+                let rewrite = styled.as_ref().or(generated.as_ref()).or_else(|| src.filter(|d| localraster_text::psd::text_index(d.as_slice()) != Some(idx)));
+                let fresh = rewrite.and_then(|d| localraster_text::psd::set_text_index(d.as_slice(), idx)).map(std::sync::Arc::new);
                 set_principal(&mut raw, &[b"TySh"], fresh.as_ref().or(styled.as_ref().or(src)));
                 if !raw.iter().any(|(k, _)| k == b"TySh") {
                     self.warnings.push(format!("layer \"{}\": text layer written as pixels (no TySh data)", l.name));
@@ -605,7 +605,7 @@ impl Ex {
     fn layer_xmp_block(&mut self, l: &Layer, raw: &mut Vec<([u8; 4], Vec<u8>)>) {
         let Some(xmp) = l.xmp.as_deref() else { return };
         let pos = raw.iter().position(|(k, _)| k == b"shmd");
-        match localpaint_psd::metadata::put_layer_xmp(pos.map(|i| raw[i].1.as_slice()), xmp) {
+        match localraster_psd::metadata::put_layer_xmp(pos.map(|i| raw[i].1.as_slice()), xmp) {
             Ok(data) => match pos {
                 Some(i) => raw[i].1 = data,
                 None => raw.push((*b"shmd", data)),
@@ -636,7 +636,7 @@ impl Ex {
     /// filter cache (`FEid`). An imported placed layer that nothing changed is written verbatim;
     /// otherwise the blocks are regenerated (from the imported descriptor where the source is
     /// the same). Without a source that can be embedded the layer is written as pixels.
-    fn smart_blocks(&mut self, l: &Layer, sm: &localpaint_doc::SmartObject, template: Option<crate::smart_map::Placed>, raw: &mut Vec<([u8; 4], Vec<u8>)>) {
+    fn smart_blocks(&mut self, l: &Layer, sm: &localraster_doc::SmartObject, template: Option<crate::smart_map::Placed>, raw: &mut Vec<([u8; 4], Vec<u8>)>) {
         use crate::smart_map::{FilterStack, PlacedSpec, filter_fx, plld_bytes, sold_bytes, uuid_from};
         let src = match self.smart_source(sm, template.as_ref()) {
             Ok(s) => s,
@@ -717,9 +717,9 @@ impl Ex {
                 (None, Some((img, img_bounds))) => {
                     let unfiltered = match &sm.perspective {
                         Some(p) => {
-                            localpaint_algo::warp::place_source_projective(&img, img_bounds, &localpaint_algo::transform::Homography(*p), sm.warp.as_ref())
+                            localraster_algo::warp::place_source_projective(&img, img_bounds, &localraster_algo::transform::Homography(*p), sm.warp.as_ref())
                         }
-                        None => localpaint_algo::warp::place_source(&img, img_bounds, &sm.transform, sm.warp.as_ref()),
+                        None => localraster_algo::warp::place_source(&img, img_bounds, &sm.transform, sm.warp.as_ref()),
                     };
                     match unfiltered {
                         Ok(unfiltered) => {
@@ -753,7 +753,7 @@ impl Ex {
     /// moved, transformed, warped, filtered or given other contents. `false` for a record that
     /// can't be read (or whose warp can't), or whose file isn't embedded: its contents were never
     /// available, so it is kept.
-    fn plld_edited(&self, sm: &localpaint_doc::SmartObject) -> bool {
+    fn plld_edited(&self, sm: &localraster_doc::SmartObject) -> bool {
         let Some(data) = sm.psd_raw.as_deref() else { return false };
         let Some((id, corners)) = blocks::parse_plld(data) else { return false };
         // Without its embedded file the contents were never available: keep the record as it
@@ -766,7 +766,7 @@ impl Ex {
             blocks::PlldWarp::None => None,
             blocks::PlldWarp::Warp(w) => Some(w),
         };
-        if sm.source != (localpaint_doc::SmartSource::Linked { path: id.clone() })
+        if sm.source != (localraster_doc::SmartSource::Linked { path: id.clone() })
             || sm.warp != warp
             || !sm.smart_filters.is_empty()
             || sm.filter_mask.is_some()
@@ -775,13 +775,14 @@ impl Ex {
         }
         // Placed as the importer places it (the same source size, from the same file, and the
         // same frame: a custom warp's control-point box, #3677).
-        let size = crate::linked::source_size_in_blocks(self.smart.globals.iter().map(|(_, k, d)| (k, d.as_slice())), &id, &localpaint_raster::Interrupt::NONE);
+        let size =
+            crate::linked::source_size_in_blocks(self.smart.globals.iter().map(|(_, k, d)| (k, d.as_slice())), &id, &localraster_raster::Interrupt::NONE);
         blocks::plld_transform(&corners, size, warp.as_ref()) != (sm.transform, sm.perspective)
     }
 
     /// Whether an imported placed layer still says what the smart object is: transform, warp,
     /// filter stack and filter mask as stored.
-    fn placed_unchanged(&self, t: &crate::smart_map::Placed, data: &[u8], sm: &localpaint_doc::SmartObject, stack: &crate::smart_map::FilterStack) -> bool {
+    fn placed_unchanged(&self, t: &crate::smart_map::Placed, data: &[u8], sm: &localraster_doc::SmartObject, stack: &crate::smart_map::FilterStack) -> bool {
         if t.transform != sm.transform || blocks::parse_placed_warp(b"SoLd", data) != sm.warp || t.stack.clone().unwrap_or_default() != *stack {
             return false;
         }
@@ -800,8 +801,8 @@ impl Ex {
     /// The `lnk2` file a smart object's source is written as: a preserved embedded file, or a new
     /// one (a `.pcraft` source becomes a PSB of the nested document; image files are embedded as
     /// they are; a linked file is read and embedded).
-    fn smart_source(&mut self, sm: &localpaint_doc::SmartObject, template: Option<&crate::smart_map::Placed>) -> Result<Source, String> {
-        use localpaint_doc::SmartSource;
+    fn smart_source(&mut self, sm: &localraster_doc::SmartObject, template: Option<&crate::smart_map::Placed>) -> Result<Source, String> {
+        use localraster_doc::SmartSource;
         let preview = self.smart.vector_preview(sm).and_then(|preview| Some((preview.document.clone(), preview.frame?)));
         let mut source = match &sm.source {
             // A file of the imported document, or one its placed-layer data names (a missing
@@ -809,9 +810,9 @@ impl Ex {
             SmartSource::Linked { path } if self.smart.known.contains(path) || template.is_some_and(|t| t.idnt == *path) => {
                 let stored = template.filter(|t| t.idnt == *path).and_then(|t| crate::smart_map::stored_size(&t.descriptor));
                 let geometry = stored.map(|size| (size, f64::from(self.dpi))).or_else(|| {
-                    let meta = localpaint_doc::Metadata { psd_global_blocks: self.smart.globals.clone(), ..Default::default() };
+                    let meta = localraster_doc::Metadata { psd_global_blocks: self.smart.globals.clone(), ..Default::default() };
                     let f = crate::linked::find_linked_file(&meta, path)?;
-                    crate::linked::source_geometry(&f.file_name, &f.bytes, &localpaint_raster::Interrupt::NONE).ok()
+                    crate::linked::source_geometry(&f.file_name, &f.bytes, &localraster_raster::Interrupt::NONE).ok()
                 });
                 let (size, dpi) = geometry.unwrap_or((size_from_layer(sm), f64::from(self.dpi)));
                 let original = self.smart.linked_contents.entry(path.clone()).or_insert(sm.contents_id);
@@ -848,7 +849,7 @@ impl Ex {
                     let file = crate::doc_path::resolve(path, self.document.as_deref()).map_err(|e| format!("the linked file {path} is not opened: {e}"))?;
                     // Regular files only, in bounded reads: a link to a FIFO would block the save
                     // and one to a device such as `/dev/zero` would never end (#8601).
-                    let bytes = localpaint_format::read_file(&file).map_err(|e| format!("the linked file {path} can't be read: {e}"))?;
+                    let bytes = localraster_format::read_file(&file).map_err(|e| format!("the linked file {path} can't be read: {e}"))?;
                     let name = path.rsplit(['/', '\\']).next().unwrap_or(path).to_string();
                     let source = self.embed(sm.contents_id, &name, &bytes, true)?;
                     self.warnings.push(format!("the linked smart object {name} was embedded (PSD export keeps no external links)"));
@@ -870,7 +871,7 @@ impl Ex {
 
     /// The composite of the source `uuid` (an embedded file of this export or of the imported
     /// document) in the document's pixel format, its top-left at the origin; decoded once.
-    fn source_composite(&mut self, uuid: &str) -> Option<(std::sync::Arc<Surface>, localpaint_geom::Rect)> {
+    fn source_composite(&mut self, uuid: &str) -> Option<(std::sync::Arc<Surface>, localraster_geom::Rect)> {
         if let Some(c) = self.smart.composites.get(uuid) {
             return c.clone();
         }
@@ -878,7 +879,7 @@ impl Ex {
             Some(d) => Some(d.clone()),
             None => {
                 let file = self.smart.add.iter().find(|f| f.uuid == uuid).cloned().or_else(|| {
-                    let meta = localpaint_doc::Metadata {
+                    let meta = localraster_doc::Metadata {
                         psd_global_blocks: self.smart.globals.iter().chain(self.smart.linked_copies.values()).cloned().collect(),
                         ..Default::default()
                     };
@@ -890,11 +891,11 @@ impl Ex {
         let c = doc.map(|d| {
             let mut s = Surface::new(self.fmt);
             let fmt = self.fmt;
-            let _ = localpaint_compose::render_bands(&d, d.bounds(), 0, |band| -> Result<(), ()> {
+            let _ = localraster_compose::render_bands(&d, d.bounds(), 0, |band| -> Result<(), ()> {
                 let mut vals = Vec::with_capacity(band.px.len() * fmt.channels());
                 let mut v = [0.0f32; 5];
                 for p in &band.px {
-                    let n = localpaint_raster::from_rgba_into(&fmt, *p, &mut v);
+                    let n = localraster_raster::from_rgba_into(&fmt, *p, &mut v);
                     vals.extend_from_slice(&v[..n]);
                 }
                 s.write_region(band.rect, &vals);
@@ -909,7 +910,7 @@ impl Ex {
 
     /// Adds `bytes` as an embedded file (converted to PSB when it is a `.pcraft` bundle), once
     /// per contents identity and bytes. Equal bytes in independent objects stay independent.
-    /// `linked`: the bytes were read from a path the document names, so only a file Local Paint
+    /// `linked`: the bytes were read from a path the document names, so only a file Local Raster
     /// can open is embedded (a link to a text or settings file is written as pixels instead).
     fn embed(&mut self, contents_id: SmartContentsId, file_name: &str, bytes: &[u8], linked: bool) -> Result<Source, String> {
         self.embed_hashed(contents_id, file_name, bytes, linked, embed_source_hash(bytes))
@@ -927,11 +928,11 @@ impl Ex {
     }
 
     fn convert_source(&mut self, contents_id: SmartContentsId, file_name: &str, bytes: &[u8], linked: bool) -> Result<Source, String> {
-        let (name, data, size, dpi, nested) = if localpaint_format::is_pcraft(bytes) {
+        let (name, data, size, dpi, nested) = if localraster_format::is_pcraft(bytes) {
             if self.smart.depth >= MAX_NESTING {
                 return Err(format!("smart objects nest more than {MAX_NESTING} deep"));
             }
-            let doc = localpaint_format::load_from_bytes(bytes).map_err(|e| format!("its contents can't be read: {e}"))?;
+            let doc = localraster_format::load_from_bytes(bytes).map_err(|e| format!("its contents can't be read: {e}"))?;
             let (file, warnings) = document_to_psd_nested(
                 &doc,
                 &PsdExportOptions { force_psb: true, document_path: self.document.clone(), read_linked_files: self.read_linked_files, ..Default::default() },
@@ -946,9 +947,9 @@ impl Ex {
         } else {
             // Embedded formats we can't decode (vector PDF/AI…) are kept; their size comes from the
             // layer. A linked file we can't decode is not embedded.
-            let (size, dpi) = match crate::linked::source_geometry(file_name, bytes, &localpaint_raster::Interrupt::NONE) {
+            let (size, dpi) = match crate::linked::source_geometry(file_name, bytes, &localraster_raster::Interrupt::NONE) {
                 Ok(geometry) => geometry,
-                Err(e) if linked => return Err(format!("the linked file {file_name} is not an image Local Paint can open: {e}")),
+                Err(e) if linked => return Err(format!("the linked file {file_name} is not an image Local Raster can open: {e}")),
                 Err(_) => ((0.0, 0.0), f64::from(self.dpi)),
             };
             (file_name.to_string(), bytes.to_vec(), size, dpi, None)
@@ -965,7 +966,7 @@ impl Ex {
 
     /// Pixels for a fill layer: Photoshop's cached rendering while valid,
     /// otherwise our own rendering of the fill over the canvas.
-    fn fill_pixels(&self, l: &Layer, f: &localpaint_doc::Fill) -> Surface {
+    fn fill_pixels(&self, l: &Layer, f: &localraster_doc::Fill) -> Surface {
         if let Some(c) = &l.fill_cache
             && c.fill == *f
         {
@@ -973,16 +974,16 @@ impl Ex {
         }
         if self.cmyk
             && let Some(s) =
-                localpaint_compose::gradient_fill::render_cmyk_fill(f, self.canvas, localpaint_compose::fill_frame(l, self.canvas), self.fmt.sample)
+                localraster_compose::gradient_fill::render_cmyk_fill(f, self.canvas, localraster_compose::fill_frame(l, self.canvas), self.fmt.sample)
         {
             return s;
         }
         // In the frame the layer's masks give it, like the compositor (masks are stored apart).
         // Readers composite these pixels (ours keeps them as the fill's rendering), so a pattern
         // fill must be rendered from the document's patterns, not left transparent (#1907).
-        let buf = localpaint_compose::render_fill_content(l, f, self.canvas, &self.patterns);
+        let buf = localraster_compose::render_fill_content(l, f, self.canvas, &self.patterns);
         let mut s = Surface::new(self.fmt);
-        let vals: Vec<f32> = buf.px.iter().flat_map(|p| localpaint_raster::from_rgba(&self.fmt, *p)).collect();
+        let vals: Vec<f32> = buf.px.iter().flat_map(|p| localraster_raster::from_rgba(&self.fmt, *p)).collect();
         s.write_region(self.canvas, &vals);
         s.prune();
         s
@@ -1037,7 +1038,7 @@ impl Ex {
                 LayerContent::Smart(sm) => {
                     // Photoshop's record holds the filtered pixels without the filter mask.
                     let unmixed = match (self.smart.unfiltered.get(&l.id), sm.cache.as_ref(), sm.filter_mask.as_ref()) {
-                        (Some(u), Some(c), Some(m)) if masked(sm) => Some(localpaint_compose::filter_mask::unmix(u, c, m)),
+                        (Some(u), Some(c), Some(m)) if masked(sm) => Some(localraster_compose::filter_mask::unmix(u, c, m)),
                         _ => None,
                     };
                     let r = self.record(l, extra, unmixed.as_ref().or(sm.cache.as_ref()));

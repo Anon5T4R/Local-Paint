@@ -2,19 +2,19 @@ use egui_kittest::kittest::Queryable;
 
 use super::*;
 
-fn app() -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+fn app() -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 32, "height": 32})).unwrap();
     app.run("layer.new.layer", json!({})).unwrap();
     app
 }
 
-fn effect(app: &LocalPaintApp) -> &Effect {
+fn effect(app: &LocalRasterApp) -> &Effect {
     let state = app.session.active().unwrap();
     &state.doc.layer(state.active_layer.unwrap()).unwrap().effects.items[0]
 }
 
-fn fields(app: &LocalPaintApp) -> Map<String, Value> {
+fn fields(app: &LocalRasterApp) -> Map<String, Value> {
     let state = app.session.active().unwrap();
     initial_fields(state.doc.layer(state.active_layer.unwrap()).unwrap(), Some("gradientOverlay"), 120.0)
 }
@@ -26,7 +26,7 @@ fn method_picker_is_pending_until_confirm_and_survives_reopening() {
     let original = effect(&app).clone();
     let pending_fields = fields(&app);
     let mut harness = egui_kittest::Harness::builder().with_size(vec2(1000.0, 1000.0)).build_ui_state(
-        |ui, state: &mut (LocalPaintApp, Map<String, Value>)| {
+        |ui, state: &mut (LocalRasterApp, Map<String, Value>)| {
             // The harness draws once before setup_context installs the app fonts.
             if ui.ctx().fonts(|fonts| fonts.families().contains(&egui::FontFamily::Name("semibold".into()))) {
                 body(&mut state.0, ui, &mut state.1);
@@ -34,7 +34,7 @@ fn method_picker_is_pending_until_confirm_and_survives_reopening() {
         },
         (app, pending_fields),
     );
-    LocalPaintApp::setup_context(&harness.ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&harness.ctx, crate::theme::ThemeKind::ALL[0]);
     harness.run_steps(3);
     harness.get_by_role_and_label(egui::accesskit::Role::ComboBox, "Method").click();
     harness.run_steps(2);
@@ -71,8 +71,8 @@ fn all_four_methods_roundtrip_through_the_dialog() {
 
 #[test]
 fn baked_overlay_is_unchanged_until_method_selection_then_edits_the_whole_curve() {
-    use localpaint_color::Color;
-    use localpaint_io::{GradientMethod, bake_gradient};
+    use localraster_color::Color;
+    use localraster_io::{GradientMethod, bake_gradient};
 
     let mut app = app();
     app.run("layer.layerStyle.gradientOverlay", json!({})).unwrap();

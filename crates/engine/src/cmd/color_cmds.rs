@@ -8,16 +8,16 @@
 //!
 //! Compositing stays in document space for RGB and gray documents. CMYK and Lab documents are
 //! composited in sRGB after a per-layer conversion with the built-in profiles (see
-//! `localpaint_color::convert`), so their [`composite_profile`] is sRGB; documents tagged with
+//! `localraster_color::convert`), so their [`composite_profile`] is sRGB; documents tagged with
 //! a different CMYK profile therefore display approximately until compositing is mode-native.
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, Weak};
 
-use localpaint_cms::{Builtin, ColorSpace, GamutCheck, Intent, Lut3d, Profile, SampleKind, Transform};
-use localpaint_color::{Color, ColorMode, PixelFormat, SampleType};
-use localpaint_doc::{DocId, Document, Duotone, Effect, Fill, FxPaint, Layer, LayerContent};
-use localpaint_raster::Surface;
+use localraster_cms::{Builtin, ColorSpace, GamutCheck, Intent, Lut3d, Profile, SampleKind, Transform};
+use localraster_color::{Color, ColorMode, PixelFormat, SampleType};
+use localraster_doc::{DocId, Document, Duotone, Effect, Fill, FxPaint, Layer, LayerContent};
+use localraster_raster::Surface;
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;
@@ -121,7 +121,7 @@ pub struct ColorSettings {
     pub bpc: bool,
     pub dither: bool,
     /// Advanced › "Blend Text Colors Using Gamma" (1 = off; Photoshop's default 1.45): type
-    /// layers mix anti-aliased edges in this gamma (`localpaint_compose::psblend::set_text_gamma`).
+    /// layers mix anti-aliased edges in this gamma (`localraster_compose::psblend::set_text_gamma`).
     pub blend_text_gamma: f32,
     /// Monitor profile the canvas is displayed in: `auto` (the main display's profile when the
     /// platform supplies it, else sRGB), a built-in RGB profile id or an `.icc` path.
@@ -144,7 +144,7 @@ impl Default for ColorSettings {
             intent: Intent::RelativeColorimetric.id().into(),
             bpc: true,
             dither: true,
-            blend_text_gamma: localpaint_compose::psblend::TEXT_GAMMA,
+            blend_text_gamma: localraster_compose::psblend::TEXT_GAMMA,
             monitor_profile: "auto".into(),
         }
     }
@@ -259,7 +259,7 @@ impl ColorState {
         let exif_srgb = space == ColorSpace::Rgb
             && !ignore_exif
             && doc.icc_profile.is_none()
-            && doc.metadata.exif.as_deref().and_then(|e| localpaint_codecs::exif_color_space(e)) == Some(localpaint_codecs::EXIF_COLOR_SPACE_SRGB);
+            && doc.metadata.exif.as_deref().and_then(|e| localraster_codecs::exif_color_space(e)) == Some(localraster_codecs::EXIF_COLOR_SPACE_SRGB);
         if exif_srgb {
             doc.icc_profile = Some(Builtin::Srgb.profile().to_bytes());
         }
@@ -280,8 +280,8 @@ impl ColorState {
                 // 32-bit linear images (EXR/HDR are tagged linear sRGB or linear gray on import)
                 // stay linear, as Photoshop keeps 32-bit documents in a linear version of the
                 // working space.
-                let linear_hdr =
-                    doc.depth == SampleType::F32 && (emb.same_colors(Builtin::LinearSrgb.profile()) || emb.same_colors(localpaint_cms::builtin::linear_gray()));
+                let linear_hdr = doc.depth == SampleType::F32
+                    && (emb.same_colors(Builtin::LinearSrgb.profile()) || emb.same_colors(localraster_cms::builtin::linear_gray()));
                 if !mismatch || linear_hdr {
                     return merge(base, json!({"action": "kept"}));
                 }
@@ -329,8 +329,8 @@ impl ColorState {
         let embedded = doc.icc_profile.as_ref().and_then(|b| profile_from_bytes(b).ok()).filter(|p| p.color_space == space);
         match embedded {
             Some(emb) => {
-                let linear_hdr =
-                    doc.depth == SampleType::F32 && (emb.same_colors(Builtin::LinearSrgb.profile()) || emb.same_colors(localpaint_cms::builtin::linear_gray()));
+                let linear_hdr = doc.depth == SampleType::F32
+                    && (emb.same_colors(Builtin::LinearSrgb.profile()) || emb.same_colors(localraster_cms::builtin::linear_gray()));
                 if !self.settings.ask_on_mismatch || emb.same_colors(&working) || linear_hdr {
                     return None;
                 }
@@ -371,7 +371,7 @@ impl ColorState {
 
     /// Proofing state of a document (defaults: coated CMYK, relative colorimetric + BPC, off).
     pub fn proof(&self, doc: DocId) -> ProofView {
-        self.proofs.get(&doc).cloned().unwrap_or_else(|| ProofView { gamut_threshold: localpaint_cms::gamut::DEFAULT_THRESHOLD, ..Default::default() })
+        self.proofs.get(&doc).cloned().unwrap_or_else(|| ProofView { gamut_threshold: localraster_cms::gamut::DEFAULT_THRESHOLD, ..Default::default() })
     }
 
     /// Borrow the document's proofing state without cloning its profile or allocating defaults.
@@ -381,7 +381,7 @@ impl ColorState {
     }
 
     pub(crate) fn proof_mut(&mut self, doc: DocId) -> &mut ProofView {
-        self.proofs.entry(doc).or_insert_with(|| ProofView { gamut_threshold: localpaint_cms::gamut::DEFAULT_THRESHOLD, ..Default::default() })
+        self.proofs.entry(doc).or_insert_with(|| ProofView { gamut_threshold: localraster_cms::gamut::DEFAULT_THRESHOLD, ..Default::default() })
     }
 
     /// Transform from the canvas texture values (the composite, `CanvasDisplay::source`) to
@@ -463,7 +463,7 @@ impl ColorState {
     /// proof simulations beyond profile conversion, and transforms containing a CLUT retain
     /// the existing 3D LUT path. The shader applies the 32-bit preview before this transform,
     /// just as it does before the display LUT.
-    pub fn gpu_canvas_matrix_shaper_for(&self, doc: &Document, display: Option<u32>) -> Result<Option<localpaint_cms::GpuMatrixShaper>> {
+    pub fn gpu_canvas_matrix_shaper_for(&self, doc: &Document, display: Option<u32>) -> Result<Option<localraster_cms::GpuMatrixShaper>> {
         let proof = self.proof(doc.id);
         if proof.gamut_warning || (proof.enabled && proof.setup.kind != crate::proof_sim::ProofKind::Profile) {
             return Ok(None);
@@ -500,7 +500,7 @@ fn merge(mut a: Value, b: Value) -> Value {
     a
 }
 
-fn cms_err(e: localpaint_cms::CmsError) -> EngineError {
+fn cms_err(e: localraster_cms::CmsError) -> EngineError {
     EngineError::Other(format!("colour management: {e}"))
 }
 
@@ -528,11 +528,11 @@ fn space_mode(cs: ColorSpace) -> Option<ColorMode> {
 
 /// Working (default) profile of a mode.
 pub fn working_profile(mode: ColorMode) -> Arc<Profile> {
-    Arc::new(localpaint_cms::builtin::default_for(mode_space(mode)).unwrap_or(Builtin::Srgb.profile()).clone())
+    Arc::new(localraster_cms::builtin::default_for(mode_space(mode)).unwrap_or(Builtin::Srgb.profile()).clone())
 }
 
 /// Parses ICC bytes, caching by allocation so repeated lookups for the same document are free.
-pub fn profile_from_bytes(bytes: &Arc<Vec<u8>>) -> std::result::Result<Arc<Profile>, localpaint_cms::CmsError> {
+pub fn profile_from_bytes(bytes: &Arc<Vec<u8>>) -> std::result::Result<Arc<Profile>, localraster_cms::CmsError> {
     type Cache = Mutex<Vec<(Weak<Vec<u8>>, Arc<Profile>)>>;
     static CACHE: std::sync::OnceLock<Cache> = std::sync::OnceLock::new();
     let cache = CACHE.get_or_init(Default::default);
@@ -643,9 +643,9 @@ pub fn convert_surface(s: &Surface, from: ColorMode, to: PixelFormat, t: &Transf
     let mut out = Surface::with_default(to, &dpo);
     // Convert every distinct tile once, in one parallel pass into a staging buffer, then store
     // them. Coordinates that share a tile (a filled background) share the converted one (#4531).
-    let mut distinct: Vec<std::sync::Arc<localpaint_raster::Tile>> = Vec::new();
-    let mut slot: std::collections::HashMap<*const localpaint_raster::Tile, usize> = std::collections::HashMap::new();
-    let tiles: Vec<(localpaint_geom::TileCoord, usize)> = s
+    let mut distinct: Vec<std::sync::Arc<localraster_raster::Tile>> = Vec::new();
+    let mut slot: std::collections::HashMap<*const localraster_raster::Tile, usize> = std::collections::HashMap::new();
+    let tiles: Vec<(localraster_geom::TileCoord, usize)> = s
         .tiles()
         .map(|(c, tile)| {
             let i = *slot.entry(std::sync::Arc::as_ptr(tile)).or_insert_with(|| {
@@ -655,7 +655,7 @@ pub fn convert_surface(s: &Surface, from: ColorMode, to: PixelFormat, t: &Transf
             (*c, i)
         })
         .collect();
-    let tile_px = (localpaint_geom::TILE_SIZE * localpaint_geom::TILE_SIZE) as usize;
+    let tile_px = (localraster_geom::TILE_SIZE * localraster_geom::TILE_SIZE) as usize;
     let dst_len = tile_px * to.bytes_per_pixel();
     let mut staging = vec![0u8; dst_len * distinct.len()];
     let jobs: Vec<(&[u8], &mut [u8])> = distinct.iter().map(|t| t.bytes()).zip(staging.chunks_mut(dst_len.max(1))).collect();
@@ -665,7 +665,7 @@ pub fn convert_surface(s: &Surface, from: ColorMode, to: PixelFormat, t: &Transf
         SampleType::F32 => SampleKind::F32,
     };
     t.convert_bytes_many(kind, jobs, ss, ds, true);
-    let mut converted: Vec<Option<std::sync::Arc<localpaint_raster::Tile>>> = vec![None; distinct.len()];
+    let mut converted: Vec<Option<std::sync::Arc<localraster_raster::Tile>>> = vec![None; distinct.len()];
     for (c, i) in tiles {
         if let Some(Some(tile)) = converted.get(i) {
             out.put_tiles([(c, tile.clone())]);
@@ -845,11 +845,11 @@ fn ink_surface(s: &Surface, d: &Duotone) -> Surface {
             let (mut px, mut o) = ([0.0f32; 2], [0.0f32; 4]);
             for i in 0..n {
                 for (k, v) in px.iter_mut().enumerate().take(ss) {
-                    *v = localpaint_color::read_sample(src, sf.sample, i * ss + k);
+                    *v = localraster_color::read_sample(src, sf.sample, i * ss + k);
                 }
                 ink(&px[..ss], &mut o[..ds]);
                 for (k, v) in o.iter().enumerate().take(ds) {
-                    localpaint_color::write_sample(&mut dst, to.sample, i * ds + k, *v);
+                    localraster_color::write_sample(&mut dst, to.sample, i * ds + k, *v);
                 }
             }
             dst
@@ -899,7 +899,7 @@ pub fn convert_mode(s: &mut Session, mode: ColorMode, p: &Value) -> Result<Value
 /// canvas pixel (255 = out of gamut, transparent pixels never are), plus the count.
 pub fn gamut_mask(doc: &Document, setup: &ProofSetup, threshold: f32) -> Result<(Vec<u8>, usize)> {
     let check = GamutCheck::new(&composite_profile(doc), &setup.profile, threshold).map_err(cms_err)?;
-    let buf = localpaint_compose::flatten(doc);
+    let buf = localraster_compose::flatten(doc);
     let mut count = 0;
     let mask = buf
         .px
@@ -1069,7 +1069,7 @@ fn color_settings(s: &mut Session, p: &Value) -> Result<Value> {
     }
     match p.get("blendTextGamma") {
         Some(Value::Bool(false)) => next.blend_text_gamma = 1.0,
-        Some(Value::Bool(true)) => next.blend_text_gamma = localpaint_compose::psblend::TEXT_GAMMA,
+        Some(Value::Bool(true)) => next.blend_text_gamma = localraster_compose::psblend::TEXT_GAMMA,
         Some(v) => {
             let g = v
                 .as_f64()
@@ -1081,7 +1081,7 @@ fn color_settings(s: &mut Session, p: &Value) -> Result<Value> {
     }
     validate_settings(&next).map_err(|msg| EngineError::BadParams { cmd: cmd.into(), msg })?;
     if next != s.color.settings {
-        localpaint_compose::psblend::set_text_gamma(next.blend_text_gamma);
+        localraster_compose::psblend::set_text_gamma(next.blend_text_gamma);
         s.color.settings = next;
         // Persisted with the preferences.
         s.prefs.edit(|_| ());
@@ -1219,7 +1219,7 @@ pub fn specs() -> Vec<CommandSpec> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_geom::Rect;
+    use localraster_geom::Rect;
 
     /// Image › Mode to CMYK keeps a filled background's shared tile shared (#4531): one
     /// converted tile for the whole grid, the same colour everywhere.
@@ -1258,7 +1258,7 @@ mod tests {
             surf.fill_rect(Rect::new(0, 0, 16, 16), &[1.0, 0.0, 0.0, 1.0]);
             surf.fill_rect(Rect::new(16, 0, 32, 16), &[0.0, 0.0, 1.0, 1.0]);
             surf.fill_rect(Rect::new(32, 0, 48, 16), &[0.5, 0.5, 0.5, 0.5]);
-            l.mask = Some(localpaint_doc::LayerMask::reveal_all());
+            l.mask = Some(localraster_doc::LayerMask::reveal_all());
             Ok(())
         })
         .unwrap();
@@ -1369,11 +1369,11 @@ mod tests {
         let mut proof = Builtin::LinearSrgb.profile().clone();
         proof.description = "Synthetic identity-matrix proof".into();
         proof.matrix = Some([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]);
-        proof.trc = Some([localpaint_cms::Curve::Identity, localpaint_cms::Curve::Identity, localpaint_cms::Curve::Identity]);
+        proof.trc = Some([localraster_cms::Curve::Identity, localraster_cms::Curve::Identity, localraster_cms::Curve::Identity]);
         let proof = proof.with_encoded_bytes();
         let mut monitor = proof.clone();
         monitor.description = "Synthetic identity-matrix gamma monitor".into();
-        monitor.trc = Some(std::array::from_fn(|_| localpaint_cms::Curve::Gamma(2.2)));
+        monitor.trc = Some(std::array::from_fn(|_| localraster_cms::Curve::Gamma(2.2)));
         let monitor = monitor.with_encoded_bytes();
         s.color.set_displays(Ok(vec![crate::display_color::Display {
             id: 1,
@@ -1440,13 +1440,13 @@ mod tests {
         t.eval(&[0.5, 0.5, 0.5], &mut o);
         // The default working gray (Dot Gain 20 %-compatible, gamma 1.732) shows gray 0.5 as the
         // sRGB value of linear 0.5^1.732, as Photoshop does: lighter than sGray's 0.5.
-        let want = localpaint_color::convert::linear_to_srgb(0.5f32.powf(1.732));
+        let want = localraster_color::convert::linear_to_srgb(0.5f32.powf(1.732));
         assert!(o.iter().all(|v| (v - want).abs() < 2e-3), "Dot Gain 20 % gray displays as {want}: {o:?}");
         let s = session("cmyk", 8);
         assert_eq!(composite_profile(doc(&s)).description, "sRGB IEC61966-2.1");
     }
 
-    /// `cargo test -p localpaint-engine --release -- --ignored bench_cmyk --nocapture`
+    /// `cargo test -p localraster-engine --release -- --ignored bench_cmyk --nocapture`
     #[test]
     #[ignore]
     fn bench_cmyk_conversion_6016() {
@@ -1482,7 +1482,7 @@ mod settings_tests {
     use super::*;
 
     fn tagged(spec: &str) -> Document {
-        let mut d = Document::with_background("t", localpaint_doc::Size::new(8, 8), ColorMode::Rgb, SampleType::U8, Color::rgba(0.2, 0.6, 0.9, 1.0));
+        let mut d = Document::with_background("t", localraster_doc::Size::new(8, 8), ColorMode::Rgb, SampleType::U8, Color::rgba(0.2, 0.6, 0.9, 1.0));
         d.icc_profile = Some(Builtin::from_id(spec).unwrap().profile().to_bytes());
         d
     }
@@ -1555,7 +1555,7 @@ mod settings_tests {
         s.execute("edit.colorSettings", json!({"policyRgb": "convert"})).unwrap();
         let mut v2 = Builtin::Srgb.profile().clone();
         let trc = v2.trc.clone().unwrap();
-        let table = |c: &localpaint_cms::Curve| localpaint_cms::Curve::Table((0..1024).map(|i| c.eval64(f64::from(i) / 1023.0) as f32).collect());
+        let table = |c: &localraster_cms::Curve| localraster_cms::Curve::Table((0..1024).map(|i| c.eval64(f64::from(i) / 1023.0) as f32).collect());
         v2.trc = Some([table(&trc[0]), table(&trc[1]), table(&trc[2])]);
         v2.version = (2, 0x10);
         let bytes = v2.with_encoded_bytes().to_bytes();
@@ -1572,7 +1572,7 @@ mod settings_tests {
         lin.white_point = [0.95047, 1.0, 1.08905];
         let bytes = lin.with_encoded_bytes().to_bytes();
         assert_ne!(bytes, Builtin::LinearSrgb.profile().to_bytes());
-        let mut d = Document::with_background("t", localpaint_doc::Size::new(8, 8), ColorMode::Rgb, SampleType::F32, Color::rgba(0.2, 0.6, 0.9, 1.0));
+        let mut d = Document::with_background("t", localraster_doc::Size::new(8, 8), ColorMode::Rgb, SampleType::F32, Color::rgba(0.2, 0.6, 0.9, 1.0));
         d.icc_profile = Some(bytes.clone());
         let (_, r) = s.open_document(d, None);
         assert_eq!((r["action"].as_str(), r.get("ask")), (Some("kept"), None));
@@ -1604,17 +1604,17 @@ mod settings_tests {
     fn input_only_p3() -> Profile {
         let p3 = Builtin::DisplayP3.profile();
         let t = Transform::new(p3, Builtin::LabD50.profile(), Intent::RelativeColorimetric, false).unwrap();
-        let clut = localpaint_cms::Clut::sample(vec![9; 3], 3, |inp, out| t.eval(inp, out));
-        let ident = || localpaint_cms::pipeline::Stage::Curves(vec![localpaint_cms::Curve::Identity; 3]);
-        let lut = localpaint_cms::profile::Lut {
-            kind: localpaint_cms::profile::LutKind::Ab,
+        let clut = localraster_cms::Clut::sample(vec![9; 3], 3, |inp, out| t.eval(inp, out));
+        let ident = || localraster_cms::pipeline::Stage::Curves(vec![localraster_cms::Curve::Identity; 3]);
+        let lut = localraster_cms::profile::Lut {
+            kind: localraster_cms::profile::LutKind::Ab,
             inputs: 3,
             outputs: 3,
-            stages: vec![ident(), localpaint_cms::pipeline::Stage::Clut(clut), ident()],
+            stages: vec![ident(), localraster_cms::pipeline::Stage::Clut(clut), ident()],
         };
         let mut p = p3.clone();
-        p.class = localpaint_cms::ProfileClass::Input;
-        p.pcs = localpaint_cms::Pcs::Lab;
+        p.class = localraster_cms::ProfileClass::Input;
+        p.pcs = localraster_cms::Pcs::Lab;
         p.description = "Input-only P3".into();
         (p.matrix, p.trc) = (None, None);
         p.a2b = [Some(lut), None, None];
@@ -1676,10 +1676,10 @@ mod settings_tests {
         let mut s = Session::new();
         s.execute("edit.colorSettings", json!({"workingRgb": "display-p3"})).unwrap();
         // Embed Color Profile off: an untagged document is otherwise tagged sRGB on export (#9325).
-        let mut opts = localpaint_io::ExportOptions::default();
+        let mut opts = localraster_io::ExportOptions::default();
         opts.encode.embed_icc = false;
-        let r = localpaint_io::export(&untagged_camera_file(Some(1)), "x.jpg", &opts).unwrap();
-        let back = localpaint_io::import("x.jpg", &r.bytes).unwrap().document;
+        let r = localraster_io::export(&untagged_camera_file(Some(1)), "x.jpg", &opts).unwrap();
+        let back = localraster_io::import("x.jpg", &r.bytes).unwrap().document;
         assert!(back.icc_profile.is_none(), "no ICC profile in the file");
         let (_, r) = s.open_document(back, None);
         assert_eq!((r["action"].as_str(), r["exif"].as_bool()), (Some("kept"), Some(true)));

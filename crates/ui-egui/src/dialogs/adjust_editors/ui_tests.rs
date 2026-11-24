@@ -6,10 +6,10 @@
 use egui::{Pos2, Rect, vec2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
-use localpaint_doc::{Adjustment, LayerContent, LayerId};
+use localraster_doc::{Adjustment, LayerContent, LayerId};
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
 const ALL_KINDS: [&str; 16] = [
     "brightnessContrast",
@@ -30,23 +30,23 @@ const ALL_KINDS: [&str; 16] = [
     "colorLookup",
 ];
 
-fn app_harness(kind: &str, mode: &str, depth: u32) -> Harness<'static, LocalPaintApp> {
+fn app_harness(kind: &str, mode: &str, depth: u32) -> Harness<'static, LocalRasterApp> {
     app_harness_stepped(kind, mode, depth, 0.25)
 }
 
 /// [`app_harness`] advancing `step_dt` seconds per frame (double-clicks need real frame times).
-fn app_harness_stepped(kind: &str, mode: &str, depth: u32, step_dt: f32) -> Harness<'static, LocalPaintApp> {
+fn app_harness_stepped(kind: &str, mode: &str, depth: u32, step_dt: f32) -> Harness<'static, LocalRasterApp> {
     let (kind, mode) = (kind.to_string(), mode.to_string());
     let mut h = Harness::builder().with_size(vec2(1440.0, 900.0)).with_max_steps(64).with_step_dt(step_dt).build_eframe(move |cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        let mut s = localpaint_engine::Session::new();
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        let mut s = localraster_engine::Session::new();
         s.execute("file.new", json!({"width": 96, "height": 64, "mode": mode, "depth": depth})).unwrap();
         // Two tones so histograms (and Levels' Auto) have something to work with.
         s.execute("select.rect", json!({"x": 0, "y": 0, "width": 48, "height": 64})).unwrap();
         s.execute("edit.fill", json!({"color": "#6a3020"})).unwrap();
         s.execute("select.deselect", json!({})).unwrap();
         s.execute(&format!("layer.newAdjustmentLayer.{kind}"), json!({})).unwrap();
-        let mut app = LocalPaintApp::new(s, crate::Services::default());
+        let mut app = LocalRasterApp::new(s, crate::Services::default());
         // The default Properties group gives way to Layers (#147) and scrolls taller editors;
         // these tests drive every control without scrolling, so they size it like a user would.
         app.ui.dock.heights.insert(crate::dock::Group::Properties, 560.0);
@@ -56,7 +56,7 @@ fn app_harness_stepped(kind: &str, mode: &str, depth: u32, step_dt: f32) -> Harn
     h
 }
 
-fn layer(h: &Harness<'_, LocalPaintApp>) -> (LayerId, Adjustment) {
+fn layer(h: &Harness<'_, LocalRasterApp>) -> (LayerId, Adjustment) {
     let st = h.state().session.active().unwrap();
     let id = st.active_layer.unwrap();
     match &st.doc.layer(id).unwrap().content {
@@ -65,7 +65,7 @@ fn layer(h: &Harness<'_, LocalPaintApp>) -> (LayerId, Adjustment) {
     }
 }
 
-fn drag(h: &mut Harness<'_, LocalPaintApp>, from: Pos2, to: Pos2) {
+fn drag(h: &mut Harness<'_, LocalRasterApp>, from: Pos2, to: Pos2) {
     h.hover_at(from);
     h.run_steps(1);
     h.drag_at(from);
@@ -78,7 +78,7 @@ fn drag(h: &mut Harness<'_, LocalPaintApp>, from: Pos2, to: Pos2) {
     h.run_steps(3);
 }
 
-fn click(h: &mut Harness<'_, LocalPaintApp>, at: Pos2) {
+fn click(h: &mut Harness<'_, LocalRasterApp>, at: Pos2) {
     h.hover_at(at);
     h.run_steps(1);
     h.drag_at(at);
@@ -87,7 +87,7 @@ fn click(h: &mut Harness<'_, LocalPaintApp>, at: Pos2) {
     h.run_steps(3);
 }
 
-fn label_rect(h: &Harness<'_, LocalPaintApp>, text: &str) -> Option<Rect> {
+fn label_rect(h: &Harness<'_, LocalRasterApp>, text: &str) -> Option<Rect> {
     // The last caption: the Properties header repeats the kind's name above its controls.
     // `get_by_label` hides a caption that names a control, so ask for the label node itself;
     // a checkbox paints its caption as the control, so fall back to the last matching widget.
@@ -97,7 +97,7 @@ fn label_rect(h: &Harness<'_, LocalPaintApp>, text: &str) -> Option<Rect> {
         .or_else(|| h.query_all_by_label(text).last().map(|n| n.rect()))
 }
 
-fn curves_graph(h: &Harness<'_, LocalPaintApp>, id: LayerId) -> Rect {
+fn curves_graph(h: &Harness<'_, LocalRasterApp>, id: LayerId) -> Rect {
     h.ctx.data(|d| d.get_temp::<Rect>(egui::Id::unique(("adjust-layer", id.0)).with("curves-graph"))).expect("curves graph drawn")
 }
 
@@ -313,7 +313,7 @@ fn curves_fast_release_commits_one_edit_and_undo_restores_the_curve() {
 }
 
 /// Real pointer input: `n` clicks at `at` with `mods` held (2 = a double-click).
-fn clicks_with(h: &mut Harness<'_, LocalPaintApp>, at: Pos2, n: usize, mods: egui::Modifiers) {
+fn clicks_with(h: &mut Harness<'_, LocalRasterApp>, at: Pos2, n: usize, mods: egui::Modifiers) {
     // Well past the double-click time since the last gesture.
     h.run_steps(40);
     h.event(egui::Event::ModifiersChanged(mods));
@@ -329,7 +329,7 @@ fn clicks_with(h: &mut Harness<'_, LocalPaintApp>, at: Pos2, n: usize, mods: egu
     h.run_steps(3);
 }
 
-fn wheel_at(h: &mut Harness<'_, LocalPaintApp>, at: Pos2, notches: f32, mods: egui::Modifiers) {
+fn wheel_at(h: &mut Harness<'_, LocalRasterApp>, at: Pos2, notches: f32, mods: egui::Modifiers) {
     h.event(egui::Event::ModifiersChanged(mods));
     h.hover_at(at);
     h.run_steps(1);
@@ -345,7 +345,7 @@ fn wheel_at(h: &mut Harness<'_, LocalPaintApp>, at: Pos2, notches: f32, mods: eg
     h.run_steps(3);
 }
 
-fn key_with(h: &mut Harness<'_, LocalPaintApp>, key: egui::Key, mods: egui::Modifiers) {
+fn key_with(h: &mut Harness<'_, LocalRasterApp>, key: egui::Key, mods: egui::Modifiers) {
     h.event(egui::Event::ModifiersChanged(mods));
     for pressed in [true, false] {
         h.event(egui::Event::Key { key, physical_key: None, pressed, repeat: false, modifiers: mods });
@@ -374,7 +374,7 @@ fn color_balance_sliders_reset_and_step_like_photoshop() {
     h.run_steps(4);
     let label = label_rect(&h, "Cyan  ·  Red").expect("Cyan · Red row");
     let on_track = Pos2::new(label.left() + 60.0, label.bottom() + 14.0);
-    let cb = |h: &Harness<'_, LocalPaintApp>| color_balance_of(&layer(h).1);
+    let cb = |h: &Harness<'_, LocalRasterApp>| color_balance_of(&layer(h).1);
 
     // A click jumps to the pointer, with or without modifiers.
     clicks_with(&mut h, on_track, 1, egui::Modifiers::NONE);
@@ -443,8 +443,8 @@ fn color_balance_properties_history_and_reset_like_photoshop() {
     h.run_steps(4);
     h.state_mut().session.select_layer(id).unwrap();
     h.run_steps(4);
-    let cb = |h: &Harness<'_, LocalPaintApp>| color_balance_of(&layer(h).1);
-    let steps = |h: &Harness<'_, LocalPaintApp>| h.state().session.active().unwrap().history.past_len();
+    let cb = |h: &Harness<'_, LocalRasterApp>| color_balance_of(&layer(h).1);
+    let steps = |h: &Harness<'_, LocalRasterApp>| h.state().session.active().unwrap().history.past_len();
     let label = label_rect(&h, "Cyan  ·  Red").expect("Cyan · Red row");
     let on_track = Pos2::new(label.left() + 60.0, label.bottom() + 14.0);
     let before = steps(&h);
@@ -482,7 +482,7 @@ fn map_stops(a: &Adjustment) -> Vec<(f32, [u8; 3])> {
     }
 }
 
-fn map_handle(h: &Harness<'_, LocalPaintApp>, at: f32) -> Pos2 {
+fn map_handle(h: &Harness<'_, LocalRasterApp>, at: f32) -> Pos2 {
     let strip = h.get_by_label("Gradient stops").rect();
     Pos2::new(strip.left() + 8.0 + at * (strip.width() - 16.0), strip.top() + 36.0)
 }
@@ -605,7 +605,7 @@ fn gradient_map_stop_controls_fit_a_narrow_properties_panel_in_every_theme() {
                 },
                 json!({"stops": [[0, "#000000"], [1, "#ffffff"]]}),
             );
-            LocalPaintApp::setup_context(&h.ctx, kind);
+            LocalRasterApp::setup_context(&h.ctx, kind);
             h.run_steps(4);
             for role in [egui::accesskit::Role::Button, egui::accesskit::Role::ComboBox, egui::accesskit::Role::SpinButton] {
                 for control in h.query_all_by_role(role) {
@@ -622,7 +622,7 @@ fn gradient_map_stop_controls_fit_a_narrow_properties_panel_in_every_theme() {
 /// one history step.
 #[test]
 fn gradient_map_picker_offers_the_gradient_library() {
-    use localpaint_engine::presets::{Group, gradients};
+    use localraster_engine::presets::{Group, gradients};
     let mut h = app_harness("gradientMap", "rgb", 8);
     // A short library so every row fits the popup: Basics, Blues and a user-saved group.
     let mut lib: Vec<_> = gradients::builtin().into_iter().take(2).collect();
@@ -630,7 +630,7 @@ fn gradient_map_picker_offers_the_gradient_library() {
     lib.push(Group::new("Mine", vec![gradients::GradientPreset::new("My Teal", &["#008080", "#ffee00"])]));
     h.state_mut().session.presets.gradients = lib;
     h.run_steps(2);
-    let steps = |h: &Harness<'_, LocalPaintApp>| h.state().session.active().unwrap().history.past_len();
+    let steps = |h: &Harness<'_, LocalRasterApp>| h.state().session.active().unwrap().history.past_len();
     for (name, want) in
         [("Blue 03", vec![(0.0, [0x00, 0xb4, 0xd8]), (1.0, [0x03, 0x04, 0x5e])]), ("My Teal", vec![(0.0, [0x00, 0x80, 0x80]), (1.0, [0xff, 0xee, 0x00])])]
     {
@@ -646,7 +646,7 @@ fn gradient_map_picker_offers_the_gradient_library() {
     }
 }
 
-fn import_gradients_from_picker(h: &mut Harness<'_, LocalPaintApp>) {
+fn import_gradients_from_picker(h: &mut Harness<'_, LocalRasterApp>) {
     let preset = label_rect(h, "Preset:").unwrap();
     click(h, Pos2::new(preset.right() + 60.0, preset.center().y));
     h.get_by_label("Gradient Preset Options").click();
@@ -657,13 +657,13 @@ fn import_gradients_from_picker(h: &mut Harness<'_, LocalPaintApp>) {
 
 #[test]
 fn gradient_map_picker_imports_grd_without_editing_the_map() {
-    use localpaint_psd::grd::{GrdColor, GrdGradient, GrdStop};
+    use localraster_psd::grd::{GrdColor, GrdGradient, GrdStop};
     let mut h = app_harness("gradientMap", "rgb", 16);
     h.state_mut().session.presets.gradients.truncate(1);
     let before = layer(&h);
     let history = h.state().session.active().unwrap().history.past_len();
     let tool = h.state().session.presets.gradient.clone();
-    let bytes = localpaint_psd::grd::write(&[GrdGradient {
+    let bytes = localraster_psd::grd::write(&[GrdGradient {
         name: "Imported Teal".into(),
         stops: vec![
             GrdStop { location: 0.0, midpoint: 0.5, color: GrdColor::Rgb([0.0, 0.5, 0.5]) },
@@ -701,10 +701,10 @@ fn gradient_map_picker_import_cancel_and_errors_preserve_state() {
         Some(FileDialogAnswer::Contents("old.grd".into(), b"8BGR\0\x03".to_vec())),
         Some(FileDialogAnswer::Contents(
             "noise.grd".into(),
-            localpaint_psd::grd::write(&[localpaint_psd::grd::GrdGradient { noise: true, ..Default::default() }]),
+            localraster_psd::grd::write(&[localraster_psd::grd::GrdGradient { noise: true, ..Default::default() }]),
         )),
         Some(FileDialogAnswer::Contents("wrong.abr".into(), Vec::new())),
-        Some(FileDialogAnswer::Paths(vec!["/nonexistent/localpaint-gradients.grd".into()])),
+        Some(FileDialogAnswer::Paths(vec!["/nonexistent/localraster-gradients.grd".into()])),
         Some(FileDialogAnswer::Unavailable("dialog unavailable".into())),
     ] {
         let mut h = app_harness("gradientMap", "rgb", 8);
@@ -742,7 +742,7 @@ fn gradient_map_dialog_import_preserves_pending_settings() {
 }
 
 /// Document point (x, y) on screen in the app's first view.
-fn doc_on_screen(h: &Harness<'_, LocalPaintApp>, x: f32, y: f32) -> Pos2 {
+fn doc_on_screen(h: &Harness<'_, LocalRasterApp>, x: f32, y: f32) -> Pos2 {
     let app = h.state();
     let v = &app.ui.views[0];
     let xf = crate::canvas::ViewXform {
@@ -780,7 +780,7 @@ fn properties_white_point_eyedropper_edits_the_layer(kind: &str) {
     // The left half is #6a3020: the white point moves to it, so it composites white.
     let at = doc_on_screen(&h, 10.0, 10.0);
     click(&mut h, at);
-    let pixel = |h: &mut Harness<'_, LocalPaintApp>| -> Vec<f32> {
+    let pixel = |h: &mut Harness<'_, LocalRasterApp>| -> Vec<f32> {
         serde_json::from_value(h.state_mut().run("document.pixel", json!({"x": 10, "y": 10})).unwrap()).unwrap()
     };
     let px = pixel(&mut h);
@@ -814,7 +814,7 @@ fn editor_harness(kind: &'static str, params: serde_json::Value) -> Harness<'sta
         },
         params,
     );
-    LocalPaintApp::setup_context(&h.ctx, Default::default());
+    LocalRasterApp::setup_context(&h.ctx, Default::default());
     h.run_steps(4);
     h
 }
@@ -842,7 +842,7 @@ fn hue_saturation_bars_fill_the_panel_width() {
             },
             json!({}),
         );
-        LocalPaintApp::setup_context(&h.ctx, Default::default());
+        LocalRasterApp::setup_context(&h.ctx, Default::default());
         h.run_steps(4);
         let bars = h.ctx.data(|d| d.get_temp::<Rect>(egui::Id::unique("hs").with("hs-bars"))).expect("bars drawn");
         let avail = h.ctx.data(|d| d.get_temp::<f32>(egui::Id::unique("hs-avail"))).unwrap();
@@ -921,7 +921,7 @@ fn photo_filter_color(a: &Adjustment) -> [f32; 3] {
 }
 
 /// Click the Photo Filter swatch, wait for its Color Picker and show `hex` in it.
-fn photo_filter_picker_shows(h: &mut Harness<'_, LocalPaintApp>, hex: &str) {
+fn photo_filter_picker_shows(h: &mut Harness<'_, LocalRasterApp>, hex: &str) {
     h.get_by_label("Color Picker (Photo Filter)").click();
     h.run_steps(3);
     let d = h.state().ui.dialogs.last().expect("the swatch opens the Color Picker");
@@ -941,7 +941,7 @@ fn photo_filter_colour_picker_previews_live_cancel_restores_and_ok_is_one_step()
     h.get_by_label("Color:").click();
     h.run_steps(3);
     let start = photo_filter_color(&layer(&h).1);
-    let steps = |h: &Harness<'_, LocalPaintApp>| h.state().session.active().unwrap().history.past_len();
+    let steps = |h: &Harness<'_, LocalRasterApp>| h.state().session.active().unwrap().history.past_len();
     let before = steps(&h);
 
     // While the picker is open, the canvas previews its colour; nothing is committed yet.
@@ -981,7 +981,7 @@ fn gradient_map_stop_picker_closed_without_a_colour_changes_nothing() {
     h.state_mut().run("layer.setAdjustment", json!({"layer": id.0, "stops": [[0, "#000000"], [fine, "#ff0000"], [1, "#ffffff"]]})).unwrap();
     h.run_steps(4);
     let before = layer(&h).1;
-    let steps = |h: &Harness<'_, LocalPaintApp>| h.state().session.active().unwrap().history.past_len();
+    let steps = |h: &Harness<'_, LocalRasterApp>| h.state().session.active().unwrap().history.past_len();
     let history = steps(&h);
     for button in ["Cancel", "OK"] {
         h.get_by_label("Color Picker (Stop Color)").click();

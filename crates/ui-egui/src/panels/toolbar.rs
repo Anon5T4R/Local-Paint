@@ -1,5 +1,5 @@
 use super::options_bar::reveal_focused_control;
-use super::{Align2, Color32, LocalPaintApp, Pos2, Rect, Sense, Stroke, StrokeKind, Tokens, Tool, c32, icons, json, pos2, vec2};
+use super::{Align2, Color32, LocalRasterApp, Pos2, Rect, Sense, Stroke, StrokeKind, Tokens, Tool, c32, icons, json, pos2, vec2};
 
 // ----------------------------------------------------------------------------- toolbar
 
@@ -80,7 +80,7 @@ pub(super) fn tool_flyout_release(row: Rect, pointer: Option<Pos2>, released: bo
     released && from_button && pointer.is_some_and(|p| row.contains(p))
 }
 
-pub fn toolbar(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+pub fn toolbar(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
     let (w1, bx, m) = if t.pro { (40.0, 30.0, 5i8) } else { (50.0, 36.0, 7i8) };
     let sections = visible_sections(&app.session.prefs().toolbar.hidden);
@@ -434,7 +434,7 @@ pub(super) fn chips_height(pro: bool, studio: bool, wide: bool) -> f32 {
 /// Photoshop's foreground / background colour chips: the Default Colors (D) and Switch Colors (X)
 /// icons above them, the foreground chip over the background one, all centred in the toolbar
 /// column and kept inside it.
-pub(super) fn color_chips(app: &mut LocalPaintApp, ui: &mut egui::Ui, two_columns: bool, column: f32) {
+pub(super) fn color_chips(app: &mut LocalRasterApp, ui: &mut egui::Ui, two_columns: bool, column: f32) {
     let t = Tokens::get(ui.ctx());
     // Studio themes: round chips stacked vertically, the controls below them.
     let studio = t.round_chips;
@@ -572,7 +572,7 @@ pub(super) fn color_chips(app: &mut LocalPaintApp, ui: &mut egui::Ui, two_column
 
 /// Run Switch Colors or Default Colors from the chips. As in Photoshop, characters highlighted
 /// in the type layer being edited take the new foreground colour, like picking one (#5690).
-fn chip_command(app: &mut LocalPaintApp, id: &str) {
+fn chip_command(app: &mut LocalRasterApp, id: &str) {
     if app.run(id, json!({})).is_ok() {
         crate::type_tool::foreground_changed(app);
     }

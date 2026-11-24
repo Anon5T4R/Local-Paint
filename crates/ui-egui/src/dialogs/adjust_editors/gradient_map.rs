@@ -1,7 +1,7 @@
 use super::hue_saturation::spectrum_bar;
 use super::{
-    Color32, Edit, EditorCx, GradientPreset, Group, LocalPaintApp, Pos2, Rect, RichText, Sense, Stroke, StrokeKind, Tokens, Value, adjust_params, color_button,
-    color32, flag, json, label, pos2, rgb_of, round, vec2, widgets,
+    Color32, Edit, EditorCx, GradientPreset, Group, LocalRasterApp, Pos2, Rect, RichText, Sense, Stroke, StrokeKind, Tokens, Value, adjust_params,
+    color_button, color32, flag, json, label, pos2, rgb_of, round, vec2, widgets,
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -272,16 +272,16 @@ pub(super) fn gradient_map(ui: &mut egui::Ui, v: &mut Value, cx: &EditorCx) -> E
 // Hosts
 
 /// Whether a document of this mode edits Levels/Curves through a single Gray channel.
-pub fn is_gray(mode: localpaint_doc::ColorMode) -> bool {
-    matches!(mode, localpaint_doc::ColorMode::Grayscale | localpaint_doc::ColorMode::Duotone | localpaint_doc::ColorMode::Bitmap)
+pub fn is_gray(mode: localraster_doc::ColorMode) -> bool {
+    matches!(mode, localraster_doc::ColorMode::Grayscale | localraster_doc::ColorMode::Duotone | localraster_doc::ColorMode::Bitmap)
 }
 
 /// The gradient preset library for a `kind` editor's picker (Gradient Map only; empty otherwise).
-pub fn gradient_presets(app: &LocalPaintApp, kind: &str) -> Vec<Group<GradientPreset>> {
+pub fn gradient_presets(app: &LocalRasterApp, kind: &str) -> Vec<Group<GradientPreset>> {
     if kind == "gradientMap" { app.session.presets.gradients.clone() } else { Vec::new() }
 }
 
-pub fn swatches(app: &LocalPaintApp) -> [[f32; 3]; 2] {
+pub fn swatches(app: &LocalRasterApp) -> [[f32; 3]; 2] {
     let c = |x: [f32; 4]| [x[0], x[1], x[2]];
     [c(app.session.tools.foreground), c(app.session.tools.background)]
 }

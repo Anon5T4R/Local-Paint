@@ -271,7 +271,7 @@ fn feed_wins_and_is_sanitized() {
 fn pen_samples_reach_the_brush_stroke() {
     use crate::canvas::{ToolEvent, tool_event};
     use serde_json::json;
-    let mut app = crate::LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = crate::LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.session.execute("file.new", json!({"width": 120, "height": 80})).unwrap();
     app.session.execute("layer.new.layer", json!({})).unwrap();
     app.ui.tool = crate::state::Tool::Brush;
@@ -324,7 +324,7 @@ fn use_pressure_off_ignores_pen_and_touch() {
 fn eraser_end_switches_tools_once_and_never_mid_drag() {
     use crate::canvas::{ToolEvent, tool_event};
     use crate::state::Tool;
-    let mut app = crate::LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+    let mut app = crate::LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.session.execute("file.new", serde_json::json!({"width": 60, "height": 60})).unwrap();
     app.ui.tool = Tool::Brush;
     let pen = |eraser| Some(PenSample { pressure: 0.5, eraser, ..Default::default() });

@@ -6,12 +6,12 @@
 //! `drag_preview_canvas.rs`).
 
 use egui::{Modifiers, PointerButton, Pos2};
-use localpaint_ui_egui::LocalPaintApp;
-use localpaint_ui_egui::canvas::ViewXform;
-use localpaint_ui_egui::control::{ControlRequest, handle};
+use localraster_ui_egui::LocalRasterApp;
+use localraster_ui_egui::canvas::ViewXform;
+use localraster_ui_egui::control::{ControlRequest, handle};
 use serde_json::{Value, json};
 
-type Harness = egui_kittest::Harness<'static, LocalPaintApp>;
+type Harness = egui_kittest::Harness<'static, LocalRasterApp>;
 
 fn harness() -> Option<Harness> {
     harness_with_size(egui::vec2(900.0, 640.0))
@@ -20,8 +20,8 @@ fn harness() -> Option<Harness> {
 fn harness_with_size(size: egui::Vec2) -> Option<Harness> {
     let built = std::panic::catch_unwind(|| {
         egui_kittest::Harness::builder().with_size(size).with_max_steps(64).wgpu().build_eframe(|cc| {
-            LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-            let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+            LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+            let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
             if let Some(rs) = cc.wgpu_render_state.as_ref() {
                 app.set_wgpu(rs.clone());
             }
@@ -82,7 +82,7 @@ fn selection(h: &Harness) -> Option<[i32; 4]> {
 
 #[test]
 fn marquee_dragged_past_the_right_edge_scrolls_and_selects_beyond_the_view() {
-    let _gpu = localpaint_testkit::gpu_lock();
+    let _gpu = localraster_testkit::gpu_lock();
     let Some(mut h) = harness() else { return };
     setup(&mut h, "rectMarquee");
     let start = xf(&h);
@@ -122,7 +122,7 @@ fn marquee_dragged_past_the_right_edge_scrolls_and_selects_beyond_the_view() {
 
 #[test]
 fn a_drag_inside_the_canvas_does_not_scroll() {
-    let _gpu = localpaint_testkit::gpu_lock();
+    let _gpu = localraster_testkit::gpu_lock();
     let Some(mut h) = harness() else { return };
     setup(&mut h, "rectMarquee");
     let start = xf(&h);
@@ -141,7 +141,7 @@ fn a_drag_inside_the_canvas_does_not_scroll() {
 
 #[test]
 fn rotated_marquee_scrolls_on_the_axis_that_is_visibly_clipped() {
-    let _gpu = localpaint_testkit::gpu_lock();
+    let _gpu = localraster_testkit::gpu_lock();
     let Some(mut h) = harness_with_size(egui::vec2(1200.0, 640.0)) else { return };
     setup(&mut h, "rectMarquee");
     let rect = xf(&h).rect;

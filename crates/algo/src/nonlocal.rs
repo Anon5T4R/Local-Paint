@@ -26,7 +26,7 @@
 //! `w × h` hole mask. Deterministic for a seed, whatever the thread count.
 
 use crate::inpaint::Rng;
-use localpaint_raster::{Cancelled, Interrupt};
+use localraster_raster::{Cancelled, Interrupt};
 
 /// Below this many grid cells a level runs single-threaded (thread hand-off costs more than it saves).
 const PAR_MIN: usize = 128 * 128;

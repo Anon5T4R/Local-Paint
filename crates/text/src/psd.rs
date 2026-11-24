@@ -9,13 +9,13 @@
 //! Writing starts from the layer's original `TySh` (when present) and patches only the text, runs,
 //! paragraphs, fonts, shape and transform, so Photoshop-only settings survive an edit.
 
-use localpaint_color::{Color, ColorMode};
-use localpaint_doc::TextLayer;
-use localpaint_doc::text::{
+use localraster_color::{Color, ColorMode};
+use localraster_doc::TextLayer;
+use localraster_doc::text::{
     AntiAlias, Caps, CharStyle, FontBaseline, Kerning, Orientation, ParagraphRun, ParagraphStyle, TextAlign, TextRun, TextShape, TextWarp,
 };
-use localpaint_geom::{Affine, Point};
-use localpaint_psd::descriptor::{Descriptor, Id, UnicodeString, Value as D, VersionedDescriptor};
+use localraster_geom::{Affine, Point};
+use localraster_psd::descriptor::{Descriptor, Id, UnicodeString, Value as D, VersionedDescriptor};
 
 use crate::engine_data::{self as ed, Value as E};
 use crate::fonts::guess_from_postscript;
@@ -240,7 +240,7 @@ mod nonfinite_tests {
     /// #5645: `FontBaseline` (1 superscript, 2 subscript) is read and written back.
     #[test]
     fn font_baseline_round_trips() {
-        use localpaint_doc::text::FontBaseline;
+        use localraster_doc::text::FontBaseline;
         let d = parse(b"<< /FontBaseline 2 >>").unwrap();
         assert_eq!(char_style(&[], &d, &[], 1.0).baseline, FontBaseline::Subscript);
         let d = parse(b"<< /FontBaseline 1 >>").unwrap();
@@ -252,7 +252,7 @@ mod nonfinite_tests {
 
     #[test]
     fn area_path_that_is_not_finite_saves_as_point_text() {
-        let path = localpaint_doc::vector::Path::new(vec![localpaint_doc::vector::Subpath::polygon(&[(0.0, 0.0), (f64::NAN, 0.0), (10.0, f64::INFINITY)])]);
+        let path = localraster_doc::vector::Path::new(vec![localraster_doc::vector::Subpath::polygon(&[(0.0, 0.0), (f64::NAN, 0.0), (10.0, f64::INFINITY)])]);
         let layer = TextLayer {
             text: "x".into(),
             runs: vec![TextRun { len: 1, style: CharStyle { size_pt: 12.0, ..Default::default() } }],

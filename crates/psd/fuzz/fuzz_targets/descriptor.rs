@@ -3,7 +3,7 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
-use localpaint_psd::descriptor::Descriptor;
+use localraster_psd::descriptor::Descriptor;
 
 fuzz_target!(|data: &[u8]| {
     if let Ok(d) = Descriptor::from_bytes(data) {

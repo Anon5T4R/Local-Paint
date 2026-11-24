@@ -1,4 +1,4 @@
-//! Invert: a minimal Local Paint filter plug-in (plug-in ABI v1, see `docs/plugins.md`).
+//! Invert: a minimal Local Raster filter plug-in (plug-in ABI v1, see `docs/plugins.md`).
 //!
 //! `no_std`, no allocator, no imports: the host hands us an interleaved `f32` buffer and we
 //! invert the colour channels in place, leaving alpha (and fully transparent pixels) alone,
@@ -11,12 +11,12 @@ fn panic(_: &core::panic::PanicInfo) -> ! {
 }
 
 const MANIFEST: &str = r#"{
-  "id": "org.localpaint.example.invert",
+  "id": "org.localraster.example.invert",
   "name": "Invert (WebAssembly)",
   "version": "1.0.0",
   "kind": "filter",
-  "author": "Local Paint contributors",
-  "description": "Inverts the colour channels; an example of the Local Paint plug-in ABI.",
+  "author": "Local Raster contributors",
+  "description": "Inverts the colour channels; an example of the Local Raster plug-in ABI.",
   "params": {}
 }"#;
 

@@ -9,8 +9,8 @@ use crate::state::Tool;
 
 /// A 200 × 100 document with the Move tool, a vertical guide at 50 and a magenta horizontal one
 /// at 30.
-fn app() -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn app() -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 200, "height": 100})).unwrap();
     app.sync_views();
     app.ui.tool = Tool::Move;
@@ -19,17 +19,17 @@ fn app() -> LocalPaintApp {
     app
 }
 
-fn click(app: &mut LocalPaintApp, x: f64, y: f64) {
+fn click(app: &mut LocalRasterApp, x: f64, y: f64) {
     tool_event(app, ToolEvent::Down { x, y, pressure: 1.0 }, Modifiers::NONE);
     tool_event(app, ToolEvent::Up { x, y }, Modifiers::NONE);
 }
 
-fn guides(app: &LocalPaintApp) -> (Vec<f64>, Vec<f64>) {
+fn guides(app: &LocalRasterApp) -> (Vec<f64>, Vec<f64>) {
     let g = &app.session.active().unwrap().doc.guides;
     (g.vertical.clone(), g.horizontal.clone())
 }
 
-fn past(app: &LocalPaintApp) -> usize {
+fn past(app: &LocalRasterApp) -> usize {
     app.session.active().unwrap().history.past_len()
 }
 
@@ -93,7 +93,7 @@ fn delete_removes_the_selected_guide_and_leaves_the_pixels() {
     let mut app = app();
     app.run("select.all", json!({})).unwrap();
     let ctx = egui::Context::default();
-    let press = |app: &mut LocalPaintApp, key| {
+    let press = |app: &mut LocalRasterApp, key| {
         let modifiers = Modifiers::NONE;
         let raw = egui::RawInput {
             events: vec![egui::Event::ModifiersChanged(modifiers), egui::Event::Key { key, physical_key: None, pressed: true, repeat: false, modifiers }],
@@ -118,9 +118,9 @@ fn delete_removes_the_selected_guide_and_leaves_the_pixels() {
     assert_eq!(guides(&app), (vec![50.0], vec![]));
 }
 
-fn harness(app: LocalPaintApp) -> Harness<'static, LocalPaintApp> {
+fn harness(app: LocalRasterApp) -> Harness<'static, LocalRasterApp> {
     let mut h = Harness::builder().with_size(vec2(1000.0, 700.0)).with_step_dt(1.0 / 60.0).build_ui_state(
-        |ui, app: &mut LocalPaintApp| {
+        |ui, app: &mut LocalRasterApp| {
             let ctx = ui.ctx().clone();
             if !ctx.fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                 return;
@@ -130,12 +130,12 @@ fn harness(app: LocalPaintApp) -> Harness<'static, LocalPaintApp> {
         },
         app,
     );
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::default());
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::default());
     h.run_steps(4);
     h
 }
 
-fn right_click(h: &mut Harness<'static, LocalPaintApp>, p: Pos2) {
+fn right_click(h: &mut Harness<'static, LocalRasterApp>, p: Pos2) {
     h.event(egui::Event::PointerMoved(p));
     h.run_steps(1);
     h.event(egui::Event::PointerButton { pos: p, button: PointerButton::Secondary, pressed: true, modifiers: Modifiers::NONE });
@@ -145,11 +145,11 @@ fn right_click(h: &mut Harness<'static, LocalPaintApp>, p: Pos2) {
 }
 
 /// The vertical guide through the middle of the document, on screen: the view centres the image.
-fn guide_on_screen(h: &Harness<'static, LocalPaintApp>) -> Pos2 {
+fn guide_on_screen(h: &Harness<'static, LocalRasterApp>) -> Pos2 {
     h.state().last_canvas_rect.center() + vec2(0.0, 20.0)
 }
 
-fn centred_guide_app() -> LocalPaintApp {
+fn centred_guide_app() -> LocalRasterApp {
     let mut app = app();
     app.run("view.clearGuides", json!({})).unwrap();
     app.run("view.newGuide", json!({"orientation": "vertical", "position": 100})).unwrap();

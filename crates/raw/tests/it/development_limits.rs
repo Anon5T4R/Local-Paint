@@ -1,6 +1,6 @@
 //! Development limits and hostile public sensor metadata.
-use localpaint_raw::testgen::DngSpec;
-use localpaint_raw::*;
+use localraster_raw::testgen::DngSpec;
+use localraster_raw::*;
 
 fn small_sensor() -> Sensor {
     decode(&DngSpec::cfa(64, 48, vec![1000; 64 * 48]).build(), &Limits::default()).unwrap()

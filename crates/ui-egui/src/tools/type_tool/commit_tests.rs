@@ -3,20 +3,20 @@
 //! taking single-key shortcuts as typing and could type into a layer of the wrong document.
 
 use egui_kittest::Harness;
-use localpaint_doc::{LayerContent, LayerId};
+use localraster_doc::{LayerContent, LayerId};
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 
-fn new_app() -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn new_app() -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 400, "height": 200})).unwrap();
     app.sync_views();
     app.ui.tool = crate::state::Tool::Type;
     app
 }
 
-fn text_of(app: &LocalPaintApp, doc: usize, id: LayerId) -> Option<String> {
+fn text_of(app: &LocalRasterApp, doc: usize, id: LayerId) -> Option<String> {
     match &app.session.documents().get(doc)?.doc.layer(id)?.content {
         LayerContent::Text(t) => Some(t.text.clone()),
         _ => None,
@@ -24,16 +24,16 @@ fn text_of(app: &LocalPaintApp, doc: usize, id: LayerId) -> Option<String> {
 }
 
 /// Start a new type layer with a click and type `s` into it, as the canvas does.
-fn type_new(app: &mut LocalPaintApp, s: &str) -> LayerId {
+fn type_new(app: &mut LocalRasterApp, s: &str) -> LayerId {
     super::pointer_up(app, [50.0, 100.0], [50.0, 100.0]);
     super::insert(app, s);
     LayerId(app.ui.text_edit.as_ref().unwrap().layer)
 }
 
 /// Feed one frame of key handling with `events`.
-fn keys(app: LocalPaintApp, events: Vec<egui::Event>) -> LocalPaintApp {
+fn keys(app: LocalRasterApp, events: Vec<egui::Event>) -> LocalRasterApp {
     let mut h = Harness::builder().build_ui_state(
-        |ui, app: &mut LocalPaintApp| {
+        |ui, app: &mut LocalRasterApp| {
             super::handle_keys(app, ui.ctx());
         },
         app,
@@ -135,11 +135,11 @@ fn closing_the_edited_document_drops_the_edit_without_touching_another() {
 /// instead of typing into the type layer.
 #[test]
 fn tool_shortcuts_work_after_another_layer_is_selected() {
-    let mut s = localpaint_engine::Session::new();
+    let mut s = localraster_engine::Session::new();
     s.execute("file.new", json!({"width": 400, "height": 300})).unwrap();
     let mut h = Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_max_steps(64).build_eframe(move |cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        LocalPaintApp::new(s, crate::Services::default())
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        LocalRasterApp::new(s, crate::Services::default())
     });
     h.run_steps(8);
     let app = h.state_mut();

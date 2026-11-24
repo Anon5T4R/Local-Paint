@@ -7,8 +7,8 @@
 
 use std::sync::Arc;
 
-use localpaint_geom::Rect;
-use localpaint_raster::Interrupt;
+use localraster_geom::Rect;
+use localraster_raster::Interrupt;
 use rustfft::{Fft, FftPlanner, num_complex::Complex};
 
 use crate::Image;

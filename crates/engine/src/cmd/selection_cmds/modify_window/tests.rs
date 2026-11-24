@@ -1,10 +1,10 @@
 use super::*;
 use crate::Session;
 use crate::selection_cmds::{crop_mask, pad_mask, touches_edge};
-use localpaint_algo::selection::{self as sel, SelectionMode};
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_geom::Size;
-use localpaint_raster::Surface;
+use localraster_algo::selection::{self as sel, SelectionMode};
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_geom::Size;
+use localraster_raster::Surface;
 use serde_json::json;
 
 fn document(w: u32, h: u32, selection: Surface) -> Document {
@@ -227,7 +227,7 @@ fn sparse_modify_release_comparison() {
 
 #[test]
 fn corrupt_tile_coordinates_do_not_panic_while_finding_the_window() {
-    use localpaint_geom::TileCoord;
+    use localraster_geom::TileCoord;
     use std::sync::Arc;
     let mut selection = Surface::new(PixelFormat::GRAY8);
     let tile = selection.solid_tile(&[1.0]);

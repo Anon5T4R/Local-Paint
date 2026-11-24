@@ -7,7 +7,7 @@
 use crate::common;
 use common::Rng;
 use common::tiffgen::*;
-use localpaint_codecs::*;
+use localraster_codecs::*;
 
 const ORDERS: [(bool, bool); 4] = [(true, false), (false, false), (true, true), (false, true)];
 

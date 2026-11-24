@@ -35,8 +35,8 @@ colour-only targets. Options that create a new layer, including Remove’s Creat
 require the composite.
 Rasterize a non-raster layer before editing its colour planes.
 Vector path transforms and moving guides remain available. This work is independent
-of [#4648](https://github.com/Anon5T4R/Local-Paint/pull/4648) and
-[#6864](https://github.com/Anon5T4R/Local-Paint/pull/6864); it does not include their
+of [#4648](https://github.com/Anon5T4R/Local-Raster/pull/4648) and
+[#6864](https://github.com/Anon5T4R/Local-Raster/pull/6864); it does not include their
 isolated-channel geometry or remaining scalar-target tone-dialog changes.
 
 ## Automation
@@ -86,7 +86,7 @@ eraser. Live-update cases time one 50-pixel extension after stroke creation. Tim
 exclude display refresh and do not claim end-to-end stylus latency.
 The observed maximum of six samples is reported as p95 in the raw output.
 
-Run with `RAYON_NUM_THREADS=8 cargo +1.99.0 run --release -p localpaint-engine
+Run with `RAYON_NUM_THREADS=8 cargo +1.99.0 run --release -p localraster-engine
 --example multi_channel_bench -- --subset`. For the unchanged base, use the same
 fixture, parameters and timing loop and omit
 `--subset`. The base cannot execute the new partial-set target. Add `--region` for the
@@ -187,7 +187,7 @@ and [source/binary hashes](benchmarks/multi-channel-editing/environment.json) ar
 
 The images below use an original synthetic gradient, rendered offscreen without
 opening a window. Their JSON scripts are adjacent to the images. Reproduce them with
-`cargo run -p localpaint-ui-egui --example snapshot -- --safe-gpu --size 1440x900
+`cargo run -p localraster-ui-egui --example snapshot -- --safe-gpu --size 1440x900
 --scale 1 --out <image.png> --script "$(cat <script.json>)"`; add `--click-at 720,242`
 for the Curves dropdown capture.
 

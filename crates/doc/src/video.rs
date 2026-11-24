@@ -4,7 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use localpaint_raster::Surface;
+use localraster_raster::Surface;
 
 /// Where a video layer's footage came from.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

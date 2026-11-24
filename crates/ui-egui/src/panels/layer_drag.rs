@@ -1,5 +1,5 @@
 use super::layers::footer_label;
-use super::{Layer, LayerId, LocalPaintApp, MaskKind, Pos2, Rect, Sense, Stroke, StrokeKind, Tokens, Value, icons, json, pos2, vec2};
+use super::{Layer, LayerId, LocalRasterApp, MaskKind, Pos2, Rect, Sense, Stroke, StrokeKind, Tokens, Value, icons, json, pos2, vec2};
 
 /// Scroll the Layers panel while holding a layer drag over its top/bottom edge or past them.
 ///
@@ -73,7 +73,7 @@ pub(super) fn layer_drop_payload(dragged: u64, target: LayerId, position: &str, 
 
 /// Would this drop move the Background off the bottom, or put a layer below it? Photoshop
 /// refuses both (no drop indicator); ⌥-dragging the Background still copies it above.
-pub(super) fn background_drop_refused(doc: &localpaint_doc::Document, payload: &Value, target: LayerId, position: &str, copy: bool) -> bool {
+pub(super) fn background_drop_refused(doc: &localraster_doc::Document, payload: &Value, target: LayerId, position: &str, copy: bool) -> bool {
     let Some(bg) = doc.layers.first().filter(|b| crate::doc_props_ui::is_background(doc, b)).map(|b| b.id) else { return false };
     let moves_bg =
         !copy && (payload["layer"].as_u64() == Some(bg.0) || payload["layers"].as_array().is_some_and(|a| a.iter().any(|v| v.as_u64() == Some(bg.0))));
@@ -84,7 +84,7 @@ pub(super) fn background_drop_refused(doc: &localpaint_doc::Document, payload: &
 /// release the layers stay put and copies land there instead (Photoshop).
 /// Multi-layer moves are atomic (one undo step), using the engine's stable document order.
 pub(super) fn layer_drag_and_drop(
-    app: &mut LocalPaintApp,
+    app: &mut LocalRasterApp,
     ctx: &egui::Context,
     ui: &egui::Ui,
     l: &Layer,
@@ -187,7 +187,7 @@ pub(super) fn layer_drag_and_drop(
 /// with ⌥ held on release (Photoshop), a move without. A multi-selection dropped on the row it
 /// was grabbed from is left alone: the engine can only copy it beside each of its own layers.
 pub(super) fn layer_drop_zone(
-    app: &mut LocalPaintApp,
+    app: &mut LocalRasterApp,
     ctx: &egui::Context,
     ui: &egui::Ui,
     zone: Rect,
@@ -257,7 +257,7 @@ pub(super) fn start_fx_drag(ctx: &egui::Context, layer: LayerId, effect: Option<
 }
 
 /// While effects are dragged: their name by the pointer, and the copy cursor while ⌥ is held.
-pub(super) fn fx_drag_feedback(ctx: &egui::Context, doc: &localpaint_doc::Document) {
+pub(super) fn fx_drag_feedback(ctx: &egui::Context, doc: &localraster_doc::Document) {
     let Some((from, effect)) = ctx.data(|d| d.get_temp::<FxDrag>(fx_drag_key())) else { return };
     let Some(p) = ctx.input(|i| i.pointer.interact_pos()) else { return };
     // `Effect::label` is the English key; translate for the drag ghost like the Layers panel rows.
@@ -300,7 +300,7 @@ pub(super) fn fx_drop(ctx: &egui::Context, ui: &egui::Ui, l: &Layer, rect: Rect,
 
 /// Photoshop shows a layer's effects as indented sub-rows ("Effects", then each effect). The eye
 /// on "Effects" shows or hides them all, the eye on an effect's row just that one (#1622).
-pub(super) fn effect_rows(app: &mut LocalPaintApp, ui: &mut egui::Ui, l: &Layer, depth: usize, actions: &mut Vec<(String, Value)>) {
+pub(super) fn effect_rows(app: &mut LocalRasterApp, ui: &mut egui::Ui, l: &Layer, depth: usize, actions: &mut Vec<(String, Value)>) {
     let t = Tokens::get(ui.ctx());
     let indent = 30.0 + depth as f32 * 14.0 + 34.0;
     // English `Effect::label` keys stay for kind matching; display goes through `tl!` (catalogs

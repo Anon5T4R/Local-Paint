@@ -34,10 +34,10 @@ pub mod psblend;
 pub mod shape_split;
 mod uniform;
 
-use localpaint_color::blend::BlendMode;
-use localpaint_doc::{Document, Fill, Layer, LayerContent, Pattern};
-use localpaint_geom::Rect;
-use localpaint_raster::{Rgba8Image, Surface};
+use localraster_color::blend::BlendMode;
+use localraster_doc::{Document, Fill, Layer, LayerContent, Pattern};
+use localraster_geom::Rect;
+use localraster_raster::{Rgba8Image, Surface};
 use psblend as blend;
 
 pub use advanced::advanced_active;

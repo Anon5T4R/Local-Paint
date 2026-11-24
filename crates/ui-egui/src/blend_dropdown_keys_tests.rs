@@ -4,17 +4,17 @@
 use egui::accesskit::Role;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
-use localpaint_doc::BlendMode;
+use localraster_doc::BlendMode;
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::state::Tool;
 
 #[test]
 fn arrow_keys_step_the_open_blend_mode_dropdown_without_nudging_the_layer() {
     let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).with_max_steps(64).build_eframe(|cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 64, "height": 64})).unwrap();
         app.run("layer.new.layer", json!({})).unwrap();
         app.run("edit.fill", json!({"color": "#ff0000"})).unwrap();
@@ -22,7 +22,7 @@ fn arrow_keys_step_the_open_blend_mode_dropdown_without_nudging_the_layer() {
         app
     });
     h.run_steps(6);
-    let layer = |h: &Harness<'_, LocalPaintApp>| {
+    let layer = |h: &Harness<'_, LocalRasterApp>| {
         let st = h.state().session.active().unwrap();
         let l = st.doc.layer(st.active_layer.unwrap()).unwrap();
         (l.blend, l.surface().unwrap().content_bounds())
@@ -51,19 +51,19 @@ fn arrow_keys_step_the_open_blend_mode_dropdown_without_nudging_the_layer() {
 #[test]
 fn letters_pick_blend_modes_in_the_open_list_without_switching_tools() {
     let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).with_max_steps(64).build_eframe(|cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 64, "height": 64})).unwrap();
         app.run("layer.new.layer", json!({})).unwrap();
         app.ui.tool = Tool::Move;
         app
     });
     h.run_steps(6);
-    let blend = |h: &Harness<'_, LocalPaintApp>| {
+    let blend = |h: &Harness<'_, LocalRasterApp>| {
         let st = h.state().session.active().unwrap();
         st.doc.layer(st.active_layer.unwrap()).unwrap().blend
     };
-    let type_key = |h: &mut Harness<'_, LocalPaintApp>, key: egui::Key, text: &str| {
+    let type_key = |h: &mut Harness<'_, LocalRasterApp>, key: egui::Key, text: &str| {
         h.key_press(key);
         h.event(egui::Event::Text(text.into()));
         h.run_steps(2);

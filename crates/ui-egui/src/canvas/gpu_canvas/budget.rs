@@ -6,7 +6,7 @@ pub const MIN_GPU_BUDGET: u64 = 512 << 20;
 
 /// Why a full refresh whose layer pages don't fit [`memory_budget`] (or GPU memory) goes to the
 /// CPU compositor.
-pub const OVER_BUDGET: &str = localpaint_gpu::OVER_BUDGET;
+pub const OVER_BUDGET: &str = localraster_gpu::OVER_BUDGET;
 
 /// GPU memory the wgpu compositor may hold for layer pages and effect maps.
 ///
@@ -78,12 +78,12 @@ pub fn canvas_texture_bytes(size: [u32; 2], tile: u32, bpp: u64) -> u64 {
     total
 }
 
-/// Physical memory of this machine in bytes, if known. `LOCALPAINT_RAM_MB` overrides it (to
+/// Physical memory of this machine in bytes, if known. `LOCALRASTER_RAM_MB` overrides it (to
 /// simulate a smaller machine).
 pub fn physical_memory() -> Option<u64> {
     static RAM: std::sync::OnceLock<Option<u64>> = std::sync::OnceLock::new();
     *RAM.get_or_init(|| {
-        if let Some(mb) = std::env::var("LOCALPAINT_RAM_MB").ok().and_then(|v| v.trim().parse::<u64>().ok()) {
+        if let Some(mb) = localraster_engine::legacy_env::var("LOCALRASTER_RAM_MB").ok().and_then(|v| v.trim().parse::<u64>().ok()) {
             return mb.checked_mul(1 << 20);
         }
         detect_physical_memory()
@@ -122,11 +122,11 @@ fn detect_physical_memory() -> Option<u64> {
 /// The memory of `adapter` itself, in bytes, when it is a discrete GPU and the platform reports
 /// it: DXGI's dedicated video memory on Windows, amdgpu's VRAM size or `nvidia-smi`'s report on
 /// Linux. `None` for integrated and software adapters, whose textures live in system memory (the
-/// RAM-based budgets already cover them), and where nothing reports it. `LOCALPAINT_VRAM_MB`
+/// RAM-based budgets already cover them), and where nothing reports it. `LOCALRASTER_VRAM_MB`
 /// overrides it for any adapter, simulating a discrete card of that size: on an integrated GPU the
 /// budget then stops charging the document's pixels too, as for a real card (a development switch).
 pub fn video_memory(adapter: &wgpu::AdapterInfo) -> Option<u64> {
-    if let Some(mb) = std::env::var("LOCALPAINT_VRAM_MB").ok().and_then(|v| v.trim().parse::<u64>().ok()) {
+    if let Some(mb) = localraster_engine::legacy_env::var("LOCALRASTER_VRAM_MB").ok().and_then(|v| v.trim().parse::<u64>().ok()) {
         return mb.checked_mul(1 << 20).filter(|b| *b > 0);
     }
     if adapter.device_type != wgpu::DeviceType::DiscreteGpu {
@@ -174,7 +174,7 @@ fn detect_video_memory(vendor: u32, device: u32) -> Option<u64> {
 pub(super) const NVIDIA_VENDOR: u32 = 0x10de;
 
 /// How long `nvidia-smi` gets to answer: it runs on the UI thread while the window opens, and a
-/// driver that hangs the query must not keep Local Paint from starting.
+/// driver that hangs the query must not keep Local Raster from starting.
 #[cfg(target_os = "linux")]
 const NVIDIA_SMI_DEADLINE: std::time::Duration = std::time::Duration::from_secs(2);
 

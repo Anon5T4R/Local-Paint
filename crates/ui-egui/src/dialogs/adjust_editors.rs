@@ -1,7 +1,7 @@
 //! One editor per adjustment kind, shared by the adjustment-layer Properties panel and the modal
 //! Image › Adjustments dialogs (`adjust_dialog`).
 //!
-//! Every editor edits the kind's complete parameter set (`localpaint_engine::adjust_params`) as a
+//! Every editor edits the kind's complete parameter set (`localraster_engine::adjust_params`) as a
 //! JSON object and reports an [`Edit`]: `changed` while values move (the host previews them live)
 //! and `commit` when a gesture ends (the Properties host then runs one `layer.setAdjustment`; a
 //! dialog commits on OK). Selective Color and Color Lookup keep their editors in `adjust_ui`.
@@ -11,14 +11,14 @@ use crate::state::CurvesEditorState as CurveUi;
 use std::sync::Arc;
 
 use egui::{Color32, Pos2, Rect, RichText, Sense, Stroke, StrokeKind, pos2, vec2};
-use localpaint_doc::adjust::{HueRange, ToneSpace};
-use localpaint_doc::{Adjustment, LayerId};
-use localpaint_engine::adjust_params::{self, HUE_RANGES, PHOTO_FILTERS};
-use localpaint_engine::presets::Group;
-use localpaint_engine::presets::gradients::GradientPreset;
+use localraster_doc::adjust::{HueRange, ToneSpace};
+use localraster_doc::{Adjustment, LayerId};
+use localraster_engine::adjust_params::{self, HUE_RANGES, PHOTO_FILTERS};
+use localraster_engine::presets::Group;
+use localraster_engine::presets::gradients::GradientPreset;
 use serde_json::{Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::theme::Tokens;
 use crate::tone::{self, HistSource, Histograms};
 use crate::widgets::{self, hue_color};
@@ -120,7 +120,7 @@ pub struct EditorCx {
     /// (off: the plain track).
     pub dynamic_color_sliders: bool,
     /// Image › Curves with a single Channels-panel target: that channel only (#5335).
-    pub isolated_curve: Option<localpaint_engine::channel_cmds::IsolatedCurveChannel>,
+    pub isolated_curve: Option<localraster_engine::channel_cmds::IsolatedCurveChannel>,
 }
 
 /// The Levels/Curves channel space the values address.

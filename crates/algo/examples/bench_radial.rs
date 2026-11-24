@@ -1,13 +1,13 @@
 //! Paired, end-to-end Radial Blur benchmark against the current upstream sampler.
-//! cargo run --release -j 12 -p localpaint-algo --example bench_radial
+//! cargo run --release -j 12 -p localraster-algo --example bench_radial
 //! Defaults: 6000x4000 RGBA8, Good, amount 100, 12 Rayon workers, three runs.
 //! Optional positional arguments: width height amount repeats.
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use localpaint_algo::{Ctx, FilterParams, Image, RadialMethod, RadialQuality, TILE, apply_in, kernel};
-    use localpaint_color::PixelFormat;
-    use localpaint_geom::Rect;
-    use localpaint_raster::Surface;
+    use localraster_algo::{Ctx, FilterParams, Image, RadialMethod, RadialQuality, TILE, apply_in, kernel};
+    use localraster_color::PixelFormat;
+    use localraster_geom::Rect;
+    use localraster_raster::Surface;
     use rayon::prelude::*;
     use std::time::Instant;
 

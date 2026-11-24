@@ -1,8 +1,8 @@
 //! 24 MP timing of the red-eye kernel on a window around one click (not a full-image scan).
-//! `cargo run --release -p localpaint-algo --example bench_redeye`
+//! `cargo run --release -p localraster-algo --example bench_redeye`
 use std::time::Instant;
 
-use localpaint_algo::redeye;
+use localraster_algo::redeye;
 
 fn main() {
     let (doc_w, doc_h) = (6016usize, 4000usize);

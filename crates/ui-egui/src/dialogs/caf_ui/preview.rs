@@ -1,4 +1,4 @@
-use super::{CMD, CafWorkspace, Color32, LayerId, LocalPaintApp, MAX_CAF_POINTS, MAX_OUTLINE_EDGES, Rect, TextureHandle, Value, json, stroke_json};
+use super::{CMD, CafWorkspace, Color32, LayerId, LocalRasterApp, MAX_CAF_POINTS, MAX_OUTLINE_EDGES, Rect, TextureHandle, Value, json, stroke_json};
 
 /// What the plan (without the brush strokes) says: the window, the fill area and the sampling
 /// option's area, over `rect`.
@@ -25,7 +25,7 @@ type PreviewResult = Result<(Rect, egui::ColorImage), String>;
 pub(super) struct Preview {
     /// Bumped whenever the state changes; a result for an older generation is dropped.
     pub(super) want: u64,
-    running: Option<(u64, std::sync::mpsc::Receiver<PreviewResult>, localpaint_engine::jobs::JobCtx)>,
+    running: Option<(u64, std::sync::mpsc::Receiver<PreviewResult>, localraster_engine::jobs::JobCtx)>,
     pub(super) shown: u64,
     /// A finished preview waiting to be uploaded (on the UI thread, which has the context).
     pub(super) pending_image: Option<(Rect, egui::ColorImage)>,
@@ -85,14 +85,14 @@ pub(super) fn points_limit() -> String {
 
 /// The plan without strokes: the window, fill area and the option's area. Custom starts empty
 /// (the window and fill area are those of Rectangular).
-pub(super) fn compute_base(app: &LocalPaintApp, w: &CafWorkspace) -> Result<Base, String> {
+pub(super) fn compute_base(app: &LocalRasterApp, w: &CafWorkspace) -> Result<Base, String> {
     let st = app.session.active().ok_or("no document")?;
     let mut p = plan_params(w, false);
     let custom = w.opts.sampling == "custom";
     if custom {
         p["sampling"] = json!("rectangular");
     }
-    let plan = localpaint_engine::edit_menu_cmds::content_aware_plan(&st.doc, w.layer, &p, CMD).map_err(|e| e.to_string())?;
+    let plan = localraster_engine::edit_menu_cmds::content_aware_plan(&st.doc, w.layer, &p, CMD).map_err(|e| e.to_string())?;
     let base = if custom { vec![false; plan.base.len()] } else { plan.base };
     Ok(Base { window: plan.window, rect: plan.rect, hole: plan.hole, base })
 }
@@ -130,7 +130,7 @@ pub(super) fn outline(b: &Base) -> Option<Vec<[[f32; 2]; 2]>> {
 }
 
 /// Recompute the base after a change of the fill area, the sampling option or the document.
-pub(super) fn rebase(app: &mut LocalPaintApp) {
+pub(super) fn rebase(app: &mut LocalRasterApp) {
     let Some(w) = app.distort.caf.as_ref() else { return };
     let r = compute_base(app, w);
     let Some(w) = app.distort.caf.as_mut() else { return };
@@ -154,7 +154,7 @@ pub(super) fn cancel_preview(w: CafWorkspace) {
 }
 
 /// The document changed under the workspace (an Apply): new textures, a new base.
-pub(super) fn refresh(app: &mut LocalPaintApp) {
+pub(super) fn refresh(app: &mut LocalRasterApp) {
     let rev = app.session.active().map(|s| s.revision);
     if let Some(w) = app.distort.caf.as_mut() {
         w.image_tex = None;
@@ -164,13 +164,13 @@ pub(super) fn refresh(app: &mut LocalPaintApp) {
 }
 
 /// Computes the preview now, on this thread (tests and the control channel).
-pub(super) fn wait_preview(app: &mut LocalPaintApp) -> Result<(), String> {
+pub(super) fn wait_preview(app: &mut LocalRasterApp) -> Result<(), String> {
     let (doc, layer, p, want, limit) = {
         let w = app.distort.caf.as_ref().ok_or("Content-Aware Fill is not open")?;
         let st = app.session.active().ok_or("no document")?;
         (st.doc.clone(), w.layer, plan_params(w, true), w.preview.want, w.texture_limit)
     };
-    let r = compute_preview(&doc, layer, &p, &localpaint_raster::Interrupt::NONE, limit);
+    let r = compute_preview(&doc, layer, &p, &localraster_raster::Interrupt::NONE, limit);
     let w = app.distort.caf.as_mut().ok_or("Content-Aware Fill is not open")?;
     let err = r.as_ref().err().cloned();
     w.preview.finish(want, r);
@@ -181,14 +181,14 @@ pub(super) fn wait_preview(app: &mut LocalPaintApp) -> Result<(), String> {
 /// `max_side`: past the device's limit it is box-averaged to fit (the rectangle it is drawn over
 /// stays the plan's).
 fn compute_preview(
-    doc: &localpaint_doc::Document,
+    doc: &localraster_doc::Document,
     layer: LayerId,
     p: &Value,
-    ctl: &localpaint_raster::Interrupt,
+    ctl: &localraster_raster::Interrupt,
     max_side: usize,
 ) -> Result<(Rect, egui::ColorImage), String> {
-    let plan = localpaint_engine::edit_menu_cmds::content_aware_plan_with(doc, layer, p, CMD, ctl).map_err(|e| match e {
-        localpaint_engine::EngineError::Cancelled => "cancelled".to_string(),
+    let plan = localraster_engine::edit_menu_cmds::content_aware_plan_with(doc, layer, p, CMD, ctl).map_err(|e| match e {
+        localraster_engine::EngineError::Cancelled => "cancelled".to_string(),
         e => e.to_string(),
     })?;
     // Patches come only from the sampling area outside the fill area. With none (the Sampling
@@ -200,16 +200,16 @@ fn compute_preview(
     let (w, h) = (plan.rect.width() as usize, plan.rect.height() as usize);
     let n = plan.fmt.channels();
     let filled =
-        localpaint_algo::content_aware::fill_with(w, h, n, &plan.img, &plan.hole, &plan.source, &plan.opts, ctl).map_err(|_| "cancelled".to_string())?;
+        localraster_algo::content_aware::fill_with(w, h, n, &plan.img, &plan.hole, &plan.source, &plan.opts, ctl).map_err(|_| "cancelled".to_string())?;
     let own = plan.layer_pixels();
     // Pixel `i`: the fill over the fill area (a partly selected pixel by its coverage), the
     // layer's own pixels elsewhere.
     let pixel = |i: usize| -> [f32; 4] {
         let src = if plan.hole[i] { &filled[i * n..(i + 1) * n] } else { &own[i * n..(i + 1) * n] };
-        let mut c = localpaint_raster::to_rgba(&plan.fmt, src);
+        let mut c = localraster_raster::to_rgba(&plan.fmt, src);
         if plan.hole[i] {
             let k = plan.cover[i];
-            let under = localpaint_raster::to_rgba(&plan.fmt, &own[i * n..(i + 1) * n]);
+            let under = localraster_raster::to_rgba(&plan.fmt, &own[i * n..(i + 1) * n]);
             for j in 0..4 {
                 c[j] = under[j] + (c[j] - under[j]) * k;
             }
@@ -248,7 +248,7 @@ fn compute_preview(
 
 /// Starts a background preview when the shown one is out of date (and the pointer is up), and
 /// collects a finished one.
-pub(super) fn drive_preview(app: &mut LocalPaintApp, ctx: &egui::Context, dragging: bool) {
+pub(super) fn drive_preview(app: &mut LocalRasterApp, ctx: &egui::Context, dragging: bool) {
     let doc = app.session.active().map(|s| s.doc.clone());
     let Some(w) = app.distort.caf.as_mut() else { return };
     let pv = &mut w.preview;
@@ -283,7 +283,7 @@ pub(super) fn drive_preview(app: &mut LocalPaintApp, ctx: &egui::Context, draggi
     let Some(doc) = doc else { return };
     let (layer, p, generation, limit) = (w.layer, plan_params(w, true), w.preview.want, w.texture_limit);
     let (tx, rx) = std::sync::mpsc::sync_channel(1);
-    let job = localpaint_engine::jobs::JobCtx::new();
+    let job = localraster_engine::jobs::JobCtx::new();
     let work = job.clone();
     let repaint = ctx.clone();
     let spawned = std::thread::Builder::new().name("caf-preview".into()).spawn(move || {

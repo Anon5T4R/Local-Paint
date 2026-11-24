@@ -1,13 +1,13 @@
 //! Camera Raw navigation uses the real modal shell and never changes document history.
 use egui::{Event, Key, Modifiers, PointerButton, Pos2, Rect, pos2, vec2};
 use egui_kittest::{Harness, kittest::Queryable};
-use localpaint_ui_egui::{LocalPaintApp, camera_raw_ui, control, theme::ThemeKind};
+use localraster_ui_egui::{LocalRasterApp, camera_raw_ui, control, theme::ThemeKind};
 use serde_json::{Value, json};
 
-fn fixture(ppp: f32) -> Harness<'static, LocalPaintApp> {
+fn fixture(ppp: f32) -> Harness<'static, LocalRasterApp> {
     let mut h = Harness::builder().with_step_dt(1.0 / 60.0).with_size(vec2(1200.0, 800.0)).with_pixels_per_point(ppp).build_eframe(|cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, ThemeKind::Pro);
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+        LocalRasterApp::setup_context(&cc.egui_ctx, ThemeKind::Pro);
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
         app.run("file.new", json!({"width":1200,"height":900})).unwrap();
         app.run("layer.new.layer", json!({})).unwrap();
         app.run("edit.fill", json!({"color":"#808080"})).unwrap();
@@ -17,25 +17,25 @@ fn fixture(ppp: f32) -> Harness<'static, LocalPaintApp> {
     h.run_steps(4);
     h
 }
-fn inspect(h: &Harness<'_, LocalPaintApp>) -> Value {
+fn inspect(h: &Harness<'_, LocalRasterApp>) -> Value {
     control::inspect(h.state(), &h.ctx)["cameraRaw"].clone()
 }
-fn rectangle(h: &Harness<'_, LocalPaintApp>, key: &str) -> Rect {
+fn rectangle(h: &Harness<'_, LocalRasterApp>, key: &str) -> Rect {
     let v = inspect(h);
     let a = v[key].as_array().unwrap();
     Rect::from_min_max(pos2(a[0].as_f64().unwrap() as f32, a[1].as_f64().unwrap() as f32), pos2(a[2].as_f64().unwrap() as f32, a[3].as_f64().unwrap() as f32))
 }
-fn menu(h: &mut Harness<'_, LocalPaintApp>, ui: Value) -> Result<Value, String> {
+fn menu(h: &mut Harness<'_, LocalRasterApp>, ui: Value) -> Result<Value, String> {
     let ctx = h.ctx.clone();
     camera_raw_ui::menu(h.state_mut(), &ctx, "filter.cameraRaw", &json!({"ui":ui})).unwrap()
 }
-fn press(h: &mut Harness<'_, LocalPaintApp>, at: Pos2, down: bool, modifiers: Modifiers) {
+fn press(h: &mut Harness<'_, LocalRasterApp>, at: Pos2, down: bool, modifiers: Modifiers) {
     h.event(Event::ModifiersChanged(modifiers));
     h.event(Event::PointerMoved(at));
     h.event(Event::PointerButton { pos: at, button: PointerButton::Primary, pressed: down, modifiers });
     h.run_steps(2);
 }
-fn drag(h: &mut Harness<'_, LocalPaintApp>, start: Pos2, end: Pos2, modifiers: Modifiers) {
+fn drag(h: &mut Harness<'_, LocalRasterApp>, start: Pos2, end: Pos2, modifiers: Modifiers) {
     press(h, start, true, modifiers);
     for n in 1..=4 {
         h.event(Event::PointerMoved(start + (end - start) * n as f32 / 4.0));
@@ -43,12 +43,12 @@ fn drag(h: &mut Harness<'_, LocalPaintApp>, start: Pos2, end: Pos2, modifiers: M
     }
     press(h, end, false, modifiers);
 }
-fn key(h: &mut Harness<'_, LocalPaintApp>, key: Key, modifiers: Modifiers, down: bool) {
+fn key(h: &mut Harness<'_, LocalRasterApp>, key: Key, modifiers: Modifiers, down: bool) {
     h.event(Event::ModifiersChanged(modifiers));
     h.event(Event::Key { key, physical_key: None, pressed: down, repeat: false, modifiers });
     h.run_steps(2);
 }
-fn zoom(h: &Harness<'_, LocalPaintApp>) -> f64 {
+fn zoom(h: &Harness<'_, LocalRasterApp>) -> f64 {
     inspect(h)["zoom"].as_f64().unwrap()
 }
 
@@ -185,7 +185,7 @@ fn invalid_view_requests_are_atomic_and_reopening_starts_in_fit_view() {
     menu(&mut h, json!({})).unwrap();
     h.run_steps(2);
     assert_eq!(inspect(&h)["view"], json!({"zoom":null,"center":[0.5,0.5],"hand":false}));
-    h.get_by_label(localpaint_ui_egui::i18n::tr(localpaint_ui_egui::i18n::current(), "100%")).click();
+    h.get_by_label(localraster_ui_egui::i18n::tr(localraster_ui_egui::i18n::current(), "100%")).click();
     h.run_steps(2);
     assert_eq!(zoom(&h), 1.0);
 }

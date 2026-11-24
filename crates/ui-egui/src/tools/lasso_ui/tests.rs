@@ -2,15 +2,15 @@ use super::*;
 use crate::canvas::tool_event;
 use serde_json::json;
 
-fn app() -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+fn app() -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     app.sync_views();
     app.ui.tool = Tool::Lasso;
     app
 }
 
-fn event(app: &mut LocalPaintApp, kind: &str, x: f64, y: f64, mods: Modifiers) {
+fn event(app: &mut LocalRasterApp, kind: &str, x: f64, y: f64, mods: Modifiers) {
     let ev = match kind {
         "down" => ToolEvent::Down { x, y, pressure: 1.0 },
         "up" => ToolEvent::Up { x, y },
@@ -19,7 +19,7 @@ fn event(app: &mut LocalPaintApp, kind: &str, x: f64, y: f64, mods: Modifiers) {
     tool_event(app, ev, mods);
 }
 
-fn begin(app: &mut LocalPaintApp, mods: Modifiers) {
+fn begin(app: &mut LocalRasterApp, mods: Modifiers) {
     event(app, "down", 50.0, 50.0, mods);
     event(app, "move", 90.0, 40.0, mods);
     event(app, "move", 120.0, 50.0, mods);
@@ -128,9 +128,9 @@ fn tool_or_document_switch_discards_pending_outline() {
     assert!(app.session.active().unwrap().doc.selection.is_none());
 }
 
-fn harness() -> egui_kittest::Harness<'static, LocalPaintApp> {
+fn harness() -> egui_kittest::Harness<'static, LocalRasterApp> {
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1000.0, 700.0)).build_ui_state(
-        |ui, app: &mut LocalPaintApp| {
+        |ui, app: &mut LocalRasterApp| {
             let ctx = ui.ctx().clone();
             if !ctx.fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                 return;
@@ -140,7 +140,7 @@ fn harness() -> egui_kittest::Harness<'static, LocalPaintApp> {
         },
         app(),
     );
-    LocalPaintApp::setup_context(&h.ctx, Default::default());
+    LocalRasterApp::setup_context(&h.ctx, Default::default());
     h.run_steps(4);
     let v = &mut h.state_mut().ui.views[0];
     v.zoom = 1.0;
@@ -150,7 +150,7 @@ fn harness() -> egui_kittest::Harness<'static, LocalPaintApp> {
     h
 }
 
-fn mouse(h: &mut egui_kittest::Harness<'static, LocalPaintApp>, kind: &str, x: f32, y: f32, mods: Modifiers) {
+fn mouse(h: &mut egui_kittest::Harness<'static, LocalRasterApp>, kind: &str, x: f32, y: f32, mods: Modifiers) {
     let app = h.state();
     let v = &app.ui.views[0];
     let xf = ViewXform {
@@ -170,7 +170,7 @@ fn mouse(h: &mut egui_kittest::Harness<'static, LocalPaintApp>, kind: &str, x: f
     h.run_steps(2);
 }
 
-fn freeform_harness() -> egui_kittest::Harness<'static, LocalPaintApp> {
+fn freeform_harness() -> egui_kittest::Harness<'static, LocalRasterApp> {
     let mut h = harness();
     let app = h.state_mut();
     for name in ["work", "Saved drawing"] {
@@ -184,7 +184,7 @@ fn freeform_harness() -> egui_kittest::Harness<'static, LocalPaintApp> {
     h
 }
 
-fn freeform_run_and_straight_click(h: &mut egui_kittest::Harness<'static, LocalPaintApp>) {
+fn freeform_run_and_straight_click(h: &mut egui_kittest::Harness<'static, LocalRasterApp>) {
     mouse(h, "down", 50.0, 50.0, Modifiers::NONE);
     mouse(h, "move", 90.0, 40.0, Modifiers::NONE);
     mouse(h, "move", 120.0, 50.0, Modifiers::NONE);
@@ -211,7 +211,7 @@ fn real_freeform_freehand_and_alt_straight_segments_append_to_the_owned_saved_pa
     assert_eq!(path.subpaths.len(), 2);
     assert_eq!(path.subpaths[0], original.paths[0].path.subpaths[0]);
     let knots = &path.subpaths[1].knots;
-    assert_eq!(knots.last().unwrap().anchor, localpaint_geom::Point::new(180.0, 100.0));
+    assert_eq!(knots.last().unwrap().anchor, localraster_geom::Point::new(180.0, 100.0));
     assert_eq!(knots.last().unwrap().in_ctrl, knots.last().unwrap().anchor);
     assert_eq!(knots[knots.len() - 2].out_ctrl, knots[knots.len() - 2].anchor);
     assert_eq!(st.history.past_len(), n + 1);
@@ -351,12 +351,12 @@ fn a_drag_inside_the_selection_moves_it() {
     let mut app = app();
     app.ui.extras.snap = false;
     app.run("select.rect", json!({"x": 100, "y": 100, "width": 50, "height": 40})).unwrap();
-    let bounds = |app: &LocalPaintApp| app.session.active().unwrap().doc.selection.as_ref().map(|s| s.content_bounds());
+    let bounds = |app: &LocalRasterApp| app.session.active().unwrap().doc.selection.as_ref().map(|s| s.content_bounds());
     event(&mut app, "down", 120.0, 120.0, Modifiers::NONE);
     event(&mut app, "move", 130.0, 125.0, Modifiers::NONE);
     event(&mut app, "up", 130.0, 125.0, Modifiers::NONE);
     assert!(!active(&app));
-    assert_eq!(bounds(&app), Some(localpaint_geom::Rect::new(110, 105, 160, 145)));
+    assert_eq!(bounds(&app), Some(localraster_geom::Rect::new(110, 105, 160, 145)));
 
     let mut h = harness();
     h.state_mut().ui.extras.snap = false;
@@ -367,7 +367,7 @@ fn a_drag_inside_the_selection_moves_it() {
     mouse(&mut h, "move", 130.0, 125.0, Modifiers::NONE);
     mouse(&mut h, "up", 130.0, 125.0, Modifiers::NONE);
     assert!(h.state().drag.is_none());
-    assert_eq!(bounds(h.state()), Some(localpaint_geom::Rect::new(110, 105, 160, 145)));
+    assert_eq!(bounds(h.state()), Some(localraster_geom::Rect::new(110, 105, 160, 145)));
 }
 
 #[test]
@@ -468,7 +468,7 @@ fn real_canvas_cmd_drag_outside_the_selection_moves_the_layer() {
     h.state_mut()
         .session
         .edit("paint", |doc, _| {
-            doc.layer_mut(layer).unwrap().surface_mut().unwrap().fill_rect(localpaint_geom::Rect::new(100, 100, 140, 140), &[1.0, 0.0, 0.0, 1.0]);
+            doc.layer_mut(layer).unwrap().surface_mut().unwrap().fill_rect(localraster_geom::Rect::new(100, 100, 140, 140), &[1.0, 0.0, 0.0, 1.0]);
             Ok(())
         })
         .unwrap();

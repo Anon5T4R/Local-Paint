@@ -1,6 +1,6 @@
 //! Closing a background tab must preserve the active document, not its old index.
-use localpaint_doc::DocId;
-use localpaint_engine::Session;
+use localraster_doc::DocId;
+use localraster_engine::Session;
 use serde_json::json;
 
 fn session_with_documents(count: usize) -> (Session, Vec<DocId>) {

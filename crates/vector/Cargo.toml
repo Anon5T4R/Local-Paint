@@ -1,5 +1,5 @@
 [package]
-name = "localpaint-vector"
+name = "localraster-vector"
 description = "Vector paths, shape layers, strokes and vector masks → anti-aliased coverage and surfaces"
 version.workspace = true
 edition.workspace = true
@@ -11,8 +11,8 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
-localpaint-geom = { workspace = true }
-localpaint-color = { workspace = true }
-localpaint-raster = { workspace = true }
-localpaint-doc = { workspace = true }
+localraster-geom = { workspace = true }
+localraster-color = { workspace = true }
+localraster-raster = { workspace = true }
+localraster-doc = { workspace = true }
 rayon = { workspace = true }

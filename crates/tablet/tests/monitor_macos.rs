@@ -7,15 +7,15 @@ fn main() {
     use std::cell::RefCell;
     use std::rc::Rc;
 
-    use localpaint_tablet::Sample;
-    use localpaint_tablet::macos::Monitor;
+    use localraster_tablet::Sample;
+    use localraster_tablet::macos::Monitor;
     use objc2::MainThreadMarker;
     use objc2_app_kit::{NSApplication, NSEvent};
     use objc2_core_graphics::{CGEvent, CGEventField, CGEventMouseSubtype, CGEventType, CGMouseButton};
     use objc2_foundation::NSPoint;
 
     // Answer cargo-nextest's `--list` (and nothing for `--ignored`), as tests/mac_menu_appkit.rs
-    // in apps/localpaint does; `monitor_macos --exact` falls through to the test.
+    // in apps/localraster does; `monitor_macos --exact` falls through to the test.
     let args: Vec<String> = std::env::args().collect();
     if args.iter().any(|a| a == "--list") {
         if !args.iter().any(|a| a == "--ignored") {

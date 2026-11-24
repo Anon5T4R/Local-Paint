@@ -1,8 +1,8 @@
 //! Layer comps must continue targeting their layers after a copied document gets fresh ids.
 //! Cover current/old history states, nested layers, Last Document State and merged-only copies.
 
-use localpaint_doc::{CompLayerState, Layer, LayerId};
-use localpaint_engine::Session;
+use localraster_doc::{CompLayerState, Layer, LayerId};
+use localraster_engine::Session;
 use serde_json::json;
 
 fn scene() -> (Session, LayerId) {

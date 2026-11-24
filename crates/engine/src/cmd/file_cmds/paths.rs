@@ -7,15 +7,15 @@ pub(super) fn is_file(path: &str) -> bool {
 }
 
 /// Every file the engine opens is read here: in bounded reads, with a clear error when it does
-/// not fit in memory (see [`localpaint_format::read`]).
+/// not fit in memory (see [`localraster_format::read`]).
 pub(crate) fn read_file(path: &str) -> Result<Vec<u8>> {
-    localpaint_format::read_file(std::path::Path::new(path)).map_err(|e| EngineError::Other(format!("{path}: {e}")))
+    localraster_format::read_file(std::path::Path::new(path)).map_err(|e| EngineError::Other(format!("{path}: {e}")))
 }
 
 /// Every file the engine writes goes through here: crash-safe (temp file + fsync + rename, see
-/// [`localpaint_format::atomic`]), so a failed save never destroys the previous file.
+/// [`localraster_format::atomic`]), so a failed save never destroys the previous file.
 pub(crate) fn write_file(path: &str, bytes: &[u8]) -> Result<()> {
-    localpaint_format::atomic_write(std::path::Path::new(path), bytes).map_err(|e| EngineError::Other(e.to_string()))
+    localraster_format::atomic_write(std::path::Path::new(path), bytes).map_err(|e| EngineError::Other(e.to_string()))
 }
 
 /// Files of a folder that look like images we can open, sorted by name.
@@ -32,17 +32,17 @@ pub fn list_images(dir: &str) -> Result<Vec<String>> {
 }
 
 /// Whether a folder entry is one the batch commands open: an `OPENABLE` extension, an extension
-/// of a format `localpaint-codecs` reads in this build, or GIMP's gzipped `.xcf.gz`, whose last
+/// of a format `localraster-codecs` reads in this build, or GIMP's gzipped `.xcf.gz`, whose last
 /// extension alone says nothing.
 pub(super) fn openable_name(path: &str) -> bool {
     let lower = file_name(path).to_ascii_lowercase();
     lower.ends_with(".xcf.gz")
-        || lower.rsplit_once('.').is_some_and(|(_, ext)| OPENABLE.contains(&ext) || localpaint_codecs::from_extension(ext).is_some_and(|f| f.caps().read))
+        || lower.rsplit_once('.').is_some_and(|(_, ext)| OPENABLE.contains(&ext) || localraster_codecs::from_extension(ext).is_some_and(|f| f.caps().read))
 }
 
 /// Extensions the batch commands pick up from a folder besides the codec formats: the document
-/// and vector formats `localpaint_io::import` reads outside `localpaint-codecs`, and the camera
-/// raws whose usual files `localpaint_raw::decode` develops. Not CR3, ORF, RAF, RW2, SRF or SR2:
+/// and vector formats `localraster_io::import` reads outside `localraster-codecs`, and the camera
+/// raws whose usual files `localraster_raw::decode` develops. Not CR3, ORF, RAF, RW2, SRF or SR2:
 /// CR3, compressed ORF and RAF and RW2 raw formats other than 3, 4 and 5 aren't decoded yet, and
 /// import falls back to the embedded JPEG preview with only a warning, which a batch must not
 /// process silently.
@@ -76,27 +76,27 @@ pub fn layered_extension(ext: &str) -> bool {
 
 /// Whether a file in format `ext` (lower-case) holds the whole of `doc`, so it can be the
 /// document's own file: PSD, PSB and .pcraft always; OpenRaster only when it drops nothing (no
-/// adjustment layers, styles, masks…, [`localpaint_io::ora_losses`]). A save to a format that
+/// adjustment layers, styles, masks…, [`localraster_io::ora_losses`]). A save to a format that
 /// doesn't hold the document is a copy, and File › Save goes through Save As, so an editable
 /// original is never overwritten with less than it had (#3806).
-pub fn holds(doc: &localpaint_doc::Document, ext: &str) -> bool {
+pub fn holds(doc: &localraster_doc::Document, ext: &str) -> bool {
     match ext {
         "psd" | "psb" | "pcraft" => true,
-        "ora" => localpaint_io::ora_losses(doc).is_empty(),
+        "ora" => localraster_io::ora_losses(doc).is_empty(),
         _ => false,
     }
 }
 
 /// [`holds`] for the file at `path`.
-pub fn holds_at(doc: &localpaint_doc::Document, path: &str) -> bool {
+pub fn holds_at(doc: &localraster_doc::Document, path: &str) -> bool {
     extension(path).is_some_and(|ext| holds(doc, &ext))
 }
 
 /// What a save of `doc` to `path` would leave out when its format can't hold it: OpenRaster's
-/// [`localpaint_io::ora_losses`]; empty for other formats.
-pub fn losses_at(doc: &localpaint_doc::Document, path: &str) -> Vec<String> {
+/// [`localraster_io::ora_losses`]; empty for other formats.
+pub fn losses_at(doc: &localraster_doc::Document, path: &str) -> Vec<String> {
     match extension(path).as_deref() {
-        Some("ora") => localpaint_io::ora_losses(doc),
+        Some("ora") => localraster_io::ora_losses(doc),
         _ => Vec::new(),
     }
 }

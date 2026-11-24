@@ -1,13 +1,13 @@
-use localpaint_geom::Rect;
+use localraster_geom::Rect;
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::canvas::ToolEvent;
 use crate::state::Tool;
 
 #[test]
 fn dragging_a_layer_larger_than_the_canvas_redraws_what_comes_in_from_beyond_the_edge() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 64, "height": 64})).unwrap();
     app.sync_views();
     app.session.execute("layer.new.layer", json!({})).unwrap();
@@ -37,7 +37,7 @@ fn dragging_a_layer_larger_than_the_canvas_redraws_what_comes_in_from_beyond_the
 /// and Free Transform do (#5727): once the pointer moves, until the release.
 #[test]
 fn a_move_drag_reads_out_the_offset_it_will_commit() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 64, "height": 64})).unwrap();
     app.sync_views();
     app.session.execute("layer.new.layer", json!({})).unwrap();
@@ -66,7 +66,7 @@ fn a_move_drag_reads_out_the_offset_it_will_commit() {
 /// showed, not the raw pointer distance.
 #[test]
 fn a_release_commits_the_offset_the_readout_caps_at() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 64, "height": 64, "background": "transparent"})).unwrap();
     app.sync_views();
     app.session.execute("layer.new.layer", json!({})).unwrap();
@@ -83,11 +83,11 @@ fn a_release_commits_the_offset_the_readout_caps_at() {
 /// drag frame must redraw where the rest of it was, or the cut edge stays behind (#3946).
 #[test]
 fn dragging_a_shape_past_the_canvas_edge_leaves_no_trail() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 64, "height": 64, "background": "transparent"})).unwrap();
     app.sync_views();
     let id = app.session.execute("shape.create", json!({"kind": "rect", "rect": [40, 16, 50, 32], "fill": "#ff0000"})).unwrap()["layer"].as_u64().unwrap();
-    let id = localpaint_doc::LayerId(id);
+    let id = localraster_doc::LayerId(id);
     app.ui.tool = Tool::Move;
     app.ui.extras.snap = false;
     app.ui.view.show.smart_guides = false;
@@ -100,7 +100,7 @@ fn dragging_a_shape_past_the_canvas_edge_leaves_no_trail() {
     }
     let st = app.session.active().unwrap();
     let r = super::damage(&app, st.doc.id, st.revision, frames[0].1, frames[1].1).unwrap();
-    let alpha = |d: &localpaint_doc::Document, x, y| d.layer(id).and_then(|l| l.surface()).map_or(0.0, |s| s.pixel(x, y)[3]);
+    let alpha = |d: &localraster_doc::Document, x, y| d.layer(id).and_then(|l| l.surface()).map_or(0.0, |s| s.pixel(x, y)[3]);
     for y in 0..64 {
         for x in 0..64 {
             if alpha(&frames[0].0, x, y) != alpha(&frames[1].0, x, y) {
@@ -115,7 +115,7 @@ fn dragging_a_shape_past_the_canvas_edge_leaves_no_trail() {
 #[test]
 fn dragging_with_an_unlinked_mask_targeted_moves_the_mask_alone() {
     for (linked, mask_target) in [(false, true), (false, false), (true, true)] {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.session.execute("file.new", json!({"width": 64, "height": 64, "background": "transparent"})).unwrap();
         app.sync_views();
         app.session.execute("layer.new.layer", json!({})).unwrap();
@@ -133,7 +133,7 @@ fn dragging_with_an_unlinked_mask_targeted_moves_the_mask_alone() {
         crate::canvas::tool_event(&mut app, ToolEvent::Move { x: 36.0, y: 16.0, pressure: 1.0 }, m);
         let shown = super::display_doc(&mut app, 0).unwrap().0;
         let id = app.session.active().unwrap().active_layer.unwrap();
-        let layer_moved = |d: &localpaint_doc::Document| d.layer(id).and_then(|l| l.surface()).is_some_and(|s| s.pixel(28, 16)[3] > 0.5);
+        let layer_moved = |d: &localraster_doc::Document| d.layer(id).and_then(|l| l.surface()).is_some_and(|s| s.pixel(28, 16)[3] > 0.5);
         let alone = !linked && mask_target;
         assert_eq!(layer_moved(&shown), !alone, "preview, linked {linked} mask target {mask_target}");
         crate::canvas::tool_event(&mut app, ToolEvent::Up { x: 36.0, y: 16.0 }, m);
@@ -144,7 +144,7 @@ fn dragging_with_an_unlinked_mask_targeted_moves_the_mask_alone() {
 
 /// Mid-drag on a painted layer: is the layer shown at the pointer?
 fn live(outline: bool) -> bool {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 64, "height": 64})).unwrap();
     app.sync_views();
     app.session.execute("layer.new.layer", json!({})).unwrap();
@@ -164,14 +164,14 @@ fn live(outline: bool) -> bool {
 /// A layer past the pixel-memory limit isn't copied for each frame of a drag (#6114, #6163).
 #[test]
 fn layers_over_the_limit_are_not_followed_live() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 64, "height": 64})).unwrap();
     app.session.execute("layer.new.layer", json!({})).unwrap();
     app.session.execute("select.rect", json!({"x": 8, "y": 8, "width": 16, "height": 16})).unwrap();
     app.session.execute("edit.fill", json!({"color": "#ff0000"})).unwrap();
     let st = app.session.active().unwrap();
     let id = st.active_layer.unwrap();
-    let one_tile = u64::from(localpaint_geom::TILE_SIZE.unsigned_abs()).pow(2) * 4;
+    let one_tile = u64::from(localraster_geom::TILE_SIZE.unsigned_abs()).pow(2) * 4;
     assert!(super::exceeds(&st.doc, &[id], one_tile - 1, false), "a tile of pixels is over a limit below its size");
     assert!(super::exceeds(&st.doc, &[id], one_tile * 4 - 1, false), "a shift can write four tiles for each stored one");
     assert!(!super::exceeds(&st.doc, &[id], u64::MAX, false), "nothing is over an unlimited drag");
@@ -183,7 +183,7 @@ fn layers_over_the_limit_are_not_followed_live() {
 /// the release still moves the layer once (#6114, #6163).
 #[test]
 fn a_drag_over_the_limit_shows_no_live_copy_and_still_commits() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 64, "height": 64})).unwrap();
     app.sync_views();
     app.session.execute("layer.new.layer", json!({})).unwrap();
@@ -192,14 +192,14 @@ fn a_drag_over_the_limit_shows_no_live_copy_and_still_commits() {
     app.session.execute("select.deselect", json!({})).unwrap();
     let id = app.session.active().unwrap().active_layer.unwrap();
     // Enough stored tiles, all sharing one allocation, to be past the limit before the drag starts.
-    let step = localpaint_geom::TILE_SIZE;
+    let step = localraster_geom::TILE_SIZE;
     app.session
         .edit("paint", |doc, a| {
             let surface = doc.layer_mut(a.unwrap()).unwrap().surface_mut().unwrap();
             let tile_bytes = u64::from(step.unsigned_abs()).pow(2) * surface.format().bytes_per_pixel() as u64;
             let count = (super::LIVE_LIMIT / (tile_bytes * 2) + 2) as i32; // a row writes about (n + 1) x 2 tiles
             let tile = surface.solid_tile(&[1.0, 0.0, 0.0, 1.0]);
-            surface.put_tiles((0..count).map(|x| (localpaint_geom::TileCoord::new(x, 0), tile.clone())));
+            surface.put_tiles((0..count).map(|x| (localraster_geom::TileCoord::new(x, 0), tile.clone())));
             Ok(())
         })
         .unwrap();
@@ -221,10 +221,10 @@ fn a_drag_over_the_limit_shows_no_live_copy_and_still_commits() {
 /// every layer: a dense photo stays live, isolated tiles (each straddles four) don't (#6114).
 #[test]
 fn the_estimate_counts_reachable_target_tiles_and_what_moved_target_copies() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 64, "height": 64, "background": "transparent"})).unwrap();
     app.session.execute("layer.new.layer", json!({})).unwrap();
-    let step = localpaint_geom::TILE_SIZE;
+    let step = localraster_geom::TILE_SIZE;
     let tile_bytes = u64::from(step.unsigned_abs()).pow(2) * 4;
     let tiles_over_limit = (super::LIVE_LIMIT / tile_bytes + 1) as i32;
     // A dense block of the same number of stored tiles as the sparse one below.
@@ -233,7 +233,7 @@ fn the_estimate_counts_reachable_target_tiles_and_what_moved_target_copies() {
         .edit("paint", |doc, a| {
             let surface = doc.layer_mut(a.unwrap()).unwrap().surface_mut().unwrap();
             let tile = surface.solid_tile(&[1.0, 0.0, 0.0, 1.0]);
-            surface.put_tiles((0..side * side).map(|i| (localpaint_geom::TileCoord::new(i % side, i / side), tile.clone())));
+            surface.put_tiles((0..side * side).map(|i| (localraster_geom::TileCoord::new(i % side, i / side), tile.clone())));
             Ok(())
         })
         .unwrap();
@@ -246,7 +246,7 @@ fn the_estimate_counts_reachable_target_tiles_and_what_moved_target_copies() {
         .edit("paint", |doc, a| {
             let surface = doc.layer_mut(a.unwrap()).unwrap().surface_mut().unwrap();
             let tile = surface.solid_tile(&[1.0, 0.0, 0.0, 1.0]);
-            surface.put_tiles((0..sparse).map(|i| (localpaint_geom::TileCoord::new(i * 10, i * 10 + 1000), tile.clone())));
+            surface.put_tiles((0..sparse).map(|i| (localraster_geom::TileCoord::new(i * 10, i * 10 + 1000), tile.clone())));
             Ok(())
         })
         .unwrap();
@@ -263,7 +263,7 @@ fn the_estimate_counts_reachable_target_tiles_and_what_moved_target_copies() {
 /// A group moves its contents whole; a group's unlinked mask dragged alone leaves them where they are.
 #[test]
 fn the_estimate_follows_a_group_into_its_contents() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 64, "height": 64, "background": "transparent"})).unwrap();
     app.session.execute("layer.new.layer", json!({})).unwrap();
     let inner = app.session.active().unwrap().active_layer.unwrap();
@@ -271,13 +271,13 @@ fn the_estimate_follows_a_group_into_its_contents() {
         .edit("paint", |doc, a| {
             let surface = doc.layer_mut(a.unwrap()).unwrap().surface_mut().unwrap();
             let tile = surface.solid_tile(&[1.0, 0.0, 0.0, 1.0]);
-            surface.put_tiles((0..600).map(|i| (localpaint_geom::TileCoord::new(i * 10, i * 10), tile.clone())));
+            surface.put_tiles((0..600).map(|i| (localraster_geom::TileCoord::new(i * 10, i * 10), tile.clone())));
             Ok(())
         })
         .unwrap();
     let group = app.session.execute("layer.new.group", json!({})).unwrap()["layer"].as_u64().unwrap();
     app.session.execute("layer.moveTo", json!({"layer": inner.0, "target": group, "position": "into"})).unwrap();
-    let group = localpaint_doc::LayerId(group);
+    let group = localraster_doc::LayerId(group);
     let st = app.session.active().unwrap();
     assert!(super::exceeds(&st.doc, &[group], super::LIVE_LIMIT, false), "the group's contents are shifted with it");
     app.session.execute("layer.layerMask.revealAll", json!({"layer": group.0})).unwrap();
@@ -289,8 +289,8 @@ fn the_estimate_follows_a_group_into_its_contents() {
 
 /// A `width` × `height` `depth`-bit document whose new layer covers the canvas, one fill per tile
 /// with its own colour (a photo: no two tiles share pixels), and the Move tool on.
-fn photo(width: u32, height: u32, depth: u32) -> LocalPaintApp {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn photo(width: u32, height: u32, depth: u32) -> LocalRasterApp {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": width, "height": height, "depth": depth})).unwrap();
     app.sync_views();
     app.session.execute("layer.new.layer", json!({})).unwrap();
@@ -312,7 +312,7 @@ fn photo(width: u32, height: u32, depth: u32) -> LocalPaintApp {
 }
 
 /// Mid-drag by (37, 11): is the layer shown at the pointer?
-fn follows_a_drag(app: &mut LocalPaintApp) -> bool {
+fn follows_a_drag(app: &mut LocalRasterApp) -> bool {
     let m = egui::Modifiers::NONE;
     crate::canvas::tool_event(app, ToolEvent::Down { x: 100.0, y: 100.0, pressure: 1.0 }, m);
     crate::canvas::tool_event(app, ToolEvent::Move { x: 137.0, y: 111.0, pressure: 1.0 }, m);
@@ -335,7 +335,7 @@ fn ordinary_photos_follow_the_pointer() {
 /// the edge is written), so a large filled layer drags live as it does without the limit.
 #[test]
 fn a_large_solid_layer_follows_the_pointer() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 12000, "height": 12000, "depth": 16})).unwrap();
     app.sync_views();
     app.session.execute("layer.new.layer", json!({})).unwrap();
@@ -352,10 +352,10 @@ fn a_large_solid_layer_follows_the_pointer() {
 /// past what a shift writes, which is at most the tiles the content can reach.
 #[test]
 fn the_estimate_is_capped_by_what_the_content_reaches() {
-    let format = localpaint_color::PixelFormat::RGBA8;
-    let mut s = localpaint_raster::Surface::new(format);
+    let format = localraster_color::PixelFormat::RGBA8;
+    let mut s = localraster_raster::Surface::new(format);
     s.fill_rect(Rect::new(128, 128, 384, 384), &[1.0, 0.0, 0.0, 1.0]);
-    let tile = u64::from(localpaint_geom::TILE_SIZE.unsigned_abs()).pow(2) * format.bytes_per_pixel() as u64;
+    let tile = u64::from(localraster_geom::TILE_SIZE.unsigned_abs()).pow(2) * format.bytes_per_pixel() as u64;
     assert_eq!(s.tile_count(), 4, "a tile-sized square straddles four tiles");
     assert_eq!(super::shift_bytes(&s), 4 * tile, "it reaches (1 + 1) × (1 + 1) target tiles, not the nine blocks round its tiles");
 }
@@ -363,7 +363,7 @@ fn the_estimate_is_capped_by_what_the_content_reaches() {
 /// `shift_smart` shifts a smart object's filter mask with it: the estimate counts it.
 #[test]
 fn the_estimate_counts_a_smart_filter_mask() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 64, "height": 64, "background": "transparent"})).unwrap();
     app.session.execute("layer.new.layer", json!({})).unwrap();
     app.session.execute("select.rect", json!({"x": 8, "y": 8, "width": 16, "height": 16})).unwrap();
@@ -374,12 +374,12 @@ fn the_estimate_counts_a_smart_filter_mask() {
     assert!(!super::exceeds(&app.session.active().unwrap().doc, &[id], super::LIVE_LIMIT, false), "a small smart object");
     app.session
         .edit("paint", |doc, a| {
-            let localpaint_doc::LayerContent::Smart(sm) = &mut doc.layer_mut(a.unwrap()).unwrap().content else { panic!("not a smart object") };
-            let mut mask = localpaint_doc::LayerMask::hide_all();
+            let localraster_doc::LayerContent::Smart(sm) = &mut doc.layer_mut(a.unwrap()).unwrap().content else { panic!("not a smart object") };
+            let mut mask = localraster_doc::LayerMask::hide_all();
             // Isolated tiles, each written as four by a shift: past the limit at one byte a pixel.
             let tile = mask.surface.solid_tile(&[1.0]);
             let count = (super::LIVE_LIMIT / (1 << 16) / 4 + 1) as i32;
-            mask.surface.put_tiles((0..count).map(|i| (localpaint_geom::TileCoord::new(i * 10, 0), tile.clone())));
+            mask.surface.put_tiles((0..count).map(|i| (localraster_geom::TileCoord::new(i * 10, 0), tile.clone())));
             sm.filter_mask = Some(mask);
             Ok(())
         })
@@ -395,8 +395,8 @@ fn bounding_box_preference_turns_the_live_drag_off() {
 
 /// A `depth`-bit transparent document whose layer holds a red square (8..24)² and a blue one
 /// (40..56)×(8..24), the red one selected; the Move tool with Auto-Select on.
-fn selected_pixels(depth: u32) -> (LocalPaintApp, localpaint_doc::LayerId) {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+fn selected_pixels(depth: u32) -> (LocalRasterApp, localraster_doc::LayerId) {
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.session.execute("file.new", json!({"width": 64, "height": 64, "background": "transparent", "depth": depth})).unwrap();
     app.sync_views();
     for (x, color) in [(40, "#0000ff"), (8, "#ff0000")] {
@@ -411,22 +411,22 @@ fn selected_pixels(depth: u32) -> (LocalPaintApp, localpaint_doc::LayerId) {
     (app, id)
 }
 
-fn alpha(app: &LocalPaintApp, id: localpaint_doc::LayerId, x: i32, y: i32) -> f32 {
+fn alpha(app: &LocalRasterApp, id: localraster_doc::LayerId, x: i32, y: i32) -> f32 {
     app.session.active().unwrap().doc.layer(id).unwrap().surface().unwrap().rgba(x, y)[3]
 }
 
-fn offset(app: &LocalPaintApp) -> Option<(i32, i32)> {
-    localpaint_engine::float_cmds::floating(app.session.active().unwrap()).map(|f| f.offset)
+fn offset(app: &LocalRasterApp) -> Option<(i32, i32)> {
+    localraster_engine::float_cmds::floating(app.session.active().unwrap()).map(|f| f.offset)
 }
 
-fn drag(app: &mut LocalPaintApp, from: [f64; 2], to: [f64; 2], m: egui::Modifiers) {
+fn drag(app: &mut LocalRasterApp, from: [f64; 2], to: [f64; 2], m: egui::Modifiers) {
     crate::canvas::tool_event(app, ToolEvent::Down { x: from[0], y: from[1], pressure: 1.0 }, m);
     crate::canvas::tool_event(app, ToolEvent::Move { x: to[0], y: to[1], pressure: 1.0 }, m);
     crate::canvas::tool_event(app, ToolEvent::Up { x: to[0], y: to[1] }, m);
 }
 
 /// ↩ through the app's key handling.
-fn enter(app: &mut LocalPaintApp) {
+fn enter(app: &mut LocalRasterApp) {
     let ctx = egui::Context::default();
     let key = egui::Event::Key { key: egui::Key::Enter, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::NONE };
     let input = egui::RawInput { events: vec![key], ..Default::default() };

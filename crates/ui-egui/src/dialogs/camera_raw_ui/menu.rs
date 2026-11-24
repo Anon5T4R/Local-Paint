@@ -1,10 +1,10 @@
 use super::controls::{commit, redo_edit, remember_edit, undo_edit};
 use super::open::{cancel, open, open_smart_filter};
 use super::sidecar::{load_settings, save_settings};
-use super::{CameraRaw, LayerId, LocalPaintApp, Value, json};
+use super::{CameraRaw, LayerId, LocalRasterApp, Value, json};
 
 /// Menu / control-channel entry point. `None` when the call isn't for this dialog.
-pub fn menu(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, params: &Value) -> Option<Result<Value, String>> {
+pub fn menu(app: &mut LocalRasterApp, ctx: &egui::Context, id: &str, params: &Value) -> Option<Result<Value, String>> {
     if id != "filter.cameraRaw" {
         return None;
     }
@@ -45,7 +45,7 @@ pub fn menu(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, params: &Val
     if ui.get("commit").and_then(Value::as_bool) == Some(true) && ui.get("cancel").and_then(Value::as_bool) == Some(true) {
         return Some(Err("Camera Raw cannot commit and cancel together".into()));
     }
-    for (key, run) in [("saveSettings", save_settings as fn(&mut LocalPaintApp) -> Result<Value, String>), ("loadSettings", load_settings)] {
+    for (key, run) in [("saveSettings", save_settings as fn(&mut LocalRasterApp) -> Result<Value, String>), ("loadSettings", load_settings)] {
         if ui.get(key).and_then(Value::as_bool) == Some(true) {
             if fields.len() > 1 {
                 return Some(Err(format!("Camera Raw {key} must be sent on its own")));
@@ -68,14 +68,14 @@ pub fn menu(app: &mut LocalPaintApp, ctx: &egui::Context, id: &str, params: &Val
     result
 }
 
-fn menu_update(app: &mut LocalPaintApp, ctx: &egui::Context, ui: &Value) -> Option<Result<Value, String>> {
+fn menu_update(app: &mut LocalRasterApp, ctx: &egui::Context, ui: &Value) -> Option<Result<Value, String>> {
     // Stage both filter and presentation updates. No texture, preference or dialog mutation
     // occurs until every part of the request has passed validation.
     let d = app.camera_raw.as_ref()?;
     let mut next_params = d.params.clone();
     // Auto (the Light panel's button): the tone sliders from the image's histogram.
     if ui.get("auto").and_then(Value::as_bool) == Some(true) {
-        localpaint_algo::camera_raw::auto_tone(&d.proxy, &mut next_params);
+        localraster_algo::camera_raw::auto_tone(&d.proxy, &mut next_params);
     }
     if let Some(set) = ui.get("set") {
         if !set.is_object() {
@@ -115,7 +115,7 @@ fn menu_update(app: &mut LocalPaintApp, ctx: &egui::Context, ui: &Value) -> Opti
     let demosaic = match ui.get("demosaic") {
         None => None,
         Some(_) if d.raw_open.is_none() => return Some(Err("demosaic applies only while a raw file opens".into())),
-        Some(v) => match v.as_str().and_then(localpaint_io::raw::Demosaic::from_id) {
+        Some(v) => match v.as_str().and_then(localraster_io::raw::Demosaic::from_id) {
             Some(m) => Some(m),
             None => return Some(Err("demosaic must be ahd, mhc or bilinear".into())),
         },

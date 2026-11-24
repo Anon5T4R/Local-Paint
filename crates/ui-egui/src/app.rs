@@ -1,6 +1,6 @@
 use super::services::{ExportSettings, FormatChoices, SAVE_OPTIONS_OPEN, SaveKind, Services, plain_raster, saved_revision_after_write};
 use super::{
-    ControlRequest, DocId, Document, HashMap, LocalPaintApp, Receiver, Session, SyntheticTarget, Tool, UiState, Value, actions, analysis_ui, brush_panel,
+    ControlRequest, DocId, Document, HashMap, LocalRasterApp, Receiver, Session, SyntheticTarget, Tool, UiState, Value, actions, analysis_ui, brush_panel,
     brush_picker, camera_raw_ui, canvas, dds_options_ui, delete_layer_prompt, dialogs, discard_ui, distort_ui, dock, field_wheel, file_open, gpu_canvas,
     gpu_status, gradient_ui, histogram_panel, i18n, jobs_ui, jpeg_options_ui, json, kys_import, last_brush, layers_panel_ui, mask_thumbs_ui, mask_trash_prompt,
     monitor_status, native_menu, notices, open_prompt, paint_mouse, palette, panel_docking, panels, prefs_ui, preset_files_ui, preset_panels, rasterize_prompt,
@@ -31,7 +31,7 @@ pub(crate) use targets::adjustment_layer_active;
 pub(crate) use thumbs::layer_thumb_frame;
 pub use thumbs::surface_fingerprint;
 
-impl LocalPaintApp {
+impl LocalRasterApp {
     pub fn new(mut session: Session, mut services: Services) -> Self {
         session.updates.check = services.check_updates.take();
         let mut app = Self {
@@ -211,12 +211,12 @@ impl LocalPaintApp {
         kys_import::offer_import(&mut app);
         notices::wayland_file_drop_guidance(&mut app);
         // File › Scripts › Script Events Manager: "Start Application".
-        localpaint_engine::automate_cmds::fire_event(&mut app.session, "startApplication");
+        localraster_engine::automate_cmds::fire_event(&mut app.session, "startApplication");
         app
     }
 }
 
-impl eframe::App for LocalPaintApp {
+impl eframe::App for LocalRasterApp {
     fn on_exit(&mut self) {
         if let Err(err) = tool_memory::save_on_exit(self) {
             log::warn!("Preferences: could not save the final tool selection: {err}");

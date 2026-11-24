@@ -1,10 +1,10 @@
 //! Timing: Gaussian Blur radius 10 on a 6016×6016 RGBA8 layer, as a document layer filling the
 //! canvas is filtered (edges repeated at the canvas edge).
-//! `cargo run --release -p localpaint-algo --example bench_gaussian [-- <size> <radius>]`
-use localpaint_algo::{FilterParams, apply_in, output_area};
-use localpaint_color::PixelFormat;
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+//! `cargo run --release -p localraster-algo --example bench_gaussian [-- <size> <radius>]`
+use localraster_algo::{FilterParams, apply_in, output_area};
+use localraster_color::PixelFormat;
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 
 fn main() {
     let n: i32 = std::env::args().nth(1).and_then(|v| v.parse().ok()).unwrap_or(6016);

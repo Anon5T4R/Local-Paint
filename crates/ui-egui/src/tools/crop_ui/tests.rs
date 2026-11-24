@@ -1,16 +1,16 @@
 use super::*;
 use crate::canvas::tool_event;
-use localpaint_doc::{Color, ColorMode, Document, SampleType, Size};
+use localraster_doc::{Color, ColorMode, Document, SampleType, Size};
 use serde_json::json;
 
 const NONE: Modifiers = Modifiers::NONE;
 const SHIFT: Modifiers = Modifiers::SHIFT;
 
-fn app(depth: SampleType) -> LocalPaintApp {
+fn app(depth: SampleType) -> LocalRasterApp {
     let doc = Document::with_background("crop", Size::new(200, 100), ColorMode::Rgb, depth, Color::WHITE);
-    let mut s = localpaint_engine::Session::new();
+    let mut s = localraster_engine::Session::new();
     s.add_document(doc, None);
-    let mut app = LocalPaintApp::new(s, crate::Services::default());
+    let mut app = LocalRasterApp::new(s, crate::Services::default());
     app.ui.tool = Tool::Crop;
     // These tests pin Classic Mode (the frame moves and turns over the image); the default
     // mode's are in `crop_mode`.
@@ -20,7 +20,7 @@ fn app(depth: SampleType) -> LocalPaintApp {
     app
 }
 
-fn drag(app: &mut LocalPaintApp, pts: &[[f64; 2]], mods: Modifiers) {
+fn drag(app: &mut LocalRasterApp, pts: &[[f64; 2]], mods: Modifiers) {
     let (first, last) = (pts[0], pts[pts.len() - 1]);
     tool_event(app, ToolEvent::Down { x: first[0], y: first[1], pressure: 1.0 }, mods);
     for p in &pts[1..] {
@@ -451,7 +451,7 @@ fn space_on_the_canvas_moves_the_frame_not_the_view() {
     };
     a.ui.views = vec![view.clone()];
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(600.0, 400.0)).build_ui_state(
-        |ui, app: &mut LocalPaintApp| {
+        |ui, app: &mut LocalRasterApp| {
             let v = app.ui.views[0].clone();
             crate::canvas::canvas_view(app, ui, 0, ui.max_rect(), v, true);
         },
@@ -509,7 +509,7 @@ fn cancelling_a_turned_crop_resets_its_angle() {
 
 #[test]
 fn a_pending_crop_stays_with_its_document() {
-    let size = |app: &LocalPaintApp| app.session.active().map(|st| st.doc.size);
+    let size = |app: &LocalRasterApp| app.session.active().map(|st| st.doc.size);
     // File › New.
     let mut app = app(SampleType::U8);
     drag(&mut app, &[[10.0, 10.0], [50.0, 40.0]], NONE);
@@ -883,7 +883,7 @@ fn degenerate_and_bad_input_never_panics() {
     drag(&mut app, &[[10.0, 10.0], [30.0, 30.0]], SHIFT);
     crate::canvas::commit_crop(&mut app);
     // No document: events are swallowed quietly.
-    let mut empty = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut empty = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     empty.ui.tool = Tool::Crop;
     drag(&mut empty, &[[1.0, 1.0], [9.0, 9.0]], NONE);
     assert!(empty.ui.crop_rect.is_none());
@@ -969,7 +969,7 @@ fn cursor_inside_the_default_frame_draws() {
 }
 
 /// One key press through the app's keyboard handling (`shortcuts::handle`).
-fn key(app: &mut LocalPaintApp, key: egui::Key, modifiers: Modifiers) {
+fn key(app: &mut LocalRasterApp, key: egui::Key, modifiers: Modifiers) {
     let ctx = egui::Context::default();
     let raw = egui::RawInput {
         events: vec![egui::Event::ModifiersChanged(modifiers), egui::Event::Key { key, physical_key: None, pressed: true, repeat: false, modifiers }],
@@ -979,7 +979,7 @@ fn key(app: &mut LocalPaintApp, key: egui::Key, modifiers: Modifiers) {
     out.textures_delta.clear();
 }
 
-fn layer_offset(app: &LocalPaintApp) -> (i32, i32) {
+fn layer_offset(app: &LocalRasterApp) -> (i32, i32) {
     let st = app.session.active().unwrap();
     let l = st.doc.layer(st.active_layer.unwrap()).unwrap();
     l.surface().map_or((0, 0), |s| (s.content_bounds().x0, s.content_bounds().y0))
@@ -1048,7 +1048,7 @@ fn arrow_keys_nudge_the_pending_frame() {
     assert!(!nudge(&mut app, 1.0, 0.0));
 }
 
-fn app_selection_bounds(app: &LocalPaintApp) -> Option<(i32, i32, i32, i32)> {
+fn app_selection_bounds(app: &LocalRasterApp) -> Option<(i32, i32, i32, i32)> {
     let b = app.session.active()?.doc.selection.as_ref()?.content_bounds();
     Some((b.x0, b.y0, b.x1, b.y1))
 }
@@ -1060,7 +1060,7 @@ fn x_swaps_the_frame_orientation_not_the_colours() {
     use egui::Key;
     let mut app = app(SampleType::U16);
     app.run("tools.setColors", json!({"foreground": "#ff0000", "background": "#0000ff"})).unwrap();
-    let fg = |app: &LocalPaintApp| app.session.tools.foreground;
+    let fg = |app: &LocalRasterApp| app.session.tools.foreground;
     let red = fg(&app);
     app.ui.crop_rect = Some([20.0, 20.0, 100.0, 60.0]);
     app.ui.crop_angle = 25.0;
@@ -1117,7 +1117,7 @@ fn x_swaps_the_frame_orientation_not_the_colours() {
 #[test]
 fn readout_shows_the_frame_size_while_drawing_or_resizing() {
     let mut app = app(SampleType::U8);
-    let ev = |app: &mut LocalPaintApp, e: ToolEvent| tool_event(app, e, NONE);
+    let ev = |app: &mut LocalRasterApp, e: ToolEvent| tool_event(app, e, NONE);
     ev(&mut app, ToolEvent::Down { x: 10.0, y: 10.0, pressure: 1.0 });
     assert_eq!(sizing(&app), None, "nothing drawn yet");
     ev(&mut app, ToolEvent::Move { x: 70.4, y: 50.6, pressure: 1.0 });

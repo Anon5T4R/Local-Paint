@@ -3,7 +3,7 @@ use super::commit::{commit, committing, moves_type};
 use super::drag_modes::{apply_drag, apply_mode_drag, drag_mods, handle_indicator, mode_allows, mode_mods};
 use super::warp::{quick_split_kind, split_cursor, surface_at, warp_hit, warp_pointer};
 use super::{
-    CursorIcon, HANDLE_PX, Homography, LayerContent, LocalPaintApp, ToolEvent, TransformMode, TransformPreview, TransformSession, ViewXform, WarpStyle,
+    CursorIcon, HANDLE_PX, Homography, LayerContent, LocalRasterApp, ToolEvent, TransformMode, TransformPreview, TransformSession, ViewXform, WarpStyle,
     handle_tolerance,
 };
 
@@ -62,7 +62,7 @@ pub(super) fn accepts_outside_click(g: Gesture, end: [f64; 2], tol: f64) -> bool
 }
 
 /// Pointer input while transforming. Returns false when no transform is active.
-pub fn pointer(app: &mut LocalPaintApp, ev: ToolEvent, mods: egui::Modifiers) -> bool {
+pub fn pointer(app: &mut LocalRasterApp, ev: ToolEvent, mods: egui::Modifiers) -> bool {
     let Some(t) = app.ui.transform.clone() else { return false };
     if committing(app).is_some() {
         return true;
@@ -129,7 +129,7 @@ pub fn pointer(app: &mut LocalPaintApp, ev: ToolEvent, mods: egui::Modifiers) ->
 /// whole pixels, whatever the tool. Rounding the pointer alone left the edges off by the grab
 /// offset, and a proportional scale off by its ratio: a shape dragged to 540 px came out 539.6.
 /// Rotated, skewed and distorted boxes are left as dragged.
-fn round_to_pixel_grid(app: &mut LocalPaintApp) {
+fn round_to_pixel_grid(app: &mut LocalRasterApp) {
     if !app.session.prefs().tools.snap_vector_tools_and_transforms_to_pixel_grid {
         return;
     }
@@ -138,7 +138,7 @@ fn round_to_pixel_grid(app: &mut LocalPaintApp) {
         return;
     }
     let shapes =
-        |st: &localpaint_engine::DocState| moving_layers(t).iter().all(|id| st.doc.layer(*id).is_some_and(|l| matches!(l.content, LayerContent::Shape(_))));
+        |st: &localraster_engine::DocState| moving_layers(t).iter().all(|id| st.doc.layer(*id).is_some_and(|l| matches!(l.content, LayerContent::Shape(_))));
     let vector = t.path.is_some() || app.session.active().is_some_and(shapes);
     if !vector || !upright(&t.quad) {
         return;
@@ -230,7 +230,7 @@ pub(super) fn rotation_degrees(quad: [[f64; 2]; 4]) -> f64 {
 /// Where the rotate cursor's arc bends at document point `p`, or `None` outside the rotate zone:
 /// just outside a corner, or anywhere while a rotate drag is on. It points into the box along the
 /// bisector of the nearest corner, so each corner gets its own arrow and they turn with the box.
-pub(crate) fn rotate_cursor_dir(app: &LocalPaintApp, p: [f64; 2]) -> Option<[f64; 2]> {
+pub(crate) fn rotate_cursor_dir(app: &LocalRasterApp, p: [f64; 2]) -> Option<[f64; 2]> {
     rotate_dir(app.ui.transform.as_ref()?, app.transform_preview.as_ref(), p, handle_tolerance(app))
 }
 
@@ -265,13 +265,13 @@ pub(super) fn rotate_dir(t: &TransformSession, pv: Option<&TransformPreview>, p:
 }
 
 /// The handle a drag in progress holds, else the one under document point `p`.
-pub(super) fn handle_at(app: &LocalPaintApp, t: &TransformSession, p: [f64; 2], tol: f64) -> Hit {
+pub(super) fn handle_at(app: &LocalRasterApp, t: &TransformSession, p: [f64; 2], tol: f64) -> Hit {
     app.transform_preview.as_ref().and_then(|pv| pv.gesture.map(|g| g.hit)).unwrap_or_else(|| hit(t, p, tol))
 }
 
 /// Cursor for hovering a document point while transforming. `xf` is the canvas's view;
 /// `mods` provides modifier keys (Command for Distort on corners / Skew on edges; Alt/Command for quick split in warp).
-pub fn cursor(app: &LocalPaintApp, xf: &ViewXform, p: [f64; 2], mods: egui::Modifiers) -> Option<CursorIcon> {
+pub fn cursor(app: &LocalRasterApp, xf: &ViewXform, p: [f64; 2], mods: egui::Modifiers) -> Option<CursorIcon> {
     let t = app.ui.transform.as_ref()?;
     let tol = handle_tolerance(app);
     if let Some(w) = &t.warp {

@@ -3,10 +3,10 @@
 //! Layers, Merge Visible, Stamp Visible and Stamp Down made layers that spanned the whole canvas:
 //! Free Transform, the Move tool and alignment then worked on the canvas instead of the content.
 
-use localpaint_doc::{Layer, LayerId};
-use localpaint_engine::Session;
-use localpaint_engine::transform_cmds::transform_bounds;
-use localpaint_geom::Rect;
+use localraster_doc::{Layer, LayerId};
+use localraster_engine::Session;
+use localraster_engine::transform_cmds::transform_bounds;
+use localraster_geom::Rect;
 use serde_json::{Value, json};
 
 const W: u32 = 300;

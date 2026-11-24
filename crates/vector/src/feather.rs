@@ -1,9 +1,9 @@
 //! Mask feathering: the Gaussian blur Properties › Feather applies to a mask (pixel masks, vector
 //! masks and a shape layer's own path, so equal feathers match exactly). Pure `f32` planes; the
-//! compositor (`localpaint-compose::masks`) and the shape renderer share it.
+//! compositor (`localraster-compose::masks`) and the shape renderer share it.
 
-use localpaint_doc::Path;
-use localpaint_geom::Rect;
+use localraster_doc::Path;
+use localraster_geom::Rect;
 
 /// Gaussian sigma of a mask feather of `px` pixels (Properties › Feather): the feather itself.
 /// Blurred with exactly that variance, psd-tools mask-parameters-no-real-channel.psd (6 px vector

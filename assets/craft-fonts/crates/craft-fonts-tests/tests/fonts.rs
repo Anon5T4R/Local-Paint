@@ -678,7 +678,7 @@ fn devanagari_face_is_a_single_static_regular_face() {
 /// The observed failing sequence `फ़ा` (U+092B U+093C U+093E), the Hindi Camera Raw sample
 /// and the individual letter/mark pieces must all map to drawn outlines. This is glyph
 /// coverage, not proof of Devanagari shaping, conjunct formation or mark positioning; the
-/// LocalPaint Camera Raw test exercises the real shaping path.
+/// LocalRaster Camera Raw test exercises the real shaping path.
 #[test]
 fn devanagari_glyphs_and_hindi_sample_have_drawn_outlines() {
     let f = face("Noto Sans Devanagari");

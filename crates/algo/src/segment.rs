@@ -34,8 +34,8 @@ pub mod sky;
 pub mod slic;
 pub mod subject;
 
-use localpaint_geom::Rect;
-use localpaint_raster::{Cancelled, Interrupt, Surface};
+use localraster_geom::Rect;
+use localraster_raster::{Cancelled, Interrupt, Surface};
 
 pub use crate::selection::Region;
 use gmm::Gmm;

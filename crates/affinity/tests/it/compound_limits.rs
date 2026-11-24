@@ -2,9 +2,9 @@
 #![cfg(feature = "synth")]
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
-use localpaint_affinity::model::{Document, Kind};
-use localpaint_affinity::synth::{self, F, Method, tag};
-use localpaint_affinity::{Limits, read};
+use localraster_affinity::model::{Document, Kind};
+use localraster_affinity::synth::{self, F, Method, tag};
+use localraster_affinity::{Limits, read};
 use std::time::{Duration, Instant};
 
 fn compound(id: u32, children: Vec<F>) -> F {
@@ -44,7 +44,7 @@ fn document(definitions: Vec<F>, roots: Vec<F>) -> Document {
 // A stack overflow aborts rather than unwinds. Keep that failure (and an exponential hang)
 // inside a child process, so the regression fails without killing the entire test runner.
 fn isolated(name: &str, check: impl FnOnce()) {
-    if std::env::var("LOCALPAINT_COMPOUND_CASE").as_deref() == Ok(name) {
+    if std::env::var("LOCALRASTER_COMPOUND_CASE").as_deref() == Ok(name) {
         check();
         return;
     }
@@ -52,7 +52,7 @@ fn isolated(name: &str, check: impl FnOnce()) {
     let test = module_path!().split_once("::").map_or(name.to_string(), |(_, m)| format!("{m}::{name}"));
     let mut child = std::process::Command::new(std::env::current_exe().unwrap())
         .args(["--exact", &test, "--nocapture"])
-        .env("LOCALPAINT_COMPOUND_CASE", name)
+        .env("LOCALRASTER_COMPOUND_CASE", name)
         .spawn()
         .unwrap();
     let start = Instant::now();

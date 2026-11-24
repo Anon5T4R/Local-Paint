@@ -21,13 +21,13 @@
 //! which a wide stroke shows as flat facets (#3646). Inside stroke edges and spread / choke keep the
 //! cheaper chamfer. Soft falloffs are two box blurs (a tent).
 
-use localpaint_color::blend::BlendMode;
-use localpaint_doc::Pattern;
-use localpaint_doc::{
+use localraster_color::blend::BlendMode;
+use localraster_doc::Pattern;
+use localraster_doc::{
     Bevel, BevelStyle, BevelTechnique, Contour, Effect, FxPaint, GlobalLight, Glow, GlowSource, GlowTechnique, Gradient, GradientStyle, Layer, Shadow,
     StrokePosition,
 };
-use localpaint_geom::Rect;
+use localraster_geom::Rect;
 
 use crate::pattern::{PREPARED_PATTERN_BYTES, Placement, PreparedPatterns};
 use crate::{Buffer, psblend};
@@ -202,7 +202,7 @@ pub struct FxMaps {
 
 impl FxMaps {
     /// The frame of a gradient stroke `st` of this layer (see [`stroke_frame`]), if built.
-    pub fn stroke_frame(&self, st: &localpaint_doc::StrokeFx) -> Option<Rect> {
+    pub fn stroke_frame(&self, st: &localraster_doc::StrokeFx) -> Option<Rect> {
         self.frames.iter().find(|f| f.0 == stroke_widths(st).1.to_bits()).map(|f| f.1)
     }
 }

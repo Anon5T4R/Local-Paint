@@ -1,19 +1,19 @@
 //! Timing for the computational-photography algorithms on a ~24 MP (6000×4000) image:
 //! Camera Raw develop, Lens Correction, Adaptive Wide Angle, HDR merge + tone mapping, Crop and
 //! Straighten detection, and a 4-image panorama registration + blend (2 MP sources).
-//! `cargo run --release -p localpaint-algo --example bench_photo [case-substring]`
+//! `cargo run --release -p localraster-algo --example bench_photo [case-substring]`
 use std::time::Instant;
 
-use localpaint_algo::camera_raw::{CameraRaw, Wheel, develop};
-use localpaint_algo::hdr::{self, MergeOptions, ToneMethod};
-use localpaint_algo::lens::{self, LensCorrection};
-use localpaint_algo::panorama::{self, AlignOptions, Layout, RoiImage};
-use localpaint_algo::tone::HdrToning;
-use localpaint_algo::transform::Interp;
-use localpaint_algo::wideangle::{self, Constraint, Orientation, WideAngle, WideModel};
-use localpaint_color::PixelFormat;
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_algo::camera_raw::{CameraRaw, Wheel, develop};
+use localraster_algo::hdr::{self, MergeOptions, ToneMethod};
+use localraster_algo::lens::{self, LensCorrection};
+use localraster_algo::panorama::{self, AlignOptions, Layout, RoiImage};
+use localraster_algo::tone::HdrToning;
+use localraster_algo::transform::Interp;
+use localraster_algo::wideangle::{self, Constraint, Orientation, WideAngle, WideModel};
+use localraster_color::PixelFormat;
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 
 fn pattern(w: usize, h: usize) -> Vec<[f32; 4]> {
     (0..w * h)
@@ -149,7 +149,7 @@ fn main() {
         println!("  merge {:.1} ms", t0.elapsed().as_secs_f64() * 1000.0);
         hdr::tone_map(&mut m.px, w, h, &ToneMethod::LocalAdaptation(HdrToning { radius: 7.0, strength: 0.52, ..Default::default() }));
     });
-    time("crop and straighten: detection", &only, || localpaint_algo::scancrop::find_photos(w, h, &px));
+    time("crop and straighten: detection", &only, || localraster_algo::scancrop::find_photos(w, h, &px));
     time("panorama: 4 × 2 MP register + blend", &only, || {
         let (sw, sh) = (1700usize, 1200usize);
         let views: Vec<Vec<f32>> = (0..4)

@@ -1,6 +1,6 @@
 # Summary
 
-[Local Paint Documentation](README.md)
+[Local Raster Documentation](README.md)
 
 # Getting started
 

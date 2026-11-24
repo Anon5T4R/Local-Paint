@@ -7,7 +7,7 @@ use super::{
 
 // ---------- the filters we model ----------
 
-/// Photoshop filter → Local Paint command, keyed by the `Fltr` class (and `filterID`).
+/// Photoshop filter → Local Raster command, keyed by the `Fltr` class (and `filterID`).
 pub(super) struct Known {
     pub(super) class: &'static str,
     pub(super) filter_id: i32,
@@ -106,7 +106,7 @@ pub(super) const NO_OPTIONS: [&str; 11] = ["Blr ", "BlrM", "Avrg", "Dspc", "FndE
 // Dust & Scratches (filterID DstS): DstS { Rds  long, Thsh long }
 // ```
 //
-// Local Paint's Smart Sharpen removes a Gaussian blur, non-legacy: Lens Blur, Motion Blur, legacy
+// Local Raster's Smart Sharpen removes a Gaussian blur, non-legacy: Lens Blur, Motion Blur, legacy
 // mode, Shadow/Highlight settings or any other key keep the whole entry verbatim. `presetKind`
 // only names the dialog's preset: it is accepted on open but not kept (the engine takes no such
 // parameter) and not written (Photoshop leaves it out of entries with explicit values).
@@ -123,7 +123,7 @@ fn unit_in(d: &Descriptor, key: &str, u: &[u8; 4], lo: f64, hi: f64) -> Option<f
     }
 }
 
-/// `filter.sharpen.smartSharpen` params; `None` for a setting Local Paint doesn't render.
+/// `filter.sharpen.smartSharpen` params; `None` for a setting Local Raster doesn't render.
 fn smart_sharpen_params(f: &Descriptor) -> Option<J> {
     if f.items.iter().any(|(k, _)| !SMART_SHARPEN_KEYS.iter().any(|x| k.is(x))) {
         return None;
@@ -145,7 +145,7 @@ fn smart_sharpen_params(f: &Descriptor) -> Option<J> {
     Some(J::Object(out))
 }
 
-/// Photoshop enum codes ↔ Local Paint parameter values, per filter setting.
+/// Photoshop enum codes ↔ Local Raster parameter values, per filter setting.
 pub(super) const RIPPLE_SIZE: [(&[u8; 4], &str); 3] = [(b"Sml ", "small"), (b"Mdm ", "medium"), (b"Lrg ", "large")];
 
 pub(super) const SPHERIZE_MODE: [(&[u8; 4], &str); 3] = [(b"Nrml", "normal"), (b"HrzO", "horizontalOnly"), (b"VrtO", "verticalOnly")];
@@ -158,7 +158,7 @@ pub(super) const WAVE_TYPE: [(&[u8; 4], &str); 3] = [(b"WvSn", "sine"), (b"WvTr"
 
 pub(super) const UNDEFINED_AREAS: [(&[u8; 4], &str); 2] = [(b"WrpA", "wrap"), (b"RptE", "repeat")];
 
-/// The PSD filter record that Local Paint's `command` is written as, if it has one.
+/// The PSD filter record that Local Raster's `command` is written as, if it has one.
 pub(super) fn known_by_command(command: &str) -> Option<&'static Known> {
     KNOWN.iter().find(|k| k.command == command)
 }
@@ -490,11 +490,11 @@ fn distort_filter_params(class: &str, f: &Descriptor) -> Option<J> {
             json!({"amount": int(f, "Amnt")?, "ridges": int(f, "NmbR")?, "style": enum_name(f, "ZZTy", "ZZTy", &ZIGZAG_STYLE)?})
         }
         ("Wave", Some(f)) if exact_keys(f, &WAVE_KEYS) => {
-            // Local Paint's Wave has no Scale: a scaled wave stays verbatim rather than lose it. The
+            // Local Raster's Wave has no Scale: a scaled wave stays verbatim rather than lose it. The
             // same for more generators than the renderer models, which would draw fewer than
             // Photoshop did (and than the file asks for, once its cached pixels are re-rendered).
             let generators = int(f, "NmbG")?;
-            let modelled = u32::try_from(generators).is_ok_and(|g| (1..=localpaint_algo::MAX_WAVE_GENERATORS).contains(&g));
+            let modelled = u32::try_from(generators).is_ok_and(|g| (1..=localraster_algo::MAX_WAVE_GENERATORS).contains(&g));
             if int(f, "SclH")? != 100 || int(f, "SclV")? != 100 || !modelled {
                 return None;
             }
@@ -789,7 +789,7 @@ pub(super) fn gallery_item(f: &SmartFilter) -> Result<Descriptor, String> {
         }) {
             return Err(format!("gallery setting `{key}.{k}` has no PSD equivalent"));
         }
-        let defaults = localpaint_algo::GalleryFilter::from_key(key).map(localpaint_algo::GalleryEffect::new);
+        let defaults = localraster_algo::GalleryFilter::from_key(key).map(localraster_algo::GalleryEffect::new);
         let settings: Vec<(&str, Value)> = if key == "halftonePattern" {
             vec![
                 ("HlSz", whole(pf_range(params, "size", 1.0, 1.0, 12.0)?, (1, 12), "size")?),

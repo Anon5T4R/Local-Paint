@@ -1,5 +1,5 @@
 use super::*;
-use localpaint_color::SampleType;
+use localraster_color::SampleType;
 
 fn session(mode: &str, depth: u64) -> Session {
     let mut s = Session::new();
@@ -55,7 +55,7 @@ fn rgb_becomes_cmy_inks_and_back_exactly() {
         assert!((cyan - (1.0 - red)).abs() <= tol(depth), "{depth}: {cyan} vs {red}");
         assert!(!s.is_enabled("image.mode.multichannel"), "already multichannel");
         // The display prints the inks: a white RGB pixel shows paper.
-        let shown = localpaint_compose::flatten(doc(&s));
+        let shown = localraster_compose::flatten(doc(&s));
         assert!(shown.px.iter().all(|p| p[3] == 1.0));
         let r = s.execute("image.mode.rgb", json!({})).unwrap();
         assert_eq!(r["converted"], "channels");
@@ -156,7 +156,7 @@ fn mismatched_channel_count_converts_the_printed_look() {
         Ok(())
     })
     .unwrap();
-    let shown = localpaint_compose::flatten(doc(&s));
+    let shown = localraster_compose::flatten(doc(&s));
     let r = s.execute("image.mode.rgb", json!({})).unwrap();
     assert_eq!(r["converted"], "appearance");
     let px = doc(&s).layers[0].surface().unwrap().pixel(5, 2);
@@ -181,12 +181,12 @@ fn psd_round_trip_keeps_names_inks_and_values() {
         let mut s = session("cmyk", depth);
         s.execute("image.mode.multichannel", json!({})).unwrap();
         let d = doc(&s).clone();
-        let out = localpaint_io::export(&d, "x.psd", &localpaint_io::ExportOptions::default()).unwrap();
-        let file = localpaint_io::document_to_psd(&d);
+        let out = localraster_io::export(&d, "x.psd", &localraster_io::ExportOptions::default()).unwrap();
+        let file = localraster_io::document_to_psd(&d);
         assert_eq!(file.header.color_mode.as_u16(), 7);
         assert_eq!(file.header.channels, 4);
         // Photoshop stores ink as dark: a solid-ink sample is 0.
-        let back = localpaint_io::import("x.psd", &out.bytes).unwrap().document;
+        let back = localraster_io::import("x.psd", &out.bytes).unwrap().document;
         assert_eq!(back.mode, ColorMode::Multichannel);
         assert_eq!(back.depth, d.depth);
         assert!(back.layers.is_empty());
@@ -206,7 +206,7 @@ fn psd_stores_ink_as_dark() {
     let mut s = session("grayscale", 8);
     s.execute("edit.fill", json!({"color": "#000000"})).unwrap();
     s.execute("image.mode.multichannel", json!({})).unwrap();
-    let file = localpaint_io::document_to_psd(doc(&s));
+    let file = localraster_io::document_to_psd(doc(&s));
     let merged = file.decode_merged().unwrap();
     assert!(merged.iter().all(|&b| b == 0), "solid black ink is stored as 0");
 }
@@ -216,11 +216,11 @@ fn pcraft_round_trip() {
     let mut s = session("rgb", 16);
     s.execute("image.mode.multichannel", json!({})).unwrap();
     let d = doc(&s).clone();
-    let bytes = localpaint_format::save_to_bytes(&d, &Default::default()).unwrap();
-    let back = localpaint_format::load_from_bytes(&bytes).unwrap();
+    let bytes = localraster_format::save_to_bytes(&d, &Default::default()).unwrap();
+    let back = localraster_format::load_from_bytes(&bytes).unwrap();
     assert_eq!(back.mode, ColorMode::Multichannel);
     assert_eq!(back.channels, d.channels);
-    assert_eq!(localpaint_compose::flatten(&back), localpaint_compose::flatten(&d));
+    assert_eq!(localraster_compose::flatten(&back), localraster_compose::flatten(&d));
 }
 
 #[test]
@@ -228,9 +228,9 @@ fn flat_export_prints_the_inks() {
     let mut s = session("grayscale", 8);
     s.execute("edit.fill", json!({"color": "#000000"})).unwrap();
     s.execute("image.mode.multichannel", json!({})).unwrap();
-    let out = localpaint_io::export(doc(&s), "x.png", &localpaint_io::ExportOptions::default()).unwrap();
-    let back = localpaint_io::import("x.png", &out.bytes).unwrap().document;
-    let px = localpaint_compose::flatten(&back).get(3, 3);
+    let out = localraster_io::export(doc(&s), "x.png", &localraster_io::ExportOptions::default()).unwrap();
+    let back = localraster_io::import("x.png", &out.bytes).unwrap().document;
+    let px = localraster_compose::flatten(&back).get(3, 3);
     // Solid process black ink, not paper.
     assert!(px[0] < 0.3 && px[3] > 0.99, "{px:?}");
 }

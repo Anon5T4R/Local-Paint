@@ -1,5 +1,5 @@
 use super::*;
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
+use localraster_color::{ColorMode, PixelFormat, SampleType};
 
 fn ramp(sample: SampleType) -> Surface {
     let mut s = Surface::new(PixelFormat::new(ColorMode::Rgb, sample, true));

@@ -9,13 +9,13 @@
 //! OK runs `filter.liquify` with the same strokes and gets the same field.
 
 use egui::{Align2, Color32, FontId, Pos2, Rect as ERect, Sense, Stroke, TextureHandle, pos2, vec2};
-use localpaint_algo::liquify::{LiquifyField, LiquifyStroke, LiquifyTool, ProxyImage, auto_cell};
-use localpaint_doc::{DocId, Document, LayerId};
-use localpaint_geom::Rect;
-use localpaint_raster::Surface;
+use localraster_algo::liquify::{LiquifyField, LiquifyStroke, LiquifyTool, ProxyImage, auto_cell};
+use localraster_doc::{DocId, Document, LayerId};
+use localraster_geom::Rect;
+use localraster_raster::Surface;
 use serde_json::{Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::canvas::ToolEvent;
 use crate::theme::Tokens;
 use crate::widgets;
@@ -40,7 +40,7 @@ fn render_components(
     dirty: Rect,
     out: &mut [[u8; 4]],
 ) -> bool {
-    let Ok(Some(colors)) = localpaint_engine::color_channels::explicit(&json!({"target":target}), source.format().mode.color_channels()) else { return false };
+    let Ok(Some(colors)) = localraster_engine::color_channels::explicit(&json!({"target":target}), source.format().mode.color_channels()) else { return false };
     let width = bounds.width() as usize;
     if source_bounds.is_empty() || bounds.is_empty() || !scale.is_finite() || scale <= 0.0 || width.checked_mul(bounds.height() as usize) != Some(out.len()) {
         return false;
@@ -77,7 +77,7 @@ fn render_components(
                     source.sample_channel(x, y, channel)
                 };
             }
-            let rgba = localpaint_raster::to_rgba(&fmt, &native);
+            let rgba = localraster_raster::to_rgba(&fmt, &native);
             let a = rgba[3].clamp(0.0, 1.0);
             let encoded = [rgba[0] * a, rgba[1] * a, rgba[2] * a, a].map(|v| (v.clamp(0.0, 1.0) * 255.0 + 0.5) as u8);
             let index = (y - bounds.y0) as usize * width + (x - bounds.x0) as usize;
@@ -572,7 +572,7 @@ impl LiquifyDialog {
 }
 
 /// Opens the dialog on the active layer.
-pub fn open(app: &mut LocalPaintApp, ctx: &egui::Context) -> Result<(), String> {
+pub fn open(app: &mut LocalRasterApp, ctx: &egui::Context) -> Result<(), String> {
     let (layer, surf, _) = crate::distort_ui::active_filter_target(app)?;
     let canvas = app.session.active().ok_or("no document")?.doc.bounds();
     open_on(app, ctx, layer, surf, Vec::new(), auto_cell(canvas), None)
@@ -581,10 +581,10 @@ pub fn open(app: &mut LocalPaintApp, ctx: &egui::Context) -> Result<(), String> 
 /// Re-opens Liquify smart filter `index` of smart object `layer` with its recorded strokes and
 /// mesh size, previewing on the pixels below it; OK updates that filter
 /// (`layer.smartFilter.setParams`).
-pub fn open_smart_filter(app: &mut LocalPaintApp, ctx: &egui::Context, layer: LayerId, index: usize) -> Result<(), String> {
-    use localpaint_engine::distort_cmds::{LIQUIFY, liquify_params};
+pub fn open_smart_filter(app: &mut LocalRasterApp, ctx: &egui::Context, layer: LayerId, index: usize) -> Result<(), String> {
+    use localraster_engine::distort_cmds::{LIQUIFY, liquify_params};
     let st = app.session.active().ok_or("no document")?;
-    let Some(localpaint_doc::LayerContent::Smart(sm)) = st.doc.layer(layer).map(|l| &l.content) else {
+    let Some(localraster_doc::LayerContent::Smart(sm)) = st.doc.layer(layer).map(|l| &l.content) else {
         return Err("the layer is not a smart object".into());
     };
     let filter = sm.smart_filters.get(index).ok_or("no such smart filter")?;
@@ -592,14 +592,14 @@ pub fn open_smart_filter(app: &mut LocalPaintApp, ctx: &egui::Context, layer: La
         return Err("the smart filter is not a Liquify filter".into());
     }
     let (strokes, cell) = liquify_params(LIQUIFY, &filter.params, st.doc.bounds()).map_err(|e| e.to_string())?;
-    let surf = localpaint_engine::smart_cmds::render_below_filter(&st.doc, sm, index)
+    let surf = localraster_engine::smart_cmds::render_below_filter(&st.doc, sm, index)
         .map_err(|e| e.to_string())?
         .ok_or("the smart object's contents are unavailable (missing linked file?)")?;
     open_on(app, ctx, layer, surf, strokes, cell, Some(index))
 }
 
 fn open_on(
-    app: &mut LocalPaintApp,
+    app: &mut LocalRasterApp,
     ctx: &egui::Context,
     layer: LayerId,
     surf: Surface,
@@ -612,7 +612,7 @@ fn open_on(
     let name = st.doc.layer(layer).map(|l| l.name.clone()).unwrap_or_default();
     let proxy = ProxyImage::new(&surf, canvas, PROXY_SIDE);
     let target = if smart_filter.is_some() { json!("pixels") } else { crate::distort_ui::colour_set_target(app) };
-    let colors = localpaint_engine::color_channels::explicit(&json!({"target":target}), surf.format().mode.color_channels()).map_err(|e| e.to_string())?;
+    let colors = localraster_engine::color_channels::explicit(&json!({"target":target}), surf.format().mode.color_channels()).map_err(|e| e.to_string())?;
     let native_proxy = colors.map(|_| crate::gallery_ui::reduce(&surf, canvas, proxy.scale as u32));
     let out = vec![[0u8; 4]; proxy.w * proxy.h];
     let center = [f64::from(canvas.x0 + canvas.x1) / 2.0, f64::from(canvas.y0 + canvas.y1) / 2.0];
@@ -666,14 +666,14 @@ fn open_on(
 }
 
 /// Keeps the brush settings for the next time Liquify opens, also after a restart.
-fn remember(app: &mut LocalPaintApp, opts: &LiquifyOpts) {
+fn remember(app: &mut LocalRasterApp, opts: &LiquifyOpts) {
     let v = opts.to_json();
     app.session.prefs.edit(|p| p.dialogs.insert(REMEMBERED.into(), v));
 }
 
 /// Cancel (button, Esc or the control channel): the document is untouched; the brush settings
 /// are kept.
-pub fn cancel(app: &mut LocalPaintApp) {
+pub fn cancel(app: &mut LocalRasterApp) {
     if let Some(d) = app.distort.liquify.take() {
         remember(app, &d.opts);
     }
@@ -683,7 +683,7 @@ pub fn cancel(app: &mut LocalPaintApp) {
 /// a smart filter, OK updates that filter instead (also when Restore All left no strokes). The
 /// dialog closes either way. `app.run` shows a failed command's error in the status bar, and
 /// `commit` returns it.
-pub fn commit(app: &mut LocalPaintApp) -> Result<(), String> {
+pub fn commit(app: &mut LocalRasterApp) -> Result<(), String> {
     let Some(mut d) = app.distort.liquify.take() else { return Ok(()) };
     remember(app, &d.opts);
     d.end();
@@ -699,7 +699,7 @@ pub fn commit(app: &mut LocalPaintApp) -> Result<(), String> {
 }
 
 /// Control channel: `filter.liquify {"ui": {...}}` while the dialog is open.
-pub fn control(app: &mut LocalPaintApp, ui: &Value) -> Result<Value, String> {
+pub fn control(app: &mut LocalRasterApp, ui: &Value) -> Result<Value, String> {
     if ui.get("commit").and_then(Value::as_bool) == Some(true) {
         commit(app)?;
         return Ok(json!({"committed": true}));
@@ -778,7 +778,7 @@ fn resized_brush(start_size: f32, start_density: f32, dx: f32, dy: f32, zoom: f3
 /// Pointer in document coordinates (from the preview or the control channel). Alt at
 /// pointer-down subtracts from the freeze mask (lasso), reverses a twirl and swaps Pucker/Bloat;
 /// Shift adds to the mask, same as no modifier.
-pub fn pointer(app: &mut LocalPaintApp, ev: ToolEvent, mods: egui::Modifiers) {
+pub fn pointer(app: &mut LocalRasterApp, ev: ToolEvent, mods: egui::Modifiers) {
     let now = crate::gpu_canvas::now_ms();
     let Some(d) = app.distort.liquify.as_mut() else { return };
     match ev {
@@ -815,7 +815,7 @@ pub fn pointer(app: &mut LocalPaintApp, ev: ToolEvent, mods: egui::Modifiers) {
 }
 
 /// Ctrl+Z / Ctrl+Shift+Z inside Liquify, including while a slider's text field is focused.
-pub fn history_keys(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub fn history_keys(app: &mut LocalRasterApp, ctx: &egui::Context) {
     let Some(d) = app.distort.liquify.as_mut() else { return };
     let cmd_shift = egui::Modifiers::COMMAND | egui::Modifiers::SHIFT;
     if ctx.input_mut(|i| i.consume_key(cmd_shift, egui::Key::Z)) {
@@ -825,7 +825,7 @@ pub fn history_keys(app: &mut LocalPaintApp, ctx: &egui::Context) {
     }
 }
 
-pub fn keys(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub fn keys(app: &mut LocalRasterApp, ctx: &egui::Context) {
     history_keys(app, ctx);
     // ⌘+ / ⌘− / ⌘0 / ⌘1 (or their overrides) zoom the preview, not the canvas behind it (#7210).
     let nav = if app.distort.liquify.is_some() { crate::shortcuts::nav_shortcut(app, ctx) } else { None };
@@ -911,10 +911,10 @@ fn shortcut(t: LiquifyTool) -> &'static str {
 /// The backdrop for Show Backdrop › Use `of`: the document as it is (All Layers, the liquified
 /// layer's own pixels included, as in Photoshop) or that one layer alone. A layer that is gone
 /// shows All Layers.
-fn load_backdrop(app: &LocalPaintApp, ctx: &egui::Context, of: Option<u64>, canvas: Rect) -> Option<TextureHandle> {
+fn load_backdrop(app: &LocalRasterApp, ctx: &egui::Context, of: Option<u64>, canvas: Rect) -> Option<TextureHandle> {
     let st = app.session.active()?;
-    let buf = localpaint_compose::render(&backdrop_doc(&st.doc, of), canvas);
-    let mut s = localpaint_raster::Surface::new(localpaint_color::PixelFormat::RGBA8);
+    let buf = localraster_compose::render(&backdrop_doc(&st.doc, of), canvas);
+    let mut s = localraster_raster::Surface::new(localraster_color::PixelFormat::RGBA8);
     let flat: Vec<f32> = buf.px.iter().flat_map(|p| *p).collect();
     s.write_region(canvas, &flat);
     Some(ctx.load_texture("liquify-backdrop", crate::distort_ui::surface_image(&s, canvas, PROXY_SIDE), egui::TextureOptions::LINEAR))
@@ -935,11 +935,11 @@ fn backdrop_doc(doc: &Document, of: Option<u64>) -> std::borrow::Cow<'_, Documen
 }
 
 /// Makes layer `id` and the groups holding it visible; whether it was found.
-fn reveal(layers: &mut [localpaint_doc::Layer], id: LayerId) -> bool {
+fn reveal(layers: &mut [localraster_doc::Layer], id: LayerId) -> bool {
     layers.iter_mut().any(|l| {
         let found = l.id == id
             || match &mut l.content {
-                localpaint_doc::LayerContent::Group(g) => reveal(&mut g.children, id),
+                localraster_doc::LayerContent::Group(g) => reveal(&mut g.children, id),
                 _ => false,
             };
         if found {
@@ -1034,7 +1034,7 @@ fn apply_preview_wheel(
     }
 }
 
-pub fn show(app: &mut LocalPaintApp, ctx: &egui::Context) {
+pub fn show(app: &mut LocalRasterApp, ctx: &egui::Context) {
     let t = Tokens::get(ctx);
     let screen = ctx.content_rect();
     // The backdrop is built when it's first shown and again when its Use changes.

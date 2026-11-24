@@ -3,7 +3,7 @@
 //! depend on a right-to-left language being selected.
 
 use super::*;
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::i18n::{self, Lang};
 use egui_kittest::{Harness, kittest::Queryable};
 use serde_json::json;
@@ -61,10 +61,10 @@ fn env_values_parse_strictly() {
     assert_eq!(parse_dir("ar"), None);
 }
 
-fn harness() -> Harness<'static, LocalPaintApp> {
+fn harness() -> Harness<'static, LocalRasterApp> {
     let mut h = Harness::builder().with_size(egui::vec2(1200.0, 800.0)).with_max_steps(64).build_eframe(|cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, crate::theme::ThemeKind::ProMedium);
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        LocalRasterApp::setup_context(&cc.egui_ctx, crate::theme::ThemeKind::ProMedium);
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({"width": 64, "height": 64})).expect("new document");
         app
     });
@@ -73,12 +73,12 @@ fn harness() -> Harness<'static, LocalPaintApp> {
 }
 
 /// Centre x of the widget labelled `label` (the first, when several are).
-fn x_of(h: &Harness<'static, LocalPaintApp>, label: &str) -> f32 {
+fn x_of(h: &Harness<'static, LocalRasterApp>, label: &str) -> f32 {
     h.query_all_by_label(label).next().unwrap_or_else(|| panic!("`{label}` drawn")).rect().center().x
 }
 
 /// Left x of the text `text` where it is painted (for widgets without an accessible label).
-fn text_x(h: &Harness<'static, LocalPaintApp>, text: &str) -> f32 {
+fn text_x(h: &Harness<'static, LocalRasterApp>, text: &str) -> f32 {
     fn find(shape: &egui::Shape, text: &str) -> Option<f32> {
         match shape {
             egui::Shape::Text(t) if t.galley.job.text == text => Some(t.pos.x),
@@ -89,7 +89,7 @@ fn text_x(h: &Harness<'static, LocalPaintApp>, text: &str) -> f32 {
     h.output().shapes.iter().find_map(|s| find(&s.shape, text)).unwrap_or_else(|| panic!("`{text}` painted"))
 }
 
-fn dock_x(h: &Harness<'static, LocalPaintApp>) -> f32 {
+fn dock_x(h: &Harness<'static, LocalRasterApp>) -> f32 {
     crate::panel_docking::probe::panel_rect(&h.ctx, "layers").expect("Layers docked").center().x
 }
 

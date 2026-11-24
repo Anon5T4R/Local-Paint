@@ -1,14 +1,14 @@
 //! Destructive pixel operations on layers (Image → Adjustments, flips, fills).
 
-use localpaint_compose::{Buffer, adjust};
-use localpaint_doc::{Adjustment, Document, Layer, LayerContent};
-use localpaint_geom::{Rect, TILE_SIZE};
-use localpaint_raster::{Surface, to_rgba};
+use localraster_compose::{Buffer, adjust};
+use localraster_doc::{Adjustment, Document, Layer, LayerContent};
+use localraster_geom::{Rect, TILE_SIZE};
+use localraster_raster::{Surface, to_rgba};
 
 /// Composite `layers` inside their visible composite bounds (effects included) and write the result directly into a
 /// tiled surface. Large merges used to hold both a full-canvas RGBA buffer and a second converted
 /// float buffer at once; banded rendering keeps only one compositor band plus the destination.
-pub fn composite_layers(solo: &Document, format: localpaint_color::PixelFormat, background: Option<[f32; 3]>) -> Surface {
+pub fn composite_layers(solo: &Document, format: localraster_color::PixelFormat, background: Option<[f32; 3]>) -> Surface {
     let canvas = solo.bounds();
     let area = solo
         .layers
@@ -16,7 +16,7 @@ pub fn composite_layers(solo: &Document, format: localpaint_color::PixelFormat, 
         .filter(|layer| layer.visible)
         // Composite bounds include layer effects (a drop shadow reaches past the pixels); `None`
         // means the layer may draw anywhere.
-        .map(|layer| localpaint_compose::composite_bounds(layer, canvas).unwrap_or(canvas))
+        .map(|layer| localraster_compose::composite_bounds(layer, canvas).unwrap_or(canvas))
         .filter(|bounds| !bounds.is_empty())
         .reduce(|a, b| a.union(&b))
         .unwrap_or(Rect::EMPTY)
@@ -25,12 +25,12 @@ pub fn composite_layers(solo: &Document, format: localpaint_color::PixelFormat, 
         return Surface::new(format);
     }
     // Also keeps a plain CMYK stack in its ink values (#3778).
-    localpaint_compose::composite_to_surface(solo, area, format, background)
+    localraster_compose::composite_to_surface(solo, area, format, background)
 }
 
 /// [`composite_layers`] without cropping to the canvas: pixels of the layers that lie outside it are kept
 /// (merging layers must not lose them, #5067).
-pub fn composite_layers_uncropped(solo: &Document, format: localpaint_color::PixelFormat) -> Surface {
+pub fn composite_layers_uncropped(solo: &Document, format: localraster_color::PixelFormat) -> Surface {
     let canvas = solo.bounds();
     // The canvas grown to every visible layer's content and effects, so no layer is clipped by `composite_bounds`.
     let reach = solo
@@ -38,8 +38,8 @@ pub fn composite_layers_uncropped(solo: &Document, format: localpaint_color::Pix
         .iter()
         .filter(|layer| layer.visible)
         .map(|layer| {
-            let margin = if localpaint_compose::effects::has_effects(layer) { localpaint_compose::effects::margin(layer) } else { 0 };
-            let bounds = localpaint_compose::layer_bounds(layer, canvas);
+            let margin = if localraster_compose::effects::has_effects(layer) { localraster_compose::effects::margin(layer) } else { 0 };
+            let bounds = localraster_compose::layer_bounds(layer, canvas);
             if bounds.is_empty() { bounds } else { bounds.inflate(margin) }
         })
         .filter(|bounds| !bounds.is_empty())
@@ -48,14 +48,14 @@ pub fn composite_layers_uncropped(solo: &Document, format: localpaint_color::Pix
         .layers
         .iter()
         .filter(|layer| layer.visible)
-        .map(|layer| localpaint_compose::composite_bounds(layer, reach).unwrap_or(canvas))
+        .map(|layer| localraster_compose::composite_bounds(layer, reach).unwrap_or(canvas))
         .filter(|bounds| !bounds.is_empty())
         .reduce(|a, b| a.union(&b))
         .unwrap_or(Rect::EMPTY);
     if area.is_empty() {
         return Surface::new(format);
     }
-    localpaint_compose::composite_to_surface(solo, area, format, None)
+    localraster_compose::composite_to_surface(solo, area, format, None)
 }
 
 /// Most bytes of tiles an adjustment may materialize beyond the ones a surface stores: two distant
@@ -69,7 +69,7 @@ fn grid_tiles(r: Rect) -> u64 {
 }
 
 /// Bytes the tiles of the grid over `r` take beyond the `stored` ones, in format `fmt`.
-fn unstored_bytes(r: Rect, stored: u64, fmt: &localpaint_color::PixelFormat) -> u64 {
+fn unstored_bytes(r: Rect, stored: u64, fmt: &localraster_color::PixelFormat) -> u64 {
     grid_tiles(r).saturating_sub(stored).saturating_mul((TILE_SIZE as u64).pow(2)).saturating_mul(fmt.bytes_per_pixel() as u64)
 }
 
@@ -88,7 +88,7 @@ const TOO_SPARSE: &str = "the adjustment would have to fill too large an area ar
 /// selection; `mode` is the document's, for the tone transfer (e.g. Exposure in Grayscale).
 /// Works tile by tile in parallel, so a large layer needs one tile's buffers per thread rather
 /// than four full-layer copies, and the result is the same as one pass over the whole region.
-pub fn adjust_surface(s: &mut Surface, adj: &Adjustment, selection: Option<&Surface>, mode: localpaint_color::ColorMode) -> Result<(), String> {
+pub fn adjust_surface(s: &mut Surface, adj: &Adjustment, selection: Option<&Surface>, mode: localraster_color::ColorMode) -> Result<(), String> {
     use rayon::prelude::*;
     let r = s.content_bounds();
     if r.is_empty() {
@@ -131,7 +131,7 @@ mod tests;
 /// the mask's default value), and without a selection the default changes too, since a mask
 /// reaches past the canvas: Invert turns a reveal-all mask into a hide-all one (#780).
 pub fn adjust_mask(s: &mut Surface, adj: &Adjustment, selection: Option<&Surface>) -> Result<(), String> {
-    adjust_mask_with_transfer(s, adj, selection, adjust::Transfer::for_document(localpaint_color::ColorMode::Grayscale, s.format().sample), false)
+    adjust_mask_with_transfer(s, adj, selection, adjust::Transfer::for_document(localraster_color::ColorMode::Grayscale, s.format().sample), false)
 }
 
 /// A native component is scalar, but Exposure must retain its source document's tone transfer.
@@ -144,7 +144,7 @@ pub(crate) fn adjust_mask_with_transfer(
 ) -> Result<(), String> {
     // RGB32 Curves extend their endpoint slopes. Other native planes retain scalar tone rules,
     // rather than treating a replicated grayscale buffer as a complete Lab or CMYK colour.
-    let mode = if rgb_document { localpaint_color::ColorMode::Rgb } else { localpaint_color::ColorMode::Grayscale };
+    let mode = if rgb_document { localraster_color::ColorMode::Rgb } else { localraster_color::ColorMode::Grayscale };
     if let Some(sel) = selection
         && sel.default_pixel().first().is_some_and(|v| *v > 0.0)
     {
@@ -205,7 +205,7 @@ pub(crate) fn adjust_mask_with_transfer(
 }
 
 /// `s`'s pixels over `r` (untouched ones included) with `adj` applied through the selection, encoded.
-fn adjusted(s: &Surface, r: Rect, adj: &Adjustment, selection: Option<&Surface>, mode: localpaint_color::ColorMode) -> Vec<f32> {
+fn adjusted(s: &Surface, r: Rect, adj: &Adjustment, selection: Option<&Surface>, mode: localraster_color::ColorMode) -> Vec<f32> {
     adjusted_with_transfer(s, r, adj, selection, mode, adjust::Transfer::for_document(mode, s.format().sample))
 }
 
@@ -214,19 +214,19 @@ fn adjusted_with_transfer(
     r: Rect,
     adj: &Adjustment,
     selection: Option<&Surface>,
-    mode: localpaint_color::ColorMode,
+    mode: localraster_color::ColorMode,
     transfer: adjust::Transfer,
 ) -> Vec<f32> {
     let fmt = s.format();
-    if fmt.mode == mode && matches!(mode, localpaint_color::ColorMode::Lab | localpaint_color::ColorMode::Cmyk) && adjust::stored_channel_adjustment(adj) {
+    if fmt.mode == mode && matches!(mode, localraster_color::ColorMode::Lab | localraster_color::ColorMode::Cmyk) && adjust::stored_channel_adjustment(adj) {
         return adjusted_channels(s, r, selection, |ch| adjust::stored_channels(adj, fmt.mode, Some(fmt.sample), ch));
     }
-    if fmt.mode == mode && mode == localpaint_color::ColorMode::Cmyk && adjust::cmy_adjustment(adj) {
+    if fmt.mode == mode && mode == localraster_color::ColorMode::Cmyk && adjust::cmy_adjustment(adj) {
         return adjusted_cmy(s, r, adj, selection);
     }
     if let Adjustment::BrightnessContrast { brightness, contrast, legacy } = adj
         && fmt.mode == mode
-        && mode == localpaint_color::ColorMode::Cmyk
+        && mode == localraster_color::ColorMode::Cmyk
     {
         let table = adjust::ink_brightness_contrast_lut(*brightness, *contrast, *legacy);
         return adjusted_channels(s, r, selection, |ch| ch.iter_mut().for_each(|v| *v = adjust::ink_through(&table, *v)));
@@ -240,8 +240,8 @@ fn adjusted_with_transfer(
     // Threshold use the 16-bit rules an adjustment layer measures against Photoshop, so the
     // command matches its live preview (an adjustment layer) and Photoshop.
     let depth = match (fmt.sample, adj) {
-        (localpaint_color::SampleType::F32, _) => Some(fmt.sample),
-        (localpaint_color::SampleType::U16, Adjustment::Posterize { .. } | Adjustment::Threshold { .. }) => Some(fmt.sample),
+        (localraster_color::SampleType::F32, _) => Some(fmt.sample),
+        (localraster_color::SampleType::U16, Adjustment::Posterize { .. } | Adjustment::Threshold { .. }) => Some(fmt.sample),
         _ => None,
     };
     adjust::apply_in(adj, &mut buf, transfer, depth, mode);
@@ -304,7 +304,7 @@ fn adjusted_cmy(s: &Surface, r: Rect, adj: &Adjustment, selection: Option<&Surfa
 /// `edited` mixed back over `orig` (straight RGBA over `r`, row-major) by the selection's
 /// coverage, encoded in `fmt`: what a destructive edit writes back through a selection.
 pub(crate) fn mix_through_selection(
-    fmt: &localpaint_color::PixelFormat,
+    fmt: &localraster_color::PixelFormat,
     r: Rect,
     orig: &[[f32; 4]],
     edited: &[[f32; 4]],
@@ -324,7 +324,7 @@ pub(crate) fn mix_through_selection(
             // values whose difference from it would round the edit away (#9483).
             let mixed: [f32; 4] = std::array::from_fn(|c| o[c] * (1.0 - k) + a[c] * k);
             let mut enc = [0.0f32; 8];
-            let m = localpaint_raster::from_rgba_into(fmt, mixed, &mut enc);
+            let m = localraster_raster::from_rgba_into(fmt, mixed, &mut enc);
             out.extend_from_slice(&enc[..m]);
         }
     }
@@ -337,9 +337,9 @@ pub(crate) fn mix_through_selection(
 pub(crate) fn try_fill_surface(s: &mut Surface, area: Rect, color: [f32; 4], selection: Option<&Surface>, lock_transparency: bool) -> crate::Result<()> {
     let fmt = s.format();
     // Coverage 1 of an opaque colour replaces the colour (and the alpha, unless it is kept).
-    let opaque = color[3] == 1.0 && (!lock_transparency || !fmt.alpha) && selection.is_none_or(|m| m.format().sample != localpaint_color::SampleType::F32);
+    let opaque = color[3] == 1.0 && (!lock_transparency || !fmt.alpha) && selection.is_none_or(|m| m.format().sample != localraster_color::SampleType::F32);
     let mut enc = [0.0f32; 8];
-    let enc_len = opaque.then(|| localpaint_raster::from_rgba_into(&fmt, [color[0], color[1], color[2], 1.0], &mut enc));
+    let enc_len = opaque.then(|| localraster_raster::from_rgba_into(&fmt, [color[0], color[1], color[2], 1.0], &mut enc));
     let solid = enc_len.map(|n| s.solid_tile(enc.get(..n).unwrap_or(&[])));
     let whole = |full: bool| solid.as_ref().filter(|_| full).map(|t| TileEdit::Put(t.clone()));
     edit_tiles(s, area, selection, "filling pixels", whole, |k, px| {
@@ -359,7 +359,7 @@ pub(crate) fn try_fill_surface(s: &mut Surface, area: Rect, color: [f32; 4], sel
 }
 
 /// One pixel of [`try_fill_surface`]: `color` over `px` (encoded) at coverage `k`.
-fn fill_pixel(fmt: &localpaint_color::PixelFormat, px: &mut [f32], color: [f32; 4], k: f32, lock_transparency: bool) {
+fn fill_pixel(fmt: &localraster_color::PixelFormat, px: &mut [f32], color: [f32; 4], k: f32, lock_transparency: bool) {
     let d = to_rgba(fmt, px);
     let sa = color[3] * k;
     let oa = sa + d[3] * (1.0 - sa);
@@ -371,7 +371,7 @@ fn fill_pixel(fmt: &localpaint_color::PixelFormat, px: &mut [f32], color: [f32; 
     }
     o[3] = if lock_transparency { d[3] } else { oa };
     let mut enc = [0.0f32; 8];
-    let m = localpaint_raster::from_rgba_into(fmt, o, &mut enc);
+    let m = localraster_raster::from_rgba_into(fmt, o, &mut enc);
     let n = px.len().min(m);
     if let (Some(dst), Some(src)) = (px.get_mut(..n), enc.get(..n)) {
         dst.copy_from_slice(src);
@@ -428,7 +428,7 @@ pub(crate) fn try_lift_coverage(s: &mut Surface, area: Rect, selection: &Surface
 /// A whole-tile shortcut of [`edit_tiles`].
 enum TileEdit {
     /// Replace the tile with this (shared) one.
-    Put(std::sync::Arc<localpaint_raster::Tile>),
+    Put(std::sync::Arc<localraster_raster::Tile>),
     /// Remove the tile (it reads as the default pixel again).
     Drop,
 }
@@ -447,7 +447,7 @@ fn edit_tiles(
     whole: impl Fn(bool) -> Option<TileEdit> + Sync,
     pixel: impl Fn(f32, &mut [f32]) -> bool + Sync,
 ) -> crate::Result<()> {
-    use localpaint_raster::Tile;
+    use localraster_raster::Tile;
     use rayon::prelude::*;
     use std::sync::Arc;
     let fmt = s.format();
@@ -461,7 +461,7 @@ fn edit_tiles(
     let surf = &*s;
     let edits = coords
         .into_par_iter()
-        .map(|tc| -> crate::Result<Option<(localpaint_geom::TileCoord, Option<Arc<Tile>>)>> {
+        .map(|tc| -> crate::Result<Option<(localraster_geom::TileCoord, Option<Arc<Tile>>)>> {
             let tr = tc.rect().intersect(&area);
             let mask = selection.map(|m| crate::fill_cmds::Mask::of(m, tc));
             let full = tr == tc.rect() && mask.as_ref().is_none_or(|m| m.full(tr));
@@ -481,12 +481,12 @@ fn edit_tiles(
                     let i = (row + (x - tc.tx * TILE_SIZE) as usize) * bpp;
                     let Some(old) = src.bytes().get(i..i + bpp) else { continue };
                     for (c, v) in px.iter_mut().enumerate() {
-                        *v = localpaint_color::read_sample(old, fmt.sample, c);
+                        *v = localraster_color::read_sample(old, fmt.sample, c);
                     }
                     if !pixel(mask.as_ref().map_or(1.0, |m| m.at(x, y)), px) {
                         continue;
                     }
-                    localpaint_raster::encode_pixel(&fmt, px, enc);
+                    localraster_raster::encode_pixel(&fmt, px, enc);
                     if enc == old {
                         continue;
                     }

@@ -9,7 +9,7 @@ pub fn web_document(doc: &Document, p: &Value, st: &WebSettings) -> Result<(Docu
     let mut tmp = Session::new();
     tmp.add_document(doc.clone(), None);
     let mode = doc.mode;
-    if mode != localpaint_color::ColorMode::Rgb {
+    if mode != localraster_color::ColorMode::Rgb {
         tmp.execute("image.mode.rgb", json!({}))?;
     }
     if st.convert_to_srgb && doc.icc_profile.is_some() {
@@ -88,8 +88,8 @@ pub fn web_exif(doc: &Document, m: WebMetadata) -> Option<&[u8]> {
 
 /// The response's warnings: EXIF that a JPEG couldn't hold (one segment, about 64 KB).
 pub(super) fn web_warnings(st: &WebSettings, exif: Option<&[u8]>, dpi: f32) -> Vec<String> {
-    exif.filter(|x| st.format == WebFormat::Jpeg && !localpaint_codecs::web::jpeg_exif_fits(x, Some(dpi)))
-        .map(|x| localpaint_codecs::FidelityWarning::MetadataTooLarge { what: "EXIF", bytes: x.len() }.to_string())
+    exif.filter(|x| st.format == WebFormat::Jpeg && !localraster_codecs::web::jpeg_exif_fits(x, Some(dpi)))
+        .map(|x| localraster_codecs::FidelityWarning::MetadataTooLarge { what: "EXIF", bytes: x.len() }.to_string())
         .into_iter()
         .collect()
 }
@@ -123,7 +123,7 @@ pub fn optimize(
         [p[0] * p[3] + matte[0] * (1.0 - p[3]), p[1] * p[3] + matte[1] * (1.0 - p[3]), p[2] * p[3] + matte[2] * (1.0 - p[3]), 1.0]
     };
     let (ww, hh) = (w as u32, h as u32);
-    let e = |e: localpaint_codecs::CodecError| other(e);
+    let e = |e: localraster_codecs::CodecError| other(e);
     let mut look: Vec<u8> = Vec::new();
     let mut color_table = Vec::new();
     let mut transparent_index = None;
@@ -138,50 +138,50 @@ pub fn optimize(
             let q = if alpha { *p } else { over(p) };
             data.extend_from_slice(&[to8(q[0]), to8(q[1]), to8(q[2]), to8(q[3])][..k]);
         }
-        let layout = if alpha { localpaint_codecs::ChannelLayout::Rgba } else { localpaint_codecs::ChannelLayout::Rgb };
+        let layout = if alpha { localraster_codecs::ChannelLayout::Rgba } else { localraster_codecs::ChannelLayout::Rgb };
         (data, layout)
     };
-    let rgba = |data: &[u8], layout: localpaint_codecs::ChannelLayout| -> Vec<u8> {
-        if layout == localpaint_codecs::ChannelLayout::Rgba {
+    let rgba = |data: &[u8], layout: localraster_codecs::ChannelLayout| -> Vec<u8> {
+        if layout == localraster_codecs::ChannelLayout::Rgba {
             data.to_vec()
         } else {
             data.as_chunks::<3>().0.iter().flat_map(|c| [c[0], c[1], c[2], 255]).collect()
         }
     };
-    let meta = || localpaint_codecs::Metadata { dpi: Some((dpi, dpi)), xmp: xmp.map(str::to_string), ..Default::default() };
+    let meta = || localraster_codecs::Metadata { dpi: Some((dpi, dpi)), xmp: xmp.map(str::to_string), ..Default::default() };
     let (bytes, colors) = match st.format {
         WebFormat::Png24 => {
             let (data, layout) = true_color();
             if preview {
                 look = rgba(&data, layout);
             }
-            let img = localpaint_codecs::Image::from_u8(ww, hh, layout, data).map_err(e)?.with_icc(icc.map(<[u8]>::to_vec)).with_meta(meta());
-            let opts = localpaint_codecs::EncodeOptions {
+            let img = localraster_codecs::Image::from_u8(ww, hh, layout, data).map_err(e)?.with_icc(icc.map(<[u8]>::to_vec)).with_meta(meta());
+            let opts = localraster_codecs::EncodeOptions {
                 png_interlaced: st.interlaced,
                 embed_icc: icc.is_some(),
                 embed_metadata: xmp.is_some(),
                 ..Default::default()
             };
-            (localpaint_codecs::encode(&img, localpaint_codecs::Format::Png, &opts).map_err(e)?, None)
+            (localraster_codecs::encode(&img, localraster_codecs::Format::Png, &opts).map_err(e)?, None)
         }
         WebFormat::Webp => {
             let (data, layout) = true_color();
             let icc = icc.filter(|_| st.embed_icc);
             // WebP holds EXIF (the metadata choice's "All" passes it in), so it rides along with the XMP.
-            let webp_meta = localpaint_codecs::Metadata { exif: exif.map(<[u8]>::to_vec), ..meta() };
-            let img = localpaint_codecs::Image::from_u8(ww, hh, layout, data).map_err(e)?.with_icc(icc.map(<[u8]>::to_vec)).with_meta(webp_meta);
-            let opts = localpaint_codecs::EncodeOptions {
+            let webp_meta = localraster_codecs::Metadata { exif: exif.map(<[u8]>::to_vec), ..meta() };
+            let img = localraster_codecs::Image::from_u8(ww, hh, layout, data).map_err(e)?.with_icc(icc.map(<[u8]>::to_vec)).with_meta(webp_meta);
+            let opts = localraster_codecs::EncodeOptions {
                 webp_lossless: st.lossless,
                 webp_quality: st.quality.min(100),
                 embed_icc: icc.is_some(),
                 embed_metadata: exif.is_some() || xmp.is_some(),
                 ..Default::default()
             };
-            let bytes = localpaint_codecs::encode(&img, localpaint_codecs::Format::WebP, &opts).map_err(e)?;
+            let bytes = localraster_codecs::encode(&img, localraster_codecs::Format::WebP, &opts).map_err(e)?;
             if preview {
                 // Lossless shows the source; lossy shows the compression artefacts.
-                look = match (!st.lossless).then(|| localpaint_codecs::decode(&bytes).ok()).flatten() {
-                    Some(img) => img.convert(localpaint_codecs::ChannelLayout::Rgba, localpaint_codecs::SampleType::U8).data().to_vec(),
+                look = match (!st.lossless).then(|| localraster_codecs::decode(&bytes).ok()).flatten() {
+                    Some(img) => img.convert(localraster_codecs::ChannelLayout::Rgba, localraster_codecs::SampleType::U8).data().to_vec(),
                     None => rgba(img.data(), layout),
                 };
             }
@@ -196,12 +196,12 @@ pub fn optimize(
             // Save for Web's 0–100 quality → encoder 1–100.
             let q = st.quality.max(1);
             let bytes =
-                localpaint_codecs::web::encode_jpeg_rgb8(ww, hh, &rgb, q, st.progressive, st.optimized, icc.filter(|_| st.embed_icc), Some(dpi), exif, xmp)
+                localraster_codecs::web::encode_jpeg_rgb8(ww, hh, &rgb, q, st.progressive, st.optimized, icc.filter(|_| st.embed_icc), Some(dpi), exif, xmp)
                     .map_err(e)?;
             if preview {
                 // The preview shows the compression artefacts.
-                look = match localpaint_codecs::decode(&bytes) {
-                    Ok(img) => img.convert(localpaint_codecs::ChannelLayout::Rgba, localpaint_codecs::SampleType::U8).data().to_vec(),
+                look = match localraster_codecs::decode(&bytes) {
+                    Ok(img) => img.convert(localraster_codecs::ChannelLayout::Rgba, localraster_codecs::SampleType::U8).data().to_vec(),
                     Err(_) => rgb.as_chunks::<3>().0.iter().flat_map(|c| [c[0], c[1], c[2], 255]).collect(),
                 };
             }
@@ -224,7 +224,7 @@ pub fn optimize(
             if preview {
                 look = white.iter().flat_map(|b| if *b { [255, 255, 255, 255] } else { [0, 0, 0, 255] }).collect();
             }
-            (localpaint_codecs::web::encode_wbmp(ww, hh, &white).map_err(e)?, Some(2))
+            (localraster_codecs::web::encode_wbmp(ww, hh, &white).map_err(e)?, Some(2))
         }
         WebFormat::Gif | WebFormat::Png8 => {
             let transparent = st.transparency && region().any(|p| p[3] < 0.5);
@@ -291,9 +291,9 @@ pub fn optimize(
             }
             let tt = t.map(|v| v as u8);
             let bytes = if st.format == WebFormat::Gif {
-                localpaint_codecs::web::encode_gif_indexed(ww, hh, &idx, &pal, tt, st.interlaced).map_err(e)?
+                localraster_codecs::web::encode_gif_indexed(ww, hh, &idx, &pal, tt, st.interlaced).map_err(e)?
             } else {
-                localpaint_codecs::encode_png_indexed(ww, hh, &idx, &pal, tt, None, None).map_err(e)?
+                localraster_codecs::encode_png_indexed(ww, hh, &idx, &pal, tt, None, None).map_err(e)?
             };
             if preview {
                 indices = idx;

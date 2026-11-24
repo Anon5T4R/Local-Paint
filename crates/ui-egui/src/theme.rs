@@ -19,7 +19,7 @@
 //! Widgets read [`Tokens::get`] instead of hard-coding colours, so every theme applies everywhere.
 
 use egui::{Color32, CornerRadius, FontData, FontDefinitions, FontFamily, FontId, Stroke, TextStyle, Visuals};
-use localpaint_engine::prefs::UiFontSize;
+use localraster_engine::prefs::UiFontSize;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -785,8 +785,8 @@ impl Tokens {
     }
 
     /// Semantic label hues stay recognisable across themes; None keeps the normal row surface.
-    pub fn layer_label_colors(&self, label: localpaint_doc::LabelColor) -> Option<(Color32, Color32)> {
-        use localpaint_doc::LabelColor;
+    pub fn layer_label_colors(&self, label: localraster_doc::LabelColor) -> Option<(Color32, Color32)> {
+        use localraster_doc::LabelColor;
         let (swatch, eye) = match label {
             LabelColor::None => return None,
             LabelColor::Red => ([0xFC, 0x5D, 0x5B], [0x9F, 0x2F, 0x30]),
@@ -805,8 +805,8 @@ impl Tokens {
         Some((rgb(swatch), rgb(eye)))
     }
 
-    pub fn layer_label_icon(&self, label: localpaint_doc::LabelColor) -> Color32 {
-        if label == localpaint_doc::LabelColor::None { self.icon } else { Color32::from_gray(226) }
+    pub fn layer_label_icon(&self, label: localraster_doc::LabelColor) -> Color32 {
+        if label == localraster_doc::LabelColor::None { self.icon } else { Color32::from_gray(226) }
     }
 
     /// Analysis colours are semantic hues, independent of the application accent palette.
@@ -861,7 +861,7 @@ pub fn install_fonts(ctx: &egui::Context) {
 pub fn install_fonts_with(ctx: &egui::Context, cjk: crate::cjk_fonts::Sources) {
     // egui's default fonts stay last in the stack, for symbols and emoji Inter lacks.
     let mut fonts = crate::egui_fonts::definitions();
-    // The bundled fonts are inflated on first use (localpaint_text::fonts). Should one ever fail
+    // The bundled fonts are inflated on first use (localraster_text::fonts). Should one ever fail
     // to inflate (empty bytes), it is left out and egui's default fonts draw that text.
     let add = |fonts: &mut FontDefinitions, name: &str, bytes: &'static [u8]| -> Option<String> {
         if bytes.is_empty() {
@@ -871,10 +871,10 @@ pub fn install_fonts_with(ctx: &egui::Context, cjk: crate::cjk_fonts::Sources) {
         fonts.font_data.insert(name.to_owned(), Arc::new(FontData::from_static(bytes)));
         Some(name.to_owned())
     };
-    let inter = add(&mut fonts, "Inter", localpaint_text::fonts::INTER_REGULAR.as_slice());
-    let medium = add(&mut fonts, "Inter-Medium", localpaint_text::fonts::INTER_MEDIUM.as_slice());
-    let semibold = add(&mut fonts, "Inter-SemiBold", localpaint_text::fonts::INTER_SEMIBOLD.as_slice());
-    let mono = add(&mut fonts, "JetBrainsMono", localpaint_text::fonts::JETBRAINS_MONO_REGULAR.as_slice());
+    let inter = add(&mut fonts, "Inter", localraster_text::fonts::INTER_REGULAR.as_slice());
+    let medium = add(&mut fonts, "Inter-Medium", localraster_text::fonts::INTER_MEDIUM.as_slice());
+    let semibold = add(&mut fonts, "Inter-SemiBold", localraster_text::fonts::INTER_SEMIBOLD.as_slice());
+    let mono = add(&mut fonts, "JetBrainsMono", localraster_text::fonts::JETBRAINS_MONO_REGULAR.as_slice());
     if let Some(inter) = inter {
         fonts.families.entry(FontFamily::Proportional).or_default().insert(0, inter);
     }
@@ -979,7 +979,7 @@ struct UiFontSizePlugin {
 
 impl egui::Plugin for UiFontSizePlugin {
     fn debug_name(&self) -> &'static str {
-        "localpaint-ui-font-size"
+        "localraster-ui-font-size"
     }
 
     fn output_hook(&mut self, ctx: &egui::Context, _output: &mut egui::FullOutput) {
@@ -1139,7 +1139,7 @@ pub fn apply(ctx: &egui::Context, kind: ThemeKind) {
         s.spacing.scroll = scroll;
         s.spacing.tooltip_width = 280.0;
     });
-    // egui selects its style branch using OS appearance, independently of Local Paint's fixed
+    // egui selects its style branch using OS appearance, independently of Local Raster's fixed
     // Dark/Light mode or platform appearance service. Both branches need the selected palette.
     let style = ctx.global_style();
     ctx.set_style_of(egui::Theme::Light, Arc::clone(&style));
@@ -1162,7 +1162,7 @@ mod tests;
 
 /// Development feature: live design-token overrides.
 ///
-/// Set `LOCALPAINT_THEME_FILE=/path/tokens.json` in a debug build; the file is polled and applied
+/// Set `LOCALRASTER_THEME_FILE=/path/tokens.json` in a debug build; the file is polled and applied
 /// on change, so colours, radii and sizes can be tuned without recompiling. Keys are `Tokens` field
 /// names; values are `"#rrggbb"`, `"#rrggbbaa"` or numbers. Compiled out of release builds.
 #[cfg(debug_assertions)]
@@ -1180,7 +1180,7 @@ pub mod live {
 
     impl LiveTokens {
         pub fn from_env() -> Self {
-            Self { path: std::env::var_os("LOCALPAINT_THEME_FILE").map(Into::into), ..Default::default() }
+            Self { path: localraster_engine::legacy_env::var_os("LOCALRASTER_THEME_FILE").map(Into::into), ..Default::default() }
         }
 
         /// Re-apply overrides if the file changed. Returns true when tokens were updated.

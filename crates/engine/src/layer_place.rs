@@ -5,7 +5,7 @@
 //! layer (or group) between a base and its clipped layers never becomes their (empty) base.
 //! Artboards are never nested or clipped: a new one goes to the top level.
 
-use localpaint_doc::{Document, Layer, LayerContent, LayerId, LayerPath, MAX_GROUP_DEPTH};
+use localraster_doc::{Document, Layer, LayerContent, LayerId, LayerPath, MAX_GROUP_DEPTH};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Place {
@@ -81,7 +81,7 @@ pub fn insert_new(doc: &mut Document, anchor: Option<LayerId>, mut layer: Layer,
 /// it for the canvas (Place, Paste, a Type or Shape click): elsewhere the board would clip it.
 fn takes_new_layers(target: &Layer, depth: usize, layer: &Layer) -> bool {
     let LayerContent::Group(g) = &target.content else { return false };
-    let on_board = |rect: localpaint_geom::Rect| {
+    let on_board = |rect: localraster_geom::Rect| {
         crate::layer_multi_cmds::layer_bounds(layer).is_none_or(|b| {
             let (cx, cy) = (b.x0 / 2 + b.x1 / 2, b.y0 / 2 + b.y1 / 2);
             rect.contains(cx, cy)

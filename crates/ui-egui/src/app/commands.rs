@@ -1,9 +1,9 @@
 use super::{
-    DocId, LocalPaintApp, Tool, Value, actions, canvas, delete_layer_prompt, dock, gpu_canvas, jobs_ui, json, mask_trash_prompt, notices, panel_docking,
+    DocId, LocalRasterApp, Tool, Value, actions, canvas, delete_layer_prompt, dock, gpu_canvas, jobs_ui, json, mask_trash_prompt, notices, panel_docking,
     smart_svg_ui, state, transform_tool, type_transform, vector_ui,
 };
 
-impl LocalPaintApp {
+impl LocalRasterApp {
     /// Run an engine command, reporting errors in the status bar.
     pub fn run(&mut self, id: &str, params: Value) -> Result<Value, String> {
         if let Some(result) = delete_layer_prompt::intercept(self, id, &params) {
@@ -25,7 +25,7 @@ impl LocalPaintApp {
         // ⌘2 after the mask was targeted goes back to the layer's pixels.
         if result.is_ok() && id.starts_with("channel.target") {
             if let Some(t) = self.session.active().map(|st| st.channel_view.target) {
-                use localpaint_engine::channel_cmds::ChannelTarget;
+                use localraster_engine::channel_cmds::ChannelTarget;
                 self.ui.mask_target = t == ChannelTarget::LayerMask;
                 self.ui.vector_mask_target = t == ChannelTarget::VectorMask;
             }
@@ -58,7 +58,7 @@ impl LocalPaintApp {
         // (#5667): History reads the transform (or Place Embedded), then New Layer. Only for a
         // command that can run; a transform refused or still being applied keeps the box open and
         // the command doesn't run.
-        if localpaint_engine::PRECHECKED.contains(&id) && self.ui.transform.is_some() {
+        if localraster_engine::PRECHECKED.contains(&id) && self.ui.transform.is_some() {
             // Bad params or a command that can't run leave the box as it is.
             self.session.precheck(id, &params).map_err(|e| e.to_string())?;
             transform_tool::commit(self);
@@ -122,7 +122,7 @@ impl LocalPaintApp {
         ) && on_active_layer;
         let r = if id == "actions.play" {
             actions::play(self, &params)
-        } else if localpaint_engine::actions_cmds::shell_view_command(id) {
+        } else if localraster_engine::actions_cmds::shell_view_command(id) {
             actions::run_view(self, id, params)
         } else {
             jobs_ui::run(self, id, params)

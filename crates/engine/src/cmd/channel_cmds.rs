@@ -12,11 +12,11 @@
 //! targeted channel when the caller didn't pass a target. Targeting a single colour channel keeps
 //! those commands from touching the other colour channels of the layer ([`restrict_to_color`]).
 
-use localpaint_algo::selection::{self as sel, SelectionMode};
-use localpaint_color::{BlendMode, Color, ColorMode, PixelFormat, blend::blend_channel};
-use localpaint_doc::{AlphaChannel, ColorIndicates, Document, Layer, LayerContent, LayerId};
-use localpaint_geom::Rect;
-use localpaint_raster::{Surface, from_rgba, to_rgba};
+use localraster_algo::selection::{self as sel, SelectionMode};
+use localraster_color::{BlendMode, Color, ColorMode, PixelFormat, blend::blend_channel};
+use localraster_doc::{AlphaChannel, ColorIndicates, Document, Layer, LayerContent, LayerId};
+use localraster_geom::Rect;
+use localraster_raster::{Surface, from_rgba, to_rgba};
 use serde::Serialize;
 use serde_json::{Value, json};
 

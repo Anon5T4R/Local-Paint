@@ -3,14 +3,14 @@ use crate::common;
 
 use std::io::Read;
 
-use localpaint_codecs::{ChannelLayout, Format, Image, SampleType as CodecSample};
-use localpaint_color::{ColorMode, SampleType};
-use localpaint_doc::{Document, Layer, LayerContent};
-use localpaint_format::{SaveOptions, load_from_bytes, read_thumbnail, save_to_bytes};
-use localpaint_geom::Size;
-use localpaint_io::{PsdExportOptions, document_to_psd_with, import};
-use localpaint_psd::Compression;
-use localpaint_raster::Rgba8Image;
+use localraster_codecs::{ChannelLayout, Format, Image, SampleType as CodecSample};
+use localraster_color::{ColorMode, SampleType};
+use localraster_doc::{Document, Layer, LayerContent};
+use localraster_format::{SaveOptions, load_from_bytes, read_thumbnail, save_to_bytes};
+use localraster_geom::Size;
+use localraster_io::{PsdExportOptions, document_to_psd_with, import};
+use localraster_psd::Compression;
+use localraster_raster::Rgba8Image;
 
 fn document(depth: SampleType, size: Size) -> Document {
     let mut doc = Document::new("compatibility", size, ColorMode::Rgb, depth);
@@ -33,7 +33,7 @@ fn old_and_new_inflate(bytes: &[u8]) -> (Vec<u8>, Vec<u8>) {
 
 /// Read new PNGs and PNGs with legacy-miniz IDAT data through the codec.
 fn check_png(bytes: &[u8], image: &Image) {
-    assert_eq!(localpaint_codecs::decode(bytes).unwrap().data(), image.data());
+    assert_eq!(localraster_codecs::decode(bytes).unwrap().data(), image.data());
     let mut idat = Vec::new();
     let mut legacy_png = bytes[..8].to_vec();
     let mut idat_offset = None;
@@ -56,7 +56,7 @@ fn check_png(bytes: &[u8], image: &Image) {
     chunk.extend_from_slice(&crc32fast::hash(&chunk[4..]).to_be_bytes());
     let at = idat_offset.unwrap();
     legacy_png.splice(at..at, chunk);
-    assert_eq!(localpaint_codecs::decode(&legacy_png).unwrap().data(), image.data());
+    assert_eq!(localraster_codecs::decode(&legacy_png).unwrap().data(), image.data());
 }
 
 /// New zlib-rs streams and legacy-miniz streams preserve the same document samples.
@@ -68,7 +68,7 @@ fn png_psd_and_pcraft_decode_identically() {
         if depth != SampleType::F32 {
             let sample = if depth == SampleType::U8 { CodecSample::U8 } else { CodecSample::U16 };
             let image = Image::from_normalized(257, 131, ChannelLayout::Rgba, sample, &pixels).unwrap();
-            check_png(&localpaint_codecs::encode(&image, Format::Png, &Default::default()).unwrap(), &image);
+            check_png(&localraster_codecs::encode(&image, Format::Png, &Default::default()).unwrap(), &image);
         }
         let raw_opts = PsdExportOptions { merged_compression: Compression::Raw, merged_matte: false, ..Default::default() };
         let merged = document_to_psd_with(&doc, &raw_opts).0.image_data.data;
@@ -77,17 +77,17 @@ fn png_psd_and_pcraft_decode_identically() {
             let mut file = document_to_psd_with(&doc, &opts).0;
             // The IO exporter normally chooses Raw for float composites; also cover ZIP here.
             if depth == SampleType::F32 {
-                file.image_data = localpaint_psd::ImageData::encode(compression, &merged, &file.header).unwrap();
+                file.image_data = localraster_psd::ImageData::encode(compression, &merged, &file.header).unwrap();
             }
             let bytes = file.to_bytes().unwrap();
-            let parsed = localpaint_psd::PsdFile::from_bytes(&bytes).unwrap();
+            let parsed = localraster_psd::PsdFile::from_bytes(&bytes).unwrap();
             assert_eq!(parsed.image_data.compression, compression);
             let (inflated, legacy) = old_and_new_inflate(&parsed.image_data.data);
             // The PSD streaming helper uses a different flate2 reader from plane decoding.
-            assert_eq!(localpaint_psd::compression::zip_decompress(&legacy, inflated.len()).unwrap(), inflated);
+            assert_eq!(localraster_psd::compression::zip_decompress(&legacy, inflated.len()).unwrap(), inflated);
             file.image_data.data = legacy;
             for fixture in [bytes, file.to_bytes().unwrap()] {
-                let parsed = localpaint_psd::PsdFile::from_bytes(&fixture).unwrap();
+                let parsed = localraster_psd::PsdFile::from_bytes(&fixture).unwrap();
                 assert_eq!(parsed.image_data.decode(&parsed.header).unwrap(), merged);
                 let back = import("compatibility.psd", &fixture).unwrap().document;
                 assert_eq!(back.layers[0].surface().unwrap().read_region(doc.bounds()), pixels);
@@ -128,10 +128,10 @@ fn pdf_image_stream_is_no_bigger_than_miniz_fast() {
             vals.push(1.0);
         }
     }
-    let mut surface = localpaint_raster::Surface::new(doc.pixel_format());
+    let mut surface = localraster_raster::Surface::new(doc.pixel_format());
     surface.write_region(doc.bounds(), &vals);
     doc.layers.push(Layer::new("photo", LayerContent::Raster(surface)));
-    let pdf = localpaint_io::export(&doc, "photo.pdf", &Default::default()).unwrap().bytes;
+    let pdf = localraster_io::export(&doc, "photo.pdf", &Default::default()).unwrap().bytes;
     let at = pdf.windows(15).position(|s| s == b"/Subtype /Image").unwrap();
     let dict = &pdf[at..];
     let len_at = dict.windows(8).position(|s| s == b"/Length ").unwrap() + 8;

@@ -2,7 +2,7 @@
 
 ## Seam carving keeps its search across seams (2026-10-13, #5236)
 
-Perf scenario P28 ([#211](https://github.com/Anon5T4R/Local-Paint/issues/211)) scales a 24 MP
+Perf scenario P28 ([#211](https://github.com/Anon5T4R/Local-Raster/issues/211)) scales a 24 MP
 photo to 90 % width with Edit › Content-Aware Scale. Its budget is 3 s.
 
 - The committed baseline (2026-10-05) records 954 s. That predates the per-seam energy updates
@@ -84,7 +84,7 @@ width with a height change, and images or protection maps shorter than their siz
 
 **The carver alone:**
 
-- Command: `cargo run --release -p localpaint-algo --example bench_seam_cas`.
+- Command: `cargo run --release -p localraster-algo --example bench_seam_cas`.
 - Input: a synthetic photo-like RGBA image.
 - Five interleaved rounds; the output hashes were identical in every run.
 
@@ -106,7 +106,7 @@ width with a height change, and images or protection maps shorter than their siz
 | Time | 3281 ms [3178–3364] | 1639 ms [1503–1728] |
 | Peak RSS | 1368–1386 MB | 1305–1367 MB |
 
-`cargo run --release -p localpaint-engine --example bench_content_aware_scale` times the same
+`cargo run --release -p localraster-engine --example bench_content_aware_scale` times the same
 command without building the UI crate. After the change, one run split as follows:
 
 | Stage | Time |
@@ -172,7 +172,7 @@ nothing left to do and was removed when #5236 joined main; the tall-image output
 Its example times the deep shrinks it was measured on:
 
 ```sh
-cargo build --release -p localpaint-algo --example bench_seam
+cargo build --release -p localraster-algo --example bench_seam
 ./target/release/examples/bench_seam 6000 4000 600 4
 ./target/release/examples/bench_seam 6000 4000 3000 4
 ```

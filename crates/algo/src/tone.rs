@@ -7,7 +7,7 @@
 //! derived from its manual and observation, not from its implementation; Shadows/Highlights is
 //! measured on Photoshop (see [`shadows_highlights`]).
 
-use localpaint_color::convert::{lab_to_srgb, srgb_to_lab};
+use localraster_color::convert::{lab_to_srgb, srgb_to_lab};
 use serde::{Deserialize, Serialize};
 
 use crate::fxutil::gauss_blur_n;

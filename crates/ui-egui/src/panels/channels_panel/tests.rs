@@ -11,7 +11,7 @@ fn modifier_operations() {
 
 #[test]
 fn rename_field_interrupts_the_ime_only_when_it_takes_focus() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 32, "height": 32})).unwrap();
     app.run("channel.new", json!({})).unwrap();
     let ctx = egui::Context::default();
@@ -33,7 +33,7 @@ fn rename_field_interrupts_the_ime_only_when_it_takes_focus() {
 
 #[test]
 fn channel_thumbs_honours_show_channels_in_color() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 16, "height": 16})).unwrap();
     let ctx = egui::Context::default();
     let thumbs_gray = app.channel_thumbs(&ctx);
@@ -48,11 +48,11 @@ fn channel_thumbs_honours_show_channels_in_color() {
 /// textures rather than new ones (#4518).
 #[test]
 fn channel_thumbs_skip_selection_steps_and_reuse_textures() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 64, "height": 48})).unwrap();
     let ctx = egui::Context::default();
     // Texture uploads one pass makes (new textures and updates both count).
-    let pass = |app: &mut LocalPaintApp| {
+    let pass = |app: &mut LocalRasterApp| {
         ctx.begin_pass(Default::default());
         let ids = app.channel_thumbs(&ctx);
         let mut delta = ctx.end_pass().textures_delta;
@@ -74,16 +74,16 @@ fn channel_thumbs_skip_selection_steps_and_reuse_textures() {
 
 /// The Channels tab (the Layers card's second tab) of a 64×48 white document with a layer
 /// mask on "Masked" and one alpha channel.
-fn channels_harness() -> (egui_kittest::Harness<'static, LocalPaintApp>, u64) {
-    let mut s = localpaint_engine::Session::new();
+fn channels_harness() -> (egui_kittest::Harness<'static, LocalRasterApp>, u64) {
+    let mut s = localraster_engine::Session::new();
     s.execute("file.new", json!({"width": 64, "height": 48})).unwrap();
     let masked = s.execute("layer.new.layer", json!({"name": "Masked"})).unwrap()["layer"].as_u64().unwrap();
     s.execute("layer.layerMask.revealAll", json!({"layer": masked})).unwrap();
     s.execute("channel.new", json!({})).unwrap();
     // 60 fps steps, so two clicks a frame apart count as a double-click.
     let mut h = egui_kittest::Harness::builder().with_size(vec2(1440.0, 1000.0)).with_step_dt(1.0 / 60.0).with_max_steps(64).build_eframe(move |cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        LocalPaintApp::new(s, crate::Services::default())
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        LocalRasterApp::new(s, crate::Services::default())
     });
     let ctx = h.ctx.clone();
     let (req, _rx) = crate::control::ControlRequest::new(
@@ -96,7 +96,7 @@ fn channels_harness() -> (egui_kittest::Harness<'static, LocalPaintApp>, u64) {
 }
 
 /// The centre of the row or button labelled `label` (not its tooltip, which a hover leaves open).
-fn at(h: &egui_kittest::Harness<'_, LocalPaintApp>, label: &str) -> egui::Pos2 {
+fn at(h: &egui_kittest::Harness<'_, LocalRasterApp>, label: &str) -> egui::Pos2 {
     use egui::accesskit::Role;
     use egui_kittest::kittest::{NodeT, Queryable};
     h.query_all_by_label(label)
@@ -107,7 +107,7 @@ fn at(h: &egui_kittest::Harness<'_, LocalPaintApp>, label: &str) -> egui::Pos2 {
 }
 
 /// A real press, drag and release.
-fn drag(h: &mut egui_kittest::Harness<'_, LocalPaintApp>, from: egui::Pos2, to: egui::Pos2) {
+fn drag(h: &mut egui_kittest::Harness<'_, LocalRasterApp>, from: egui::Pos2, to: egui::Pos2) {
     use egui::{Modifiers, PointerButton};
     h.hover_at(from);
     h.run_steps(1);
@@ -122,12 +122,12 @@ fn drag(h: &mut egui_kittest::Harness<'_, LocalPaintApp>, from: egui::Pos2, to: 
 }
 
 /// Drags the row or button labelled `from` onto the one labelled `to`.
-fn drag_to(h: &mut egui_kittest::Harness<'_, LocalPaintApp>, from: &str, to: &str) {
+fn drag_to(h: &mut egui_kittest::Harness<'_, LocalRasterApp>, from: &str, to: &str) {
     let (from, to) = (at(h, from), at(h, to));
     drag(h, from, to);
 }
 
-fn alphas(h: &egui_kittest::Harness<'_, LocalPaintApp>) -> Vec<String> {
+fn alphas(h: &egui_kittest::Harness<'_, LocalRasterApp>) -> Vec<String> {
     h.state().session.active().unwrap().doc.channels.iter().map(|c| c.name.clone()).collect()
 }
 
@@ -144,7 +144,7 @@ fn channel_selection_sets_visibility_and_eye_overrides_do_not_retarget() {
             h.state_mut().run(&format!("image.mode.{mode}"), json!({})).unwrap();
             h.run_steps(2);
         }
-        let click = |h: &mut egui_kittest::Harness<'_, LocalPaintApp>, label: &str, modifiers| {
+        let click = |h: &mut egui_kittest::Harness<'_, LocalRasterApp>, label: &str, modifiers| {
             let pos = at(h, label);
             h.event(Event::ModifiersChanged(modifiers));
             h.hover_at(pos);
@@ -156,12 +156,12 @@ fn channel_selection_sets_visibility_and_eye_overrides_do_not_retarget() {
             h.event(Event::ModifiersChanged(Modifiers::NONE));
             h.run_steps(3);
         };
-        let visible = |h: &egui_kittest::Harness<'_, LocalPaintApp>| {
+        let visible = |h: &egui_kittest::Harness<'_, LocalRasterApp>| {
             let st = h.state().session.active().unwrap();
             (0..st.doc.pixel_format().mode.color_channels()).filter(|k| st.channel_view.color_visible(*k)).collect::<Vec<_>>()
         };
-        let colors = |h: &egui_kittest::Harness<'_, LocalPaintApp>| {
-            localpaint_engine::color_channels::selected(&h.state().session).unwrap().indices().collect::<Vec<_>>()
+        let colors = |h: &egui_kittest::Harness<'_, LocalRasterApp>| {
+            localraster_engine::color_channels::selected(&h.state().session).unwrap().indices().collect::<Vec<_>>()
         };
 
         click(&mut h, first, Modifiers::NONE);
@@ -251,7 +251,7 @@ fn rows_dropped_on_the_footer_duplicate_delete_and_load() {
     // Colour channels stay: Photoshop would turn the image into Multichannel.
     drag_to(&mut h, "Green", "Delete current channel");
     assert_eq!(alphas(&h), ["Alpha 1", "Red copy", "Masked Mask copy"]);
-    assert_eq!(h.state().session.active().unwrap().doc.mode, localpaint_doc::ColorMode::Rgb);
+    assert_eq!(h.state().session.active().unwrap().doc.mode, localraster_doc::ColorMode::Rgb);
 
     assert!(h.state().session.active().unwrap().doc.selection.is_none());
     drag_to(&mut h, "Red copy", "Load channel as selection");
@@ -271,7 +271,7 @@ fn footer_loads_the_selected_layer_mask_and_preserves_color_alpha_targets() {
     h.state_mut().ui.mask_target = true;
     h.run_steps(2);
 
-    let click_load = |h: &mut egui_kittest::Harness<'_, LocalPaintApp>| {
+    let click_load = |h: &mut egui_kittest::Harness<'_, LocalRasterApp>| {
         use egui::{Modifiers, PointerButton};
         let p = at(h, "Load channel as selection");
         h.hover_at(p);
@@ -282,7 +282,7 @@ fn footer_loads_the_selected_layer_mask_and_preserves_color_alpha_targets() {
         h.run_steps(2);
     };
     let sample =
-        |h: &egui_kittest::Harness<'_, LocalPaintApp>, x, y| h.state().session.active().unwrap().doc.selection.as_ref().unwrap().sample_channel(x, y, 0);
+        |h: &egui_kittest::Harness<'_, LocalRasterApp>, x, y| h.state().session.active().unwrap().doc.selection.as_ref().unwrap().sample_channel(x, y, 0);
 
     assert_eq!(h.state().session.active().unwrap().channel_view.target, ChannelTarget::Composite);
     click_load(&mut h);
@@ -376,5 +376,5 @@ fn the_layer_mask_row_on_the_trash_asks_first() {
     drag_to(&mut h, "Masked Mask", "Delete current channel");
     assert!(h.state().ui.dialogs.iter().any(|d| crate::mask_trash_prompt::owns(&d.fields)), "the prompt is open");
     let st = h.state().session.active().unwrap();
-    assert!(st.doc.layer(localpaint_doc::LayerId(masked)).unwrap().mask.is_some(), "nothing deleted yet");
+    assert!(st.doc.layer(localraster_doc::LayerId(masked)).unwrap().mask.is_some(), "nothing deleted yet");
 }

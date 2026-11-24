@@ -1,5 +1,5 @@
 //! Explicit, one-shot desktop sampling. Snapshots remain in memory until selection/cancellation.
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use egui::{Color32, Context, Id, Pos2, Rect, Sense, Stroke, StrokeKind, TextureOptions, vec2};
 use std::sync::{
     Arc, Mutex,
@@ -65,17 +65,17 @@ impl ScreenImage {
         let p = (pos - rect.min) / rect.size();
         Some((((p.x * self.width as f32) as usize).min(self.width.saturating_sub(1)), ((p.y * self.height as f32) as usize).min(self.height.saturating_sub(1))))
     }
-    fn conversion(&self) -> Result<Option<Arc<localpaint_cms::Transform>>, String> {
+    fn conversion(&self) -> Result<Option<Arc<localraster_cms::Transform>>, String> {
         let Some(bytes) = &self.profile else { return Ok(None) };
-        let source = localpaint_cms::Profile::parse(bytes).map_err(|e| e.to_string())?;
-        if source.color_space != localpaint_cms::ColorSpace::Rgb {
+        let source = localraster_cms::Profile::parse(bytes).map_err(|e| e.to_string())?;
+        if source.color_space != localraster_cms::ColorSpace::Rgb {
             return Err("Screen profile must describe RGB pixels".into());
         }
-        localpaint_cms::Transform::new(&source, localpaint_cms::Builtin::Srgb.profile(), localpaint_cms::Intent::RelativeColorimetric, true)
+        localraster_cms::Transform::new(&source, localraster_cms::Builtin::Srgb.profile(), localraster_cms::Intent::RelativeColorimetric, true)
             .map(|t| Some(Arc::new(t)))
             .map_err(|e| e.to_string())
     }
-    fn sample(&self, x: usize, y: usize, conversion: Option<&localpaint_cms::Transform>) -> Result<[f32; 3], String> {
+    fn sample(&self, x: usize, y: usize, conversion: Option<&localraster_cms::Transform>) -> Result<[f32; 3], String> {
         let p = self.pixel(x, y).ok_or("Screen pixel is out of bounds")?;
         let mut rgb = [f32::from(p.r()) / 255.0, f32::from(p.g()) / 255.0, f32::from(p.b()) / 255.0];
         if let Some(t) = conversion {
@@ -88,9 +88,9 @@ impl ScreenImage {
 struct Snapshot {
     image: Arc<ScreenImage>,
     texture: egui::TextureHandle,
-    conversion: Option<Arc<localpaint_cms::Transform>>,
+    conversion: Option<Arc<localraster_cms::Transform>>,
 }
-type Target = (Option<localpaint_doc::DocId>, Option<localpaint_doc::LayerId>, Option<u64>);
+type Target = (Option<localraster_doc::DocId>, Option<localraster_doc::LayerId>, Option<u64>);
 #[derive(Default)]
 struct Runtime {
     request: Option<Id>,
@@ -137,11 +137,11 @@ pub fn button(ui: &mut egui::Ui, id: Id) -> Option<[f32; 3]> {
     }
     result
 }
-fn target(app: &LocalPaintApp) -> Target {
+fn target(app: &LocalRasterApp) -> Target {
     (app.session.active().map(|s| s.doc.id), app.session.active().and_then(|s| s.active_layer), app.ui.dialogs.last().map(|d| d.id))
 }
 /// Poll before shortcuts. A changed editing target invalidates a pending pick.
-pub fn tick(app: &mut LocalPaintApp, ctx: &Context) -> bool {
+pub fn tick(app: &mut LocalRasterApp, ctx: &Context) -> bool {
     ctx.data_mut(|d| d.insert_temp(Id::unique("screen-color-picker-available"), app.services.screen_pick.is_some()));
     let r = runtime(ctx);
     let mut s = lock(&r);
@@ -262,7 +262,7 @@ pub fn cancel(ctx: &Context) {
 /// The picker window: hidden until its snapshot has been painted (#3210).
 fn viewport_builder(ctx: &Context, image: &ScreenImage) -> egui::ViewportBuilder {
     let mut builder = crate::os_window::builder()
-        .with_title(tl!("Local Paint — Screen Color Picker"))
+        .with_title(tl!("Local Raster — Screen Color Picker"))
         .with_decorations(false)
         .with_resizable(false)
         .with_position(image.position / ctx.zoom_factor())
@@ -324,7 +324,7 @@ type Answer = Result<Option<[f32; 3]>, String>;
 /// and stays on top, so every way out must work (#4291): Esc, closing the window, a right-click,
 /// and a left click (or a press and release that moved) anywhere, which picks the pixel under
 /// it, or cancels when there's none to sample. Nothing it gets leaves the user stuck in it.
-fn frame(ui: &mut egui::Ui, shared: &Shared, image: &ScreenImage, texture: &egui::TextureHandle, conversion: Option<&localpaint_cms::Transform>) {
+fn frame(ui: &mut egui::Ui, shared: &Shared, image: &ScreenImage, texture: &egui::TextureHandle, conversion: Option<&localraster_cms::Transform>) {
     let ctx = ui.ctx().clone();
     let answer = |a: Answer| {
         lock(shared).answer = Some(a);
@@ -462,7 +462,7 @@ mod tests {
         i.size.x = f32::NAN;
         assert!(i.validate().is_err());
         let mut i = image();
-        i.profile = Some(localpaint_cms::Builtin::LabD50.profile().to_bytes().as_ref().clone());
+        i.profile = Some(localraster_cms::Builtin::LabD50.profile().to_bytes().as_ref().clone());
         assert!(i.conversion().is_err());
     }
     /// The picker window's frame over [`image`] (red | azure) filling a 200 × 100 window, with its
@@ -526,12 +526,12 @@ mod tests {
         );
         assert_eq!(picker_answer(|h| h.key_press(egui::Key::Escape)), Some(Ok(None)), "Esc cancels");
     }
-    fn app() -> LocalPaintApp {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    fn app() -> LocalRasterApp {
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         app.run("file.new", serde_json::json!({"width":8,"height":8})).unwrap();
         app
     }
-    fn queued(app: &mut LocalPaintApp, ctx: &Context) -> (Id, std::sync::mpsc::Sender<Result<Capture, String>>, Arc<std::sync::atomic::AtomicBool>) {
+    fn queued(app: &mut LocalRasterApp, ctx: &Context) -> (Id, std::sync::mpsc::Sender<Result<Capture, String>>, Arc<std::sync::atomic::AtomicBool>) {
         let (tx, rx) = std::sync::mpsc::channel();
         let cancelled = Arc::new(std::sync::atomic::AtomicBool::new(false));
         let stop = cancelled.clone();

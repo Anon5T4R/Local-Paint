@@ -38,7 +38,7 @@ pub(crate) fn composite_region(pre: &Document, id: Option<LayerId>, which: Sampl
             }
         }
     }
-    let buf = localpaint_compose::render(&doc, rect);
+    let buf = localraster_compose::render(&doc, rect);
     let n = fmt.channels();
     let mut out = Region::new(rect, n);
     let mut enc = [0.0f32; 8];

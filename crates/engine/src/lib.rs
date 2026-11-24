@@ -1,4 +1,4 @@
-//! The Local Paint engine façade: open documents, history, and the command registry.
+//! The Local Raster engine façade: open documents, history, and the command registry.
 //!
 //! Every user-visible action is a command with a stable id (Photoshop-style, such as
 //! `layer.newAdjustmentLayer.invert`) and JSON parameters. Every frontend goes through the same
@@ -28,6 +28,7 @@ pub mod jobs;
 pub mod kys;
 pub mod layer_place;
 pub mod layer_style;
+pub mod legacy_env;
 pub mod link_watch;
 pub mod new_layer;
 mod param_check;
@@ -45,14 +46,14 @@ pub use video_cmds::render_video_with;
 
 use std::sync::Arc;
 
-use localpaint_doc::{Document, LayerId};
-use localpaint_ops::{History, LayerTarget};
+use localraster_doc::{Document, LayerId};
+use localraster_ops::{History, LayerTarget};
 use serde_json::Value;
 
 pub use commands::{CommandSpec, command_specs};
-pub use localpaint_doc as doc;
-pub use localpaint_paint as paint;
-pub use localpaint_paint::BrushSettings;
+pub use localraster_doc as doc;
+pub use localraster_paint as paint;
+pub use localraster_paint::BrushSettings;
 
 pub mod cmd;
 mod doc_state;
@@ -172,13 +173,13 @@ pub(crate) use session::{carry_visibility, fix_selection, visibility_changes};
 
 /// The pixels of a raster layer (typically one a command just created), as an error instead
 /// of a panic if the layer has none.
-pub(crate) fn pixels_mut(l: &mut localpaint_doc::Layer) -> Result<&mut localpaint_raster::Surface> {
+pub(crate) fn pixels_mut(l: &mut localraster_doc::Layer) -> Result<&mut localraster_raster::Surface> {
     let id = l.id;
     l.surface_mut().ok_or_else(|| EngineError::Other(format!("layer {id:?} has no pixels")))
 }
 
 /// The active document's active layer, for `enabled` predicates.
-pub(crate) fn active_layer_of(s: &Session) -> std::result::Result<&localpaint_doc::Layer, String> {
+pub(crate) fn active_layer_of(s: &Session) -> std::result::Result<&localraster_doc::Layer, String> {
     let d = s.active().ok_or("no document open")?;
     d.active_layer.and_then(|id| d.doc.layer(id)).ok_or_else(|| "no active layer".into())
 }
@@ -187,14 +188,14 @@ pub(crate) fn active_layer_of(s: &Session) -> std::result::Result<&localpaint_do
 pub struct Session {
     docs: Vec<DocState>,
     /// Admitted document identities in opening order, independent of visual-tab reordering.
-    open_document_order: Vec<localpaint_doc::DocId>,
+    open_document_order: Vec<localraster_doc::DocId>,
     active: Option<usize>,
     /// Monotonic counter, bumped whenever a different document becomes active (including a
     /// switch away and back inside one pass). UI work that must not cross documents (control
     /// screenshots, automation input) binds to it.
     active_generation: u64,
     /// The document id [`Self::active_generation`] was last bumped for.
-    active_doc_for_generation: Option<localpaint_doc::DocId>,
+    active_doc_for_generation: Option<localraster_doc::DocId>,
     pub tools: ToolState,
     /// Log of executed commands (for action recording and debugging).
     pub journal: Vec<(String, Value)>,
@@ -206,14 +207,14 @@ pub struct Session {
     /// ([`CopiedStyle`]: blend mode, fill opacity, Advanced Blending, Blend If, channels).
     pub style_clipboard: Option<CopiedStyle>,
     /// Shape path context menu: copied vector fill and stroke styles.
-    pub path_fill_clipboard: Option<localpaint_doc::Fill>,
-    pub path_stroke_clipboard: Option<localpaint_doc::ShapeStroke>,
+    pub path_fill_clipboard: Option<localraster_doc::Fill>,
+    pub path_stroke_clipboard: Option<localraster_doc::ShapeStroke>,
     /// Colour management: proofing state, monitor profile, display transforms.
     pub color: color_cmds::ColorState,
     /// Open Edit Contents documents and the smart objects they update.
     pub smart_links: Vec<smart_cmds::SmartLink>,
     /// Type › Save Default Type Styles: character and paragraph style new type layers start from.
-    pub type_defaults: Option<(localpaint_doc::text::CharStyle, localpaint_doc::text::ParagraphStyle)>,
+    pub type_defaults: Option<(localraster_doc::text::CharStyle, localraster_doc::text::ParagraphStyle)>,
     /// Quick Mask Options (colour, opacity, colour indicates) used when entering Quick Mask.
     pub quick_mask_options: channel_cmds::QuickMaskOptions,
     /// Colour channel the running command may change (a single colour channel is targeted).
@@ -244,7 +245,7 @@ pub struct Session {
     /// Gate for every command the session runs, including the ones a command runs on its own
     /// behalf and `actions.play` steps. Untrusted sessions (MCP, the control channel) install
     /// the same check a top-level request sees. `None` runs everything, which is what a local
-    /// UI and `localpaint-cli run` do.
+    /// UI and `localraster-cli run` do.
     pub authorize: Option<fn(&str, &serde_json::Value) -> Result<()>>,
     /// A further route for File › Print when neither `lp` nor a CUPS server over IPP is
     /// reachable (the XDG Print portal in a Flatpak); see `print_cmds::Spooler`.
@@ -259,10 +260,10 @@ pub struct Session {
     samplers_removed: usize,
     /// The canvas-geometry map the next [`Session::edit`] applies to the Color Sampler points (crop,
     /// Canvas Size, Image Size, rotation set it just before their edit). Consumed by the edit.
-    sampler_map: Option<localpaint_geom::Affine>,
+    sampler_map: Option<localraster_geom::Affine>,
     /// The same edit's map in edge coordinates, for the painting symmetry (Image Rotation maps the
     /// samplers' pixel centres instead). Consumed by the edit.
-    symmetry_map: Option<localpaint_geom::Affine>,
+    symmetry_map: Option<localraster_geom::Affine>,
     /// Each open document's linked smart objects' files: size and modification time when last
     /// seen ([`link_watch`]).
     pub link_stamps: std::collections::HashMap<(u64, String), link_watch::Stamp>,

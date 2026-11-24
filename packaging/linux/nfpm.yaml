@@ -3,7 +3,7 @@
 # exports VERSION and NFPM_ARCH.
 #
 #   nfpm package -f packaging/linux/nfpm.yaml -p deb -t dist/release/
-name: localpaint
+name: localraster
 arch: ${NFPM_ARCH}
 platform: linux
 version: ${VERSION}
@@ -12,15 +12,22 @@ version_schema: semver
 release: 1
 section: graphics
 priority: optional
-maintainer: ${LOCALPAINT_MAINTAINER}
+maintainer: ${LOCALRASTER_MAINTAINER}
 vendor: Anon5T4R
-homepage: https://github.com/Anon5T4R/Local-Paint
+homepage: https://github.com/Anon5T4R/Local-Raster
 license: MIT OR Apache-2.0
+# Local Paint's package was called localpaint: a system upgrade swaps it for this one.
+replaces:
+  - localpaint
+conflicts:
+  - localpaint
+provides:
+  - localpaint
 description: |-
   Open-source, native image editor with familiar, professional tools.
   Layers, masks, adjustment layers, layer styles, type and brushes; opens and
   saves layered PSD/PSB files; 8/16/32-bit documents; GPU compositing (wgpu).
-  Includes localpaint-cli, a headless converter and command runner.
+  Includes localraster-cli, a headless converter and command runner.
 
 # The binaries link only glibc and libgcc_s directly. Windowing (X11/Wayland, xkbcommon) and the
 # GPU (Vulkan, EGL/GL) are loaded at runtime with dlopen, so they aren't ELF NEEDED entries and
@@ -29,7 +36,7 @@ description: |-
 # libxkbcommon-x11 panicked in #201); for Wayland: libwayland-client and libxkbcommon. wgpu needs
 # libvulkan or libEGL. RandR goes through x11rb's protocol code and fonts are found by scanning
 # directories, so libXrandr and fontconfig aren't loaded. The app also checks for these at start
-# (apps/localpaint/src/linux_libs.rs) and names the missing package instead of crashing.
+# (apps/localraster/src/linux_libs.rs) and names the missing package instead of crashing.
 overrides:
   deb:
     depends:
@@ -66,19 +73,19 @@ overrides:
       - xdg-desktop-portal
 
 contents:
-  - src: ${STAGE}/usr/bin/localpaint
-    dst: /usr/bin/localpaint
+  - src: ${STAGE}/usr/bin/localraster
+    dst: /usr/bin/localraster
     file_info: { mode: 0755 }
-  - src: ${STAGE}/usr/bin/localpaint-cli
-    dst: /usr/bin/localpaint-cli
+  - src: ${STAGE}/usr/bin/localraster-cli
+    dst: /usr/bin/localraster-cli
     file_info: { mode: 0755 }
   - src: ${STAGE}/usr/share/
     dst: /usr/share/
     type: tree
   # Debian's zsh reads vendor-completions, not /usr/share/zsh/site-functions as Fedora's and
   # openSUSE's do (its debian/rules sets --enable-additional-fpath).
-  - src: /usr/share/zsh/site-functions/_localpaint-cli
-    dst: /usr/share/zsh/vendor-completions/_localpaint-cli
+  - src: /usr/share/zsh/site-functions/_localraster-cli
+    dst: /usr/share/zsh/vendor-completions/_localraster-cli
     type: symlink
     packager: deb
 

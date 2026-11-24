@@ -1,7 +1,7 @@
 //! Crop tool: while a frame is edited, the canvas shows the layers' pixels past its edges, as
 //! Photoshop's crop preview does.
 //!
-//! A crop with Delete Cropped Pixels off keeps what it cut away, but Local Paint drew only the
+//! A crop with Delete Cropped Pixels off keeps what it cut away, but Local Raster drew only the
 //! canvas, so a frame couldn't be pulled back out over those pixels by eye. Photoshop (measured on
 //! 25.4) grows the view to every layer's bounds and the frame once the frame is pressed: the
 //! hidden pixels under the shield, transparency as the checkerboard, until ↵ or Esc.
@@ -10,12 +10,12 @@
 //! pixels. Skips when no GPU adapter exists (like `drag_preview_canvas.rs`).
 
 use egui::{Key, Modifiers, PointerButton, Pos2};
-use localpaint_ui_egui::LocalPaintApp;
-use localpaint_ui_egui::canvas::ViewXform;
-use localpaint_ui_egui::control::{ControlRequest, handle};
+use localraster_ui_egui::LocalRasterApp;
+use localraster_ui_egui::canvas::ViewXform;
+use localraster_ui_egui::control::{ControlRequest, handle};
 use serde_json::{Value, json};
 
-type Harness = egui_kittest::Harness<'static, LocalPaintApp>;
+type Harness = egui_kittest::Harness<'static, LocalRasterApp>;
 
 /// A rendered frame: RGBA8, physical pixels.
 struct Image {
@@ -36,8 +36,8 @@ impl Image {
 fn harness() -> Option<Harness> {
     let built = std::panic::catch_unwind(|| {
         egui_kittest::Harness::builder().with_size(egui::vec2(900.0, 640.0)).with_max_steps(64).wgpu().build_eframe(|cc| {
-            LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-            let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), Default::default());
+            LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+            let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
             if let Some(rs) = cc.wgpu_render_state.as_ref() {
                 app.set_wgpu(rs.clone());
             }
@@ -64,7 +64,7 @@ fn screen(h: &Harness, x: f32, y: f32) -> Pos2 {
     let app = h.state();
     let v = &app.ui.views[0];
     let xf = ViewXform {
-        rect: localpaint_ui_egui::rulers::content_rect(app, app.last_canvas_rect),
+        rect: localraster_ui_egui::rulers::content_rect(app, app.last_canvas_rect),
         zoom: v.zoom,
         center: v.center,
         flip: app.ui.view.flip_horizontal,
@@ -103,7 +103,7 @@ fn tinted(p: [u8; 3], c: usize) -> bool {
 
 #[test]
 fn editing_a_crop_frame_shows_the_pixels_past_the_canvas() {
-    let _gpu = localpaint_testkit::gpu_lock();
+    let _gpu = localraster_testkit::gpu_lock();
     let Some(mut h) = harness() else { return };
     h.run_steps(4);
     {

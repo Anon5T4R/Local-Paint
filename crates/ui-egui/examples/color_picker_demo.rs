@@ -1,20 +1,20 @@
 //! Render synthetic color-picker evidence without capturing the user's desktop.
-//! cargo run -p localpaint-ui-egui --example color_picker_demo -- /tmp/color-picker
+//! cargo run -p localraster-ui-egui --example color_picker_demo -- /tmp/color-picker
 use egui_kittest::{Harness, kittest::Queryable};
-use localpaint_ui_egui::{
-    LocalPaintApp, Services,
+use localraster_ui_egui::{
+    LocalRasterApp, Services,
     screen_picker::{self, Capture, Pending, ScreenImage},
 };
 use serde_json::json;
 
 fn main() {
-    let output = std::env::args().nth(1).unwrap_or_else(|| "/tmp/localpaint-color-picker".into());
+    let output = std::env::args().nth(1).unwrap_or_else(|| "/tmp/localraster-color-picker".into());
     std::fs::create_dir_all(&output).expect("output directory");
-    let mut session = localpaint_engine::Session::new();
+    let mut session = localraster_engine::Session::new();
     session.execute("file.new", json!({"width":800,"height":500,"background":"white"})).unwrap();
     session.execute("type.create", json!({"text":"Color from anywhere","color":"#2070c0","size":48,"x":90,"y":200})).unwrap();
     let mut text = Harness::builder().with_size(egui::vec2(1200.0, 800.0)).with_pixels_per_point(1.0).with_max_steps(64).wgpu().build_eframe(move |cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
         let services = Services {
             screen_pick: Some(Box::new(|_| {
                 let (tx, receiver) = std::sync::mpsc::channel();
@@ -23,8 +23,8 @@ fn main() {
             })),
             ..Default::default()
         };
-        let mut app = LocalPaintApp::new(session, services);
-        app.ui.tool = localpaint_ui_egui::state::Tool::Type;
+        let mut app = LocalRasterApp::new(session, services);
+        app.ui.tool = localraster_ui_egui::state::Tool::Type;
         app
     });
     text.run_steps(8);
@@ -59,7 +59,7 @@ fn main() {
         ..Default::default()
     };
     let mut loupe = Harness::builder().with_size(egui::vec2(800.0, 600.0)).with_pixels_per_point(1.0).wgpu().build_ui_state(
-        |ui, app: &mut LocalPaintApp| {
+        |ui, app: &mut LocalRasterApp| {
             screen_picker::tick(app, ui.ctx());
             if screen_picker::showing(ui.ctx()) {
                 screen_picker::show(ui.ctx());
@@ -67,7 +67,7 @@ fn main() {
                 screen_picker::button(ui, egui::Id::unique("demo"));
             }
         },
-        LocalPaintApp::new(localpaint_engine::Session::new(), services),
+        LocalRasterApp::new(localraster_engine::Session::new(), services),
     );
     loupe.run_steps(2);
     loupe.get_by_label("Pick screen color").click();

@@ -1,4 +1,4 @@
-use localpaint_engine::Session;
+use localraster_engine::Session;
 use serde_json::json;
 
 fn session() -> Session {
@@ -94,10 +94,10 @@ fn subtracting_from_an_existing_selection_preserves_other_pixels_and_history() {
 
 #[test]
 fn marquee_add_subtract_match_dense_combination_across_tiles() {
-    use localpaint_algo::selection as sel;
-    use localpaint_color::PixelFormat;
-    use localpaint_geom::Rect;
-    use localpaint_raster::Surface;
+    use localraster_algo::selection as sel;
+    use localraster_color::PixelFormat;
+    use localraster_geom::Rect;
+    use localraster_raster::Surface;
 
     // A partial edge tile, a shape crossing a tile boundary, and an untouched distant tile.
     let area = Rect::from_xywh(0, 0, 777, 263);

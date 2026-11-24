@@ -14,9 +14,9 @@
 //! All pixel data here is the surface's *native* channels as normalised `f32` (any depth, any colour
 //! model); colour-space-specific work happens in the callbacks.
 
-use localpaint_color::{BlendMode, PixelFormat};
-use localpaint_geom::Rect;
-use localpaint_raster::{Surface, from_rgba_into, to_rgba};
+use localraster_color::{BlendMode, PixelFormat};
+use localraster_geom::Rect;
+use localraster_raster::{Surface, from_rgba_into, to_rgba};
 
 use crate::{Dab, Stroke, dab_coverage, dabs};
 
@@ -226,7 +226,7 @@ pub fn apply_coverage(
             let d = to_rgba(&fmt, px);
             let s = to_rgba(&fmt, src);
             let o =
-                if lock_transparency { localpaint_color::blend::composite_atop(blend, d, s, k) } else { localpaint_color::blend::composite(blend, d, s, k) };
+                if lock_transparency { localraster_color::blend::composite_atop(blend, d, s, k) } else { localraster_color::blend::composite(blend, d, s, k) };
             let mut enc = [0.0f32; 8];
             from_rgba_into(&fmt, o, &mut enc);
             px.copy_from_slice(&enc[..n]);
@@ -455,7 +455,7 @@ fn premultiply(px: &mut [f32], alpha: Option<usize>) {
 mod tests {
     use super::*;
     use crate::{BrushSettings, StrokePoint};
-    use localpaint_geom::Point;
+    use localraster_geom::Point;
 
     fn stroke(points: &[(f64, f64)], size: f32, hardness: f32) -> Stroke {
         Stroke {

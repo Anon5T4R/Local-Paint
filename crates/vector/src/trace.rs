@@ -15,8 +15,8 @@
 
 use std::collections::HashMap;
 
-use localpaint_doc::{Knot, Path, PathOp, Subpath};
-use localpaint_geom::{Point, Rect};
+use localraster_doc::{Knot, Path, PathOp, Subpath};
+use localraster_geom::{Point, Rect};
 
 type P = (f64, f64);
 

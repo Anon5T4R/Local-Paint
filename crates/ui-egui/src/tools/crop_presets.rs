@@ -19,7 +19,7 @@
 use egui::vec2;
 use serde_json::{Map, Value, json};
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::crop_size::{self, PX_PER_CM, PX_PER_IN, WHR};
 use crate::state::{DialogKind, Tool, ToolOptions};
 
@@ -46,7 +46,7 @@ pub(crate) enum Choice {
 }
 
 /// The saved crop presets: (name, crop fields of its `toolOptions`), in saved order.
-pub fn user_presets(app: &LocalPaintApp) -> Vec<(String, Map<String, Value>)> {
+pub fn user_presets(app: &LocalRasterApp) -> Vec<(String, Map<String, Value>)> {
     app.session
         .presets
         .tool_presets
@@ -75,7 +75,7 @@ fn matches(o: &ToolOptions, fields: &Map<String, Value>) -> bool {
 }
 
 /// The number of a length or resolution as the preset name shows it ("8.5", "300").
-fn number(v: f64, unit: localpaint_engine::prefs::Unit) -> String {
+fn number(v: f64, unit: localraster_engine::prefs::Unit) -> String {
     let s = crop_size::format_length(v, unit);
     s.split_once(' ').map_or(s.clone(), |(n, _)| n.to_string())
 }
@@ -83,7 +83,7 @@ fn number(v: f64, unit: localpaint_engine::prefs::Unit) -> String {
 /// What New Crop Preset would save from `o`: the crop fields and the name it suggests. `None` when
 /// there is nothing to save (W x H x Resolution without both W and H, or no numeric ratio).
 pub fn savable(o: &ToolOptions) -> Option<(Map<String, Value>, String)> {
-    use localpaint_engine::prefs::Unit;
+    use localraster_engine::prefs::Unit;
     if o.crop_ratio == WHR {
         let (w, wu) = crop_size::parse_length(&o.crop_width, Unit::Pixels)?;
         let (h, hu) = crop_size::parse_length(&o.crop_height, Unit::Pixels)?;
@@ -134,7 +134,7 @@ fn button_label(o: &ToolOptions, builtin: &[(String, &'static str)], users: &[(S
 
 /// The options bar's preset dropdown: the built-in entries ([`crop_size::dropdown_options`]), the
 /// saved crop presets before Front Image, then New Crop Preset… and Delete Crop Preset….
-pub fn dropdown(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
+pub fn dropdown(app: &mut LocalRasterApp, ui: &mut egui::Ui) {
     let builtin = crop_size::dropdown_options();
     let users = user_presets(app);
     let o = &app.ui.tool_options;
@@ -177,7 +177,7 @@ pub fn dropdown(app: &mut LocalPaintApp, ui: &mut egui::Ui) {
 }
 
 /// What picking a dropdown entry does; the Crop tool's canvas menu picks through it too.
-pub(crate) fn apply_choice(app: &mut LocalPaintApp, choice: Choice) {
+pub(crate) fn apply_choice(app: &mut LocalRasterApp, choice: Choice) {
     match choice {
         Choice::Builtin(k) => {
             app.ui.tool_options.crop_ratio = k;
@@ -200,13 +200,13 @@ pub(crate) fn apply_choice(app: &mut LocalPaintApp, choice: Choice) {
 
 /// The saved crop preset whose values the fields hold (the latest saved one first), as the
 /// dropdown shows it.
-pub(crate) fn current_user(app: &LocalPaintApp) -> Option<String> {
+pub(crate) fn current_user(app: &LocalRasterApp) -> Option<String> {
     let o = &app.ui.tool_options;
     user_presets(app).into_iter().rev().find(|(_, f)| matches(o, f)).map(|(n, _)| n)
 }
 
 /// A newly chosen ratio fills the editable custom W/H fields (free Ratio clears them, #3188).
-fn sync_custom_ratio_fields(app: &mut LocalPaintApp) {
+fn sync_custom_ratio_fields(app: &mut LocalRasterApp) {
     if app.ui.tool_options.crop_ratio != crop_size::WHR {
         crop_size::select_custom_ratio(&mut app.ui.tool_options);
     }
@@ -214,13 +214,13 @@ fn sync_custom_ratio_fields(app: &mut LocalPaintApp) {
 
 /// Choose a saved crop preset: its fields fill the options bar (`tool.presets.select`, the same
 /// as clicking it in the Tool Presets panel).
-pub fn select(app: &mut LocalPaintApp, name: &str) {
+pub fn select(app: &mut LocalRasterApp, name: &str) {
     crate::preset_panels::select_tool_preset(app, name);
 }
 
 /// Open New Crop Preset with the name made from the current values. `None` (nothing opens) when
 /// there is nothing to save; an open one is reused.
-pub fn open_new(app: &mut LocalPaintApp) -> Option<u64> {
+pub fn open_new(app: &mut LocalRasterApp) -> Option<u64> {
     let (fields, name) = savable(&app.ui.tool_options)?;
     if let Some(d) = app.ui.dialogs.iter().find(|d| d.fields.contains_key(NEW_MARK)) {
         return Some(d.id);
@@ -230,7 +230,7 @@ pub fn open_new(app: &mut LocalPaintApp) -> Option<u64> {
 }
 
 /// Open Delete Crop Preset. `None` when no crop preset is saved; an open one is reused.
-pub fn open_delete(app: &mut LocalPaintApp) -> Option<u64> {
+pub fn open_delete(app: &mut LocalRasterApp) -> Option<u64> {
     if user_presets(app).is_empty() {
         return None;
     }
@@ -252,7 +252,7 @@ fn new_name(fields: &Map<String, Value>) -> Option<String> {
 }
 
 /// The names a Delete Crop Preset dialog selected that are saved crop presets.
-fn delete_names(app: &LocalPaintApp, fields: &Map<String, Value>) -> Vec<String> {
+fn delete_names(app: &LocalRasterApp, fields: &Map<String, Value>) -> Vec<String> {
     let saved = user_presets(app);
     let picked: Vec<&str> = fields.get("selected").and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_str).collect()).unwrap_or_default();
     saved.into_iter().map(|(n, _)| n).filter(|n| picked.contains(&n.as_str())).collect()
@@ -260,7 +260,7 @@ fn delete_names(app: &LocalPaintApp, fields: &Map<String, Value>) -> Vec<String>
 
 /// Whether OK (and Enter) may confirm the dialog: a name to save, a preset to delete. True for any
 /// other dialog.
-pub fn can_confirm(app: &LocalPaintApp, fields: &Map<String, Value>) -> bool {
+pub fn can_confirm(app: &LocalRasterApp, fields: &Map<String, Value>) -> bool {
     if fields.contains_key(NEW_MARK) {
         new_name(fields).is_some()
     } else if fields.contains_key(DELETE_MARK) {
@@ -270,7 +270,7 @@ pub fn can_confirm(app: &LocalPaintApp, fields: &Map<String, Value>) -> bool {
     }
 }
 
-pub fn body(app: &LocalPaintApp, ui: &mut egui::Ui, fields: &mut Map<String, Value>) {
+pub fn body(app: &LocalRasterApp, ui: &mut egui::Ui, fields: &mut Map<String, Value>) {
     if fields.contains_key(NEW_MARK) {
         new_body(ui, fields);
     } else {
@@ -299,7 +299,7 @@ fn new_body(ui: &mut egui::Ui, fields: &mut Map<String, Value>) {
     fields.insert("name".into(), json!(name));
 }
 
-fn delete_body(app: &LocalPaintApp, ui: &mut egui::Ui, fields: &mut Map<String, Value>) {
+fn delete_body(app: &LocalRasterApp, ui: &mut egui::Ui, fields: &mut Map<String, Value>) {
     let saved = user_presets(app);
     let mut selected: Vec<String> =
         fields.get("selected").and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_str).map(str::to_string).collect()).unwrap_or_default();
@@ -333,7 +333,7 @@ fn delete_body(app: &LocalPaintApp, ui: &mut egui::Ui, fields: &mut Map<String, 
 }
 
 /// OK: save the preset, or delete the selected ones.
-pub fn confirm(app: &mut LocalPaintApp, fields: &Map<String, Value>) -> Result<Value, String> {
+pub fn confirm(app: &mut LocalRasterApp, fields: &Map<String, Value>) -> Result<Value, String> {
     if fields.contains_key(NEW_MARK) {
         let name = new_name(fields).ok_or(tl!("Enter a name for the crop preset"))?;
         let options = crop_fields(fields.get("options").unwrap_or(&Value::Null));
@@ -352,24 +352,24 @@ pub fn confirm(app: &mut LocalPaintApp, fields: &Map<String, Value>) -> Result<V
 #[cfg(test)]
 mod tests {
     use super::*;
-    use localpaint_doc::{Color, ColorMode, Document, SampleType, Size};
+    use localraster_doc::{Color, ColorMode, Document, SampleType, Size};
     use std::{cell::RefCell, rc::Rc};
 
-    fn app_with(services: crate::Services) -> LocalPaintApp {
+    fn app_with(services: crate::Services) -> LocalRasterApp {
         let mut doc = Document::with_background("crop", Size::new(400, 300), ColorMode::Rgb, SampleType::U8, Color::WHITE);
         doc.resolution_dpi = 72.0;
-        let mut s = localpaint_engine::Session::new();
+        let mut s = localraster_engine::Session::new();
         s.add_document(doc, None);
-        let mut app = LocalPaintApp::new(s, services);
+        let mut app = LocalRasterApp::new(s, services);
         app.ui.tool = Tool::Crop;
         app
     }
 
-    fn app() -> LocalPaintApp {
+    fn app() -> LocalRasterApp {
         app_with(crate::Services::default())
     }
 
-    fn whr(app: &mut LocalPaintApp, w: &str, h: &str, r: &str, unit: &str) {
+    fn whr(app: &mut LocalRasterApp, w: &str, h: &str, r: &str, unit: &str) {
         let o = &mut app.ui.tool_options;
         o.crop_ratio = WHR.into();
         o.crop_width = w.into();
@@ -378,7 +378,7 @@ mod tests {
         o.crop_resolution_unit = unit.into();
     }
 
-    fn names(app: &LocalPaintApp) -> Vec<String> {
+    fn names(app: &LocalRasterApp) -> Vec<String> {
         user_presets(app).into_iter().map(|(n, _)| n).collect()
     }
 
@@ -507,7 +507,7 @@ mod tests {
         }
         assert_eq!(names(&app).len(), 3);
         // A preset from a hand-edited file with odd options is listed and selecting it is harmless.
-        app.session.presets.tool_presets.push(localpaint_engine::presets::tools::ToolPreset {
+        app.session.presets.tool_presets.push(localraster_engine::presets::tools::ToolPreset {
             name: "Odd".into(),
             tool: "crop".into(),
             options: json!({"toolOptions": {"crop_ratio": 5, "crop_width": []}}),
@@ -523,7 +523,7 @@ mod tests {
         use crate::control::{ControlRequest, Outcome, handle};
         let mut app = app();
         let ctx = egui::Context::default();
-        let call = |app: &mut LocalPaintApp, m: &str, p: Value| {
+        let call = |app: &mut LocalRasterApp, m: &str, p: Value| {
             let (r, _rx) = ControlRequest::new(m, p);
             match handle(app, &ctx, &r) {
                 Outcome::Done(v) => v,
@@ -549,7 +549,7 @@ mod tests {
     fn options_bar_dropdown_offers_new_and_delete() {
         use egui_kittest::kittest::{NodeT, Queryable};
         let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1400.0, 800.0)).with_max_steps(64).build_eframe(|cc| {
-            LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
+            LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
             let mut app = app();
             whr(&mut app, "", "", "", PX_PER_IN);
             app

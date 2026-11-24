@@ -12,8 +12,8 @@ pub(crate) const SAVE_OPTIONS_OPEN: &str = "Answer the TIFF, Targa, DDS or JPEG 
 /// prompt.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct FormatChoices {
-    pub tga_bits: Option<localpaint_io::TgaBits>,
-    pub dds: Option<localpaint_io::DdsOptions>,
+    pub tga_bits: Option<localraster_io::TgaBits>,
+    pub dds: Option<localraster_io::DdsOptions>,
     pub jpeg: Option<jpeg_options_ui::JpegChoice>,
 }
 
@@ -61,7 +61,7 @@ impl FormatChoices {
 }
 
 /// Decode a file: (document, warnings about anything approximated or dropped).
-pub type ImportFn = Box<dyn Fn(&str, &[u8], &localpaint_io::ImportOptions) -> Result<(Document, Vec<String>), String>>;
+pub type ImportFn = Box<dyn Fn(&str, &[u8], &localraster_io::ImportOptions) -> Result<(Document, Vec<String>), String>>;
 
 /// Encoder settings chosen in Export As (the file format comes from the name's extension).
 #[derive(Clone, Debug, PartialEq)]
@@ -69,7 +69,7 @@ pub struct ExportSettings {
     /// JPEG quality 1–100 (None = codec default).
     pub jpeg_quality: Option<u8>,
     /// JPEG Options › Format Options: baseline, baseline optimized or progressive.
-    pub jpeg_format: localpaint_codecs::JpegFormat,
+    pub jpeg_format: localraster_codecs::JpegFormat,
     /// WebP: lossless (VP8L) rather than lossy (VP8 at [`Self::webp_quality`]).
     pub webp_lossless: bool,
     /// Lossy WebP quality 1–100 (None = codec default).
@@ -82,15 +82,15 @@ pub struct ExportSettings {
     pub xmp_all: bool,
     /// Targa: bits per pixel from Targa Options or Export As (`None`: 32 with an alpha channel or
     /// transparency, else 24).
-    pub tga_bits: Option<localpaint_io::TgaBits>,
+    pub tga_bits: Option<localraster_io::TgaBits>,
     /// DDS: the compression and mip chain from DDS Options (uncompressed without mipmaps unless
     /// chosen).
-    pub dds: localpaint_io::DdsOptions,
+    pub dds: localraster_io::DdsOptions,
     /// PSD/PSB: embed a thumbnail (Preferences › File Handling › Image Previews; see
-    /// [`LocalPaintApp::save_settings`]).
+    /// [`LocalRasterApp::save_settings`]).
     pub image_previews: bool,
     /// PSD/PSB: write the real merged image (Preferences › File Handling › Maximize PSD and PSB
-    /// File Compatibility; see [`LocalPaintApp::save_settings`]).
+    /// File Compatibility; see [`LocalRasterApp::save_settings`]).
     pub psd_maximize_compatibility: bool,
     /// Embed the document's ICC profile when the format supports it. On for Save As and, unless
     /// Export As turns it off, for export.
@@ -99,11 +99,11 @@ pub struct ExportSettings {
     /// turns this off for Metadata: None; Save As leaves it on.
     pub embed_metadata: bool,
     /// The path of the document's own file, which linked smart objects that PSD/PSB embed are
-    /// resolved against ([`localpaint_io::ExportOptions::document_path`]).
+    /// resolved against ([`localraster_io::ExportOptions::document_path`]).
     pub document_path: Option<std::path::PathBuf>,
     /// Native save cache owned by the open document; exports without one remain one-shot.
-    pub pcraft_cache: Option<localpaint_io::PcraftExportCache>,
-    /// Read and embed the files linked smart objects name ([`localpaint_io::ExportOptions::read_linked_files`]).
+    pub pcraft_cache: Option<localraster_io::PcraftExportCache>,
+    /// Read and embed the files linked smart objects name ([`localraster_io::ExportOptions::read_linked_files`]).
     /// Off for automation saves, which are granted only their target.
     pub read_linked_files: bool,
 }
@@ -112,13 +112,13 @@ impl Default for ExportSettings {
     fn default() -> Self {
         ExportSettings {
             jpeg_quality: None,
-            jpeg_format: localpaint_codecs::JpegFormat::Baseline,
+            jpeg_format: localraster_codecs::JpegFormat::Baseline,
             webp_lossless: true,
             webp_quality: None,
             tiff_layers: true,
             xmp_all: true,
             tga_bits: None,
-            dds: localpaint_io::DdsOptions::default(),
+            dds: localraster_io::DdsOptions::default(),
             image_previews: true,
             psd_maximize_compatibility: true,
             embed_icc: true,
@@ -133,8 +133,8 @@ impl Default for ExportSettings {
 impl ExportSettings {
     /// The IO export options these encoder settings select. Save As and Export As share this so
     /// a profile or metadata choice cannot be applied in one and forgotten in the other.
-    pub fn io_options(&self) -> localpaint_io::ExportOptions {
-        let mut opts = localpaint_io::ExportOptions::default();
+    pub fn io_options(&self) -> localraster_io::ExportOptions {
+        let mut opts = localraster_io::ExportOptions::default();
         if let Some(q) = self.jpeg_quality {
             opts.encode.jpeg_quality = q;
         }
@@ -146,7 +146,7 @@ impl ExportSettings {
         opts.encode.embed_icc = self.embed_icc;
         opts.encode.embed_metadata = self.embed_metadata;
         opts.tiff_layers = self.tiff_layers;
-        opts.xmp = if self.xmp_all { localpaint_io::XmpEmbed::All } else { localpaint_io::XmpEmbed::None };
+        opts.xmp = if self.xmp_all { localraster_io::XmpEmbed::All } else { localraster_io::XmpEmbed::None };
         opts.tga_bits = self.tga_bits;
         opts.encode.dds = self.dds;
         opts.image_previews = self.image_previews;
@@ -160,10 +160,10 @@ impl ExportSettings {
 
 /// The document's lone layer when it is a plain raster a flat file keeps: visible, at full
 /// opacity, in Normal mode, with no masks, effects or blending restrictions (#2234).
-pub(crate) fn plain_raster(doc: &Document) -> Option<&localpaint_doc::Layer> {
+pub(crate) fn plain_raster(doc: &Document) -> Option<&localraster_doc::Layer> {
     match doc.layers.as_slice() {
         [layer]
-            if matches!(layer.content, localpaint_doc::LayerContent::Raster(_))
+            if matches!(layer.content, localraster_doc::LayerContent::Raster(_))
                 && layer.visible
                 && layer.opacity >= 1.0
                 && layer.fill_opacity >= 1.0
@@ -171,9 +171,9 @@ pub(crate) fn plain_raster(doc: &Document) -> Option<&localpaint_doc::Layer> {
                 && layer.vector_mask.is_none()
                 && layer.effects.items.is_empty()
                 && layer.effects.psd_raw.is_none()
-                && matches!(layer.blend, localpaint_color::BlendMode::Normal | localpaint_color::BlendMode::PassThrough)
-                && localpaint_compose::channel_weights(layer, doc.mode).is_none()
-                && !localpaint_compose::blend_if_active(layer, doc.mode) =>
+                && matches!(layer.blend, localraster_color::BlendMode::Normal | localraster_color::BlendMode::PassThrough)
+                && localraster_compose::channel_weights(layer, doc.mode).is_none()
+                && !localraster_compose::blend_if_active(layer, doc.mode) =>
         {
             Some(layer)
         }
@@ -408,8 +408,8 @@ pub struct Services {
     pub automation_command: Option<AutomationCommandFn>,
     /// Same policy as [`Self::automation_command`], as a function pointer the engine calls for
     /// each step of `actions.play`. Installed on the session only while a control request or
-    /// an automation-driven [`LocalPaintApp::run`] runs, so a local play of a recorded `file.*` step still works.
-    pub automation_authorize: Option<fn(&str, &serde_json::Value) -> localpaint_engine::Result<()>>,
+    /// an automation-driven [`LocalRasterApp::run`] runs, so a local play of a recorded `file.*` step still works.
+    pub automation_authorize: Option<fn(&str, &serde_json::Value) -> localraster_engine::Result<()>>,
     /// Encode an RGBA8 image as PNG (used for screenshots and `ui.render`).
     pub encode_png: Option<EncodePngFn>,
     /// Open a URL in the system browser (native). Falls back to `ctx.open_url` (web) when unset.
@@ -422,12 +422,12 @@ pub struct Services {
     /// [`Self::beep`].
     pub alert: Option<fn()>,
     /// Starts a background check for published releases (desktop, outside Flatpak).
-    pub check_updates: Option<localpaint_engine::updates_cmds::CheckFn>,
+    pub check_updates: Option<localraster_engine::updates_cmds::CheckFn>,
     /// Files delivered asynchronously (web drag-and-drop): drained every frame and opened as
     /// documents.
     pub inbox: Option<Inbox>,
     /// Files delivered asynchronously for a drop onto the active document's canvas (web
-    /// drag-and-drop, routed by [`LocalPaintApp::dropped_on_canvas`]): placed as layers like a
+    /// drag-and-drop, routed by [`LocalRasterApp::dropped_on_canvas`]): placed as layers like a
     /// desktop canvas drop (Place Embedded, each in Free Transform).
     pub place_inbox: Option<Inbox>,
     /// OS clipboard images: copies go out, screenshots and images from other apps come in.
@@ -481,9 +481,9 @@ pub struct Services {
     /// Physical right mouse button or pen barrel button currently down.
     pub right_button_down: Option<RightButtonDownFn>,
     /// The persistent brush preset store, loading in the background (desktop; see
-    /// `localpaint_engine::preset_store`). Attached to the session once it arrives; without
+    /// `localraster_engine::preset_store`). Attached to the session once it arrives; without
     /// one, brush presets are session-only unless the shell attached a store before startup.
-    pub preset_store: Option<std::sync::mpsc::Receiver<localpaint_engine::preset_store::Opened>>,
+    pub preset_store: Option<std::sync::mpsc::Receiver<localraster_engine::preset_store::Opened>>,
     /// Reads the displays and their ICC profiles in the background (desktop macOS; see
     /// `monitor_status`). Without one, the canvas uses the profile chosen in Color Settings, or sRGB.
     pub read_displays: Option<monitor_status::ReadDisplaysFn>,

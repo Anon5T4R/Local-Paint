@@ -7,16 +7,16 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use serde_json::json;
 
-use crate::LocalPaintApp;
+use crate::LocalRasterApp;
 use crate::state::Tool;
 use crate::vector_ui::PenPath;
 
-fn harness() -> Harness<'static, LocalPaintApp> {
-    let mut s = localpaint_engine::Session::new();
+fn harness() -> Harness<'static, LocalRasterApp> {
+    let mut s = localraster_engine::Session::new();
     s.execute("file.new", json!({"width": 200, "height": 100})).unwrap();
     let mut h = Harness::builder().with_size(vec2(1280.0, 800.0)).with_max_steps(64).build_eframe(move |cc| {
-        LocalPaintApp::setup_context(&cc.egui_ctx, Default::default());
-        LocalPaintApp::new(s, crate::Services::default())
+        LocalRasterApp::setup_context(&cc.egui_ctx, Default::default());
+        LocalRasterApp::new(s, crate::Services::default())
     });
     h.run_steps(6);
     h
@@ -31,7 +31,7 @@ fn command() -> Modifiers {
     }
 }
 
-fn press(h: &mut Harness<'_, LocalPaintApp>, key: Key, m: Modifiers) {
+fn press(h: &mut Harness<'_, LocalRasterApp>, key: Key, m: Modifiers) {
     h.event(Event::ModifiersChanged(m));
     h.event(Event::Key { key, physical_key: None, pressed: true, repeat: false, modifiers: m });
     h.event(Event::Key { key, physical_key: None, pressed: false, repeat: false, modifiers: m });
@@ -45,7 +45,7 @@ fn rect_path(x: f64, y: f64, w: f64, h: f64) -> serde_json::Value {
 }
 
 /// The selection's bounds (x, y, width, height), if any.
-fn selection(h: &Harness<'_, LocalPaintApp>) -> Option<[i64; 4]> {
+fn selection(h: &Harness<'_, LocalRasterApp>) -> Option<[i64; 4]> {
     let r = h.state().session.active()?.doc.selection.as_ref()?.content_bounds();
     Some([r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0].map(i64::from))
 }
@@ -207,7 +207,7 @@ fn without_a_path_it_says_why_and_the_key_can_be_rebound() {
     assert_eq!(selection(&h), Some([10, 10, 20, 20]), "{}", h.state().ui.status);
 }
 
-fn panel(h: &mut Harness<'_, LocalPaintApp>, tab: usize) {
+fn panel(h: &mut Harness<'_, LocalRasterApp>, tab: usize) {
     let ctx = h.ctx.clone();
     let (req, _) = crate::control::ControlRequest::new(
         "ui.set",
@@ -217,7 +217,7 @@ fn panel(h: &mut Harness<'_, LocalPaintApp>, tab: usize) {
     h.run_steps(4);
 }
 
-fn click(h: &mut Harness<'_, LocalPaintApp>, at: egui::Pos2, modifiers: Modifiers) {
+fn click(h: &mut Harness<'_, LocalRasterApp>, at: egui::Pos2, modifiers: Modifiers) {
     h.hover_at(at);
     h.event(Event::ModifiersChanged(modifiers));
     h.run_steps(1);
@@ -243,7 +243,7 @@ fn thumbnail_selection_ctrl_click_shape_keeps_active_layer_and_supports_undo() {
     h.run_steps(2);
     click(&mut h, egui::pos2(row.row.left() + 46.0, row.row.center().y), command());
     assert_eq!(selection(&h), Some([40, 20, 60, 40]), "{}", h.state().ui.status);
-    assert_eq!(h.state().session.active().unwrap().active_layer, Some(localpaint_doc::LayerId(active)));
+    assert_eq!(h.state().session.active().unwrap().active_layer, Some(localraster_doc::LayerId(active)));
     h.state_mut().run("edit.undo", json!({})).unwrap();
     assert!(selection(&h).is_none());
     h.state_mut().run("edit.redo", json!({})).unwrap();
@@ -307,7 +307,7 @@ fn thumbnail_selection_ctrl_click_layer_path_preserves_panel_target() {
     assert_eq!(selection(&h), Some([40, 20, 60, 40]));
     assert_eq!(h.state().ui.selected_path.as_deref(), Some("work"));
     assert!(!h.state().ui.mask_target && !h.state().ui.vector_mask_target);
-    if let Ok(path) = std::env::var("LOCALPAINT_THUMBNAIL_SELECTION_SCREENSHOT") {
+    if let Ok(path) = std::env::var("LOCALRASTER_THUMBNAIL_SELECTION_SCREENSHOT") {
         h.render().unwrap().save(path).unwrap();
     }
 }
@@ -339,7 +339,7 @@ fn clicking_shape_with_path_selection_selects_its_layer() {
 /// confirms the path's outline pixels are painted in the accent colour, proving the path is drawn.
 #[test]
 fn path_overlay_drawn_for_non_vector_tools() {
-    let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+    let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
     app.sync_views();
     // Place a work path whose top edge runs exactly along y=10 in document space.
@@ -349,7 +349,7 @@ fn path_overlay_drawn_for_non_vector_tools() {
     app.ui.tool = Tool::Brush;
 
     let mut h = Harness::builder().with_size(vec2(900.0, 700.0)).build_ui_state(
-        |ui, app: &mut LocalPaintApp| {
+        |ui, app: &mut LocalRasterApp| {
             let ctx = ui.ctx().clone();
             if !ctx.fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                 return;
@@ -358,7 +358,7 @@ fn path_overlay_drawn_for_non_vector_tools() {
         },
         app,
     );
-    LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
+    LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
     h.run_steps(6);
     // Fit the view so document coordinates map predictably to screen pixels.
     {
@@ -436,7 +436,7 @@ fn thumbnail_selection_after_hiding_extras_restores_outline() {
     click(&mut h, egui::pos2(row.row.left() + 46.0, row.row.center().y), command());
     assert_eq!(selection(&h), Some([40, 20, 60, 40]));
     assert!(h.state().ui.view.shows(h.state().ui.view.show.selection_edges), "Ctrl-clicking the thumbnail reveals the new selection");
-    assert_eq!(h.state().session.active().unwrap().active_layer, Some(localpaint_doc::LayerId(active)));
+    assert_eq!(h.state().session.active().unwrap().active_layer, Some(localraster_doc::LayerId(active)));
 }
 
 #[test]
@@ -459,7 +459,7 @@ fn loading_a_path_after_hiding_extras_restores_outline() {
 fn a_hidden_work_path_stays_hidden_when_another_tile_is_clicked() {
     // Path outlines (accent lines) in the right tile in the frame a click into the left tile makes.
     let right_outlines_on_switch = |hide: bool| {
-        let mut app = LocalPaintApp::new(localpaint_engine::Session::new(), crate::Services::default());
+        let mut app = LocalRasterApp::new(localraster_engine::Session::new(), crate::Services::default());
         for _ in 0..2 {
             app.run("file.new", json!({"width": 200, "height": 150})).unwrap();
         }
@@ -474,7 +474,7 @@ fn a_hidden_work_path_stays_hidden_when_another_tile_is_clicked() {
             app.ui.hidden_work_path = None;
         }
         let mut h = Harness::builder().with_size(vec2(1000.0, 600.0)).build_ui_state(
-            |ui, app: &mut LocalPaintApp| {
+            |ui, app: &mut LocalRasterApp| {
                 if !ui.ctx().fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
                     return;
                 }
@@ -482,7 +482,7 @@ fn a_hidden_work_path_stays_hidden_when_another_tile_is_clicked() {
             },
             app,
         );
-        LocalPaintApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
+        LocalRasterApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
         h.run_steps(4);
         let area = h.state().last_canvas_rect;
         let at = egui::pos2(area.left() + area.width() / 4.0, area.center().y);

@@ -1,6 +1,6 @@
 //! Save As must store the new filename in the native manifest, not just the in-session tab name.
 
-use localpaint_automation::{Headless, files};
+use localraster_automation::{Headless, files};
 use serde_json::json;
 
 #[test]

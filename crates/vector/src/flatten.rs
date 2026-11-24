@@ -1,7 +1,7 @@
 //! Bézier flattening with a distance tolerance.
 
-use localpaint_doc::{Path, Subpath};
-use localpaint_geom::Point;
+use localraster_doc::{Path, Subpath};
+use localraster_geom::Point;
 
 /// A flattened subpath.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -72,13 +72,13 @@ fn eval(seg: &[Point; 4], t: f64) -> (f64, f64) {
 
 /// Validate before interactive rendering: finite coordinates and a bounded tessellation and
 /// dash workload. Arc length is bounded by the cubic control polygon, without allocating pixels.
-pub fn validate_shape(path: &Path, stroke: Option<&localpaint_doc::ShapeStroke>) -> Result<(), &'static str> {
+pub fn validate_shape(path: &Path, stroke: Option<&localraster_doc::ShapeStroke>) -> Result<(), &'static str> {
     validate_workload(path, stroke, 1_000_000.0, "shape coordinates must be finite and within ±1000000 px")
 }
 
 fn validate_workload(
     path: &Path,
-    stroke: Option<&localpaint_doc::ShapeStroke>,
+    stroke: Option<&localraster_doc::ShapeStroke>,
     coordinate_limit: f64,
     coordinate_error: &'static str,
 ) -> Result<(), &'static str> {
@@ -207,7 +207,7 @@ pub fn flatten_path(p: &Path, tol: f64) -> Vec<Polyline> {
 mod tests {
     use super::*;
     use crate::shapes;
-    use localpaint_doc::Knot;
+    use localraster_doc::Knot;
 
     #[test]
     fn lines_are_not_subdivided() {

@@ -3,10 +3,10 @@
 use crate::common;
 
 use common::temp_dir;
-use localpaint_color::{ColorMode, SampleType};
-use localpaint_doc::Document;
-use localpaint_format::{PcraftWriter, SaveOptions};
-use localpaint_geom::Size;
+use localraster_color::{ColorMode, SampleType};
+use localraster_doc::Document;
+use localraster_format::{PcraftWriter, SaveOptions};
+use localraster_geom::Size;
 
 fn empty_doc() -> Document {
     Document::new("clean", Size::new(1, 1), ColorMode::Rgb, SampleType::U8)
@@ -34,8 +34,8 @@ fn directory_cleanup_preserves_unrelated_zst_files() {
 #[cfg(any(target_os = "linux", target_os = "android", target_vendor = "apple"))]
 mod permissions {
     use super::*;
-    use localpaint_format::load_path;
-    use localpaint_raster::Rgba8Image;
+    use localraster_format::load_path;
+    use localraster_raster::Rgba8Image;
     use std::os::unix::fs::{PermissionsExt, symlink};
     use std::path::{Path, PathBuf};
 

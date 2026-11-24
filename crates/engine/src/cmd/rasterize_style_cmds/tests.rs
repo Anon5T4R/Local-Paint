@@ -1,5 +1,5 @@
 use super::*;
-use localpaint_doc::Document;
+use localraster_doc::Document;
 
 fn doc(s: &Session) -> &Document {
     &s.active().unwrap().doc
@@ -9,12 +9,12 @@ fn layer(s: &Session, id: u64) -> &Layer {
     doc(s).layer(LayerId(id)).unwrap()
 }
 
-fn composite(s: &Session) -> localpaint_compose::Buffer {
+fn composite(s: &Session) -> localraster_compose::Buffer {
     let d = doc(s);
-    localpaint_compose::render(d, d.bounds())
+    localraster_compose::render(d, d.bounds())
 }
 
-fn max_diff(a: &localpaint_compose::Buffer, b: &localpaint_compose::Buffer) -> f32 {
+fn max_diff(a: &localraster_compose::Buffer, b: &localraster_compose::Buffer) -> f32 {
     a.px.iter().zip(&b.px).flat_map(|(p, q)| p.iter().zip(q).map(|(x, y)| (x - y).abs())).fold(0.0, f32::max)
 }
 

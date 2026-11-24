@@ -5,10 +5,10 @@
 mod fixture;
 
 use fixture::{Marker, document};
-use localpaint_affinity::synth::Method;
-use localpaint_doc::{LayerContent, LayerId};
-use localpaint_engine::{Session, file_cmds::open_bytes_as};
-use localpaint_geom::{Point, Rect};
+use localraster_affinity::synth::Method;
+use localraster_doc::{LayerContent, LayerId};
+use localraster_engine::{Session, file_cmds::open_bytes_as};
+use localraster_geom::{Point, Rect};
 use serde_json::json;
 
 fn state(s: &Session, id: LayerId) -> (Rect, Point) {

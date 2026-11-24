@@ -1,8 +1,8 @@
-use localpaint_color::blend::BlendMode;
-use localpaint_color::{ColorMode, PixelFormat, SampleType};
-use localpaint_doc::{Adjustment, Document, Knockout, Layer, LayerContent, LayerMask};
-use localpaint_geom::{Rect, Size};
-use localpaint_raster::Surface;
+use localraster_color::blend::BlendMode;
+use localraster_color::{ColorMode, PixelFormat, SampleType};
+use localraster_doc::{Adjustment, Document, Knockout, Layer, LayerContent, LayerMask};
+use localraster_geom::{Rect, Size};
+use localraster_raster::Surface;
 use proptest::prelude::*;
 
 use super::*;
@@ -80,7 +80,7 @@ fn ref_own(l: &Layer, x: i32, y: i32) -> Cmyka {
             Some(c) if c.fill == *f => Some(&c.surface),
             _ => {
                 // A solid colour's inks and alpha, stored at the (8-bit) document's levels.
-                let localpaint_doc::Fill::Solid(color) = f else { return [0.0; 5] };
+                let localraster_doc::Fill::Solid(color) = f else { return [0.0; 5] };
                 let c = color.in_mode(ColorMode::Cmyk);
                 return [q(c.c[0]), q(c.c[1]), q(c.c[2]), q(c.c[3]), q(color.alpha) * ref_mask(l, x, y)];
             }
@@ -105,8 +105,8 @@ fn over_text(b: Cmyka, s: Cmyka, opacity: f32) -> Cmyka {
     if a <= 0.0 {
         return [0.0; 5];
     }
-    let enc = |ink: f32| localpaint_color::convert::srgb_to_linear((1.0 - ink).max(0.0)).powf(1.0 / gamma);
-    let dec = |v: f32| 1.0 - localpaint_color::convert::linear_to_srgb(v.max(0.0).powf(gamma));
+    let enc = |ink: f32| localraster_color::convert::srgb_to_linear((1.0 - ink).max(0.0)).powf(1.0 / gamma);
+    let dec = |v: f32| 1.0 - localraster_color::convert::linear_to_srgb(v.max(0.0).powf(gamma));
     let mut o = [0.0; 5];
     for i in 0..4 {
         // Mixing an ink with itself, with nothing, or over a backdrop it covers fully leaves it
@@ -143,8 +143,8 @@ fn over_mode(mode: BlendMode, b: Cmyka, s: Cmyka, opacity: f32, text: bool) -> C
         return [0.0; 5];
     }
     let gamma = if text { crate::psblend::text_gamma() } else { 1.0 };
-    let enc = |ink: f32| localpaint_color::convert::srgb_to_linear((1.0 - ink).max(0.0)).powf(1.0 / gamma);
-    let dec = |v: f32| 1.0 - localpaint_color::convert::linear_to_srgb(v.max(0.0).powf(gamma));
+    let enc = |ink: f32| localraster_color::convert::srgb_to_linear((1.0 - ink).max(0.0)).powf(1.0 / gamma);
+    let dec = |v: f32| 1.0 - localraster_color::convert::linear_to_srgb(v.max(0.0).powf(gamma));
     let (wb, ws, wbs) = ((1.0 - sa) * b[4] / a, (1.0 - b[4]) * sa / a, sa * b[4] / a);
     let mut o = [0.0; 5];
     for i in 0..4 {
@@ -179,8 +179,8 @@ fn over_special_fill(l: &Layer, b: Cmyka, s: Cmyka) -> Cmyka {
     }
     let text = matches!(l.content, LayerContent::Text(_));
     let gamma = crate::psblend::text_gamma();
-    let enc = |v: f32| if text { localpaint_color::convert::srgb_to_linear(v.max(0.0)).powf(1.0 / gamma) } else { v };
-    let dec = |v: f32| if text { localpaint_color::convert::linear_to_srgb(v.max(0.0).powf(gamma)) } else { v };
+    let enc = |v: f32| if text { localraster_color::convert::srgb_to_linear(v.max(0.0)).powf(1.0 / gamma) } else { v };
+    let dec = |v: f32| if text { localraster_color::convert::linear_to_srgb(v.max(0.0).powf(gamma)) } else { v };
     let (wb, wbs, ws) = (b[4] * (1.0 - over) / a, b[4] * over / a, (1.0 - b[4]) * over * f / a);
     let mut o = [0.0; 5];
     for i in 0..4 {
@@ -419,7 +419,7 @@ fn isolated_groups_keep_the_special_fill_rule() {
 /// gamma would leave a rounding step of ink, which Vivid Light turns into full magenta.
 #[test]
 fn type_clipped_to_a_vivid_light_group_covers_exactly() {
-    let mut inner = Layer::new("f", LayerContent::Fill(localpaint_doc::Fill::Solid(cmyk_color([0.0, 1.0, 0.0, 0.0], 1.0))));
+    let mut inner = Layer::new("f", LayerContent::Fill(localraster_doc::Fill::Solid(cmyk_color([0.0, 1.0, 0.0, 0.0], 1.0))));
     inner.blend = BlendMode::Normal;
     let mut vivid = Layer::group("vivid", vec![inner]);
     vivid.blend = BlendMode::VividLight;
@@ -444,7 +444,7 @@ fn layers_clipped_to_isolated_groups_match_the_reference_in_every_mode() {
     for mode in [B::VividLight, B::LinearLight, B::PinLight, B::HardMix, B::ColorDodge, B::ColorBurn, B::Normal, B::Multiply, B::Screen] {
         for text in [false, true] {
             for (backdrop, ink) in [([0.0, 1.0, 0.0, 0.0], [0.0; 4]), ([1.0, 0.0, 1.0, 1.0], [1.0; 4]), ([0.0, 1.0, 0.0, 0.0], [0.0, 0.3, 1.0, 0.0])] {
-                let mut inner = Layer::new("f", LayerContent::Fill(localpaint_doc::Fill::Solid(cmyk_color(backdrop, 1.0))));
+                let mut inner = Layer::new("f", LayerContent::Fill(localraster_doc::Fill::Solid(cmyk_color(backdrop, 1.0))));
                 inner.blend = BlendMode::Normal;
                 let mut group = Layer::group("g", vec![inner]);
                 group.blend = mode;
@@ -655,7 +655,7 @@ fn adj_spec() -> impl Strategy<Value = AdjSpec> {
 }
 
 fn make_adjustment(a: &AdjSpec) -> Adjustment {
-    use localpaint_doc::adjust::{CurvePoint, LevelsChannel, ToneSpace};
+    use localraster_doc::adjust::{CurvePoint, LevelsChannel, ToneSpace};
     match a {
         AdjSpec::Invert => Adjustment::Invert,
         AdjSpec::Posterize(levels) => Adjustment::Posterize { levels: *levels },
@@ -735,12 +735,12 @@ fn build(s: &LayerSpec) -> Layer {
             let pixels = layer(fills);
             let mut l = match kind {
                 Kind::Raster => pixels,
-                Kind::Text => Layer::new("t", LayerContent::Text(localpaint_doc::TextLayer { cache: pixels.surface().cloned(), ..Default::default() })),
-                Kind::Shape => Layer::new("s", LayerContent::Shape(localpaint_doc::ShapeLayer { cache: pixels.surface().cloned(), ..Default::default() })),
+                Kind::Text => Layer::new("t", LayerContent::Text(localraster_doc::TextLayer { cache: pixels.surface().cloned(), ..Default::default() })),
+                Kind::Shape => Layer::new("s", LayerContent::Shape(localraster_doc::ShapeLayer { cache: pixels.surface().cloned(), ..Default::default() })),
                 Kind::Solid => {
                     let [c, m, y, k, a] = fills.first().map_or([0.0; 5], |f| f.1);
-                    let color = localpaint_color::Color { mode: ColorMode::Cmyk, c: [c, m, y, k], alpha: a };
-                    Layer::new("f", LayerContent::Fill(localpaint_doc::Fill::Solid(color)))
+                    let color = localraster_color::Color { mode: ColorMode::Cmyk, c: [c, m, y, k], alpha: a };
+                    Layer::new("f", LayerContent::Fill(localraster_doc::Fill::Solid(color)))
                 }
                 Kind::Adjust(a) => Layer::new("a", LayerContent::Adjustment(make_adjustment(a))),
             };
@@ -840,9 +840,9 @@ fn opaque_results_look_the_same_as_the_rgb_compositor() {
     let rgb = crate::render(&d, d.bounds());
     let space = crate::cmyk_space(&d);
     let fmt = PixelFormat { mode: ColorMode::Cmyk, sample: SampleType::F32, alpha: true };
-    localpaint_color::convert::with_cmyk_space(space.as_ref(), || {
+    localraster_color::convert::with_cmyk_space(space.as_ref(), || {
         for (n, r) in native.px.iter().zip(&rgb.px) {
-            let shown = localpaint_raster::to_rgba(&fmt, n);
+            let shown = localraster_raster::to_rgba(&fmt, n);
             assert!((0..4).all(|c| (shown[c] - r[c]).abs() <= 1e-4), "native {n:?} shows {shown:?}, RGB compositor {r:?}");
         }
     });
@@ -852,11 +852,11 @@ fn opaque_results_look_the_same_as_the_rgb_compositor() {
 
 fn text_layer(rects: &[(Rect, Cmyka)]) -> Layer {
     let cache = layer(rects).surface().cloned();
-    Layer::new("t", LayerContent::Text(localpaint_doc::TextLayer { cache, ..Default::default() }))
+    Layer::new("t", LayerContent::Text(localraster_doc::TextLayer { cache, ..Default::default() }))
 }
 
-fn cmyk_color(c: [f32; 4], alpha: f32) -> localpaint_color::Color {
-    localpaint_color::Color { mode: ColorMode::Cmyk, c, alpha }
+fn cmyk_color(c: [f32; 4], alpha: f32) -> localraster_color::Color {
+    localraster_color::Color { mode: ColorMode::Cmyk, c, alpha }
 }
 
 /// K-only type keeps K-only glyphs: fully covered pixels are exactly K100, and anti-aliased edges
@@ -881,11 +881,11 @@ fn type_interiors_are_exact_and_edges_add_no_other_ink() {
 fn solid_and_rendered_fills_keep_their_inks() {
     let mut d = doc(4, 1);
     d.layers.push(paper(4, 1, [0.0; 4]));
-    let mut solid = Layer::new("f", LayerContent::Fill(localpaint_doc::Fill::Solid(cmyk_color([0.1, 0.2, 0.3, 0.4], 1.0))));
+    let mut solid = Layer::new("f", LayerContent::Fill(localraster_doc::Fill::Solid(cmyk_color([0.1, 0.2, 0.3, 0.4], 1.0))));
     solid.mask = Some(mask(&[(Rect::new(2, 0, 4, 1), 0.0)], 1.0, 1.0, true));
     d.layers.push(solid);
     // A gradient fill carrying the pixels it was rendered to (as a PSD supplies them).
-    let gradient = localpaint_doc::Fill::gradient(
+    let gradient = localraster_doc::Fill::gradient(
         vec![(0.0, cmyk_color([1.0, 0.0, 0.0, 0.0], 1.0)), (1.0, cmyk_color([0.0, 0.0, 0.0, 1.0], 1.0))],
         0.0,
         1.0,
@@ -894,7 +894,7 @@ fn solid_and_rendered_fills_keep_their_inks() {
     );
     let rendered = layer(&[(Rect::new(3, 0, 4, 1), [0.9, 0.0, 0.5, 0.0, 1.0])]);
     let mut cached = Layer::new("g", LayerContent::Fill(gradient.clone()));
-    cached.fill_cache = rendered.surface().map(|s| localpaint_doc::FillCache { fill: gradient, surface: s.clone() });
+    cached.fill_cache = rendered.surface().map(|s| localraster_doc::FillCache { fill: gradient, surface: s.clone() });
     d.layers.push(cached);
     let got = render_cmyk(&d, d.bounds()).unwrap_or_else(|| panic!("supported"));
     assert_eq!(got.px[0], [q(0.1), q(0.2), q(0.3), q(0.4), 1.0], "the colour's own inks, at the document's levels");
@@ -912,7 +912,7 @@ fn stage_two_layers_that_stay_on_the_rgb_compositor() {
     };
     // A pattern fill without rendered pixels.
     let mut d = base();
-    let p = localpaint_doc::Fill::Pattern { name: "p".into(), scale: 1.0, id: "p".into(), angle: 0.0, link: true, phase: (0.0, 0.0) };
+    let p = localraster_doc::Fill::Pattern { name: "p".into(), scale: 1.0, id: "p".into(), angle: 0.0, link: true, phase: (0.0, 0.0) };
     d.layers.push(Layer::new("p", LayerContent::Fill(p)));
     assert!(!supports(&d), "uncached pattern fill");
     // Type rendered in RGB (not the document's model).
@@ -921,11 +921,11 @@ fn stage_two_layers_that_stay_on_the_rgb_compositor() {
     if let Some(s) = rgb.surface_mut() {
         s.fill_rect(Rect::new(0, 0, 1, 1), &[0.0, 0.0, 0.0, 1.0]);
     }
-    d.layers.push(Layer::new("t", LayerContent::Text(localpaint_doc::TextLayer { cache: rgb.surface().cloned(), ..Default::default() })));
+    d.layers.push(Layer::new("t", LayerContent::Text(localraster_doc::TextLayer { cache: rgb.surface().cloned(), ..Default::default() })));
     assert!(!supports(&d), "RGB type pixels");
     // A stroked shape with a clipped layer (its stroke goes above the clipped layers).
     let mut d = base();
-    let shape = localpaint_doc::ShapeLayer { stroke: Some(Default::default()), cache: layer(&[]).surface().cloned(), ..Default::default() };
+    let shape = localraster_doc::ShapeLayer { stroke: Some(Default::default()), cache: layer(&[]).surface().cloned(), ..Default::default() };
     d.layers.push(Layer::new("s", LayerContent::Shape(shape)));
     let mut clip = layer(&[(Rect::new(0, 0, 2, 2), [0.5; 5])]);
     clip.clipped = true;
@@ -942,7 +942,7 @@ fn stage_two_layers_that_stay_on_the_rgb_compositor() {
 #[test]
 fn uncached_gradient_fills_are_cmyk_ramps() {
     let mut d = doc(8, 2);
-    let g = localpaint_doc::Fill::gradient(
+    let g = localraster_doc::Fill::gradient(
         vec![(0.0, cmyk_color([1.0, 0.0, 0.0, 0.0], 1.0)), (1.0, cmyk_color([0.0, 0.0, 0.0, 1.0], 1.0))],
         0.0,
         1.0,
@@ -1141,13 +1141,13 @@ fn fill_is_part_of_the_blend_for_the_special_eight() {
 // ---- stage 4: adjustment layers on ink values --------------------------------------------------
 
 fn rgb_levels() -> Adjustment {
-    use localpaint_doc::adjust::{LevelsChannel, ToneSpace};
+    use localraster_doc::adjust::{LevelsChannel, ToneSpace};
     let d = LevelsChannel::default;
     Adjustment::Levels { master: LevelsChannel { in_white: 0.5, ..d() }, per_channel: [d(), d(), d()], space: ToneSpace::Rgb, black: d() }
 }
 
-fn cmyk_levels(master: localpaint_doc::adjust::LevelsChannel, black: localpaint_doc::adjust::LevelsChannel) -> Adjustment {
-    use localpaint_doc::adjust::{LevelsChannel, ToneSpace};
+fn cmyk_levels(master: localraster_doc::adjust::LevelsChannel, black: localraster_doc::adjust::LevelsChannel) -> Adjustment {
+    use localraster_doc::adjust::{LevelsChannel, ToneSpace};
     let d = LevelsChannel::default;
     Adjustment::Levels { master, per_channel: [d(), d(), d()], space: ToneSpace::Cmyk, black }
 }
@@ -1186,7 +1186,7 @@ fn invert_and_posterize_work_ink_by_ink() {
 /// leaves alone keep their exact inks.
 #[test]
 fn levels_records_address_their_inks() {
-    use localpaint_doc::adjust::LevelsChannel;
+    use localraster_doc::adjust::LevelsChannel;
     let d0 = LevelsChannel::default;
     // Composite: input white at 50% doubles each ink's brightness.
     let mut d = doc(1, 1);
@@ -1208,7 +1208,7 @@ fn levels_records_address_their_inks() {
 /// inside isolated and pass-through groups, against the reference.
 #[test]
 fn adjustment_stacks_match_the_reference() {
-    use localpaint_doc::adjust::LevelsChannel;
+    use localraster_doc::adjust::LevelsChannel;
     let d0 = LevelsChannel::default;
     let mut d = doc(8, 6);
     d.layers.push(paper(8, 6, [0.05, 0.1, 0.0, 0.0]));
@@ -1238,7 +1238,7 @@ fn adjustment_stacks_match_the_reference() {
 /// bit for bit, at full strength and through blend modes that pick an input.
 #[test]
 fn untouched_inks_stay_bit_exact() {
-    use localpaint_doc::adjust::LevelsChannel;
+    use localraster_doc::adjust::LevelsChannel;
     let d0 = LevelsChannel::default;
     let fmt = PixelFormat { mode: ColorMode::Cmyk, sample: SampleType::F32, alpha: false };
     let inks = [0.123_456_7, 0.456_789_1, 0.789_123_4, 0.0];
@@ -1261,12 +1261,12 @@ fn untouched_inks_stay_bit_exact() {
 
 // ---- stage 4: layer effects, ink by ink through the RGB compositor -----------------------------
 
-use localpaint_doc::effects::{
+use localraster_doc::effects::{
     Bevel, BevelStyle, BevelTechnique, Contour, Effect, FxCommon, FxPaint, Glow, GlowSource, GlowTechnique, Gradient, Satin, Shadow, StrokeFx, StrokePosition,
 };
 
-fn ink_color(c: [f32; 4]) -> localpaint_color::Color {
-    localpaint_color::Color { mode: ColorMode::Cmyk, c, alpha: 1.0 }
+fn ink_color(c: [f32; 4]) -> localraster_color::Color {
+    localraster_color::Color { mode: ColorMode::Cmyk, c, alpha: 1.0 }
 }
 
 /// `d` over its canvas grown by a pixel, through the split route in 3-pixel tiles.
@@ -1767,7 +1767,7 @@ fn assert_routes_agree(d: &Document) {
 /// Black-only Levels and Curves through the stand-ins: K changes, nothing else does.
 #[test]
 fn black_records_reach_k_through_the_stand_ins() {
-    use localpaint_doc::adjust::{CurvePoint, LevelsChannel, ToneSpace};
+    use localraster_doc::adjust::{CurvePoint, LevelsChannel, ToneSpace};
     let d0 = LevelsChannel::default;
     for adj in [
         cmyk_levels(d0(), LevelsChannel { out_white: 0.5, ..d0() }),
@@ -1804,14 +1804,14 @@ fn effects_on_opaque_layers_fall_back() {
 /// stored at the document's levels, as the compositor renders CMYK fills).
 #[test]
 fn fills_agree_on_both_routes() {
-    let g = localpaint_doc::Fill::gradient(
+    let g = localraster_doc::Fill::gradient(
         vec![(0.0, cmyk_color([1.0, 0.2, 0.0, 0.0], 1.0)), (1.0, cmyk_color([0.0, 0.0, 0.7, 1.0], 0.6))],
         30.0,
         1.0,
         Default::default(),
         false,
     );
-    for fill in [g, localpaint_doc::Fill::Solid(cmyk_color([0.13, 0.0, 0.9375, 0.0], 0.55))] {
+    for fill in [g, localraster_doc::Fill::Solid(cmyk_color([0.13, 0.0, 0.9375, 0.0], 0.55))] {
         let mut d = doc(9, 5);
         d.layers.push(paper(9, 5, [0.0, 0.1, 0.0, 0.0]));
         d.layers.push(Layer::new("f", LayerContent::Fill(fill)));
@@ -1843,7 +1843,7 @@ fn flattening_keeps_exact_inks() {
 /// threads) and a Color Overlay on the split path (its stand-ins).
 #[test]
 fn rgb_colours_become_ink_through_the_document_profile() {
-    let profile = localpaint_cms::synth::cmyk_profile(&localpaint_cms::synth::CmykParams {
+    let profile = localraster_cms::synth::cmyk_profile(&localraster_cms::synth::CmykParams {
         description: "Test Uncoated".into(),
         tvi: [0.26, 0.26, 0.26, 0.3],
         grid_a2b: 5,
@@ -1851,10 +1851,10 @@ fn rgb_colours_become_ink_through_the_document_profile() {
         ..Default::default()
     });
     let bytes = profile.to_bytes();
-    let space = localpaint_color::convert::CmykSpace::for_profile(Some(&bytes));
+    let space = localraster_color::convert::CmykSpace::for_profile(Some(&bytes));
     assert!(space.is_some(), "a profile other than the built-in one");
-    let rgb = localpaint_color::Color { mode: ColorMode::Rgb, c: [0.2, 0.5, 0.8, 0.0], alpha: 1.0 };
-    let want = localpaint_color::convert::with_cmyk_space(space.as_ref(), || rgb.in_mode(ColorMode::Cmyk).c);
+    let rgb = localraster_color::Color { mode: ColorMode::Rgb, c: [0.2, 0.5, 0.8, 0.0], alpha: 1.0 };
+    let want = localraster_color::convert::with_cmyk_space(space.as_ref(), || rgb.in_mode(ColorMode::Cmyk).c);
     let builtin = rgb.in_mode(ColorMode::Cmyk).c;
     assert!((0..4).any(|i| (want[i] - builtin[i]).abs() > 0.02), "the profiles differ: {want:?} {builtin:?}");
     let check = |d: &Document, what: &str| {
@@ -1866,7 +1866,7 @@ fn rgb_colours_become_ink_through_the_document_profile() {
 
     let mut exact = doc(8, 4);
     exact.icc_profile = Some(bytes.clone());
-    exact.layers.push(Layer::new("fill", LayerContent::Fill(localpaint_doc::Fill::Solid(rgb))));
+    exact.layers.push(Layer::new("fill", LayerContent::Fill(localraster_doc::Fill::Solid(rgb))));
     assert!(supports(&exact));
     check(&exact, "solid fill");
 
@@ -2035,7 +2035,7 @@ fn doc_at(depth: SampleType, w: u32, h: u32) -> Document {
 /// disagreement names the layer it starts at.
 #[test]
 fn special_fill_adjustments_agree_with_the_split_route() {
-    use localpaint_doc::adjust::LevelsChannel;
+    use localraster_doc::adjust::LevelsChannel;
 
     /// The split route gives the exact path's inks on `d`, saying where they first differ.
     fn check_routes(d: &Document, ctx: &str) {

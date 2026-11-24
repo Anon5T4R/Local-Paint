@@ -180,11 +180,11 @@ fn save_for_web_impl(s: &mut Session, p: &Value, write: &mut dyn FnMut(&str, &[u
     let d = s.active().ok_or(EngineError::NoDocument)?;
     let doc = d.doc.clone();
     let (wdoc, sx, sy) = web_document(&doc, p, &st)?;
-    let buf = localpaint_compose::flatten(&wdoc);
+    let buf = localraster_compose::flatten(&wdoc);
     let bw = wdoc.size.width as usize;
     // An untagged document is treated as sRGB (see [`web_document`]); with Embed Color Profile
     // on, the file says so, as Photoshop's does (#9325).
-    let srgb = (st.embed_icc && wdoc.icc_profile.is_none()).then(|| localpaint_cms::Builtin::Srgb.profile().to_bytes().to_vec());
+    let srgb = (st.embed_icc && wdoc.icc_profile.is_none()).then(|| localraster_cms::Builtin::Srgb.profile().to_bytes().to_vec());
     let icc = wdoc.icc_profile.as_deref().map(|v| v.as_slice()).or(srgb.as_deref());
     let xmp = web_xmp(&doc, st.metadata);
     let exif = web_exif(&doc, st.metadata);
@@ -197,7 +197,7 @@ fn save_for_web_impl(s: &mut Session, p: &Value, write: &mut dyn FnMut(&str, &[u
         .iter()
         .filter(|r| match (&numbers, pick) {
             (Some(n), _) => n.contains(&(r.number as u64)),
-            (None, "user") => r.origin != localpaint_doc::SliceOrigin::Auto,
+            (None, "user") => r.origin != localraster_doc::SliceOrigin::Auto,
             _ => true,
         })
         .collect();
@@ -291,7 +291,7 @@ fn save_for_web_impl(s: &mut Session, p: &Value, write: &mut dyn FnMut(&str, &[u
         let grid = cells.len() > 1;
         let spacer = grid.then(|| if images.is_empty() { "spacer.gif".to_string() } else { format!("{images}/spacer.gif") });
         if let Some(sp) = &spacer {
-            let gif = localpaint_codecs::web::encode_gif_indexed(1, 1, &[0], &[[0, 0, 0]], Some(0), false).map_err(other)?;
+            let gif = localraster_codecs::web::encode_gif_indexed(1, 1, &[0], &[[0, 0, 0]], Some(0), false).map_err(other)?;
             write(&web_derived_path(&dir, sp, native_paths)?, &gif)?;
         }
         let page = html_table(&base, wdoc.size.width, wdoc.size.height, &cells, spacer.as_deref());
