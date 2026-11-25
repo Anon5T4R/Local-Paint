@@ -15,15 +15,15 @@ Update Local Raster. In version 0.7.0, a text layer from a Photoshop file could 
 
 ## Fix
 
-1. Check your version with **Help › System Info…**. If it is older than 0.8.2, download the [latest release](https://github.com/Anon5T4R/Local-Raster/releases/latest).
+1. Check your version with **Help › System Info…**. If it is older than 0.8.2, download the [latest release](https://github.com/Styx-Studios/Local-Raster/releases/latest).
 2. Open the PSD again and click the text layer with the **Horizontal Type Tool**.
 
 If you already saved the file in 0.7.0 after the text moved, the moved text is now in the file. Go back to your original PSD if you still have it.
 
 ## Why this happens
 
-Clicking a PSD text layer with the Type tool starts editing it, and Local Raster then lays the text out itself instead of showing the pixels Photoshop saved. Local Raster 0.7.0 read the alignment and size of each run of text only from Photoshop's default styles, and ignored part of the text position that recent Photoshop versions store. Both are fixed in 0.8.2 ([issue 3795](https://github.com/Anon5T4R/Local-Raster/issues/3795), [pull request 3819](https://github.com/Anon5T4R/Local-Raster/pull/3819)).
+Clicking a PSD text layer with the Type tool starts editing it, and Local Raster then lays the text out itself instead of showing the pixels Photoshop saved. Local Raster 0.7.0 read the alignment and size of each run of text only from Photoshop's default styles, and ignored part of the text position that recent Photoshop versions store. Both are fixed in 0.8.2 ([issue 3795](https://github.com/Styx-Studios/Local-Raster/issues/3795), [pull request 3819](https://github.com/Styx-Studios/Local-Raster/pull/3819)).
 
 ## Still stuck?
 
-If text still moves in 0.8.2, keep a copy of the original with **File › Save a Copy…**, then report it in the [issue tracker](https://github.com/Anon5T4R/Local-Raster/issues) with the PSD (zipped) and the Photoshop version that saved it. See [Get help with a problem](get-help.md).
+If text still moves in 0.8.2, keep a copy of the original with **File › Save a Copy…**, then report it in the [issue tracker](https://github.com/Styx-Studios/Local-Raster/issues) with the PSD (zipped) and the Photoshop version that saved it. See [Get help with a problem](get-help.md).

@@ -30,10 +30,10 @@
   <launchable type="desktop-id">com.localraster.app.desktop</launchable>
   <icon type="stock">com.localraster.app</icon>
   <!-- Only url types known to appstream 0.15 (Ubuntu 22.04, where CI validates): no vcs-browser. -->
-  <url type="homepage">https://github.com/Anon5T4R/Local-Raster</url>
-  <url type="bugtracker">https://github.com/Anon5T4R/Local-Raster/issues</url>
-  <url type="help">https://github.com/Anon5T4R/Local-Raster</url>
-  <url type="contact">https://github.com/Anon5T4R/Local-Raster/discussions</url>
+  <url type="homepage">https://github.com/Styx-Studios/Local-Raster</url>
+  <url type="bugtracker">https://github.com/Styx-Studios/Local-Raster/issues</url>
+  <url type="help">https://github.com/Styx-Studios/Local-Raster</url>
+  <url type="contact">https://github.com/Styx-Studios/Local-Raster/discussions</url>
   <categories>
     <category>Graphics</category>
     <category>RasterGraphics</category>
@@ -48,7 +48,7 @@
   <screenshots>
     <screenshot type="default">
       <caption>Editing The Great Wave off Kanagawa with type layers and adjustment layers</caption>
-      <image>https://raw.githubusercontent.com/Anon5T4R/Local-Raster/main/docs/images/localraster-demo.jpg</image>
+      <image>https://raw.githubusercontent.com/Styx-Studios/Local-Raster/main/docs/images/localraster-demo.jpg</image>
     </screenshot>
   </screenshots>
   <branding>

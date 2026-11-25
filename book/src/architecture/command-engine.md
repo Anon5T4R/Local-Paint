@@ -26,7 +26,7 @@ cargo test -p localraster-engine
 cargo test -p localraster-engine --test panic_hunt -- --ignored
 ```
 
-The exact command-creation checklist is maintained in the existing [contribution guide](https://github.com/Anon5T4R/Local-Raster/blob/main/docs/contributing.md).
+The exact command-creation checklist is maintained in the existing [contribution guide](https://github.com/Styx-Studios/Local-Raster/blob/main/docs/contributing.md).
 
 ## Security boundary note
 

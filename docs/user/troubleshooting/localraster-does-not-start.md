@@ -9,8 +9,8 @@ On Windows, Local Raster starts Intel graphics on DirectX 12. If Local Raster cl
 
 ## Symptoms
 
-- Windows with Intel graphics (for example Intel UHD Graphics 630): Local Raster closes or crashes right after you start it. Windows Event Viewer shows an application error in `igvk64.dll` with exception `0xc0000005` ([issue 2320](https://github.com/Anon5T4R/Local-Raster/issues/2320), [issue 4](https://github.com/Anon5T4R/Local-Raster/issues/4)).
-- Intel Mac: the app icon bounces in the Dock and the app disappears. Started from Terminal, it prints `Error: Wgpu(RequestDeviceError(RequestDeviceError { inner: Core(Device(Lost)) }))` ([issue 1859](https://github.com/Anon5T4R/Local-Raster/issues/1859)).
+- Windows with Intel graphics (for example Intel UHD Graphics 630): Local Raster closes or crashes right after you start it. Windows Event Viewer shows an application error in `igvk64.dll` with exception `0xc0000005` ([issue 2320](https://github.com/Styx-Studios/Local-Raster/issues/2320), [issue 4](https://github.com/Styx-Studios/Local-Raster/issues/4)).
+- Intel Mac: the app icon bounces in the Dock and the app disappears. Started from Terminal, it prints `Error: Wgpu(RequestDeviceError(RequestDeviceError { inner: Core(Device(Lost)) }))` ([issue 1859](https://github.com/Styx-Studios/Local-Raster/issues/1859)).
 
 ## Fix
 
@@ -31,18 +31,18 @@ If Local Raster still closes on every start, force DirectX 12 from PowerShell:
         & .\localraster.exe
         Remove-Item Env:WGPU_BACKEND
 
-The last line clears the setting so later launches use the default again. You need the first two lines each time you start Local Raster this way. While `WGPU_BACKEND` is set, Local Raster uses it and does not step down to a safer mode by itself ([issue 2320](https://github.com/Anon5T4R/Local-Raster/issues/2320)).
+The last line clears the setting so later launches use the default again. You need the first two lines each time you start Local Raster this way. While `WGPU_BACKEND` is set, Local Raster uses it and does not step down to a safer mode by itself ([issue 2320](https://github.com/Styx-Studios/Local-Raster/issues/2320)).
 
 ### Intel Mac
 
-1. Update to Local Raster 0.8.2 or later. On Intel Macs it skips a set of graphics checks that macOS could not compile on older Intel graphics, such as Intel Iris Pro on macOS Monterey ([issue 3107](https://github.com/Anon5T4R/Local-Raster/issues/3107)).
+1. Update to Local Raster 0.8.2 or later. On Intel Macs it skips a set of graphics checks that macOS could not compile on older Intel graphics, such as Intel Iris Pro on macOS Monterey ([issue 3107](https://github.com/Styx-Studios/Local-Raster/issues/3107)).
 2. Start Local Raster again.
 
-If it still fails, there is no fix yet. This is the case reported on Macs patched with OpenCore Legacy Patcher, where setting `WGPU_BACKEND`, `--safe-gpu` and `LOCALRASTER_CPU_CANVAS=1` did not change the error ([issue 1859](https://github.com/Anon5T4R/Local-Raster/issues/1859)). Add your Mac model, macOS version and Local Raster version to that issue.
+If it still fails, there is no fix yet. This is the case reported on Macs patched with OpenCore Legacy Patcher, where setting `WGPU_BACKEND`, `--safe-gpu` and `LOCALRASTER_CPU_CANVAS=1` did not change the error ([issue 1859](https://github.com/Styx-Studios/Local-Raster/issues/1859)). Add your Mac model, macOS version and Local Raster version to that issue.
 
 ## Why this happens
 
-On Windows, Local Raster draws with your graphics driver. Intel's Vulkan driver (`igvk64.dll`) crashed Local Raster on a UHD 630 PC with Local Raster 0.6.0, and the DirectX 12 setting above avoided the crash ([issue 2320](https://github.com/Anon5T4R/Local-Raster/issues/2320)). Since 0.7.0 Local Raster prefers DirectX 12 on Intel graphics. Before it opens the window, it writes a small file called `gpu-starting.json` in its settings folder and deletes it once the first frames are drawn. A start that crashed leaves the file behind, and the next start reads it and moves to the next safer mode.
+On Windows, Local Raster draws with your graphics driver. Intel's Vulkan driver (`igvk64.dll`) crashed Local Raster on a UHD 630 PC with Local Raster 0.6.0, and the DirectX 12 setting above avoided the crash ([issue 2320](https://github.com/Styx-Studios/Local-Raster/issues/2320)). Since 0.7.0 Local Raster prefers DirectX 12 on Intel graphics. Before it opens the window, it writes a small file called `gpu-starting.json` in its settings folder and deletes it once the first frames are drawn. A start that crashed leaves the file behind, and the next start reads it and moves to the next safer mode.
 
 ## Still stuck?
 

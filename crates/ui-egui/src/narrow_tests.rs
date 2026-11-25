@@ -244,7 +244,7 @@ fn the_top_bar_and_the_update_card_fit_the_narrow_window() {
     assert_inside(&h, "top-bar", MIN_WIDTH, MIN_HEIGHT);
 
     let release =
-        localraster_engine::updates_cmds::Release { version: "99.0.0".into(), url: "https://github.com/Anon5T4R/Local-Raster/releases/tag/v99.0.0".into() };
+        localraster_engine::updates_cmds::Release { version: "99.0.0".into(), url: "https://github.com/Styx-Studios/Local-Raster/releases/tag/v99.0.0".into() };
     let mut h = harness_at(MIN_WIDTH, |app, _| {
         app.session.updates.status = localraster_engine::updates_cmds::Status::Available { release };
         crate::updates_ui::tick(app, &egui::Context::default());

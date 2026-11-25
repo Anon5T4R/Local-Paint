@@ -20,7 +20,7 @@ then open a new terminal and check `cargo --version` and `rustc --version`.
 
 On Windows 11, Smart App Control can block Cargo, rustc or executables generated during a build.
 If a build reports `An Application Control policy has blocked this file. (os error 4551)`
-([#1585](https://github.com/Anon5T4R/Local-Raster/issues/1585)), check:
+([#1585](https://github.com/Styx-Studios/Local-Raster/issues/1585)), check:
 
 - **Windows Security → App & browser control → Smart App Control settings** for its status.
 - **Event Viewer → Applications and Services Logs → Microsoft → Windows → CodeIntegrity →
@@ -31,7 +31,7 @@ reinstalling Rust does not establish that the blocked executable is trusted. See
 [Smart App Control FAQ](https://support.microsoft.com/en-us/windows/security/threat-malware-protection/smart-app-control-frequently-asked-questions)
 for the available controls; there is no per-app exception. On a managed device, ask your
 administrator about an approved development environment. If you only want to run Local Raster,
-use the [packaged Windows release](https://github.com/Anon5T4R/Local-Raster/releases) to avoid
+use the [packaged Windows release](https://github.com/Styx-Studios/Local-Raster/releases) to avoid
 building locally; the downloaded app is still subject to Windows application-control checks.
 
 ## Build and run

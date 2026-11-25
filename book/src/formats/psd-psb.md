@@ -2,7 +2,7 @@
 
 `localraster-psd` is a standalone clean-room reader and writer based on Adobe's public PSD specification. It supports PSD version 1 and PSB version 2, preserves unknown blocks for round-trip fidelity, and decodes channel data lazily.
 
-The parser accepts all four PSD compression methods handled by the crate and represents format-level structures before `localraster-io` maps them to `localraster-doc`. The current public API and fidelity behavior are documented in [`crates/psd/README.md`](https://github.com/Anon5T4R/Local-Raster/blob/main/crates/psd/README.md).
+The parser accepts all four PSD compression methods handled by the crate and represents format-level structures before `localraster-io` maps them to `localraster-doc`. The current public API and fidelity behavior are documented in [`crates/psd/README.md`](https://github.com/Styx-Studios/Local-Raster/blob/main/crates/psd/README.md).
 
 ## Implemented parser protections
 

@@ -5,7 +5,7 @@ order: 30
 verified: 0.8.2
 ---
 
-Open **Help › Report an Issue…**. It takes you to the [Local Raster issue tracker](https://github.com/Anon5T4R/Local-Raster/issues) on GitHub.
+Open **Help › Report an Issue…**. It takes you to the [Local Raster issue tracker](https://github.com/Styx-Studios/Local-Raster/issues) on GitHub.
 
 ## What to include
 

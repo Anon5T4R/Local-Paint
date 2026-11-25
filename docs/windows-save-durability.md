@@ -1,7 +1,7 @@
 # Windows native-save durability
 
 An acknowledged overwrite must reopen as the complete new document after a Windows/NTFS
-power loss. [Issue #7858](https://github.com/Anon5T4R/Local-Raster/issues/7858) demonstrated
+power loss. [Issue #7858](https://github.com/Styx-Studios/Local-Raster/issues/7858) demonstrated
 that flushing a temporary file before replacement did not establish this guarantee: a fresh
 Windows boot recovered the previous ZIP or directory bundle after Save returned success.
 
@@ -68,8 +68,8 @@ part of the production save implementation. Archive comparisons must account for
 build's generator-version stamp while still comparing all document payloads exactly.
 
 This change addresses Windows/NTFS publication. The existing Unix flush-error policy is
-handled separately by [#5420](https://github.com/Anon5T4R/Local-Raster/pull/5420). Preview
+handled separately by [#5420](https://github.com/Styx-Studios/Local-Raster/pull/5420). Preview
 replacement/deletion ordering on failed directory saves remains tracked by
-[#7548](https://github.com/Anon5T4R/Local-Raster/issues/7548) and
-[#7549](https://github.com/Anon5T4R/Local-Raster/issues/7549). VM tests do not establish
+[#7548](https://github.com/Styx-Studios/Local-Raster/issues/7548) and
+[#7549](https://github.com/Styx-Studios/Local-Raster/issues/7549). VM tests do not establish
 physical-controller or firmware-cache behavior, or guarantees on other filesystems.

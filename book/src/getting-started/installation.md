@@ -7,7 +7,7 @@ For source builds, continue to [Building](building.md). The desktop application 
 - `apps/localraster`: native desktop application
 - `apps/localraster-cli`: headless CLI, JSON-lines server, and MCP server
 
-Platform packaging and signing details are maintained in the existing [release documentation](https://github.com/Anon5T4R/Local-Raster/blob/main/docs/releasing.md). Signing is conditional on the configured release secrets; the existence of an artifact alone is not proof that it was signed.
+Platform packaging and signing details are maintained in the existing [release documentation](https://github.com/Styx-Studios/Local-Raster/blob/main/docs/releasing.md). Signing is conditional on the configured release secrets; the existence of an artifact alone is not proof that it was signed.
 
 ## Trusting input files
 

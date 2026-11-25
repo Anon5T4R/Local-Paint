@@ -91,7 +91,7 @@ fn main() {
                 app.session.updates.status = localraster_engine::updates_cmds::Status::Available {
                     release: localraster_engine::updates_cmds::Release {
                         version: "99.0.0".into(),
-                        url: "https://github.com/Anon5T4R/Local-Raster/releases/tag/v99.0.0".into(),
+                        url: "https://github.com/Styx-Studios/Local-Raster/releases/tag/v99.0.0".into(),
                     },
                 };
             }

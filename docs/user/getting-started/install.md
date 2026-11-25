@@ -5,13 +5,13 @@ order: 10
 verified: 0.8.2
 ---
 
-Take a build from the [latest release](https://github.com/Anon5T4R/Local-Raster/releases/latest) on GitHub. In the file names below, `<version>` stands for the version number, for example `0.8.2`.
+Take a build from the [latest release](https://github.com/Styx-Studios/Local-Raster/releases/latest) on GitHub. In the file names below, `<version>` stands for the version number, for example `0.8.2`.
 
 ## Windows
 
 Local Raster needs Windows 10 or later. On Windows 7 and 8 the installer stops with "Local Raster needs Windows 10 or later."
 
-1. Open the [latest release](https://github.com/Anon5T4R/Local-Raster/releases/latest).
+1. Open the [latest release](https://github.com/Styx-Studios/Local-Raster/releases/latest).
 2. Download `localraster-<version>-windows-x64.msi`. It fits most PCs (64-bit Intel and AMD).
 3. Run the file and follow the installer.
 

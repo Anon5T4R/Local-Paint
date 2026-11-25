@@ -44,9 +44,9 @@
          and the taskbar cache) even when the source is an ICO. -->
     <Icon Id="LocalRasterIcon.exe" SourceFile="$(var.IconPath)" />
     <Property Id="ARPPRODUCTICON" Value="LocalRasterIcon.exe" />
-    <Property Id="ARPURLINFOABOUT" Value="https://github.com/Anon5T4R/Local-Raster" />
-    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/Anon5T4R/Local-Raster" />
-    <Property Id="ARPHELPLINK" Value="https://github.com/Anon5T4R/Local-Raster/discussions" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/Styx-Studios/Local-Raster" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/Styx-Studios/Local-Raster" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/Styx-Studios/Local-Raster/discussions" />
 
     <!-- The setup wizard: WixUI_Minimal is welcome + licence, progress, then a finish page with
          "Launch Local Raster" (ticked by default). Its art is ours, drawn from the app icon by

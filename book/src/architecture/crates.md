@@ -21,4 +21,4 @@ Workspace applications are:
 | Local Raster desktop | `apps/localraster` | eframe/wgpu application and loopback control server |
 | Local Raster CLI | `apps/localraster-cli` | Convert, inspect, run, batch, JSON-lines serve, and MCP |
 
-New crates must be registered in `xtask/src/layers.rs`. Nothing below `ui-egui` may depend on egui, eframe, winit, or rfd. The `psd`, `codecs`, and `cms` crates have additional independence requirements documented in [`AGENTS.md`](https://github.com/Anon5T4R/Local-Raster/blob/main/AGENTS.md).
+New crates must be registered in `xtask/src/layers.rs`. Nothing below `ui-egui` may depend on egui, eframe, winit, or rfd. The `psd`, `codecs`, and `cms` crates have additional independence requirements documented in [`AGENTS.md`](https://github.com/Styx-Studios/Local-Raster/blob/main/AGENTS.md).

@@ -227,7 +227,7 @@ mod tests {
             .unwrap()
             .as_ref()
             .unwrap()
-            .send(Ok(Some(Release { version: "99.0.0".into(), url: "https://github.com/Anon5T4R/Local-Raster/releases/tag/v99.0.0".into() })))
+            .send(Ok(Some(Release { version: "99.0.0".into(), url: "https://github.com/Styx-Studios/Local-Raster/releases/tag/v99.0.0".into() })))
             .unwrap();
         app.run("updates.status", serde_json::json!({})).unwrap();
         at(&mut app, &ctx, 1.0);
@@ -247,7 +247,7 @@ mod tests {
             .unwrap()
             .as_ref()
             .unwrap()
-            .send(Ok(Some(Release { version: "99.0.0".into(), url: "https://github.com/Anon5T4R/Local-Raster/releases/tag/v99.0.0".into() })))
+            .send(Ok(Some(Release { version: "99.0.0".into(), url: "https://github.com/Styx-Studios/Local-Raster/releases/tag/v99.0.0".into() })))
             .unwrap();
         at(&mut app, &ctx, 1.0);
         assert!(app.updates_rt.updater.prompt_open(), "startup prompt initialized on available release");

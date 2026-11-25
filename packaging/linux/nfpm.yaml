@@ -14,7 +14,7 @@ section: graphics
 priority: optional
 maintainer: ${LOCALRASTER_MAINTAINER}
 vendor: Anon5T4R
-homepage: https://github.com/Anon5T4R/Local-Raster
+homepage: https://github.com/Styx-Studios/Local-Raster
 license: MIT OR Apache-2.0
 # Local Paint's package was called localpaint: a system upgrade swaps it for this one.
 replaces:

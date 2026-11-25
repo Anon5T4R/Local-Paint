@@ -10,7 +10,7 @@ pkgver=0.20.14
 pkgrel=1
 pkgdesc='Editor de imagem local e open-source, escrito em Rust puro'
 arch=(x86_64)
-url='https://github.com/Anon5T4R/Local-Raster'
+url='https://github.com/Styx-Studios/Local-Raster'
 license=('MIT OR Apache-2.0')
 provides=('localraster')
 # O pacote antigo (Local Paint) se chamava com.localpaint.app e provia localpaint: replaces troca na atualização do sistema.

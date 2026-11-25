@@ -11,8 +11,8 @@ create-missing = false
 
 [output.html]
 git-repository-icon = "fa-github"
-git-repository-url = "https://github.com/Anon5T4R/Local-Raster"
-edit-url-template = "https://github.com/Anon5T4R/Local-Raster/edit/main/book/{path}"
+git-repository-url = "https://github.com/Styx-Studios/Local-Raster"
+edit-url-template = "https://github.com/Styx-Studios/Local-Raster/edit/main/book/{path}"
 preferred-dark-theme = "navy"
 smart-punctuation = true
 

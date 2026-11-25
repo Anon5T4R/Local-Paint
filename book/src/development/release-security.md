@@ -1,6 +1,6 @@
 # Release security
 
-Local Raster's release workflow builds platform packages and a draft GitHub Release from the `release` branch. The authoritative process is [`docs/releasing.md`](https://github.com/Anon5T4R/Local-Raster/blob/main/docs/releasing.md).
+Local Raster's release workflow builds platform packages and a draft GitHub Release from the `release` branch. The authoritative process is [`docs/releasing.md`](https://github.com/Styx-Studios/Local-Raster/blob/main/docs/releasing.md).
 
 ## Implemented workflow elements
 

@@ -35,8 +35,8 @@ colour-only targets. Options that create a new layer, including Remove’s Creat
 require the composite.
 Rasterize a non-raster layer before editing its colour planes.
 Vector path transforms and moving guides remain available. This work is independent
-of [#4648](https://github.com/Anon5T4R/Local-Raster/pull/4648) and
-[#6864](https://github.com/Anon5T4R/Local-Raster/pull/6864); it does not include their
+of [#4648](https://github.com/Styx-Studios/Local-Raster/pull/4648) and
+[#6864](https://github.com/Styx-Studios/Local-Raster/pull/6864); it does not include their
 isolated-channel geometry or remaining scalar-target tone-dialog changes.
 
 ## Automation

@@ -18,4 +18,4 @@ It is a native app written in Rust that draws the canvas on your graphics card, 
 
 ## Get help
 
-Open an issue in the [issue tracker](https://github.com/Anon5T4R/Local-Raster/issues). In Local Raster, **Help › Report an Issue…** opens the same issue tracker.
+Open an issue in the [issue tracker](https://github.com/Styx-Studios/Local-Raster/issues). In Local Raster, **Help › Report an Issue…** opens the same issue tracker.

@@ -5,9 +5,9 @@ use serde_json::{Value, json};
 
 use crate::LocalRasterApp;
 
-pub const APP_PAGE: &str = "https://github.com/Anon5T4R/Local-Raster";
-pub const GITHUB: &str = "https://github.com/Anon5T4R/Local-Raster";
-pub const ISSUES: &str = "https://github.com/Anon5T4R/Local-Raster/issues";
+pub const APP_PAGE: &str = "https://github.com/Styx-Studios/Local-Raster";
+pub const GITHUB: &str = "https://github.com/Styx-Studios/Local-Raster";
+pub const ISSUES: &str = "https://github.com/Styx-Studios/Local-Raster/issues";
 
 /// Help-menu link commands: (id, url). Labels live in `menus::UI_COMMANDS`.
 pub const COMMANDS: &[(&str, &str)] = &[("help.website", APP_PAGE), ("help.github", GITHUB), ("help.reportIssue", ISSUES)];
@@ -99,7 +99,7 @@ mod tests {
     fn link_commands_open_their_urls() {
         let mut app = LocalRasterApp::new(localraster_engine::Session::new(), Default::default());
         let ctx = egui::Context::default();
-        for (id, url) in [("help.website", "https://github.com/Anon5T4R/Local-Raster"), ("help.github", "https://github.com/Anon5T4R/Local-Raster")] {
+        for (id, url) in [("help.website", "https://github.com/Styx-Studios/Local-Raster"), ("help.github", "https://github.com/Styx-Studios/Local-Raster")] {
             let r = crate::menus::invoke(&mut app, &ctx, id, serde_json::json!({})).unwrap();
             assert_eq!(r["url"], url);
             assert_eq!(app.ui.status, format!("Opened {url}"));

@@ -7,17 +7,17 @@ Base: `7722172585a01cbdb93c06f0f5ff2634fcb17999` (freshly fetched
 
 Open, closed and merged issues/PRs were searched for Iris, Blur Gallery, blur,
 sampling, portable and SIMD. No overlapping Iris Blur change was found.
-Gallery history includes [PR #1010](https://github.com/Anon5T4R/Local-Raster/pull/1010),
+Gallery history includes [PR #1010](https://github.com/Styx-Studios/Local-Raster/pull/1010),
 which normalizes nonfinite pin angles and maps nonfinite distance to infinity
 (part of #916). Its behaviour is retained in prepared Iris geometry and tested.
-[PR #1524](https://github.com/Anon5T4R/Local-Raster/pull/1524), merged as
+[PR #1524](https://github.com/Styx-Studios/Local-Raster/pull/1524), merged as
 `d651be1393b709d638dd9d0e4824a420f795d3ae`, is the merged SIMD-related work:
-the [review](https://github.com/Anon5T4R/Local-Raster/pull/1524#issuecomment-6072959394)
+the [review](https://github.com/Styx-Studios/Local-Raster/pull/1524#issuecomment-6072959394)
 requested removal of the AVX2/pulp portion because it did not improve complete
 filter timings. The author removed that portion before merge. Main has portable
 contiguous Mosaic row reads, with exact-output tests, rather than a SIMD subsystem.
 
-[PR #1602](https://github.com/Anon5T4R/Local-Raster/pull/1602) carries fixed-channel
+[PR #1602](https://github.com/Styx-Studios/Local-Raster/pull/1602) carries fixed-channel
 Gaussian/resize accumulators from #1511, allowing compiler vectorization without
 unsafe code or a new dependency. Those box accumulators use f32; Gallery uses f64
 running sums for tile independence, so they are not an exact drop-in replacement.
@@ -25,9 +25,9 @@ No nightly `std::simd`, architecture-specific instructions, new dependency or
 `target-cpu=native` is introduced here. Transitive codec SIMD dependencies do not
 provide a Gallery kernel.
 
-[PR #1899](https://github.com/Anon5T4R/Local-Raster/pull/1899) already runs filter
+[PR #1899](https://github.com/Styx-Studios/Local-Raster/pull/1899) already runs filter
 previews on a cancellable worker, with a 150 ms settle delay for stale requests.
-[PR #2207](https://github.com/Anon5T4R/Local-Raster/pull/2207) addresses preview scale.
+[PR #2207](https://github.com/Styx-Studios/Local-Raster/pull/2207) addresses preview scale.
 This change leaves the worker, proxy size, engine command and UI interactions intact.
 
 ## Algorithm and numerical contract
