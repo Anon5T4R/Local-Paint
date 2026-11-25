@@ -2,7 +2,7 @@
 
 ## Seam carving keeps its search across seams (2026-10-13, #5236)
 
-Perf scenario P28 ([#211](https://github.com/Styx-Studios/Local-Raster/issues/211)) scales a 24 MP
+Perf scenario P28 ([#211](https://github.com/storytold/photocraft/issues/211)) scales a 24 MP
 photo to 90 % width with Edit › Content-Aware Scale. Its budget is 3 s.
 
 - The committed baseline (2026-10-05) records 954 s. That predates the per-seam energy updates

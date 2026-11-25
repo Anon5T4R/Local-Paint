@@ -6,10 +6,10 @@ This corrects source metadata; it does not add a camera colour profile or a JPEG
 
 ## Research and scope
 
-Local Raster already contains the cRAW sensor decoder from [#83](https://github.com/Styx-Studios/Local-Raster/pull/83)
-and the 512 black fallback from [#1902](https://github.com/Styx-Studios/Local-Raster/pull/1902).
-The open [#2135](https://github.com/Styx-Studios/Local-Raster/pull/2135) proposes fitting camera-JPEG
-colour and tone; [#2230](https://github.com/Styx-Studios/Local-Raster/pull/2230) adds camera profiles.
+Local Raster already contains the cRAW sensor decoder from [#83](https://github.com/storytold/photocraft/pull/83)
+and the 512 black fallback from [#1902](https://github.com/storytold/photocraft/pull/1902).
+The open [#2135](https://github.com/storytold/photocraft/pull/2135) proposes fitting camera-JPEG
+colour and tone; [#2230](https://github.com/storytold/photocraft/pull/2230) adds camera profiles.
 Their actual bodies and diffs were reviewed before this change; neither is merged at the
 inspection date. This change addresses metadata missing from the existing decoder, without
 duplicating those colour-development proposals.

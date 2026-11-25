@@ -22,7 +22,7 @@ If you already saved the file in 0.7.0 after the text moved, the moved text is n
 
 ## Why this happens
 
-Clicking a PSD text layer with the Type tool starts editing it, and Local Raster then lays the text out itself instead of showing the pixels Photoshop saved. Local Raster 0.7.0 read the alignment and size of each run of text only from Photoshop's default styles, and ignored part of the text position that recent Photoshop versions store. Both are fixed in 0.8.2 ([issue 3795](https://github.com/Styx-Studios/Local-Raster/issues/3795), [pull request 3819](https://github.com/Styx-Studios/Local-Raster/pull/3819)).
+Clicking a PSD text layer with the Type tool starts editing it, and Local Raster then lays the text out itself instead of showing the pixels Photoshop saved. Local Raster 0.7.0 read the alignment and size of each run of text only from Photoshop's default styles, and ignored part of the text position that recent Photoshop versions store. Both are fixed in 0.8.2 ([issue 3795](https://github.com/storytold/photocraft/issues/3795), [pull request 3819](https://github.com/storytold/photocraft/pull/3819)).
 
 ## Still stuck?
 

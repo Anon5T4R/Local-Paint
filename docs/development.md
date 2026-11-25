@@ -20,7 +20,7 @@ then open a new terminal and check `cargo --version` and `rustc --version`.
 
 On Windows 11, Smart App Control can block Cargo, rustc or executables generated during a build.
 If a build reports `An Application Control policy has blocked this file. (os error 4551)`
-([#1585](https://github.com/Styx-Studios/Local-Raster/issues/1585)), check:
+([#1585](https://github.com/storytold/photocraft/issues/1585)), check:
 
 - **Windows Security → App & browser control → Smart App Control settings** for its status.
 - **Event Viewer → Applications and Services Logs → Microsoft → Windows → CodeIntegrity →

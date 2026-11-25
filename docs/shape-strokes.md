@@ -107,20 +107,20 @@ not offered yet.
 
 ## Upstream and public references
 
-- [PR #2218](https://github.com/Styx-Studios/Local-Raster/pull/2218) introduced these controls with
+- [PR #2218](https://github.com/storytold/photocraft/pull/2218) introduced these controls with
   staged previews. The direct-edit interaction above replaces that Apply/Cancel workflow.
-- [Issue #2496](https://github.com/Styx-Studios/Local-Raster/issues/2496) tracks broader Shape tool
+- [Issue #2496](https://github.com/storytold/photocraft/issues/2496) tracks broader Shape tool
   parity, including selected-shape editing from the options bar and additional fill types;
   those remain separate work.
-- [Issue #1053](https://github.com/Styx-Studios/Local-Raster/issues/1053) documents the missing
+- [Issue #1053](https://github.com/storytold/photocraft/issues/1053) documents the missing
   stroke controls and existing engine/model support. The Fill and Stroke swatches now have a
   Gradient tab (see Paint below); a pattern paint UI remains separate work.
-- [Issue #1931](https://github.com/Styx-Studios/Local-Raster/issues/1931) requests sharp stroke options.
-- [PR #233](https://github.com/Styx-Studios/Local-Raster/pull/233),
-  [#397](https://github.com/Styx-Studios/Local-Raster/pull/397), and
-  [#1495](https://github.com/Styx-Studios/Local-Raster/pull/1495) already address stroke compositing,
+- [Issue #1931](https://github.com/storytold/photocraft/issues/1931) requests sharp stroke options.
+- [PR #233](https://github.com/storytold/photocraft/pull/233),
+  [#397](https://github.com/storytold/photocraft/pull/397), and
+  [#1495](https://github.com/storytold/photocraft/pull/1495) already address stroke compositing,
   hairlines, and depth preservation; their implementations are reused.
-- [PR #2031](https://github.com/Styx-Studios/Local-Raster/pull/2031) supplies the click-to-create
+- [PR #2031](https://github.com/storytold/photocraft/pull/2031) supplies the click-to-create
   dialogs. Both dialogs and drag creation use its shared `create_shape` helper, which receives
   the complete stroke defaults. A gesture regression checks both paths and their undo steps.
 - Adobe's [Photoshop shape fill/stroke guide](https://helpx.adobe.com/photoshop/desktop/draw-shapes-paths/create-shapes/fill-and-stroke-shapes.html)
